@@ -9,38 +9,128 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
+import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
+import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
+import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEntrevistasIndexRoute =
+  AuthenticatedEntrevistasIndexRouteImport.update({
+    id: '/entrevistas/',
+    path: '/entrevistas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEntrevistasNovaRoute =
+  AuthenticatedEntrevistasNovaRouteImport.update({
+    id: '/entrevistas/nova',
+    path: '/entrevistas/nova',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEntrevistasIdRoute =
+  AuthenticatedEntrevistasIdRouteImport.update({
+    id: '/entrevistas/$id',
+    path: '/entrevistas/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/empresas': typeof AuthenticatedEmpresasRoute
+  '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
+  '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/empresas': typeof AuthenticatedEmpresasRoute
+  '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
+  '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
+  '/_authenticated/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
+  '/_authenticated/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/empresas'
+    | '/entrevistas/$id'
+    | '/entrevistas/nova'
+    | '/entrevistas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/empresas'
+    | '/entrevistas/$id'
+    | '/entrevistas/nova'
+    | '/entrevistas'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/empresas'
+    | '/_authenticated/entrevistas/$id'
+    | '/_authenticated/entrevistas/nova'
+    | '/_authenticated/entrevistas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +138,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/empresas': {
+      id: '/_authenticated/empresas'
+      path: '/empresas'
+      fullPath: '/empresas'
+      preLoaderRoute: typeof AuthenticatedEmpresasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entrevistas/': {
+      id: '/_authenticated/entrevistas/'
+      path: '/entrevistas'
+      fullPath: '/entrevistas/'
+      preLoaderRoute: typeof AuthenticatedEntrevistasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entrevistas/nova': {
+      id: '/_authenticated/entrevistas/nova'
+      path: '/entrevistas/nova'
+      fullPath: '/entrevistas/nova'
+      preLoaderRoute: typeof AuthenticatedEntrevistasNovaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entrevistas/$id': {
+      id: '/_authenticated/entrevistas/$id'
+      path: '/entrevistas/$id'
+      fullPath: '/entrevistas/$id'
+      preLoaderRoute: typeof AuthenticatedEntrevistasIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
+  AuthenticatedEntrevistasIdRoute: typeof AuthenticatedEntrevistasIdRoute
+  AuthenticatedEntrevistasNovaRoute: typeof AuthenticatedEntrevistasNovaRoute
+  AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
+  AuthenticatedEntrevistasIdRoute: AuthenticatedEntrevistasIdRoute,
+  AuthenticatedEntrevistasNovaRoute: AuthenticatedEntrevistasNovaRoute,
+  AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
