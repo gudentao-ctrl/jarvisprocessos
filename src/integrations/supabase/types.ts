@@ -22,13 +22,16 @@ export type Database = {
           cronoanalysis_id: string | null
           description: string | null
           due_date: string | null
+          expected_benefit: string
           id: string
           indicator_id: string | null
           interview_id: string | null
+          opportunity_id: string | null
           pain_point_id: string | null
           priority: Database["public"]["Enums"]["action_priority"]
           process_id: string | null
           responsible: string | null
+          root_cause_id: string | null
           status: Database["public"]["Enums"]["action_status"]
           title: string
           updated_at: string
@@ -40,13 +43,16 @@ export type Database = {
           cronoanalysis_id?: string | null
           description?: string | null
           due_date?: string | null
+          expected_benefit?: string
           id?: string
           indicator_id?: string | null
           interview_id?: string | null
+          opportunity_id?: string | null
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
           process_id?: string | null
           responsible?: string | null
+          root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title: string
           updated_at?: string
@@ -58,13 +64,16 @@ export type Database = {
           cronoanalysis_id?: string | null
           description?: string | null
           due_date?: string | null
+          expected_benefit?: string
           id?: string
           indicator_id?: string | null
           interview_id?: string | null
+          opportunity_id?: string | null
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
           process_id?: string | null
           responsible?: string | null
+          root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title?: string
           updated_at?: string
@@ -99,6 +108,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "action_plans_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "improvement_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "action_plans_pain_point_id_fkey"
             columns: ["pain_point_id"]
             isOneToOne: false
@@ -110,6 +126,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_plans_root_cause_id_fkey"
+            columns: ["root_cause_id"]
+            isOneToOne: false
+            referencedRelation: "root_cause_analyses"
             referencedColumns: ["id"]
           },
         ]
@@ -236,6 +259,172 @@ export type Database = {
           {
             foreignKeyName: "cronoanalysis_sessions_process_id_fkey"
             columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      executive_diagnostics: {
+        Row: {
+          company_id: string
+          content: Json
+          created_at: string
+          created_by: string | null
+          edited_at: string | null
+          generated_at: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          edited_at?: string | null
+          generated_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          edited_at?: string | null
+          generated_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executive_diagnostics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      improvement_opportunities: {
+        Row: {
+          action_plan_id: string | null
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          effort: Database["public"]["Enums"]["effort_level"]
+          expected_benefit: string
+          id: string
+          impact: Database["public"]["Enums"]["impact_level"]
+          indicator_id: string | null
+          pain_point_id: string | null
+          priority: Database["public"]["Enums"]["opportunity_priority"]
+          priority_score: number
+          process_id: string | null
+          root_cause_id: string | null
+          source: Database["public"]["Enums"]["opportunity_source"]
+          status: Database["public"]["Enums"]["opportunity_status"]
+          title: string
+          tobe_process_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_plan_id?: string | null
+          category?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          effort?: Database["public"]["Enums"]["effort_level"]
+          expected_benefit?: string
+          id?: string
+          impact?: Database["public"]["Enums"]["impact_level"]
+          indicator_id?: string | null
+          pain_point_id?: string | null
+          priority?: Database["public"]["Enums"]["opportunity_priority"]
+          priority_score?: number
+          process_id?: string | null
+          root_cause_id?: string | null
+          source?: Database["public"]["Enums"]["opportunity_source"]
+          status?: Database["public"]["Enums"]["opportunity_status"]
+          title: string
+          tobe_process_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_plan_id?: string | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          effort?: Database["public"]["Enums"]["effort_level"]
+          expected_benefit?: string
+          id?: string
+          impact?: Database["public"]["Enums"]["impact_level"]
+          indicator_id?: string | null
+          pain_point_id?: string | null
+          priority?: Database["public"]["Enums"]["opportunity_priority"]
+          priority_score?: number
+          process_id?: string | null
+          root_cause_id?: string | null
+          source?: Database["public"]["Enums"]["opportunity_source"]
+          status?: Database["public"]["Enums"]["opportunity_status"]
+          title?: string
+          tobe_process_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "improvement_opportunities_action_plan_fk"
+            columns: ["action_plan_id"]
+            isOneToOne: false
+            referencedRelation: "action_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_pain_point_id_fkey"
+            columns: ["pain_point_id"]
+            isOneToOne: false
+            referencedRelation: "pain_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_root_cause_fk"
+            columns: ["root_cause_id"]
+            isOneToOne: false
+            referencedRelation: "root_cause_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_tobe_process_id_fkey"
+            columns: ["tobe_process_id"]
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
@@ -443,6 +632,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pain_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prioritization_criteria: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          weights: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          weights?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          weights?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prioritization_criteria_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -669,6 +896,50 @@ export type Database = {
           },
         ]
       }
+      process_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: Database["public"]["Enums"]["version_kind"]
+          label: string
+          notes: string
+          process_id: string
+          snapshot: Json
+          version_no: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["version_kind"]
+          label?: string
+          notes?: string
+          process_id: string
+          snapshot?: Json
+          version_no: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["version_kind"]
+          label?: string
+          notes?: string
+          process_id?: string
+          snapshot?: Json
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_versions_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processes: {
         Row: {
           company_id: string
@@ -677,6 +948,7 @@ export type Database = {
           description: string | null
           id: string
           inputs: string | null
+          kind: Database["public"]["Enums"]["process_kind"]
           level: Database["public"]["Enums"]["process_level"]
           name: string
           objective: string | null
@@ -684,6 +956,8 @@ export type Database = {
           parent_id: string | null
           responsible: string | null
           source_interview_id: string | null
+          source_process_id: string | null
+          status: Database["public"]["Enums"]["process_status"]
           systems: string[]
           updated_at: string
         }
@@ -694,6 +968,7 @@ export type Database = {
           description?: string | null
           id?: string
           inputs?: string | null
+          kind?: Database["public"]["Enums"]["process_kind"]
           level?: Database["public"]["Enums"]["process_level"]
           name: string
           objective?: string | null
@@ -701,6 +976,8 @@ export type Database = {
           parent_id?: string | null
           responsible?: string | null
           source_interview_id?: string | null
+          source_process_id?: string | null
+          status?: Database["public"]["Enums"]["process_status"]
           systems?: string[]
           updated_at?: string
         }
@@ -711,6 +988,7 @@ export type Database = {
           description?: string | null
           id?: string
           inputs?: string | null
+          kind?: Database["public"]["Enums"]["process_kind"]
           level?: Database["public"]["Enums"]["process_level"]
           name?: string
           objective?: string | null
@@ -718,6 +996,8 @@ export type Database = {
           parent_id?: string | null
           responsible?: string | null
           source_interview_id?: string | null
+          source_process_id?: string | null
+          status?: Database["public"]["Enums"]["process_status"]
           systems?: string[]
           updated_at?: string
         }
@@ -741,6 +1021,201 @@ export type Database = {
             columns: ["source_interview_id"]
             isOneToOne: false
             referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_source_process_id_fkey"
+            columns: ["source_process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roadmap_items: {
+        Row: {
+          area: string
+          company_id: string
+          created_at: string
+          deadline: string | null
+          description: string
+          effort: Database["public"]["Enums"]["effort_level"]
+          expected_impact: string
+          horizon: Database["public"]["Enums"]["roadmap_horizon"]
+          id: string
+          opportunity_id: string | null
+          priority: Database["public"]["Enums"]["opportunity_priority"]
+          responsible: string
+          status: Database["public"]["Enums"]["roadmap_status"]
+          theme: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          area?: string
+          company_id: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          effort?: Database["public"]["Enums"]["effort_level"]
+          expected_impact?: string
+          horizon?: Database["public"]["Enums"]["roadmap_horizon"]
+          id?: string
+          opportunity_id?: string | null
+          priority?: Database["public"]["Enums"]["opportunity_priority"]
+          responsible?: string
+          status?: Database["public"]["Enums"]["roadmap_status"]
+          theme?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          company_id?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          effort?: Database["public"]["Enums"]["effort_level"]
+          expected_impact?: string
+          horizon?: Database["public"]["Enums"]["roadmap_horizon"]
+          id?: string
+          opportunity_id?: string | null
+          priority?: Database["public"]["Enums"]["opportunity_priority"]
+          responsible?: string
+          status?: Database["public"]["Enums"]["roadmap_status"]
+          theme?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roadmap_items_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "improvement_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      root_cause_actions: {
+        Row: {
+          action_plan_id: string | null
+          analysis_id: string
+          created_at: string
+          description: string
+          id: string
+          kind: Database["public"]["Enums"]["rca_action_kind"]
+        }
+        Insert: {
+          action_plan_id?: string | null
+          analysis_id: string
+          created_at?: string
+          description: string
+          id?: string
+          kind?: Database["public"]["Enums"]["rca_action_kind"]
+        }
+        Update: {
+          action_plan_id?: string | null
+          analysis_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["rca_action_kind"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "root_cause_actions_action_plan_id_fkey"
+            columns: ["action_plan_id"]
+            isOneToOne: false
+            referencedRelation: "action_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "root_cause_actions_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "root_cause_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      root_cause_analyses: {
+        Row: {
+          company_id: string
+          conclusion: string
+          created_at: string
+          created_by: string | null
+          data: Json
+          id: string
+          method: Database["public"]["Enums"]["rca_method"]
+          opportunity_id: string | null
+          pain_point_id: string | null
+          problem: string
+          process_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          conclusion?: string
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          method?: Database["public"]["Enums"]["rca_method"]
+          opportunity_id?: string | null
+          pain_point_id?: string | null
+          problem: string
+          process_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          conclusion?: string
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          method?: Database["public"]["Enums"]["rca_method"]
+          opportunity_id?: string | null
+          pain_point_id?: string | null
+          problem?: string
+          process_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "root_cause_analyses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "root_cause_analyses_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "improvement_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "root_cause_analyses_pain_point_id_fkey"
+            columns: ["pain_point_id"]
+            isOneToOne: false
+            referencedRelation: "pain_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "root_cause_analyses_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
             referencedColumns: ["id"]
           },
         ]
@@ -770,6 +1245,64 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tobe_change_log: {
+        Row: {
+          change_type: Database["public"]["Enums"]["tobe_change_type"]
+          created_at: string
+          expected_benefit: string
+          id: string
+          indicator_id: string | null
+          opportunity_id: string | null
+          problem_addressed: string
+          target_ref: string
+          tobe_process_id: string
+        }
+        Insert: {
+          change_type: Database["public"]["Enums"]["tobe_change_type"]
+          created_at?: string
+          expected_benefit?: string
+          id?: string
+          indicator_id?: string | null
+          opportunity_id?: string | null
+          problem_addressed?: string
+          target_ref?: string
+          tobe_process_id: string
+        }
+        Update: {
+          change_type?: Database["public"]["Enums"]["tobe_change_type"]
+          created_at?: string
+          expected_benefit?: string
+          id?: string
+          indicator_id?: string | null
+          opportunity_id?: string | null
+          problem_addressed?: string
+          target_ref?: string
+          tobe_process_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tobe_change_log_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tobe_change_log_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "improvement_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tobe_change_log_tobe_process_id_fkey"
+            columns: ["tobe_process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
             referencedColumns: ["id"]
           },
         ]
@@ -882,6 +1415,16 @@ export type Database = {
         | "info_in"
         | "info_out"
       app_role: "admin" | "member"
+      effort_level: "baixo" | "medio" | "alto"
+      impact_level: "baixo" | "medio" | "alto"
+      opportunity_priority: "baixa" | "media" | "alta" | "critica"
+      opportunity_source: "ia" | "manual"
+      opportunity_status:
+        | "sugerida"
+        | "aprovada"
+        | "rejeitada"
+        | "em_andamento"
+        | "implementada"
       pain_category:
         | "processo"
         | "informacao"
@@ -894,8 +1437,16 @@ export type Database = {
         | "compras"
         | "logistica"
       pain_source: "interview" | "process" | "cronoanalysis" | "manual"
+      process_kind: "as_is" | "to_be"
       process_level: "0" | "1" | "2"
+      process_status: "draft" | "approved" | "archived"
+      rca_action_kind: "corretiva" | "preventiva"
+      rca_method: "cinco_porques" | "ishikawa" | "categoria"
+      roadmap_horizon: "curto" | "medio" | "longo"
+      roadmap_status: "planejado" | "em_andamento" | "concluido" | "cancelado"
+      tobe_change_type: "added" | "removed" | "modified" | "simplified"
       va_class: "VA" | "NVA" | "NNVA"
+      version_kind: "as_is" | "to_be"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1036,6 +1587,17 @@ export const Constants = {
         "info_out",
       ],
       app_role: ["admin", "member"],
+      effort_level: ["baixo", "medio", "alto"],
+      impact_level: ["baixo", "medio", "alto"],
+      opportunity_priority: ["baixa", "media", "alta", "critica"],
+      opportunity_source: ["ia", "manual"],
+      opportunity_status: [
+        "sugerida",
+        "aprovada",
+        "rejeitada",
+        "em_andamento",
+        "implementada",
+      ],
       pain_category: [
         "processo",
         "informacao",
@@ -1049,8 +1611,16 @@ export const Constants = {
         "logistica",
       ],
       pain_source: ["interview", "process", "cronoanalysis", "manual"],
+      process_kind: ["as_is", "to_be"],
       process_level: ["0", "1", "2"],
+      process_status: ["draft", "approved", "archived"],
+      rca_action_kind: ["corretiva", "preventiva"],
+      rca_method: ["cinco_porques", "ishikawa", "categoria"],
+      roadmap_horizon: ["curto", "medio", "longo"],
+      roadmap_status: ["planejado", "em_andamento", "concluido", "cancelado"],
+      tobe_change_type: ["added", "removed", "modified", "simplified"],
       va_class: ["VA", "NVA", "NNVA"],
+      version_kind: ["as_is", "to_be"],
     },
   },
 } as const
