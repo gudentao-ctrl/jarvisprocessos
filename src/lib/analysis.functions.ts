@@ -100,7 +100,7 @@ export const updateOpportunity = createServerFn({ method: "POST" })
       patch.priority_score = score;
       if (!patch.priority) patch.priority = priority;
     }
-    const { error } = await context.supabase.from("improvement_opportunities").update(patch).eq("id", data.id);
+    const { error } = await context.supabase.from("improvement_opportunities").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
