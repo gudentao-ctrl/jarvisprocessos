@@ -79,7 +79,7 @@ export function BpmFlow({
       },
     });
     const newNode: Node = {
-      id: row.id, position: { x: row.x, y: row.y },
+      id: row.id, position: { x: Number(row.x ?? 0), y: Number(row.y ?? 0) },
       data: { ...row, label: row.title }, type: "default",
       className: `rounded-lg border-2 px-3 py-2 text-sm font-medium shadow-sm ${TYPE_COLORS[type] ?? TYPE_COLORS.task}`,
     };
