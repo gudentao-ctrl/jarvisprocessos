@@ -520,7 +520,7 @@ export const addTobeChange = createServerFn({ method: "POST" })
 
 export const getImplementationMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid().nullable().optional() }).parse(d).optional ?? ({}))
+  .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid().nullable().optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     let q = context.supabase.from("improvement_opportunities").select("status");
     if (data?.company_id) q = q.eq("company_id", data.company_id);
