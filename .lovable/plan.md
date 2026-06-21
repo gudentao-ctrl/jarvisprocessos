@@ -1,98 +1,92 @@
-## Visão Geral
 
-Módulo JARVIS para capturar entrevistas operacionais, transcrever automaticamente e estruturar o conteúdo via IA em categorias úteis para consultoria de processos. Mobile-first, identidade laranja/cinza, login compartilhado da equipe, CRUD de empresas/setores e exportação em PDF.
+## Correção prévia (build quebrado)
 
-## Identidade Visual
+Instalar `pdf-lib` (`bun add pdf-lib`) — usado em `interviews.functions.ts` da Fase 1, mas nunca foi instalado, derrubando o build atual.
 
-- **Primária**: laranja (`#F97316` / oklch equivalente) — botões, destaques, badges principais
-- **Secundária**: cinza claro (`#F3F4F6` superfícies, `#6B7280` texto secundário)
-- **Fundo**: branco / cinza 50 para contraste alto em campo
-- **Tipografia**: Inter (corporativa, legível em mobile)
-- **Estilo**: minimalista, cards limpos, bordas suaves, sem gradientes chamativos
-- Tokens semânticos definidos em `src/styles.css` (`--primary`, `--secondary`, `--muted`, etc.) — nada hardcoded nos componentes
+## Visão geral
 
-## Stack & Backend
+Fase 2 entrega processos hierárquicos N0/N1/N2, editor BPM visual (React Flow), sugestões automáticas via IA a partir das transcrições, Mapas (Informação, Decisão, Dores), Cronoanálise mobile-first e CRUD de Indicadores e Planos de Ação — tudo rastreável e navegável a partir da entrevista.
 
-- TanStack Start + Tailwind v4 + shadcn (já no template)
-- **Lovable Cloud** para auth e banco
-- **Lovable AI Gateway** para transcrição (`openai/gpt-4o-mini-transcribe`) e análise (`google/gemini-3-flash-preview`)
-- Storage bucket privado para áudios
+## Modelo de dados (novas tabelas)
 
-## Modelo de Dados (Lovable Cloud)
+- `processes` — nível (0/1/2), `parent_id`, `company_id`, nome, descrição, responsável, objetivo, entradas/saídas (texto), sistemas (text[]), criado a partir de `interview_id` (opcional).
+- `process_activities` — pertence a `process_id`, ordem, tipo (`start|task|decision|wait|approval|end|info_in|info_out`), título, descrição, responsável, área, sistemas (text[]), tempo decimal (min), observações, posição x/y (canvas).
+- `process_edges` — `source_activity_id`, `target_activity_id`, `process_id`, label (ex.: "Sim"/"Não").
+- `process_information_map` — atividade, origem, destino, meio, responsável, documento, risco_perda (bool).
+- `process_decision_map` — atividade, decisor, decisão, aprovação_necessária, atraso_relatado.
+- `pain_points` — `company_id`, origem (`interview|process|cronoanalysis`), origem_id, categoria (enum: processo, informação, governança, pessoas, tecnologia, planejamento, qualidade, produção, compras, logística), descrição, severidade, reclassificável.
+- `indicators` — `company_id`, `process_id?`, nome, descrição, unidade, meta, frequência.
+- `action_plans` — `company_id`, `process_id?`, `interview_id?`, `cronoanalysis_id?`, `pain_point_id?`, título, descrição, responsável, prazo, status (`aberto|em_andamento|concluido`), prioridade.
+- `cronoanalysis_sessions` — `company_id`, `process_id?`, linha, máquina, produto, data, observador.
+- `cronoanalysis_observations` — `session_id`, atividade, tempo_decimal (min), classificação (`VA|NVA|NNVA`), observações, ordem.
 
-- `companies` (id, name, created_at)
-- `sectors` (id, company_id, name)
-- `interviews` (id, title, company_id, sector_id, participant, interview_date, audio_path, status, created_by, created_at)
-- `transcripts` (id, interview_id, content, updated_at)
-- `transcript_edits` (id, transcript_id, previous_content, edited_at, edited_by) — histórico de edição
-- `interview_analysis` (id, interview_id, summary, insights, critical_points, pains, problems, decisions, flows, systems — todos JSONB de listas editáveis)
-- `user_roles` (id, user_id, role) — padrão obrigatório, com função `has_role`
+Todas com RLS `authenticated` (equipe compartilhada) + GRANTs e triggers de `updated_at`. Sem FK para `auth.users` exceto `created_by` opcional.
 
-RLS: usuários autenticados podem ler/escrever (equipe compartilhada). Storage bucket privado com policy para authenticated.
+## Server functions (`src/lib/`)
 
-## Telas
+- `processes.functions.ts`: CRUD processos, listar árvore por empresa, CRUD atividades/edges, salvar layout do canvas.
+- `process-ai.functions.ts`: `suggestProcessFromInterview(interviewId)` — usa transcrição + análise existente, chama `google/gemini-3-flash-preview` com schema Zod retornando `{ activities[], edges[], information_map[], decision_map[], pains[] }`. Sugestões vão para uma área de revisão antes de gravar.
+- `maps.functions.ts`: gerar Mapa de Informação, Mapa de Decisão e Mapa de Dores consolidados por empresa (agregação SQL + IA opcional para reclassificar dores).
+- `cronoanalysis.functions.ts`: CRUD sessões/observações, cálculos (tempo total, %VA/%NVA/%NNVA, capacidade, takt time, top gargalos), sugestão de oportunidades de melhoria via IA.
+- `indicators.functions.ts` e `action-plans.functions.ts`: CRUD simples + `createActionPlanFromPain(painId)` e `createActionPlanFromBottleneck(observationId)`.
 
-1. **/auth** — login email/senha (compartilhado pela equipe)
-2. **/_authenticated/** (área protegida)
-   - **/** — lista de entrevistas recentes + botão grande "Nova Entrevista"
-   - **/empresas** — CRUD de empresas e setores
-   - **/entrevistas/nova** — formulário mobile-first: título, empresa, setor, participante, data, captura de áudio (gravar OU upload)
-   - **/entrevistas/$id** — detalhe da entrevista com abas/seções verticais:
-     - Áudio (player)
-     - Transcrição editável + botão "Salvar edição" (registra histórico)
-     - Análise IA: resumo, insights, pontos críticos, e 5 blocos (Dores 🟥, Problemas 🟨, Decisões 🔵, Fluxos 🟢, Sistemas ⚙️) — cada item editável/removível/adicionável
-     - Botão "Exportar PDF"
+Todas com `requireSupabaseAuth`.
 
-## Fluxo Operacional
+## UI / Rotas (sidebar + topbar + área central rolável)
 
-1. Usuário cria entrevista → grava no navegador (`MediaRecorder`, webm/mp4) ou faz upload
-2. Áudio salvo no Storage; status `transcribing`
-3. Server function chama Lovable AI `/v1/audio/transcriptions` com `language: "pt"` em streaming
-4. Transcrição salva em `transcripts`; status `transcribed`
-5. Usuário pode editar transcrição (cria entrada em `transcript_edits`)
-6. Botão "Analisar com IA" → server function chama Gemini com prompt estruturado (output JSON via `Output.object` + Zod) que extrai SOMENTE conteúdo presente, sem inventar, com schema fixo (resumo ≤10 linhas, insights[], critical_points[], pains[], problems[], decisions[], flows[], systems[])
-7. Resultado salvo em `interview_analysis`; usuário edita listas livremente (campos JSONB persistidos)
-8. "Exportar PDF" → server function gera PDF com identidade visual (laranja/cinza), contendo dados da entrevista, resumo, listas e transcrição completa, retornando blob para download
+Adiciona shell global com sidebar fixa em `_authenticated/route.tsx` (links: Entrevistas, Empresas, Processos, Cronoanálise, Indicadores, Planos de Ação, Mapas).
 
-## Server Functions (TanStack)
+Novas rotas (todas páginas completas, sem modais):
 
-- `createInterview`, `listInterviews`, `getInterview`
-- `uploadAudio` (signed upload URL) ou upload direto via browser client
-- `transcribeAudio(interviewId)` — chama gateway STT, salva transcript
-- `updateTranscript(interviewId, content)` — salva edição + histórico
-- `analyzeTranscript(interviewId)` — chama Gemini com schema Zod, persiste análise
-- `updateAnalysis(interviewId, partial)` — edições manuais nas listas
-- `companies` e `sectors`: CRUD básico
-- `exportInterviewPdf(interviewId)` — gera PDF server-side e retorna como Response
+- `/processos` — árvore N0/N1/N2 por empresa, botão "Novo processo" e "Gerar a partir de entrevista".
+- `/processos/$id` — header com metadados + abas: **Fluxo BPM** (React Flow drag-and-drop com paleta de nós), **Atividades** (tabela), **Informação** (tabela origem/destino/meio), **Decisão**, **Indicadores**, **Planos de ação**, **Cronoanálise** (sessões vinculadas).
+- `/processos/$id/sugestoes` — review das sugestões IA (aceitar/editar/descartar item a item) antes de gravar.
+- `/cronoanalise` — lista de sessões.
+- `/cronoanalise/nova` — formulário mobile-first com cronômetro embutido, seleção rápida VA/NVA/NNVA, autocomplete de linha/máquina/produto.
+- `/cronoanalise/$id` — observações + dashboard de tempos (%VA/NVA/NNVA, gargalos, takt) + botão "Gerar planos de ação".
+- `/indicadores` e `/indicadores/$id`.
+- `/planos-acao` e `/planos-acao/$id` (filtros por status/prioridade).
+- `/mapas/informacao`, `/mapas/decisao`, `/mapas/dores` — consolidados por empresa, com filtros e reclassificação manual.
 
-Todas autenticadas com `requireSupabaseAuth`.
+Botão "Gerar processo com IA" também aparece na tela da entrevista (`/entrevistas/$id`) e leva para `/processos/$id/sugestoes`.
 
-## Regras de IA (prompt)
+## Editor BPM (React Flow)
 
-Prompt do sistema enfatiza: "Extraia APENAS informações explicitamente presentes na transcrição. Não invente, não infira além do texto. Se uma categoria estiver vazia, retorne array vazio." Schema Zod garante formato estável.
+- `bun add reactflow`.
+- Nós customizados por tipo (start/task/decision/wait/approval/end/info_in/info_out), cores semânticas.
+- Paleta lateral para arrastar novos nós, edição inline de label/tempo/responsável no painel direito.
+- Persistência: posições salvas em `process_activities.x/y`, conexões em `process_edges`.
+- Layout automático inicial (dagre) para sugestões IA recém-aceitas.
 
-## Mobile-First UX
+## Rastreabilidade / navegação
 
-- Layout single-column, botões ≥48px, espaçamento generoso
-- Botão de gravar grande e central, com indicador visual de tempo
-- Estados claros: gravando / transcrevendo / pronto / analisando
-- Navegação inferior simples (Entrevistas / Empresas / Sair)
-- Sem menus laterais complexos
+Breadcrumbs e botões "Ver origem" em cada entidade. Cada plano de ação, dor, indicador, sessão de cronoanálise mostra os links de contexto (entrevista, processo, atividade). Página `/entrevistas/$id` ganha bloco "Processos gerados".
 
-## Detalhes Técnicos
+## Identidade visual
 
-- Gravação: `MediaRecorder` com `audio/webm` (Chrome/Firefox) ou `audio/mp4` (Safari); detectar via `isTypeSupported`
-- Upload do áudio para bucket `interview-audio` (privado)
-- Transcrição: server function busca o blob do storage e envia em `multipart/form-data` para `/v1/audio/transcriptions` com `model=openai/gpt-4o-mini-transcribe`, `language=pt`
-- Análise: `generateText` com `Output.object({schema})` via provider `createLovableAiGatewayProvider`
-- PDF: `pdf-lib` (compatível com Worker) com layout corporativo laranja/cinza
-- Histórico de edição: insert simples na tabela `transcript_edits` antes de cada update
+Mantém laranja primário + cinza claro, Inter, cards minimalistas, tokens semânticos já definidos em `src/styles.css`. Nada de cores hardcoded.
 
-## Fora de escopo (v1)
+## Regras de IA
 
-- Múltiplos usuários com permissões granulares (apenas equipe compartilhada)
-- Diarização (separação de falantes)
-- Tradução
-- Dashboards analíticos cross-entrevistas
+- Sugestões IA nunca gravam direto; sempre passam por tela de revisão.
+- Schema Zod com `strict()` para impedir invenção fora da transcrição.
+- Modelo: `google/gemini-3-flash-preview` para extração estruturada (custo/latência baixos).
 
-Pronto para implementar ao aprovar.
+## Fora desta fase
+
+- Versionamento de processos / histórico de mudanças BPM.
+- Exportação BPMN 2.0 XML (só PDF do processo, reusando `pdf-lib`).
+- Permissões por papel (continua equipe compartilhada).
+- Tradução / diarização das transcrições.
+
+## Ordem de implementação
+
+1. `bun add pdf-lib reactflow dagre @types/dagre` (desbloqueia build).
+2. Migração: todas as tabelas + RLS + GRANTs + triggers.
+3. Shell com sidebar + rotas vazias.
+4. CRUD processos (sem IA) + editor BPM básico.
+5. Server fn de sugestão IA + tela de revisão.
+6. Mapas (Informação, Decisão, Dores).
+7. Cronoanálise (form mobile + dashboard).
+8. Indicadores + Planos de Ação + ganchos de geração automática.
+9. Botões de navegação cruzada e breadcrumbs.
