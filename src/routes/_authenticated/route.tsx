@@ -21,6 +21,13 @@ const NAV = [
   { to: "/indicadores", icon: BarChart3, label: "Indicadores" },
   { to: "/planos-acao", icon: ClipboardList, label: "Planos de Ação" },
   { to: "/mapas/dores", icon: Map, label: "Mapas" },
+  { to: "/analise-critica", icon: Sparkles, label: "Análise Crítica" },
+  { to: "/oportunidades", icon: Lightbulb, label: "Oportunidades" },
+  { to: "/priorizacao", icon: Target, label: "Priorização" },
+  { to: "/causa-raiz", icon: GitBranch, label: "Causa Raiz" },
+  { to: "/tobe", icon: GitCompare, label: "TO BE" },
+  { to: "/roadmap", icon: ListTodo, label: "Roadmap" },
+  { to: "/diagnostico", icon: FileText, label: "Diagnóstico" },
   { to: "/empresas", icon: Building2, label: "Empresas" },
 ] as const;
 
