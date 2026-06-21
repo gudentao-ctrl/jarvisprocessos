@@ -13,9 +13,20 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
+import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
+import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
+import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
 import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
+import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
+import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
+import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
+import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
+import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
 import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
 import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
+import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_authenticated/cronoanalise.nova'
+import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
+import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -36,10 +47,57 @@ const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
   path: '/empresas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProcessosIndexRoute =
+  AuthenticatedProcessosIndexRouteImport.update({
+    id: '/processos/',
+    path: '/processos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanosAcaoIndexRoute =
+  AuthenticatedPlanosAcaoIndexRouteImport.update({
+    id: '/planos-acao/',
+    path: '/planos-acao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedIndicadoresIndexRoute =
+  AuthenticatedIndicadoresIndexRouteImport.update({
+    id: '/indicadores/',
+    path: '/indicadores/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEntrevistasIndexRoute =
   AuthenticatedEntrevistasIndexRouteImport.update({
     id: '/entrevistas/',
     path: '/entrevistas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCronoanaliseIndexRoute =
+  AuthenticatedCronoanaliseIndexRouteImport.update({
+    id: '/cronoanalise/',
+    path: '/cronoanalise/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosIdRoute =
+  AuthenticatedProcessosIdRouteImport.update({
+    id: '/processos/$id',
+    path: '/processos/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMapasInformacaoRoute =
+  AuthenticatedMapasInformacaoRouteImport.update({
+    id: '/mapas/informacao',
+    path: '/mapas/informacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMapasDoresRoute = AuthenticatedMapasDoresRouteImport.update({
+  id: '/mapas/dores',
+  path: '/mapas/dores',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMapasDecisaoRoute =
+  AuthenticatedMapasDecisaoRouteImport.update({
+    id: '/mapas/decisao',
+    path: '/mapas/decisao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEntrevistasNovaRoute =
@@ -54,22 +112,62 @@ const AuthenticatedEntrevistasIdRoute =
     path: '/entrevistas/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCronoanaliseNovaRoute =
+  AuthenticatedCronoanaliseNovaRouteImport.update({
+    id: '/cronoanalise/nova',
+    path: '/cronoanalise/nova',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCronoanaliseIdRoute =
+  AuthenticatedCronoanaliseIdRouteImport.update({
+    id: '/cronoanalise/$id',
+    path: '/cronoanalise/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosSugerirInterviewIdRoute =
+  AuthenticatedProcessosSugerirInterviewIdRouteImport.update({
+    id: '/processos/sugerir/$interviewId',
+    path: '/processos/sugerir/$interviewId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
+  '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
   '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
+  '/mapas/dores': typeof AuthenticatedMapasDoresRoute
+  '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
+  '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/processos/': typeof AuthenticatedProcessosIndexRoute
+  '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
+  '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
   '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
+  '/mapas/dores': typeof AuthenticatedMapasDoresRoute
+  '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
+  '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
+  '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
+  '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/processos': typeof AuthenticatedProcessosIndexRoute
+  '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +175,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
+  '/_authenticated/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
+  '/_authenticated/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
   '/_authenticated/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/_authenticated/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/_authenticated/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
+  '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
+  '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
+  '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
+  '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,26 +196,59 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/empresas'
+    | '/cronoanalise/$id'
+    | '/cronoanalise/nova'
     | '/entrevistas/$id'
     | '/entrevistas/nova'
+    | '/mapas/decisao'
+    | '/mapas/dores'
+    | '/mapas/informacao'
+    | '/processos/$id'
+    | '/cronoanalise/'
     | '/entrevistas/'
+    | '/indicadores/'
+    | '/planos-acao/'
+    | '/processos/'
+    | '/processos/sugerir/$interviewId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/empresas'
+    | '/cronoanalise/$id'
+    | '/cronoanalise/nova'
     | '/entrevistas/$id'
     | '/entrevistas/nova'
+    | '/mapas/decisao'
+    | '/mapas/dores'
+    | '/mapas/informacao'
+    | '/processos/$id'
+    | '/cronoanalise'
     | '/entrevistas'
+    | '/indicadores'
+    | '/planos-acao'
+    | '/processos'
+    | '/processos/sugerir/$interviewId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/empresas'
+    | '/_authenticated/cronoanalise/$id'
+    | '/_authenticated/cronoanalise/nova'
     | '/_authenticated/entrevistas/$id'
     | '/_authenticated/entrevistas/nova'
+    | '/_authenticated/mapas/decisao'
+    | '/_authenticated/mapas/dores'
+    | '/_authenticated/mapas/informacao'
+    | '/_authenticated/processos/$id'
+    | '/_authenticated/cronoanalise/'
     | '/_authenticated/entrevistas/'
+    | '/_authenticated/indicadores/'
+    | '/_authenticated/planos-acao/'
+    | '/_authenticated/processos/'
+    | '/_authenticated/processos/sugerir/$interviewId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,11 +287,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmpresasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/processos/': {
+      id: '/_authenticated/processos/'
+      path: '/processos'
+      fullPath: '/processos/'
+      preLoaderRoute: typeof AuthenticatedProcessosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planos-acao/': {
+      id: '/_authenticated/planos-acao/'
+      path: '/planos-acao'
+      fullPath: '/planos-acao/'
+      preLoaderRoute: typeof AuthenticatedPlanosAcaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/indicadores/': {
+      id: '/_authenticated/indicadores/'
+      path: '/indicadores'
+      fullPath: '/indicadores/'
+      preLoaderRoute: typeof AuthenticatedIndicadoresIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/entrevistas/': {
       id: '/_authenticated/entrevistas/'
       path: '/entrevistas'
       fullPath: '/entrevistas/'
       preLoaderRoute: typeof AuthenticatedEntrevistasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cronoanalise/': {
+      id: '/_authenticated/cronoanalise/'
+      path: '/cronoanalise'
+      fullPath: '/cronoanalise/'
+      preLoaderRoute: typeof AuthenticatedCronoanaliseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/$id': {
+      id: '/_authenticated/processos/$id'
+      path: '/processos/$id'
+      fullPath: '/processos/$id'
+      preLoaderRoute: typeof AuthenticatedProcessosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapas/informacao': {
+      id: '/_authenticated/mapas/informacao'
+      path: '/mapas/informacao'
+      fullPath: '/mapas/informacao'
+      preLoaderRoute: typeof AuthenticatedMapasInformacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapas/dores': {
+      id: '/_authenticated/mapas/dores'
+      path: '/mapas/dores'
+      fullPath: '/mapas/dores'
+      preLoaderRoute: typeof AuthenticatedMapasDoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapas/decisao': {
+      id: '/_authenticated/mapas/decisao'
+      path: '/mapas/decisao'
+      fullPath: '/mapas/decisao'
+      preLoaderRoute: typeof AuthenticatedMapasDecisaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/entrevistas/nova': {
@@ -166,21 +364,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntrevistasIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cronoanalise/nova': {
+      id: '/_authenticated/cronoanalise/nova'
+      path: '/cronoanalise/nova'
+      fullPath: '/cronoanalise/nova'
+      preLoaderRoute: typeof AuthenticatedCronoanaliseNovaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cronoanalise/$id': {
+      id: '/_authenticated/cronoanalise/$id'
+      path: '/cronoanalise/$id'
+      fullPath: '/cronoanalise/$id'
+      preLoaderRoute: typeof AuthenticatedCronoanaliseIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/sugerir/$interviewId': {
+      id: '/_authenticated/processos/sugerir/$interviewId'
+      path: '/processos/sugerir/$interviewId'
+      fullPath: '/processos/sugerir/$interviewId'
+      preLoaderRoute: typeof AuthenticatedProcessosSugerirInterviewIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
+  AuthenticatedCronoanaliseIdRoute: typeof AuthenticatedCronoanaliseIdRoute
+  AuthenticatedCronoanaliseNovaRoute: typeof AuthenticatedCronoanaliseNovaRoute
   AuthenticatedEntrevistasIdRoute: typeof AuthenticatedEntrevistasIdRoute
   AuthenticatedEntrevistasNovaRoute: typeof AuthenticatedEntrevistasNovaRoute
+  AuthenticatedMapasDecisaoRoute: typeof AuthenticatedMapasDecisaoRoute
+  AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
+  AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
+  AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
+  AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
+  AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
+  AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
+  AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
+  AuthenticatedProcessosSugerirInterviewIdRoute: typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
+  AuthenticatedCronoanaliseIdRoute: AuthenticatedCronoanaliseIdRoute,
+  AuthenticatedCronoanaliseNovaRoute: AuthenticatedCronoanaliseNovaRoute,
   AuthenticatedEntrevistasIdRoute: AuthenticatedEntrevistasIdRoute,
   AuthenticatedEntrevistasNovaRoute: AuthenticatedEntrevistasNovaRoute,
+  AuthenticatedMapasDecisaoRoute: AuthenticatedMapasDecisaoRoute,
+  AuthenticatedMapasDoresRoute: AuthenticatedMapasDoresRoute,
+  AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,
+  AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
+  AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
+  AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
+  AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
+  AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
+  AuthenticatedProcessosSugerirInterviewIdRoute:
+    AuthenticatedProcessosSugerirInterviewIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -194,13 +436,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
