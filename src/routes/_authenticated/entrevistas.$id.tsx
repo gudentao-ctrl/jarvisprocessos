@@ -263,6 +263,16 @@ function InterviewDetail() {
               ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando PDF...</>
               : <><Download className="mr-2 h-4 w-4" /> Exportar PDF</>}
           </Button>
+
+          <Link
+            to="/processos/sugerir/$interviewId"
+            params={{ interviewId: id }}
+            className="block"
+          >
+            <Button variant="outline" className="h-12 w-full">
+              <Workflow className="mr-2 h-4 w-4" /> Sugerir processo com IA
+            </Button>
+          </Link>
         </div>
       )}
     </div>
