@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  ArrowLeft, Sparkles, Save, Trash2, Download, Plus, X, Loader2, RefreshCw,
+  ArrowLeft, Sparkles, Save, Trash2, Download, Plus, X, Loader2, RefreshCw, Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
