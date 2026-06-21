@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Mic, Building2, Workflow, Timer, BarChart3, ClipboardList, Map, LogOut, Menu, X } from "lucide-react";
+import { Mic, Building2, Workflow, Timer, BarChart3, ClipboardList, Map, LogOut, Menu, X, Sparkles, Lightbulb, GitCompare, ListTodo, FileText, GitBranch, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -21,6 +21,13 @@ const NAV = [
   { to: "/indicadores", icon: BarChart3, label: "Indicadores" },
   { to: "/planos-acao", icon: ClipboardList, label: "Planos de Ação" },
   { to: "/mapas/dores", icon: Map, label: "Mapas" },
+  { to: "/analise-critica", icon: Sparkles, label: "Análise Crítica" },
+  { to: "/oportunidades", icon: Lightbulb, label: "Oportunidades" },
+  { to: "/priorizacao", icon: Target, label: "Priorização" },
+  { to: "/causa-raiz", icon: GitBranch, label: "Causa Raiz" },
+  { to: "/tobe", icon: GitCompare, label: "TO BE" },
+  { to: "/roadmap", icon: ListTodo, label: "Roadmap" },
+  { to: "/diagnostico", icon: FileText, label: "Diagnóstico" },
   { to: "/empresas", icon: Building2, label: "Empresas" },
 ] as const;
 

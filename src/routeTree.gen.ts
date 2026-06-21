@@ -13,19 +13,28 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
+import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
+import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
+import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
+import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
 import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
+import { Route as AuthenticatedDiagnosticoIndexRouteImport } from './routes/_authenticated/diagnostico.index'
 import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
+import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
+import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
 import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
 import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
 import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
+import { Route as AuthenticatedDiagnosticoIdRouteImport } from './routes/_authenticated/diagnostico.$id'
 import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_authenticated/cronoanalise.nova'
 import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
+import { Route as AuthenticatedCausaRaizIdRouteImport } from './routes/_authenticated/causa-raiz.$id'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -47,16 +56,39 @@ const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
   path: '/empresas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTobeIndexRoute = AuthenticatedTobeIndexRouteImport.update({
+  id: '/tobe/',
+  path: '/tobe/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRoadmapIndexRoute =
+  AuthenticatedRoadmapIndexRouteImport.update({
+    id: '/roadmap/',
+    path: '/roadmap/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProcessosIndexRoute =
   AuthenticatedProcessosIndexRouteImport.update({
     id: '/processos/',
     path: '/processos/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPriorizacaoIndexRoute =
+  AuthenticatedPriorizacaoIndexRouteImport.update({
+    id: '/priorizacao/',
+    path: '/priorizacao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlanosAcaoIndexRoute =
   AuthenticatedPlanosAcaoIndexRouteImport.update({
     id: '/planos-acao/',
     path: '/planos-acao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOportunidadesIndexRoute =
+  AuthenticatedOportunidadesIndexRouteImport.update({
+    id: '/oportunidades/',
+    path: '/oportunidades/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedIndicadoresIndexRoute =
@@ -71,10 +103,28 @@ const AuthenticatedEntrevistasIndexRoute =
     path: '/entrevistas/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDiagnosticoIndexRoute =
+  AuthenticatedDiagnosticoIndexRouteImport.update({
+    id: '/diagnostico/',
+    path: '/diagnostico/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCronoanaliseIndexRoute =
   AuthenticatedCronoanaliseIndexRouteImport.update({
     id: '/cronoanalise/',
     path: '/cronoanalise/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCausaRaizIndexRoute =
+  AuthenticatedCausaRaizIndexRouteImport.update({
+    id: '/causa-raiz/',
+    path: '/causa-raiz/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnaliseCriticaIndexRoute =
+  AuthenticatedAnaliseCriticaIndexRouteImport.update({
+    id: '/analise-critica/',
+    path: '/analise-critica/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProcessosIdRoute =
@@ -112,6 +162,12 @@ const AuthenticatedEntrevistasIdRoute =
     path: '/entrevistas/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDiagnosticoIdRoute =
+  AuthenticatedDiagnosticoIdRouteImport.update({
+    id: '/diagnostico/$id',
+    path: '/diagnostico/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCronoanaliseNovaRoute =
   AuthenticatedCronoanaliseNovaRouteImport.update({
     id: '/cronoanalise/nova',
@@ -122,6 +178,12 @@ const AuthenticatedCronoanaliseIdRoute =
   AuthenticatedCronoanaliseIdRouteImport.update({
     id: '/cronoanalise/$id',
     path: '/cronoanalise/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCausaRaizIdRoute =
+  AuthenticatedCausaRaizIdRouteImport.update({
+    id: '/causa-raiz/$id',
+    path: '/causa-raiz/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProcessosSugerirInterviewIdRoute =
@@ -135,38 +197,56 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
+  '/diagnostico/$id': typeof AuthenticatedDiagnosticoIdRoute
   '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
+  '/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
+  '/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos/': typeof AuthenticatedProcessosIndexRoute
+  '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
+  '/tobe/': typeof AuthenticatedTobeIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
+  '/diagnostico/$id': typeof AuthenticatedDiagnosticoIdRoute
   '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
+  '/causa-raiz': typeof AuthenticatedCausaRaizIndexRoute
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
+  '/diagnostico': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
+  '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/priorizacao': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos': typeof AuthenticatedProcessosIndexRoute
+  '/roadmap': typeof AuthenticatedRoadmapIndexRoute
+  '/tobe': typeof AuthenticatedTobeIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 export interface FileRoutesById {
@@ -175,19 +255,28 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
+  '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/_authenticated/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/_authenticated/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
+  '/_authenticated/diagnostico/$id': typeof AuthenticatedDiagnosticoIdRoute
   '/_authenticated/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/_authenticated/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
   '/_authenticated/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
+  '/_authenticated/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
+  '/_authenticated/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/_authenticated/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
+  '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
+  '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
   '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 export interface FileRouteTypes {
@@ -196,38 +285,56 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/empresas'
+    | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
+    | '/diagnostico/$id'
     | '/entrevistas/$id'
     | '/entrevistas/nova'
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
     | '/processos/$id'
+    | '/analise-critica/'
+    | '/causa-raiz/'
     | '/cronoanalise/'
+    | '/diagnostico/'
     | '/entrevistas/'
     | '/indicadores/'
+    | '/oportunidades/'
     | '/planos-acao/'
+    | '/priorizacao/'
     | '/processos/'
+    | '/roadmap/'
+    | '/tobe/'
     | '/processos/sugerir/$interviewId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/empresas'
+    | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
+    | '/diagnostico/$id'
     | '/entrevistas/$id'
     | '/entrevistas/nova'
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
     | '/processos/$id'
+    | '/analise-critica'
+    | '/causa-raiz'
     | '/cronoanalise'
+    | '/diagnostico'
     | '/entrevistas'
     | '/indicadores'
+    | '/oportunidades'
     | '/planos-acao'
+    | '/priorizacao'
     | '/processos'
+    | '/roadmap'
+    | '/tobe'
     | '/processos/sugerir/$interviewId'
   id:
     | '__root__'
@@ -235,19 +342,28 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/empresas'
+    | '/_authenticated/causa-raiz/$id'
     | '/_authenticated/cronoanalise/$id'
     | '/_authenticated/cronoanalise/nova'
+    | '/_authenticated/diagnostico/$id'
     | '/_authenticated/entrevistas/$id'
     | '/_authenticated/entrevistas/nova'
     | '/_authenticated/mapas/decisao'
     | '/_authenticated/mapas/dores'
     | '/_authenticated/mapas/informacao'
     | '/_authenticated/processos/$id'
+    | '/_authenticated/analise-critica/'
+    | '/_authenticated/causa-raiz/'
     | '/_authenticated/cronoanalise/'
+    | '/_authenticated/diagnostico/'
     | '/_authenticated/entrevistas/'
     | '/_authenticated/indicadores/'
+    | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
+    | '/_authenticated/priorizacao/'
     | '/_authenticated/processos/'
+    | '/_authenticated/roadmap/'
+    | '/_authenticated/tobe/'
     | '/_authenticated/processos/sugerir/$interviewId'
   fileRoutesById: FileRoutesById
 }
@@ -287,6 +403,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmpresasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tobe/': {
+      id: '/_authenticated/tobe/'
+      path: '/tobe'
+      fullPath: '/tobe/'
+      preLoaderRoute: typeof AuthenticatedTobeIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roadmap/': {
+      id: '/_authenticated/roadmap/'
+      path: '/roadmap'
+      fullPath: '/roadmap/'
+      preLoaderRoute: typeof AuthenticatedRoadmapIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/processos/': {
       id: '/_authenticated/processos/'
       path: '/processos'
@@ -294,11 +424,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcessosIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/priorizacao/': {
+      id: '/_authenticated/priorizacao/'
+      path: '/priorizacao'
+      fullPath: '/priorizacao/'
+      preLoaderRoute: typeof AuthenticatedPriorizacaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planos-acao/': {
       id: '/_authenticated/planos-acao/'
       path: '/planos-acao'
       fullPath: '/planos-acao/'
       preLoaderRoute: typeof AuthenticatedPlanosAcaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/oportunidades/': {
+      id: '/_authenticated/oportunidades/'
+      path: '/oportunidades'
+      fullPath: '/oportunidades/'
+      preLoaderRoute: typeof AuthenticatedOportunidadesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/indicadores/': {
@@ -315,11 +459,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntrevistasIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/diagnostico/': {
+      id: '/_authenticated/diagnostico/'
+      path: '/diagnostico'
+      fullPath: '/diagnostico/'
+      preLoaderRoute: typeof AuthenticatedDiagnosticoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cronoanalise/': {
       id: '/_authenticated/cronoanalise/'
       path: '/cronoanalise'
       fullPath: '/cronoanalise/'
       preLoaderRoute: typeof AuthenticatedCronoanaliseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/causa-raiz/': {
+      id: '/_authenticated/causa-raiz/'
+      path: '/causa-raiz'
+      fullPath: '/causa-raiz/'
+      preLoaderRoute: typeof AuthenticatedCausaRaizIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analise-critica/': {
+      id: '/_authenticated/analise-critica/'
+      path: '/analise-critica'
+      fullPath: '/analise-critica/'
+      preLoaderRoute: typeof AuthenticatedAnaliseCriticaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/processos/$id': {
@@ -364,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntrevistasIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/diagnostico/$id': {
+      id: '/_authenticated/diagnostico/$id'
+      path: '/diagnostico/$id'
+      fullPath: '/diagnostico/$id'
+      preLoaderRoute: typeof AuthenticatedDiagnosticoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cronoanalise/nova': {
       id: '/_authenticated/cronoanalise/nova'
       path: '/cronoanalise/nova'
@@ -378,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCronoanaliseIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/causa-raiz/$id': {
+      id: '/_authenticated/causa-raiz/$id'
+      path: '/causa-raiz/$id'
+      fullPath: '/causa-raiz/$id'
+      preLoaderRoute: typeof AuthenticatedCausaRaizIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/processos/sugerir/$interviewId': {
       id: '/_authenticated/processos/sugerir/$interviewId'
       path: '/processos/sugerir/$interviewId'
@@ -390,37 +569,55 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
+  AuthenticatedCausaRaizIdRoute: typeof AuthenticatedCausaRaizIdRoute
   AuthenticatedCronoanaliseIdRoute: typeof AuthenticatedCronoanaliseIdRoute
   AuthenticatedCronoanaliseNovaRoute: typeof AuthenticatedCronoanaliseNovaRoute
+  AuthenticatedDiagnosticoIdRoute: typeof AuthenticatedDiagnosticoIdRoute
   AuthenticatedEntrevistasIdRoute: typeof AuthenticatedEntrevistasIdRoute
   AuthenticatedEntrevistasNovaRoute: typeof AuthenticatedEntrevistasNovaRoute
   AuthenticatedMapasDecisaoRoute: typeof AuthenticatedMapasDecisaoRoute
   AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
   AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
+  AuthenticatedAnaliseCriticaIndexRoute: typeof AuthenticatedAnaliseCriticaIndexRoute
+  AuthenticatedCausaRaizIndexRoute: typeof AuthenticatedCausaRaizIndexRoute
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
+  AuthenticatedDiagnosticoIndexRoute: typeof AuthenticatedDiagnosticoIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
+  AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
+  AuthenticatedPriorizacaoIndexRoute: typeof AuthenticatedPriorizacaoIndexRoute
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
+  AuthenticatedRoadmapIndexRoute: typeof AuthenticatedRoadmapIndexRoute
+  AuthenticatedTobeIndexRoute: typeof AuthenticatedTobeIndexRoute
   AuthenticatedProcessosSugerirInterviewIdRoute: typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
+  AuthenticatedCausaRaizIdRoute: AuthenticatedCausaRaizIdRoute,
   AuthenticatedCronoanaliseIdRoute: AuthenticatedCronoanaliseIdRoute,
   AuthenticatedCronoanaliseNovaRoute: AuthenticatedCronoanaliseNovaRoute,
+  AuthenticatedDiagnosticoIdRoute: AuthenticatedDiagnosticoIdRoute,
   AuthenticatedEntrevistasIdRoute: AuthenticatedEntrevistasIdRoute,
   AuthenticatedEntrevistasNovaRoute: AuthenticatedEntrevistasNovaRoute,
   AuthenticatedMapasDecisaoRoute: AuthenticatedMapasDecisaoRoute,
   AuthenticatedMapasDoresRoute: AuthenticatedMapasDoresRoute,
   AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
+  AuthenticatedAnaliseCriticaIndexRoute: AuthenticatedAnaliseCriticaIndexRoute,
+  AuthenticatedCausaRaizIndexRoute: AuthenticatedCausaRaizIndexRoute,
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
+  AuthenticatedDiagnosticoIndexRoute: AuthenticatedDiagnosticoIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
+  AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
+  AuthenticatedPriorizacaoIndexRoute: AuthenticatedPriorizacaoIndexRoute,
   AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
+  AuthenticatedRoadmapIndexRoute: AuthenticatedRoadmapIndexRoute,
+  AuthenticatedTobeIndexRoute: AuthenticatedTobeIndexRoute,
   AuthenticatedProcessosSugerirInterviewIdRoute:
     AuthenticatedProcessosSugerirInterviewIdRoute,
 }
@@ -436,13 +633,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
