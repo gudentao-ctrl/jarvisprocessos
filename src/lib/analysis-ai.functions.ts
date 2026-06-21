@@ -148,7 +148,7 @@ Use APENAS o que está nos dados. Seja conciso.`;
     const { data: row, error } = await context.supabase.from("executive_diagnostics").insert({
       company_id: data.company_id,
       title: `Diagnóstico Executivo — ${comp?.name ?? ""}`,
-      content,
+      content: content as never,
       generated_at: new Date().toISOString(),
       created_by: context.userId,
     }).select().single();
