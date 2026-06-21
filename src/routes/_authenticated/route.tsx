@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Mic, Building2, Workflow, Timer, BarChart3, ClipboardList, Map, LogOut, Menu, X } from "lucide-react";
+import { Mic, Building2, Workflow, Timer, BarChart3, ClipboardList, Map, LogOut, Menu, X, Sparkles, Lightbulb, GitCompare, ListTodo, FileText, GitBranch, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
