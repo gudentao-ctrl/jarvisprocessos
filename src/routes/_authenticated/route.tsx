@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
-import { Mic, Building2, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Mic, Building2, Workflow, Timer, BarChart3, ClipboardList, Map, LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -14,8 +14,19 @@ export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
 });
 
+const NAV = [
+  { to: "/entrevistas", icon: Mic, label: "Entrevistas" },
+  { to: "/processos", icon: Workflow, label: "Processos" },
+  { to: "/cronoanalise", icon: Timer, label: "Cronoanálise" },
+  { to: "/indicadores", icon: BarChart3, label: "Indicadores" },
+  { to: "/planos-acao", icon: ClipboardList, label: "Planos de Ação" },
+  { to: "/mapas/dores", icon: Map, label: "Mapas" },
+  { to: "/empresas", icon: Building2, label: "Empresas" },
+] as const;
+
 function AuthenticatedLayout() {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -30,51 +41,84 @@ function AuthenticatedLayout() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-          <Link to="/entrevistas" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Mic className="h-4 w-4" />
-            </div>
-            <span className="text-base font-bold tracking-tight">JARVIS</span>
-          </Link>
-          <button
-            onClick={signOut}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-            aria-label="Sair"
+    <div className="flex min-h-screen bg-muted/30">
+      {/* Sidebar desktop */}
+      <aside className="hidden lg:flex w-60 flex-col fixed inset-y-0 left-0 border-r bg-background z-30">
+        <div className="h-14 flex items-center gap-2 px-4 border-b">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Mic className="h-4 w-4" />
+          </div>
+          <span className="text-base font-bold tracking-tight">JARVIS</span>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+          {NAV.map((n) => (
+            <SidebarLink key={n.to} {...n} />
+          ))}
+        </nav>
+        <button
+          onClick={signOut}
+          className="m-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" /> Sair
+        </button>
+      </aside>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/40" onClick={() => setOpen(false)}>
+          <aside
+            className="absolute inset-y-0 left-0 w-64 bg-background border-r flex flex-col"
+            onClick={(e) => e.stopPropagation()}
           >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <div className="h-14 flex items-center justify-between gap-2 px-4 border-b">
+              <span className="text-base font-bold">JARVIS</span>
+              <button onClick={() => setOpen(false)} className="p-1"><X className="h-4 w-4" /></button>
+            </div>
+            <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5" onClick={() => setOpen(false)}>
+              {NAV.map((n) => <SidebarLink key={n.to} {...n} />)}
+            </nav>
+            <button onClick={signOut} className="m-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary">
+              <LogOut className="h-4 w-4" /> Sair
+            </button>
+          </aside>
+        </div>
+      )}
+
+      {/* Content area */}
+      <div className="flex-1 flex flex-col lg:ml-60 min-w-0">
+        <header className="sticky top-0 z-20 h-14 border-b bg-background/95 backdrop-blur flex items-center px-4 gap-3">
+          <button className="lg:hidden p-1.5 -ml-1.5 rounded hover:bg-secondary" onClick={() => setOpen(true)}>
+            <Menu className="h-5 w-5" />
           </button>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-24 pt-4 sm:pt-6">
-        <Outlet />
-      </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background">
-        <div className="mx-auto grid max-w-3xl grid-cols-2">
-          <NavItem to="/entrevistas" icon={<Mic className="h-5 w-5" />} label="Entrevistas" />
-          <NavItem to="/empresas" icon={<Building2 className="h-5 w-5" />} label="Empresas" />
-        </div>
-      </nav>
+          <div className="lg:hidden flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Mic className="h-3.5 w-3.5" />
+            </div>
+            <span className="font-bold tracking-tight">JARVIS</span>
+          </div>
+          <div className="ml-auto" />
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-6xl px-4 py-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
 
-function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+function SidebarLink({ to, icon: Icon, label }: { to: string; icon: typeof Mic; label: string }) {
   return (
     <Link
       to={to}
       className={cn(
-        "flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium text-muted-foreground transition-colors",
-        "hover:text-foreground data-[status=active]:text-primary",
+        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors",
+        "hover:bg-secondary hover:text-foreground",
       )}
-      activeProps={{ className: "text-primary" }}
+      activeProps={{ className: "bg-accent text-primary" }}
     >
-      {icon}
+      <Icon className="h-4 w-4" />
       <span>{label}</span>
     </Link>
   );
