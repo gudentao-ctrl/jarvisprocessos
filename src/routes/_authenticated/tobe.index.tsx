@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Plus, GitCompare } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/tobe")({ component: Page });
+export const Route = createFileRoute("/_authenticated/tobe/")({ component: Page });
 
 function Page() {
   const listFn = useServerFn(listTobeProcesses);

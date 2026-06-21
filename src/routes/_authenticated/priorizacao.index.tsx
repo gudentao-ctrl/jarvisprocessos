@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/priorizacao")({ component: Page });
+export const Route = createFileRoute("/_authenticated/priorizacao/")({ component: Page });
 
 const KEYS = ["impacto", "urgencia", "esforco", "risco", "custo", "alinhamento"] as const;
 

@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/roadmap")({ component: Page });
+export const Route = createFileRoute("/_authenticated/roadmap/")({ component: Page });
 
 const HORIZON_LABELS = { curto: "Curto prazo", medio: "Médio prazo", longo: "Longo prazo" } as const;
 
