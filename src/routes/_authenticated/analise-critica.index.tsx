@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/analise-critica")({
+export const Route = createFileRoute("/_authenticated/analise-critica/")({
   component: Page,
 });
 

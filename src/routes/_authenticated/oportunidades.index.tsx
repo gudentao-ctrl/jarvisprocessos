@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { listProcesses } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 
-export const Route = createFileRoute("/_authenticated/oportunidades")({
+export const Route = createFileRoute("/_authenticated/oportunidades/")({
   component: Page,
 });
 

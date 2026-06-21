@@ -15,9 +15,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
+import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
 import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
 import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
+import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
 import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
@@ -59,6 +61,12 @@ const AuthenticatedPlanosAcaoIndexRoute =
     path: '/planos-acao/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOportunidadesIndexRoute =
+  AuthenticatedOportunidadesIndexRouteImport.update({
+    id: '/oportunidades/',
+    path: '/oportunidades/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedIndicadoresIndexRoute =
   AuthenticatedIndicadoresIndexRouteImport.update({
     id: '/indicadores/',
@@ -75,6 +83,12 @@ const AuthenticatedCronoanaliseIndexRoute =
   AuthenticatedCronoanaliseIndexRouteImport.update({
     id: '/cronoanalise/',
     path: '/cronoanalise/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnaliseCriticaIndexRoute =
+  AuthenticatedAnaliseCriticaIndexRouteImport.update({
+    id: '/analise-critica/',
+    path: '/analise-critica/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProcessosIdRoute =
@@ -143,9 +157,11 @@ export interface FileRoutesByFullPath {
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
   '/processos/': typeof AuthenticatedProcessosIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
@@ -162,9 +178,11 @@ export interface FileRoutesByTo {
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
+  '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
   '/processos': typeof AuthenticatedProcessosIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
@@ -183,9 +201,11 @@ export interface FileRoutesById {
   '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
   '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
@@ -204,9 +224,11 @@ export interface FileRouteTypes {
     | '/mapas/dores'
     | '/mapas/informacao'
     | '/processos/$id'
+    | '/analise-critica/'
     | '/cronoanalise/'
     | '/entrevistas/'
     | '/indicadores/'
+    | '/oportunidades/'
     | '/planos-acao/'
     | '/processos/'
     | '/processos/sugerir/$interviewId'
@@ -223,9 +245,11 @@ export interface FileRouteTypes {
     | '/mapas/dores'
     | '/mapas/informacao'
     | '/processos/$id'
+    | '/analise-critica'
     | '/cronoanalise'
     | '/entrevistas'
     | '/indicadores'
+    | '/oportunidades'
     | '/planos-acao'
     | '/processos'
     | '/processos/sugerir/$interviewId'
@@ -243,9 +267,11 @@ export interface FileRouteTypes {
     | '/_authenticated/mapas/dores'
     | '/_authenticated/mapas/informacao'
     | '/_authenticated/processos/$id'
+    | '/_authenticated/analise-critica/'
     | '/_authenticated/cronoanalise/'
     | '/_authenticated/entrevistas/'
     | '/_authenticated/indicadores/'
+    | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
     | '/_authenticated/processos/'
     | '/_authenticated/processos/sugerir/$interviewId'
@@ -301,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlanosAcaoIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/oportunidades/': {
+      id: '/_authenticated/oportunidades/'
+      path: '/oportunidades'
+      fullPath: '/oportunidades/'
+      preLoaderRoute: typeof AuthenticatedOportunidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/indicadores/': {
       id: '/_authenticated/indicadores/'
       path: '/indicadores'
@@ -320,6 +353,13 @@ declare module '@tanstack/react-router' {
       path: '/cronoanalise'
       fullPath: '/cronoanalise/'
       preLoaderRoute: typeof AuthenticatedCronoanaliseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analise-critica/': {
+      id: '/_authenticated/analise-critica/'
+      path: '/analise-critica'
+      fullPath: '/analise-critica/'
+      preLoaderRoute: typeof AuthenticatedAnaliseCriticaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/processos/$id': {
@@ -398,9 +438,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
   AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
+  AuthenticatedAnaliseCriticaIndexRoute: typeof AuthenticatedAnaliseCriticaIndexRoute
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
+  AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
   AuthenticatedProcessosSugerirInterviewIdRoute: typeof AuthenticatedProcessosSugerirInterviewIdRoute
@@ -416,9 +458,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMapasDoresRoute: AuthenticatedMapasDoresRoute,
   AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
+  AuthenticatedAnaliseCriticaIndexRoute: AuthenticatedAnaliseCriticaIndexRoute,
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
+  AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
   AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
   AuthenticatedProcessosSugerirInterviewIdRoute:
