@@ -59,7 +59,7 @@ export const analyzeProcessCritically = createServerFn({ method: "POST" })
       context.supabase.from("process_edges").select("source_id,target_id,label").eq("process_id", data.process_id),
       context.supabase.from("indicators").select("name,target,unit,frequency").eq("process_id", data.process_id),
       context.supabase.from("cronoanalysis_sessions").select("activity_name,observation_date").eq("process_id", data.process_id),
-      context.supabase.from("pain_points").select("description,category").eq("process_id", data.process_id),
+      context.supabase.from("pain_points").select("description,category").eq("company_id", proc.company_id),
       context.supabase.from("process_information_map").select("info_name,source,destination").eq("process_id", data.process_id),
       context.supabase.from("process_decision_map").select("decision,criteria,responsible").eq("process_id", data.process_id),
     ]);
