@@ -117,7 +117,7 @@ export const generateExecutiveDiagnostic = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const [{ data: comp }, { data: pains }, { data: procs }, { data: opps }, { data: rcas }, { data: cronos }] = await Promise.all([
-      context.supabase.from("companies").select("name, sector").eq("id", data.company_id).single(),
+      context.supabase.from("companies").select("name").eq("id", data.company_id).single(),
       context.supabase.from("pain_points").select("description,category,severity").eq("company_id", data.company_id),
       context.supabase.from("processes").select("name,level,kind").eq("company_id", data.company_id),
       context.supabase.from("improvement_opportunities").select("title,description,category,priority,status,expected_benefit").eq("company_id", data.company_id),
