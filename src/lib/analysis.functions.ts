@@ -29,7 +29,7 @@ export const listOpportunities = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("improvement_opportunities")
-      .select("*, processes!improvement_opportunities_process_id_fkey(name), companies(name), pain_points(description), indicators(name)")
+      .select("*, processes!process_id(name), companies(name), pain_points(description), indicators(name)")
       .order("priority_score", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -42,7 +42,7 @@ export const getOpportunity = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("improvement_opportunities")
-      .select("*, processes!improvement_opportunities_process_id_fkey(id,name), companies(id,name), pain_points(id,description), indicators(id,name), root_cause_analyses(id,problem,method), action_plans(id,title,status)")
+      .select("*, processes!process_id(id,name), companies(id,name), pain_points(id,description), indicators(id,name), root_cause_analyses(id,problem,method), action_plans(id,title,status)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
     return row;
@@ -233,7 +233,7 @@ export const listRcas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("root_cause_analyses")
-      .select("*, companies(name), processes!root_cause_analyses_process_id_fkey(name), pain_points(description)")
+      .select("*, companies(name), processes!process_id(name), pain_points(description)")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -245,7 +245,7 @@ export const getRca = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("root_cause_analyses")
-      .select("*, companies(id,name), processes!root_cause_analyses_process_id_fkey(id,name), pain_points(id,description)")
+      .select("*, companies(id,name), processes!process_id(id,name), pain_points(id,description)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
     const { data: actions } = await context.supabase
