@@ -38,6 +38,10 @@ import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_aut
 import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
 import { Route as AuthenticatedCausaRaizIdRouteImport } from './routes/_authenticated/causa-raiz.$id'
 import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
+import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
+import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
+import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
+import { Route as AuthenticatedProjetosIdExecucaoRouteImport } from './routes/_authenticated/projetos.$id.execucao'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -206,6 +210,30 @@ const AuthenticatedProjetosIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
+const AuthenticatedProjetosIdMelhoriasRoute =
+  AuthenticatedProjetosIdMelhoriasRouteImport.update({
+    id: '/melhorias',
+    path: '/melhorias',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
+const AuthenticatedProjetosIdMapeamentoRoute =
+  AuthenticatedProjetosIdMapeamentoRouteImport.update({
+    id: '/mapeamento',
+    path: '/mapeamento',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
+const AuthenticatedProjetosIdGestaoRoute =
+  AuthenticatedProjetosIdGestaoRouteImport.update({
+    id: '/gestao',
+    path: '/gestao',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
+const AuthenticatedProjetosIdExecucaoRoute =
+  AuthenticatedProjetosIdExecucaoRouteImport.update({
+    id: '/execucao',
+    path: '/execucao',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
 const AuthenticatedProcessosSugerirInterviewIdRoute =
   AuthenticatedProcessosSugerirInterviewIdRouteImport.update({
     id: '/processos/sugerir/$interviewId',
@@ -242,6 +270,10 @@ export interface FileRoutesByFullPath {
   '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/tobe/': typeof AuthenticatedTobeIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
+  '/projetos/$id/execucao': typeof AuthenticatedProjetosIdExecucaoRoute
+  '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
+  '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
+  '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -272,6 +304,10 @@ export interface FileRoutesByTo {
   '/roadmap': typeof AuthenticatedRoadmapIndexRoute
   '/tobe': typeof AuthenticatedTobeIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
+  '/projetos/$id/execucao': typeof AuthenticatedProjetosIdExecucaoRoute
+  '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
+  '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
+  '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesById {
@@ -305,6 +341,10 @@ export interface FileRoutesById {
   '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
   '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
+  '/_authenticated/projetos/$id/execucao': typeof AuthenticatedProjetosIdExecucaoRoute
+  '/_authenticated/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
+  '/_authenticated/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
+  '/_authenticated/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/_authenticated/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -338,6 +378,10 @@ export interface FileRouteTypes {
     | '/roadmap/'
     | '/tobe/'
     | '/processos/sugerir/$interviewId'
+    | '/projetos/$id/execucao'
+    | '/projetos/$id/gestao'
+    | '/projetos/$id/mapeamento'
+    | '/projetos/$id/melhorias'
     | '/projetos/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -368,6 +412,10 @@ export interface FileRouteTypes {
     | '/roadmap'
     | '/tobe'
     | '/processos/sugerir/$interviewId'
+    | '/projetos/$id/execucao'
+    | '/projetos/$id/gestao'
+    | '/projetos/$id/mapeamento'
+    | '/projetos/$id/melhorias'
     | '/projetos/$id'
   id:
     | '__root__'
@@ -400,6 +448,10 @@ export interface FileRouteTypes {
     | '/_authenticated/roadmap/'
     | '/_authenticated/tobe/'
     | '/_authenticated/processos/sugerir/$interviewId'
+    | '/_authenticated/projetos/$id/execucao'
+    | '/_authenticated/projetos/$id/gestao'
+    | '/_authenticated/projetos/$id/mapeamento'
+    | '/_authenticated/projetos/$id/melhorias'
     | '/_authenticated/projetos/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -614,6 +666,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
+    '/_authenticated/projetos/$id/melhorias': {
+      id: '/_authenticated/projetos/$id/melhorias'
+      path: '/melhorias'
+      fullPath: '/projetos/$id/melhorias'
+      preLoaderRoute: typeof AuthenticatedProjetosIdMelhoriasRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/_authenticated/projetos/$id/mapeamento': {
+      id: '/_authenticated/projetos/$id/mapeamento'
+      path: '/mapeamento'
+      fullPath: '/projetos/$id/mapeamento'
+      preLoaderRoute: typeof AuthenticatedProjetosIdMapeamentoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/_authenticated/projetos/$id/gestao': {
+      id: '/_authenticated/projetos/$id/gestao'
+      path: '/gestao'
+      fullPath: '/projetos/$id/gestao'
+      preLoaderRoute: typeof AuthenticatedProjetosIdGestaoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/_authenticated/projetos/$id/execucao': {
+      id: '/_authenticated/projetos/$id/execucao'
+      path: '/execucao'
+      fullPath: '/projetos/$id/execucao'
+      preLoaderRoute: typeof AuthenticatedProjetosIdExecucaoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
     '/_authenticated/processos/sugerir/$interviewId': {
       id: '/_authenticated/processos/sugerir/$interviewId'
       path: '/processos/sugerir/$interviewId'
@@ -625,11 +705,21 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedProjetosIdRouteChildren {
+  AuthenticatedProjetosIdExecucaoRoute: typeof AuthenticatedProjetosIdExecucaoRoute
+  AuthenticatedProjetosIdGestaoRoute: typeof AuthenticatedProjetosIdGestaoRoute
+  AuthenticatedProjetosIdMapeamentoRoute: typeof AuthenticatedProjetosIdMapeamentoRoute
+  AuthenticatedProjetosIdMelhoriasRoute: typeof AuthenticatedProjetosIdMelhoriasRoute
   AuthenticatedProjetosIdIndexRoute: typeof AuthenticatedProjetosIdIndexRoute
 }
 
 const AuthenticatedProjetosIdRouteChildren: AuthenticatedProjetosIdRouteChildren =
   {
+    AuthenticatedProjetosIdExecucaoRoute: AuthenticatedProjetosIdExecucaoRoute,
+    AuthenticatedProjetosIdGestaoRoute: AuthenticatedProjetosIdGestaoRoute,
+    AuthenticatedProjetosIdMapeamentoRoute:
+      AuthenticatedProjetosIdMapeamentoRoute,
+    AuthenticatedProjetosIdMelhoriasRoute:
+      AuthenticatedProjetosIdMelhoriasRoute,
     AuthenticatedProjetosIdIndexRoute: AuthenticatedProjetosIdIndexRoute,
   }
 
