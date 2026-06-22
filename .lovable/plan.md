@@ -1,91 +1,70 @@
-## Fase 3 — Análise Crítica, TO BE e Geração de Melhorias
 
-Construir o módulo de análise/redesenho sobre o que já existe (entrevistas, processos AS IS, indicadores, cronoanálise, mapas, dores, planos). Tudo segue o mesmo padrão visual e de navegação das fases anteriores (laranja/cinza, sidebar do `_authenticated/route.tsx`, páginas com scroll contínuo, React Flow para BPM).
+# Reestruturação da Plataforma (Fase 4)
 
-### 1. Modelo de dados (uma migração)
+Escopo amplo. Vou dividir em **5 entregas sequenciais** para você validar cada uma antes da próxima. Cada entrega é funcional por si só.
 
-Novas tabelas em `public` (com GRANT + RLS `authenticated`, trigger `set_updated_at`):
+## Entrega 1 — Nova Arquitetura de Navegação
 
-- `process_versions` — `process_id`, `version_no`, `kind` ENUM(`as_is`,`to_be`), `label`, `notes`, `snapshot` jsonb (atividades + edges + maps no momento do snapshot), `created_by`.
-- `tobe_processes` — `source_process_id` (FK AS IS), `company_id`, `name`, `description`, `status` ENUM(`draft`,`approved`,`archived`). Reaproveita `process_activities`/`process_edges` via coluna nova `tobe_process_id` (nullable) — assim o editor BPM existente serve para AS IS e TO BE.
-- `tobe_change_log` — por atividade/edge alterada: `tobe_process_id`, `change_type` ENUM(`added`,`removed`,`modified`,`simplified`), `target_ref` (id de atividade), `problem_addressed`, `opportunity_id` FK, `indicator_id` FK, `expected_benefit`.
-- `improvement_opportunities` — `company_id`, `process_id`, `tobe_process_id` (nullable), `title`, `description`, `root_cause_id` (nullable), `pain_point_id` (nullable), `indicator_id` (nullable), `expected_benefit`, `effort` ENUM(`baixo`,`medio`,`alto`), `impact` ENUM(`baixo`,`medio`,`alto`), `priority_score` numeric, `priority` ENUM(`baixa`,`media`,`alta`,`critica`), `status` ENUM(`sugerida`,`aprovada`,`rejeitada`,`implementada`), `source` ENUM(`ia`,`manual`), `action_plan_id` FK nullable.
-- `prioritization_criteria` — `company_id`, `name`, `weights` jsonb (impacto/urgência/esforço/risco/custo/alinhamento), `is_default`.
-- `root_cause_analyses` — `company_id`, `problem` text, `method` ENUM(`5_porques`,`ishikawa`,`categoria`), `data` jsonb (estrutura específica do método), `pain_point_id` nullable, `process_id` nullable.
-- `root_cause_actions` — `analysis_id`, `kind` ENUM(`corretiva`,`preventiva`), `description`, `action_plan_id` nullable.
-- `roadmap_items` — `company_id`, `opportunity_id` nullable, `horizon` ENUM(`curto`,`medio`,`longo`), `theme`, `area`, `responsible`, `deadline`, `priority`, `effort`, `expected_impact`, `status`.
-- `executive_diagnostics` — `company_id`, `title`, `content` jsonb (seções editáveis: dores, causas, processos críticos, gargalos, riscos, oportunidades, projetos), `generated_at`, `edited_at`.
-- `implementation_metrics` view materializada não — calculada via server fn agregando `improvement_opportunities` por status.
+**Objetivo:** Reduzir o menu principal a 3 itens e organizar tudo por projeto/etapa.
 
-Extensões em tabelas existentes:
-- `process_activities` + `process_edges`: coluna `tobe_process_id uuid null` (FK) — quando preenchida pertence a um TO BE, senão ao AS IS via `process_id` existente.
-- `action_plans`: colunas `opportunity_id`, `root_cause_id`, `indicator_id` (FKs nullable) para rastreabilidade.
+- Novo modelo de dados: tabela `projects` (vinculada a `company_id`), com status, datas, responsável e percentual de evolução calculado.
+- Vincular entidades existentes (entrevistas, processos, indicadores, planos de ação, oportunidades, etc.) a `project_id` (coluna nullable + backfill opcional para a primeira empresa).
+- Sidebar reduzida a: **Empresas**, **Dashboard**, **Projetos**.
+- Rota `/projetos/$id` com 5 abas em sequência:
+  1. **Diagnóstico** — entrevistas, transcrições, análises IA, mapa de dores, mapa de informação, mapa de decisão
+  2. **Mapeamento** — processos, BPM, cronoanálises
+  3. **Melhorias** — análise crítica, oportunidades, causa raiz, priorização, TO BE
+  4. **Execução** — planos de ação, indicadores, coletas
+  5. **Gestão** — dashboards, relatórios, horas, encerramento
+- **Home do projeto** (`/projetos/$id` raiz): cards com nº de entrevistas, processos mapeados, oportunidades, planos abertos, indicadores críticos/atrasados, ações vencidas, % de evolução.
+- Rotas legadas mantidas como redirects para a nova estrutura aninhada.
 
-### 2. Server functions (`src/lib/`)
+## Entrega 2 — BPM Reformulado (Lista → Fluxograma)
 
-- `tobe.functions.ts` — `cloneAsIsToTobe(processId)` (copia atividades/edges para novo TO BE), `getTobe(id)`, `updateTobe`, `compareAsIsTobe(processId)` (retorna deltas: added/removed/modified/time savings via cronoanálise associada).
-- `versions.functions.ts` — `snapshotProcess(processId, kind, label)` grava `process_versions`, `listVersions(processId)`, `restoreVersion(versionId)`.
-- `opportunities.functions.ts` — CRUD + `approveOpportunity` (cria action_plan já preenchido), `rejectOpportunity`, `prioritize(criteriaId)` (recalcula `priority_score`).
-- `root-cause.functions.ts` — CRUD 5 Porquês / Ishikawa / categoria + ações.
-- `roadmap.functions.ts` — CRUD + agrupamentos.
-- `diagnostics.functions.ts` — `generateExecutiveDiagnostic(companyId)` consolida dores/causas/oportunidades + IA estrutura texto editável; `updateDiagnostic`.
-- `ai-analysis.functions.ts` — usa `createLovableAiGatewayProvider` + `gemini-3-flash-preview` com `Output.object`:
-  - `analyzeProcessCritically(processId)` → retorna lista de findings (desperdícios, gargalos, retrabalhos, NVA, aprovações em excesso, transferências, conflitos, ausência indicador/responsável, dependência de pessoa, riscos) e gera `improvement_opportunities` em status `sugerida`.
-  - `suggestTobe(processId)` → sugestão de atividades para TO BE (revisável antes de aplicar).
-- `metrics.functions.ts` — `getImplementationMetrics(companyId)` para dashboard.
+**Objetivo:** Tirar o desenho manual do caminho crítico.
 
-Tudo com `requireSupabaseAuth`. Snapshots e clones executam dentro de transação lógica (múltiplos inserts sequenciais).
+- Novo fluxo na tela do processo:
+  1. **Aba "Lista Estruturada"** (default) — IA extrai atividades das entrevistas vinculadas e mostra como lista ordenada editável (drag handle, inline edit, add/remove/reorder, marcar tipo: atividade/decisão/aprovação/espera/retrabalho/gargalo, definir responsável, entradas, saídas).
+  2. Botão **"Gerar Fluxograma"** — só habilita após validação da lista, gera nodes/edges automaticamente com layout `dagre`.
+  3. **Aba "Fluxograma"** — React Flow ocupando viewport quase inteiro, com zoom, minimap, controls, modo **tela cheia** (Fullscreen API), auto-layout, drag-and-drop para criar conexões.
+- IA expandida (`extractActivitiesFromInterviews`) detecta: atividade, responsável, entradas, saídas, decisões, aprovações, esperas, retrabalhos, gargalos.
+- Versão mobile: lista estruturada é a visão primária; fluxograma abre em tela cheia.
 
-### 3. Rotas (todas em `_authenticated/`)
+## Entrega 3 — Indicadores com Coleta Pública
 
-- `analise-critica.index.tsx` — lista processos com botão "Analisar com IA" → grava findings → tabela de findings editáveis.
-- `oportunidades.index.tsx` — Matriz de Oportunidades (tabela com filtros por processo/status/prioridade, ações aprovar/rejeitar/editar, gerar plano de ação).
-- `oportunidades.$id.tsx` — detalhe + vínculos (processo, causa raiz, indicador, plano).
-- `priorizacao.index.tsx` — configura critérios (pesos) + recalcular + tabela ordenada.
-- `causa-raiz.index.tsx` + `causa-raiz.$id.tsx` — editor 5 Porquês (lista encadeada de 5 níveis), Ishikawa (6 categorias clássicas com itens), categorização simples + ações vinculadas.
-- `tobe.index.tsx` — lista de TO BE por empresa, botão "Criar TO BE a partir de AS IS".
-- `tobe.$id.tsx` — editor BPM (reusa `BpmFlow`) + aba "Mudanças" (log das alterações com problema/indicador/benefício) + aba "Comparar AS IS x TO BE".
-- `processos.$id.tsx` — adicionar abas: "Versões" (snapshot/restore), "Análise Crítica", botão "Criar TO BE".
-- `roadmap.index.tsx` — kanban por horizonte (curto/médio/longo), agrupável por área/tema.
-- `diagnostico.index.tsx` — escolhe empresa, gera/edita Diagnóstico Executivo (seções editáveis em cards), botão exportar PDF (reusa pdf-lib).
-- `dashboard.index.tsx` (ou aba em `/`) — KPIs de implementação: identificadas/aprovadas/em andamento/concluídas + gráfico simples.
+**Objetivo:** Indicador = mecanismo de coleta externa simples.
 
-Sidebar ganha grupo "Análise & Melhoria" com: Análise Crítica, Oportunidades, Priorização, Causa Raiz, TO BE, Roadmap, Diagnóstico.
+- Schema:
+  - `indicators`: adicionar `code` (único interno), `public_token` (uuid, único), `frequency` (diaria/semanal/quinzenal/mensal/trimestral), `target_value`, `critical_min`, `critical_max`, `unit`, `responsible_email`.
+  - Nova tabela `indicator_collections`: `indicator_id`, `period_ref`, `value`, `note`, `submitted_at`, `submitted_by_name`, `evaluation` (verde/amarelo/vermelho — calculada por trigger).
+- Rota pública **sem auth**: `/coleta/$token` — formulário mínimo (nome do indicador exibido, período pré-preenchido, campo valor, observação). Sem histórico, sem dashboard. Server route `/api/public/coletas/$token` para POST.
+- Geração automática do link público + botão "Copiar link / WhatsApp / Email".
+- Trigger no banco classifica automaticamente verde/amarelo/vermelho ao inserir uma coleta.
 
-### 4. Componentes reutilizáveis
+## Entrega 4 — Monitoramento, Pendências e Dashboard Executivo
 
-- `OpportunityCard` / `OpportunityForm`
-- `ComparisonView` (AS IS vs TO BE — duas colunas com deltas destacados)
-- `FiveWhysEditor`, `IshikawaEditor`
-- `PriorityMatrix` (heatmap impacto x esforço)
-- `RoadmapBoard` (3 colunas horizonte)
-- `DiagnosticSection` (card editável inline)
-- `VersionTimeline`
+- View `v_indicator_status`: para cada indicador, calcula `last_collection_at`, `next_due_at` (baseado em `frequency`), `status` (em_dia / proximo_vencimento / atrasado / sem_coleta).
+- Painel **Pendências** dentro da etapa Execução: três listas (sem coleta, próximos do vencimento, atrasados) com ação rápida "enviar link".
+- **Dashboard executivo** (no menu raiz e na home do projeto): destaque para indicadores críticos (vermelho), abaixo da meta (amarelo) e sem preenchimento; KPIs do portfólio.
+- Classificação semafórica aplicada nas listas existentes de indicadores.
 
-### 5. IA — regras
+## Entrega 5 — Rastreabilidade Bidirecional + Polimento Mobile
 
-- Sempre `Output.object` com schemas pequenos (descrição + categoria enum curta).
-- Prompt deixa claro: nunca aplicar automaticamente; gerar como `sugerida`.
-- Análise crítica recebe contexto: atividades, edges, indicadores, cronoanálise, dores associadas, mapas — passa como JSON compacto.
-- Diagnóstico executivo: agrega dados reais, IA só organiza/redige.
+- Tabela genérica `entity_links` (`source_type`, `source_id`, `target_type`, `target_id`, `relation`) para registrar relações: entrevista↔processo↔atividade↔dor↔indicador↔oportunidade↔plano de ação↔causa raiz.
+- Componente `<RelatedItems entityType entityId />` reutilizável: lista clicável agrupada por tipo, abre o item alvo.
+- Na tela de atividade do processo: mostra entrevistas de origem, dores, indicadores, planos.
+- Na tela de plano de ação: mostra origem (entrevista/processo/indicador/oportunidade/análise crítica/causa raiz).
+- **Mobile:** converter modais de detalhe restantes em rotas full-page com scroll contínuo; formulários longos divididos em seções (`<Accordion>` ou steps) com autosave (debounce 1s → server fn).
 
-### 6. PDF e rastreabilidade
+## Detalhes Técnicos
 
-- Diagnóstico Executivo e Roadmap exportáveis em PDF (pdf-lib já instalado).
-- Cada Oportunidade exibe trilha: Entrevista → Dor → Causa → Processo → Indicador → Plano.
+- **Stack:** mantém TanStack Start, server functions, Supabase. Sem novas dependências obrigatórias além de `@dnd-kit/sortable` (lista BPM) e `dagre` (já instalado se Fase 2 usou).
+- **Segurança:** `indicator_collections` permite INSERT por `anon` apenas via server route que valida `public_token`; SELECT só para `authenticated`. `entity_links` herda RLS via `authenticated`.
+- **Compatibilidade:** rotas antigas (`/processos`, `/indicadores`, etc.) viram redirects para a primeira aba do projeto ativo do usuário, evitando 404 em links salvos.
+- **Fora de escopo desta fase:** notificações push/email automáticas para indicadores atrasados (mantém envio manual via botão "copiar link"), workflow de aprovação multi-usuário, app mobile nativo.
 
-### 7. Ordem de implementação
+## Ordem de Execução
 
-1. Migração (todas as tabelas + extensões + GRANTs + RLS).
-2. Server fns CRUD básicos (opportunities, root-cause, roadmap, versions, tobe).
-3. IA: analyzeProcessCritically + suggestTobe + diagnóstico.
-4. Rotas + componentes UI.
-5. Integração na sidebar e em `processos.$id`.
-6. Métricas e PDFs.
+Vou começar pela **Entrega 1** (nova arquitetura de navegação + tabela `projects` + home do projeto). Depois de você validar a navegação, sigo para a Entrega 2 (BPM). As demais entregas em sequência.
 
-### Fora de escopo
-- Workflow de aprovação multi-usuário (single role já existente).
-- Versionamento de TO BE em sub-versões (apenas snapshots gerais via `process_versions`).
-- Simulação de cenários financeiros detalhados.
-
-Aprovar para eu seguir com a migração e implementação.
+Confirma que posso começar pela Entrega 1?

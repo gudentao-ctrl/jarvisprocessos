@@ -30,6 +30,7 @@ export type Database = {
           pain_point_id: string | null
           priority: Database["public"]["Enums"]["action_priority"]
           process_id: string | null
+          project_id: string | null
           responsible: string | null
           root_cause_id: string | null
           status: Database["public"]["Enums"]["action_status"]
@@ -51,6 +52,7 @@ export type Database = {
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
           process_id?: string | null
+          project_id?: string | null
           responsible?: string | null
           root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
@@ -72,6 +74,7 @@ export type Database = {
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
           process_id?: string | null
+          project_id?: string | null
           responsible?: string | null
           root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
@@ -126,6 +129,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -215,6 +225,7 @@ export type Database = {
           process_id: string | null
           product: string | null
           production_line: string | null
+          project_id: string | null
           takt_time: number | null
           updated_at: string
         }
@@ -230,6 +241,7 @@ export type Database = {
           process_id?: string | null
           product?: string | null
           production_line?: string | null
+          project_id?: string | null
           takt_time?: number | null
           updated_at?: string
         }
@@ -245,6 +257,7 @@ export type Database = {
           process_id?: string | null
           product?: string | null
           production_line?: string | null
+          project_id?: string | null
           takt_time?: number | null
           updated_at?: string
         }
@@ -263,6 +276,13 @@ export type Database = {
             referencedRelation: "processes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cronoanalysis_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       executive_diagnostics: {
@@ -274,6 +294,7 @@ export type Database = {
           edited_at: string | null
           generated_at: string
           id: string
+          project_id: string | null
           title: string
           updated_at: string
         }
@@ -285,6 +306,7 @@ export type Database = {
           edited_at?: string | null
           generated_at?: string
           id?: string
+          project_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -296,6 +318,7 @@ export type Database = {
           edited_at?: string | null
           generated_at?: string
           id?: string
+          project_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -305,6 +328,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executive_diagnostics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -326,6 +356,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["opportunity_priority"]
           priority_score: number
           process_id: string | null
+          project_id: string | null
           root_cause_id: string | null
           source: Database["public"]["Enums"]["opportunity_source"]
           status: Database["public"]["Enums"]["opportunity_status"]
@@ -349,6 +380,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["opportunity_priority"]
           priority_score?: number
           process_id?: string | null
+          project_id?: string | null
           root_cause_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
           status?: Database["public"]["Enums"]["opportunity_status"]
@@ -372,6 +404,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["opportunity_priority"]
           priority_score?: number
           process_id?: string | null
+          project_id?: string | null
           root_cause_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
           status?: Database["public"]["Enums"]["opportunity_status"]
@@ -416,6 +449,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "improvement_opportunities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "improvement_opportunities_root_cause_fk"
             columns: ["root_cause_id"]
             isOneToOne: false
@@ -440,6 +480,7 @@ export type Database = {
           id: string
           name: string
           process_id: string | null
+          project_id: string | null
           target: number | null
           unit: string | null
           updated_at: string
@@ -452,6 +493,7 @@ export type Database = {
           id?: string
           name: string
           process_id?: string | null
+          project_id?: string | null
           target?: number | null
           unit?: string | null
           updated_at?: string
@@ -464,6 +506,7 @@ export type Database = {
           id?: string
           name?: string
           process_id?: string | null
+          project_id?: string | null
           target?: number | null
           unit?: string | null
           updated_at?: string
@@ -481,6 +524,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -545,6 +595,7 @@ export type Database = {
           id: string
           interview_date: string
           participant: string | null
+          project_id: string | null
           sector_id: string | null
           status: string
           title: string
@@ -559,6 +610,7 @@ export type Database = {
           id?: string
           interview_date?: string
           participant?: string | null
+          project_id?: string | null
           sector_id?: string | null
           status?: string
           title: string
@@ -573,6 +625,7 @@ export type Database = {
           id?: string
           interview_date?: string
           participant?: string | null
+          project_id?: string | null
           sector_id?: string | null
           status?: string
           title?: string
@@ -584,6 +637,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -602,6 +662,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          project_id: string | null
           severity: number
           source: Database["public"]["Enums"]["pain_source"]
           source_id: string | null
@@ -613,6 +674,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          project_id?: string | null
           severity?: number
           source?: Database["public"]["Enums"]["pain_source"]
           source_id?: string | null
@@ -624,6 +686,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          project_id?: string | null
           severity?: number
           source?: Database["public"]["Enums"]["pain_source"]
           source_id?: string | null
@@ -635,6 +698,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pain_points_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -954,6 +1024,7 @@ export type Database = {
           objective: string | null
           outputs: string | null
           parent_id: string | null
+          project_id: string | null
           responsible: string | null
           source_interview_id: string | null
           source_process_id: string | null
@@ -974,6 +1045,7 @@ export type Database = {
           objective?: string | null
           outputs?: string | null
           parent_id?: string | null
+          project_id?: string | null
           responsible?: string | null
           source_interview_id?: string | null
           source_process_id?: string | null
@@ -994,6 +1066,7 @@ export type Database = {
           objective?: string | null
           outputs?: string | null
           parent_id?: string | null
+          project_id?: string | null
           responsible?: string | null
           source_interview_id?: string | null
           source_process_id?: string | null
@@ -1017,6 +1090,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processes_source_interview_id_fkey"
             columns: ["source_interview_id"]
             isOneToOne: false
@@ -1028,6 +1108,59 @@ export type Database = {
             columns: ["source_process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          progress_pct: number
+          responsible: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          progress_pct?: number
+          responsible?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          progress_pct?: number
+          responsible?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1045,6 +1178,7 @@ export type Database = {
           id: string
           opportunity_id: string | null
           priority: Database["public"]["Enums"]["opportunity_priority"]
+          project_id: string | null
           responsible: string
           status: Database["public"]["Enums"]["roadmap_status"]
           theme: string
@@ -1063,6 +1197,7 @@ export type Database = {
           id?: string
           opportunity_id?: string | null
           priority?: Database["public"]["Enums"]["opportunity_priority"]
+          project_id?: string | null
           responsible?: string
           status?: Database["public"]["Enums"]["roadmap_status"]
           theme?: string
@@ -1081,6 +1216,7 @@ export type Database = {
           id?: string
           opportunity_id?: string | null
           priority?: Database["public"]["Enums"]["opportunity_priority"]
+          project_id?: string | null
           responsible?: string
           status?: Database["public"]["Enums"]["roadmap_status"]
           theme?: string
@@ -1100,6 +1236,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "improvement_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roadmap_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1159,6 +1302,7 @@ export type Database = {
           pain_point_id: string | null
           problem: string
           process_id: string | null
+          project_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1173,6 +1317,7 @@ export type Database = {
           pain_point_id?: string | null
           problem: string
           process_id?: string | null
+          project_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1187,6 +1332,7 @@ export type Database = {
           pain_point_id?: string | null
           problem?: string
           process_id?: string | null
+          project_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1216,6 +1362,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "root_cause_analyses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1440,6 +1593,12 @@ export type Database = {
       process_kind: "as_is" | "to_be"
       process_level: "0" | "1" | "2"
       process_status: "draft" | "approved" | "archived"
+      project_status:
+        | "planejamento"
+        | "em_andamento"
+        | "pausado"
+        | "concluido"
+        | "arquivado"
       rca_action_kind: "corretiva" | "preventiva"
       rca_method: "cinco_porques" | "ishikawa" | "categoria"
       roadmap_horizon: "curto" | "medio" | "longo"
@@ -1614,6 +1773,13 @@ export const Constants = {
       process_kind: ["as_is", "to_be"],
       process_level: ["0", "1", "2"],
       process_status: ["draft", "approved", "archived"],
+      project_status: [
+        "planejamento",
+        "em_andamento",
+        "pausado",
+        "concluido",
+        "arquivado",
+      ],
       rca_action_kind: ["corretiva", "preventiva"],
       rca_method: ["cinco_porques", "ishikawa", "categoria"],
       roadmap_horizon: ["curto", "medio", "longo"],
