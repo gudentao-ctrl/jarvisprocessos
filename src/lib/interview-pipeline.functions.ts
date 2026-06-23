@@ -416,13 +416,13 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           medium: m.medium,
           responsible: m.responsible,
           document: m.document,
-          loss_risk: m.loss_risk,
+          loss_risk: !!(m.loss_risk && m.loss_risk.trim()),
           notes: m.notes,
           generated_by_ai: true,
           source_interview_id: interview.id,
         }));
       if (rows.length) {
-        const { error } = await supabase.from("process_information_map").insert(rows);
+        const { error } = await supabase.from("process_information_map").insert(rows as any);
         if (!error) stats.info_map = rows.length;
       }
     }
