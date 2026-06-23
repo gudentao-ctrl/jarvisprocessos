@@ -307,19 +307,24 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         .eq("source_interview_id", interview.id)
         .eq("generated_by_ai", true)
         .is("validated_at", null);
+      const sevMap: Record<string, number> = { baixa: 2, media: 3, alta: 4, critica: 5 };
+      const allowedCat = new Set([
+        "processo","informacao","governanca","pessoas","tecnologia",
+        "planejamento","qualidade","producao","compras","logistica",
+      ]);
       const rows = parsed.pains.map((p) => ({
         company_id: interview.company_id!,
         project_id: interview.project_id ?? null,
         source: "interview",
         source_id: interview.id,
-        category: p.category,
+        category: allowedCat.has(p.category) ? p.category : "processo",
         description: p.description,
-        severity: p.severity,
+        severity: sevMap[p.severity] ?? 3,
         generated_by_ai: true,
         source_interview_id: interview.id,
       }));
       if (rows.length) {
-        const { error } = await supabase.from("pain_points").insert(rows);
+        const { error } = await supabase.from("pain_points").insert(rows as any);
         if (!error) stats.pains = rows.length;
       }
     }
