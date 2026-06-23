@@ -394,7 +394,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         };
       });
       if (rows.length) {
-        const { error } = await supabase.from("improvement_opportunities").insert(rows);
+        const { error } = await supabase.from("improvement_opportunities").insert(rows as any);
         if (!error) stats.opportunities = rows.length;
       }
     }
