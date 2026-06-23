@@ -337,20 +337,23 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         .eq("source_interview_id", interview.id)
         .eq("generated_by_ai", true)
         .is("validated_at", null);
-      const rows = parsed.indicators.map((ind) => ({
-        company_id: interview.company_id!,
-        project_id: interview.project_id ?? null,
-        process_id: ind.process_ref ? processIdByRef.get(ind.process_ref) ?? null : null,
-        name: ind.name,
-        description: ind.description,
-        unit: ind.unit,
-        target: ind.target,
-        frequency: ind.frequency,
-        generated_by_ai: true,
-        source_interview_id: interview.id,
-      }));
+      const rows = parsed.indicators.map((ind) => {
+        const t = parseFloat(ind.target);
+        return {
+          company_id: interview.company_id!,
+          project_id: interview.project_id ?? null,
+          process_id: ind.process_ref ? processIdByRef.get(ind.process_ref) ?? null : null,
+          name: ind.name,
+          description: ind.description,
+          unit: ind.unit,
+          target: Number.isFinite(t) ? t : null,
+          frequency: ind.frequency,
+          generated_by_ai: true,
+          source_interview_id: interview.id,
+        };
+      });
       if (rows.length) {
-        const { error } = await supabase.from("indicators").insert(rows);
+        const { error } = await supabase.from("indicators").insert(rows as any);
         if (!error) stats.indicators = rows.length;
       }
     }
