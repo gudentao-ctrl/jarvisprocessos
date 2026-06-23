@@ -73,6 +73,21 @@ function InterviewDetail() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const runPipeline = useMutation({
+    mutationFn: (force: boolean) => generateAll({ data: { interview_id: id, force } }),
+    onSuccess: (r: any) => {
+      if (r?.skipped) toast.info(r.reason ?? "Geração ignorada");
+      else {
+        const s = r?.stats ?? {};
+        toast.success(
+          `Gerado: ${s.processes ?? 0} processos · ${s.activities ?? 0} atividades · ${s.pains ?? 0} dores · ${s.indicators ?? 0} indicadores · ${s.opportunities ?? 0} oportunidades`,
+        );
+      }
+      refetch();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const saveAnalysis = useMutation({
     mutationFn: () => updateA({
       data: {
