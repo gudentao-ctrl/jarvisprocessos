@@ -6,6 +6,7 @@ import {
   getInterview, updateTranscript, analyzeInterview,
   updateAnalysis, deleteInterview, exportInterviewPdf, transcribeInterview,
 } from "@/lib/interviews.functions";
+import { generateArtifactsFromInterview } from "@/lib/interview-pipeline.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,7 @@ function InterviewDetail() {
   const del = useServerFn(deleteInterview);
   const exportPdf = useServerFn(exportInterviewPdf);
   const transcribe = useServerFn(transcribeInterview);
+  const generateAll = useServerFn(generateArtifactsFromInterview);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["interview", id],
@@ -68,6 +70,21 @@ function InterviewDetail() {
   const runTranscribe = useMutation({
     mutationFn: () => transcribe({ data: { interview_id: id } }),
     onSuccess: () => { toast.success("Transcrição gerada"); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const runPipeline = useMutation({
+    mutationFn: (force: boolean) => generateAll({ data: { interview_id: id, force } }),
+    onSuccess: (r: any) => {
+      if (r?.skipped) toast.info(r.reason ?? "Geração ignorada");
+      else {
+        const s = r?.stats ?? {};
+        toast.success(
+          `Gerado: ${s.processes ?? 0} processos · ${s.activities ?? 0} atividades · ${s.pains ?? 0} dores · ${s.indicators ?? 0} indicadores · ${s.opportunities ?? 0} oportunidades`,
+        );
+      }
+      refetch();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -205,6 +222,51 @@ function InterviewDetail() {
           ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analisando...</>
           : <><Sparkles className="mr-2 h-5 w-5" /> {data.analysis ? "Reanalisar com IA" : "Analisar com IA"}</>}
       </Button>
+
+      {/* PIPELINE COMPLETO */}
+      <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-primary">⚡ Gerar entregáveis com IA</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Em uma única ação, a IA produz a <strong>ata da reunião</strong>, os <strong>processos mapeados (BPM)</strong>, dores, indicadores sugeridos, oportunidades e mapas de informação e decisão a partir desta entrevista.
+            Itens que você já validou são preservados.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button
+            onClick={() => runPipeline.mutate(false)}
+            disabled={!hasTranscript || runPipeline.isPending}
+            className="h-12 w-full"
+          >
+            {runPipeline.isPending
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+              : <><Sparkles className="mr-2 h-4 w-4" /> {interview.generation_status === "done" ? "Atualizar" : "Gerar tudo"}</>}
+          </Button>
+          <Button
+            onClick={() => runPipeline.mutate(true)}
+            disabled={!hasTranscript || runPipeline.isPending}
+            variant="outline"
+            className="h-12 w-full"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" /> Forçar regeneração
+          </Button>
+        </div>
+        {interview.generation_status === "done" && interview.generated_at && (
+          <p className="text-xs text-muted-foreground">
+            Última geração: {new Date(interview.generated_at).toLocaleString("pt-BR")}
+          </p>
+        )}
+      </div>
+
+      {/* ATA DA REUNIÃO */}
+      {interview.minutes_md && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ata da reunião</h2>
+          <Card className="p-4">
+            <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">{interview.minutes_md}</pre>
+          </Card>
+        </section>
+      )}
 
       {/* ANALYSIS */}
       {analysisDraft && (

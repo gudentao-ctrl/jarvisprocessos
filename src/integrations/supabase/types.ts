@@ -344,11 +344,13 @@ export type Database = {
           action_plan_id: string | null
           category: string
           company_id: string
+          confidence: number | null
           created_at: string
           created_by: string | null
           description: string
           effort: Database["public"]["Enums"]["effort_level"]
           expected_benefit: string
+          generated_by_ai: boolean
           id: string
           impact: Database["public"]["Enums"]["impact_level"]
           indicator_id: string | null
@@ -359,20 +361,25 @@ export type Database = {
           project_id: string | null
           root_cause_id: string | null
           source: Database["public"]["Enums"]["opportunity_source"]
+          source_interview_id: string | null
           status: Database["public"]["Enums"]["opportunity_status"]
           title: string
           tobe_process_id: string | null
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           action_plan_id?: string | null
           category?: string
           company_id: string
+          confidence?: number | null
           created_at?: string
           created_by?: string | null
           description?: string
           effort?: Database["public"]["Enums"]["effort_level"]
           expected_benefit?: string
+          generated_by_ai?: boolean
           id?: string
           impact?: Database["public"]["Enums"]["impact_level"]
           indicator_id?: string | null
@@ -383,20 +390,25 @@ export type Database = {
           project_id?: string | null
           root_cause_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
+          source_interview_id?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title: string
           tobe_process_id?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           action_plan_id?: string | null
           category?: string
           company_id?: string
+          confidence?: number | null
           created_at?: string
           created_by?: string | null
           description?: string
           effort?: Database["public"]["Enums"]["effort_level"]
           expected_benefit?: string
+          generated_by_ai?: boolean
           id?: string
           impact?: Database["public"]["Enums"]["impact_level"]
           indicator_id?: string | null
@@ -407,10 +419,13 @@ export type Database = {
           project_id?: string | null
           root_cause_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
+          source_interview_id?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title?: string
           tobe_process_id?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -463,6 +478,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "improvement_opportunities_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "improvement_opportunities_tobe_process_id_fkey"
             columns: ["tobe_process_id"]
             isOneToOne: false
@@ -474,42 +496,57 @@ export type Database = {
       indicators: {
         Row: {
           company_id: string | null
+          confidence: number | null
           created_at: string
           description: string | null
           frequency: string | null
+          generated_by_ai: boolean
           id: string
           name: string
           process_id: string | null
           project_id: string | null
+          source_interview_id: string | null
           target: number | null
           unit: string | null
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           company_id?: string | null
+          confidence?: number | null
           created_at?: string
           description?: string | null
           frequency?: string | null
+          generated_by_ai?: boolean
           id?: string
           name: string
           process_id?: string | null
           project_id?: string | null
+          source_interview_id?: string | null
           target?: number | null
           unit?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           company_id?: string | null
+          confidence?: number | null
           created_at?: string
           description?: string | null
           frequency?: string | null
+          generated_by_ai?: boolean
           id?: string
           name?: string
           process_id?: string | null
           project_id?: string | null
+          source_interview_id?: string | null
           target?: number | null
           unit?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -531,6 +568,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicators_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
         ]
@@ -592,13 +636,17 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          generated_at: string | null
+          generation_status: string
           id: string
           interview_date: string
+          minutes_md: string | null
           participant: string | null
           project_id: string | null
           sector_id: string | null
           status: string
           title: string
+          transcript_hash: string | null
           updated_at: string
         }
         Insert: {
@@ -607,13 +655,17 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          generated_at?: string | null
+          generation_status?: string
           id?: string
           interview_date?: string
+          minutes_md?: string | null
           participant?: string | null
           project_id?: string | null
           sector_id?: string | null
           status?: string
           title: string
+          transcript_hash?: string | null
           updated_at?: string
         }
         Update: {
@@ -622,13 +674,17 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          generated_at?: string | null
+          generation_status?: string
           id?: string
           interview_date?: string
+          minutes_md?: string | null
           participant?: string | null
           project_id?: string | null
           sector_id?: string | null
           status?: string
           title?: string
+          transcript_hash?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -659,38 +715,53 @@ export type Database = {
         Row: {
           category: Database["public"]["Enums"]["pain_category"]
           company_id: string | null
+          confidence: number | null
           created_at: string
           description: string
+          generated_by_ai: boolean
           id: string
           project_id: string | null
           severity: number
           source: Database["public"]["Enums"]["pain_source"]
           source_id: string | null
+          source_interview_id: string | null
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           category?: Database["public"]["Enums"]["pain_category"]
           company_id?: string | null
+          confidence?: number | null
           created_at?: string
           description: string
+          generated_by_ai?: boolean
           id?: string
           project_id?: string | null
           severity?: number
           source?: Database["public"]["Enums"]["pain_source"]
           source_id?: string | null
+          source_interview_id?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["pain_category"]
           company_id?: string | null
+          confidence?: number | null
           created_at?: string
           description?: string
+          generated_by_ai?: boolean
           id?: string
           project_id?: string | null
           severity?: number
           source?: Database["public"]["Enums"]["pain_source"]
           source_id?: string | null
+          source_interview_id?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -705,6 +776,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pain_points_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
         ]
@@ -750,52 +828,67 @@ export type Database = {
       process_activities: {
         Row: {
           area: string | null
+          confidence: number | null
           created_at: string
           description: string | null
+          generated_by_ai: boolean
           id: string
           notes: string | null
           ordering: number
           process_id: string
           responsible: string | null
+          source_interview_id: string | null
           systems: string[]
           time_minutes: number | null
           title: string
           type: Database["public"]["Enums"]["activity_type"]
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
           x: number | null
           y: number | null
         }
         Insert: {
           area?: string | null
+          confidence?: number | null
           created_at?: string
           description?: string | null
+          generated_by_ai?: boolean
           id?: string
           notes?: string | null
           ordering?: number
           process_id: string
           responsible?: string | null
+          source_interview_id?: string | null
           systems?: string[]
           time_minutes?: number | null
           title: string
           type?: Database["public"]["Enums"]["activity_type"]
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
           x?: number | null
           y?: number | null
         }
         Update: {
           area?: string | null
+          confidence?: number | null
           created_at?: string
           description?: string | null
+          generated_by_ai?: boolean
           id?: string
           notes?: string | null
           ordering?: number
           process_id?: string
           responsible?: string | null
+          source_interview_id?: string | null
           systems?: string[]
           time_minutes?: number | null
           title?: string
           type?: Database["public"]["Enums"]["activity_type"]
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
           x?: number | null
           y?: number | null
         }
@@ -807,41 +900,63 @@ export type Database = {
             referencedRelation: "processes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "process_activities_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
         ]
       }
       process_decision_map: {
         Row: {
           activity_id: string | null
           approval_required: boolean | null
+          confidence: number | null
           created_at: string
           decider: string | null
           decision: string | null
+          generated_by_ai: boolean
           id: string
           notes: string | null
           process_id: string
           reported_delay: string | null
+          source_interview_id: string | null
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           activity_id?: string | null
           approval_required?: boolean | null
+          confidence?: number | null
           created_at?: string
           decider?: string | null
           decision?: string | null
+          generated_by_ai?: boolean
           id?: string
           notes?: string | null
           process_id: string
           reported_delay?: string | null
+          source_interview_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           activity_id?: string | null
           approval_required?: boolean | null
+          confidence?: number | null
           created_at?: string
           decider?: string | null
           decision?: string | null
+          generated_by_ai?: boolean
           id?: string
           notes?: string | null
           process_id?: string
           reported_delay?: string | null
+          source_interview_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -856,6 +971,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_decision_map_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
         ]
@@ -912,9 +1034,11 @@ export type Database = {
       process_information_map: {
         Row: {
           activity_id: string | null
+          confidence: number | null
           created_at: string
           destination: string | null
           document: string | null
+          generated_by_ai: boolean
           id: string
           loss_risk: boolean | null
           medium: string | null
@@ -922,12 +1046,17 @@ export type Database = {
           origin: string | null
           process_id: string
           responsible: string | null
+          source_interview_id: string | null
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           activity_id?: string | null
+          confidence?: number | null
           created_at?: string
           destination?: string | null
           document?: string | null
+          generated_by_ai?: boolean
           id?: string
           loss_risk?: boolean | null
           medium?: string | null
@@ -935,12 +1064,17 @@ export type Database = {
           origin?: string | null
           process_id: string
           responsible?: string | null
+          source_interview_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           activity_id?: string | null
+          confidence?: number | null
           created_at?: string
           destination?: string | null
           document?: string | null
+          generated_by_ai?: boolean
           id?: string
           loss_risk?: boolean | null
           medium?: string | null
@@ -948,6 +1082,9 @@ export type Database = {
           origin?: string | null
           process_id?: string
           responsible?: string | null
+          source_interview_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -962,6 +1099,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_information_map_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
         ]
