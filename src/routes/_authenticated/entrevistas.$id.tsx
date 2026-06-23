@@ -6,6 +6,7 @@ import {
   getInterview, updateTranscript, analyzeInterview,
   updateAnalysis, deleteInterview, exportInterviewPdf, transcribeInterview,
 } from "@/lib/interviews.functions";
+import { generateArtifactsFromInterview } from "@/lib/interview-pipeline.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
