@@ -40,6 +40,7 @@ function InterviewDetail() {
   const del = useServerFn(deleteInterview);
   const exportPdf = useServerFn(exportInterviewPdf);
   const transcribe = useServerFn(transcribeInterview);
+  const generateAll = useServerFn(generateArtifactsFromInterview);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["interview", id],
