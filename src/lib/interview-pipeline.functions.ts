@@ -448,7 +448,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           source_interview_id: interview.id,
         }));
       if (rows.length) {
-        const { error } = await supabase.from("process_decision_map").insert(rows);
+        const { error } = await supabase.from("process_decision_map").insert(rows as any);
         if (!error) stats.decision_map = rows.length;
       }
     }
