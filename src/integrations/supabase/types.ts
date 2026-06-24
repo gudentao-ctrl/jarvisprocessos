@@ -104,6 +104,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "action_plans_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "v_indicator_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "action_plans_interview_id_fkey"
             columns: ["interview_id"]
             isOneToOne: false
@@ -450,6 +457,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "improvement_opportunities_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "v_indicator_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "improvement_opportunities_pain_point_id_fkey"
             columns: ["pain_point_id"]
             isOneToOne: false
@@ -493,18 +507,80 @@ export type Database = {
           },
         ]
       }
+      indicator_collections: {
+        Row: {
+          created_at: string
+          evaluation: string
+          id: string
+          indicator_id: string
+          ip_hash: string | null
+          observation: string | null
+          reference_period: string | null
+          submitted_at: string
+          submitted_by_name: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          evaluation?: string
+          id?: string
+          indicator_id: string
+          ip_hash?: string | null
+          observation?: string | null
+          reference_period?: string | null
+          submitted_at?: string
+          submitted_by_name?: string | null
+          value: number
+        }
+        Update: {
+          created_at?: string
+          evaluation?: string
+          id?: string
+          indicator_id?: string
+          ip_hash?: string | null
+          observation?: string | null
+          reference_period?: string | null
+          submitted_at?: string
+          submitted_by_name?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_collections_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicator_collections_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "v_indicator_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicators: {
         Row: {
+          code: string | null
           company_id: string | null
           confidence: number | null
           created_at: string
+          critical_max: number | null
+          critical_min: number | null
           description: string | null
+          direction: string
           frequency: string | null
           generated_by_ai: boolean
           id: string
+          instructions: string | null
           name: string
           process_id: string | null
           project_id: string | null
+          public_token: string | null
+          responsible_email: string | null
+          responsible_name: string | null
           source_interview_id: string | null
           target: number | null
           unit: string | null
@@ -513,16 +589,24 @@ export type Database = {
           validated_by: string | null
         }
         Insert: {
+          code?: string | null
           company_id?: string | null
           confidence?: number | null
           created_at?: string
+          critical_max?: number | null
+          critical_min?: number | null
           description?: string | null
+          direction?: string
           frequency?: string | null
           generated_by_ai?: boolean
           id?: string
+          instructions?: string | null
           name: string
           process_id?: string | null
           project_id?: string | null
+          public_token?: string | null
+          responsible_email?: string | null
+          responsible_name?: string | null
           source_interview_id?: string | null
           target?: number | null
           unit?: string | null
@@ -531,16 +615,24 @@ export type Database = {
           validated_by?: string | null
         }
         Update: {
+          code?: string | null
           company_id?: string | null
           confidence?: number | null
           created_at?: string
+          critical_max?: number | null
+          critical_min?: number | null
           description?: string | null
+          direction?: string
           frequency?: string | null
           generated_by_ai?: boolean
           id?: string
+          instructions?: string | null
           name?: string
           process_id?: string | null
           project_id?: string | null
+          public_token?: string | null
+          responsible_email?: string | null
+          responsible_name?: string | null
           source_interview_id?: string | null
           target?: number | null
           unit?: string | null
@@ -1589,6 +1681,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tobe_change_log_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "v_indicator_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tobe_change_log_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -1688,7 +1787,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_indicator_status: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          critical_max: number | null
+          critical_min: number | null
+          frequency: string | null
+          id: string | null
+          last_at: string | null
+          last_evaluation: string | null
+          last_value: number | null
+          name: string | null
+          next_due_at: string | null
+          process_id: string | null
+          project_id: string | null
+          public_token: string | null
+          responsible_name: string | null
+          status: string | null
+          target: number | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicators_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
