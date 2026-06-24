@@ -1,0 +1,1 @@
+ALTER VIEW public.v_indicator_status SET (security_invoker = true);
