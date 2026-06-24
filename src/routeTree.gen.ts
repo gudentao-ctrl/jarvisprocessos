@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
@@ -39,6 +40,7 @@ import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_aut
 import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
 import { Route as AuthenticatedCausaRaizIdRouteImport } from './routes/_authenticated/causa-raiz.$id'
 import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
+import { Route as ApiPublicColetasTokenRouteImport } from './routes/api/public/coletas.$token'
 import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
 import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
 import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
@@ -58,6 +60,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CTokenRoute = CTokenRouteImport.update({
+  id: '/c/$token',
+  path: '/c/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
@@ -217,6 +224,11 @@ const AuthenticatedProjetosIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
+const ApiPublicColetasTokenRoute = ApiPublicColetasTokenRouteImport.update({
+  id: '/api/public/coletas/$token',
+  path: '/api/public/coletas/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProjetosIdMelhoriasRoute =
   AuthenticatedProjetosIdMelhoriasRouteImport.update({
     id: '/melhorias',
@@ -259,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/c/$token': typeof CTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -289,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
+  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -296,6 +310,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/c/$token': typeof CTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -325,6 +340,7 @@ export interface FileRoutesByTo {
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
+  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesById {
@@ -334,6 +350,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
+  '/c/$token': typeof CTokenRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/_authenticated/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/_authenticated/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -364,6 +381,7 @@ export interface FileRoutesById {
   '/_authenticated/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/_authenticated/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/_authenticated/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
+  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/_authenticated/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -373,6 +391,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/empresas'
+    | '/c/$token'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
@@ -403,6 +422,7 @@ export interface FileRouteTypes {
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
+    | '/api/public/coletas/$token'
     | '/projetos/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -410,6 +430,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/empresas'
+    | '/c/$token'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
@@ -439,6 +460,7 @@ export interface FileRouteTypes {
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
+    | '/api/public/coletas/$token'
     | '/projetos/$id'
   id:
     | '__root__'
@@ -447,6 +469,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/empresas'
+    | '/c/$token'
     | '/_authenticated/causa-raiz/$id'
     | '/_authenticated/cronoanalise/$id'
     | '/_authenticated/cronoanalise/nova'
@@ -477,6 +500,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projetos/$id/gestao'
     | '/_authenticated/projetos/$id/mapeamento'
     | '/_authenticated/projetos/$id/melhorias'
+    | '/api/public/coletas/$token'
     | '/_authenticated/projetos/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -484,6 +508,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CTokenRoute: typeof CTokenRoute
+  ApiPublicColetasTokenRoute: typeof ApiPublicColetasTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -507,6 +533,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$token': {
+      id: '/c/$token'
+      path: '/c/$token'
+      fullPath: '/c/$token'
+      preLoaderRoute: typeof CTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/empresas': {
@@ -698,6 +731,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
+    '/api/public/coletas/$token': {
+      id: '/api/public/coletas/$token'
+      path: '/api/public/coletas/$token'
+      fullPath: '/api/public/coletas/$token'
+      preLoaderRoute: typeof ApiPublicColetasTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/projetos/$id/melhorias': {
       id: '/_authenticated/projetos/$id/melhorias'
       path: '/melhorias'
@@ -838,6 +878,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  CTokenRoute: CTokenRoute,
+  ApiPublicColetasTokenRoute: ApiPublicColetasTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
