@@ -40,6 +40,7 @@ import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_aut
 import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
 import { Route as AuthenticatedCausaRaizIdRouteImport } from './routes/_authenticated/causa-raiz.$id'
 import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
+import { Route as ApiPublicColetasTokenRouteImport } from './routes/api/public/coletas.$token'
 import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
 import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
 import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
@@ -223,6 +224,11 @@ const AuthenticatedProjetosIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
+const ApiPublicColetasTokenRoute = ApiPublicColetasTokenRouteImport.update({
+  id: '/api/public/coletas/$token',
+  path: '/api/public/coletas/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProjetosIdMelhoriasRoute =
   AuthenticatedProjetosIdMelhoriasRouteImport.update({
     id: '/melhorias',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
+  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -333,6 +340,7 @@ export interface FileRoutesByTo {
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
+  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesById {
@@ -373,6 +381,7 @@ export interface FileRoutesById {
   '/_authenticated/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/_authenticated/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/_authenticated/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
+  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/_authenticated/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -413,6 +422,7 @@ export interface FileRouteTypes {
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
+    | '/api/public/coletas/$token'
     | '/projetos/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -450,6 +460,7 @@ export interface FileRouteTypes {
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
+    | '/api/public/coletas/$token'
     | '/projetos/$id'
   id:
     | '__root__'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projetos/$id/gestao'
     | '/_authenticated/projetos/$id/mapeamento'
     | '/_authenticated/projetos/$id/melhorias'
+    | '/api/public/coletas/$token'
     | '/_authenticated/projetos/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -497,6 +509,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
+  ApiPublicColetasTokenRoute: typeof ApiPublicColetasTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -718,6 +731,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
+    '/api/public/coletas/$token': {
+      id: '/api/public/coletas/$token'
+      path: '/api/public/coletas/$token'
+      fullPath: '/api/public/coletas/$token'
+      preLoaderRoute: typeof ApiPublicColetasTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/projetos/$id/melhorias': {
       id: '/_authenticated/projetos/$id/melhorias'
       path: '/melhorias'
@@ -859,6 +879,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
+  ApiPublicColetasTokenRoute: ApiPublicColetasTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
