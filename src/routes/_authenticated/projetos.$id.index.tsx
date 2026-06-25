@@ -27,6 +27,7 @@ function ProjectHome() {
 
   return (
     <div className="space-y-4">
+      <DashboardHighlights projectId={id} />
       <AlertsPanel projectId={id} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
