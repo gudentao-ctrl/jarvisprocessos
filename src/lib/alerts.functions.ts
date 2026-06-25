@@ -31,7 +31,7 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
     const todayISO = today.toISOString().slice(0, 10);
     const in7 = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
 
-    const [indStatus, plans, procs, intvs] = await Promise.all([
+    const [indStatus, plans, procs, intvs, upcoming] = await Promise.all([
       sb
         .from("v_indicator_status")
         .select("id, name, code, status, last_value, target, unit")
@@ -52,6 +52,13 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
         .select("id, title, generation_status, status, interview_date")
         .eq("project_id", projectId)
         .in("generation_status", ["pending", "processing", "failed"]),
+      sb
+        .from("interviews")
+        .select("id, title, interview_date, participant, status")
+        .eq("project_id", projectId)
+        .gte("interview_date", todayISO)
+        .order("interview_date", { ascending: true })
+        .limit(20),
     ]);
 
     const alerts: AlertItem[] = [];
