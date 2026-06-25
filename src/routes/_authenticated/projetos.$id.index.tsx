@@ -5,6 +5,7 @@ import { getProjectStats } from "@/lib/projects.functions";
 import { Card } from "@/components/ui/card";
 import { Mic, Workflow, Lightbulb, ClipboardList, AlertTriangle, BarChart3 } from "lucide-react";
 import { AlertsPanel } from "@/components/AlertsPanel";
+import { DashboardHighlights } from "@/components/DashboardHighlights";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id/")({
   component: ProjectHome,
