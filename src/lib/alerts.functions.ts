@@ -161,5 +161,21 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
       info: alerts.filter((a) => a.severity === "info").length,
     };
 
-    return { alerts, counts };
+    const indicatorRows = indStatus.data ?? [];
+    const planRows = plans.data ?? [];
+    const upcomingRows = (upcoming.data ?? []).map((u) => ({
+      id: u.id as string,
+      title: (u.title as string) ?? "Reunião",
+      interview_date: u.interview_date as string,
+      participant: (u.participant as string | null) ?? null,
+    }));
+
+    const highlights = {
+      sem_coleta: indicatorRows.filter((i) => i.status === "sem_coleta").length,
+      abaixo_meta: indicatorRows.filter((i) => i.status === "abaixo_meta" || i.status === "critico").length,
+      planos_atrasados: planRows.filter((p) => p.due_date && p.due_date < todayISO).length,
+      reunioes_marcadas: upcomingRows.length,
+    };
+
+    return { alerts, counts, highlights, upcoming: upcomingRows };
   });
