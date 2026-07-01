@@ -13,7 +13,30 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-function AuthPage() {
+function isNetworkError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = (err as { message?: string })?.message ?? String(err);
+  return /load failed|failed to fetch|network|networkerror|timeout/i.test(msg);
+}
+
+function friendlyAuthError(err: unknown): string {
+  const msg = (err as { message?: string })?.message ?? String(err);
+  if (isNetworkError(err)) {
+    return "Falha de conexão com o servidor. Verifique sua internet e tente novamente.";
+  }
+  if (/invalid login credentials/i.test(msg)) {
+    return "E-mail ou senha incorretos. Se você ainda não tem conta, clique em 'Criar conta'.";
+  }
+  if (/email not confirmed/i.test(msg)) {
+    return "Confirme seu e-mail antes de entrar.";
+  }
+  if (/user already registered/i.test(msg)) {
+    return "Já existe uma conta com este e-mail. Entre em vez de criar.";
+  }
+  return msg || "Erro ao autenticar";
+}
+
+export function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -22,9 +45,22 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/entrevistas" });
+      if (data.user) navigate({ to: "/projetos" });
     });
   }, [navigate]);
+
+  async function signInWithRetry() {
+    try {
+      const res = await supabase.auth.signInWithPassword({ email, password });
+      if (res.error && isNetworkError(res.error)) throw res.error;
+      return res;
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      // 1 retry on flaky mobile networks / preview reconnects
+      await new Promise((r) => setTimeout(r, 800));
+      return supabase.auth.signInWithPassword({ email, password });
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,12 +76,12 @@ function AuthPage() {
         toast.success("Conta criada! Você já pode entrar.");
         setMode("signin");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await signInWithRetry();
         if (error) throw error;
-        navigate({ to: "/entrevistas" });
+        navigate({ to: "/projetos" });
       }
-    } catch (err: any) {
-      toast.error(err.message ?? "Erro ao autenticar");
+    } catch (err) {
+      toast.error(friendlyAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -59,7 +95,7 @@ function AuthPage() {
             <Mic className="h-7 w-7" />
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">JARVIS</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Entrevistas Operacionais</p>
+          <p className="mt-1 text-sm text-muted-foreground">Consultoria Operacional</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -104,3 +140,5 @@ function AuthPage() {
     </div>
   );
 }
+
+export default AuthPage;
