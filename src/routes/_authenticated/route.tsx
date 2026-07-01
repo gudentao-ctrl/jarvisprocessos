@@ -7,8 +7,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    let { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      // Sem login: cria sessão anônima automaticamente
+      const { error: anonErr } = await supabase.auth.signInAnonymously();
+      if (anonErr) {
+        console.error("[auth] anon sign-in failed", anonErr);
+        throw redirect({ to: "/auth" });
+      }
+      ({ data } = await supabase.auth.getUser());
+    }
     return { user: data.user };
   },
   component: AuthenticatedLayout,
