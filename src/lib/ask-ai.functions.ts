@@ -46,7 +46,7 @@ export const askConsultantAi = createServerFn({ method: "POST" })
       const [proc, acts, pains, info, dec, inds] = await Promise.all([
         sb.from("processes").select("name, objective, status, project_id, companies(name)").eq("id", data.scopeId).maybeSingle(),
         sb.from("process_activities").select("name, type, responsible, time_va, time_nva, time_nnva").eq("process_id", data.scopeId).limit(80),
-        sb.from("pain_points").select("description, category, severity").eq("process_id", data.scopeId).limit(50),
+        sb.from("pain_points").select("description, category, severity").eq("source_id", data.scopeId).limit(50),
         sb.from("process_information_map").select("origin, destination, medium, responsible, document, loss_risk").eq("process_id", data.scopeId).limit(50),
         sb.from("process_decision_map").select("decision_point, decider, criteria, frequency").eq("process_id", data.scopeId).limit(50),
         sb.from("indicators").select("code, name, target, unit").eq("process_id", data.scopeId).limit(50),

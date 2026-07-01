@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
+import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
 import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
 import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
@@ -28,6 +30,7 @@ import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedDiagnosticoIndexRouteImport } from './routes/_authenticated/diagnostico.index'
 import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
 import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
+import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
 import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
 import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
@@ -41,11 +44,13 @@ import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_aut
 import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
 import { Route as AuthenticatedCausaRaizIdRouteImport } from './routes/_authenticated/causa-raiz.$id'
 import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
+import { Route as ApiPublicPlanosTokenRouteImport } from './routes/api/public/planos.$token'
 import { Route as ApiPublicColetasTokenRouteImport } from './routes/api/public/coletas.$token'
 import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
 import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
 import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
 import { Route as AuthenticatedProjetosIdExecucaoRouteImport } from './routes/_authenticated/projetos.$id.execucao'
+import { Route as AuthenticatedProjetosIdEncerramentoRouteImport } from './routes/_authenticated/projetos.$id.encerramento'
 import { Route as AuthenticatedProjetosIdDiagnosticoRouteImport } from './routes/_authenticated/projetos.$id.diagnostico'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
 
@@ -61,6 +66,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CTokenRoute = CTokenRouteImport.update({
@@ -87,6 +97,12 @@ const AuthenticatedRoadmapIndexRoute =
   AuthenticatedRoadmapIndexRouteImport.update({
     id: '/roadmap/',
     path: '/roadmap/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatoriosIndexRoute =
+  AuthenticatedRelatoriosIndexRouteImport.update({
+    id: '/relatorios/',
+    path: '/relatorios/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProjetosIndexRoute =
@@ -152,6 +168,12 @@ const AuthenticatedCausaRaizIndexRoute =
   AuthenticatedCausaRaizIndexRouteImport.update({
     id: '/causa-raiz/',
     path: '/causa-raiz/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCalendarioIndexRoute =
+  AuthenticatedCalendarioIndexRouteImport.update({
+    id: '/calendario/',
+    path: '/calendario/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAnaliseCriticaIndexRoute =
@@ -230,6 +252,11 @@ const AuthenticatedProjetosIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
+const ApiPublicPlanosTokenRoute = ApiPublicPlanosTokenRouteImport.update({
+  id: '/api/public/planos/$token',
+  path: '/api/public/planos/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicColetasTokenRoute = ApiPublicColetasTokenRouteImport.update({
   id: '/api/public/coletas/$token',
   path: '/api/public/coletas/$token',
@@ -259,6 +286,12 @@ const AuthenticatedProjetosIdExecucaoRoute =
     path: '/execucao',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
+const AuthenticatedProjetosIdEncerramentoRoute =
+  AuthenticatedProjetosIdEncerramentoRouteImport.update({
+    id: '/encerramento',
+    path: '/encerramento',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
 const AuthenticatedProjetosIdDiagnosticoRoute =
   AuthenticatedProjetosIdDiagnosticoRouteImport.update({
     id: '/diagnostico',
@@ -278,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/c/$token': typeof CTokenRoute
+  '/p/$token': typeof PTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -290,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
   '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
+  '/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
@@ -301,15 +336,18 @@ export interface FileRoutesByFullPath {
   '/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos/': typeof AuthenticatedProcessosIndexRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/tobe/': typeof AuthenticatedTobeIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
+  '/projetos/$id/encerramento': typeof AuthenticatedProjetosIdEncerramentoRoute
   '/projetos/$id/execucao': typeof AuthenticatedProjetosIdExecucaoRoute
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
+  '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
   '/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -318,6 +356,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/c/$token': typeof CTokenRoute
+  '/p/$token': typeof PTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -329,6 +368,7 @@ export interface FileRoutesByTo {
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
+  '/calendario': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz': typeof AuthenticatedCausaRaizIndexRoute
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoIndexRoute
@@ -340,15 +380,18 @@ export interface FileRoutesByTo {
   '/priorizacao': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos': typeof AuthenticatedProcessosIndexRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
+  '/relatorios': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap': typeof AuthenticatedRoadmapIndexRoute
   '/tobe': typeof AuthenticatedTobeIndexRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
+  '/projetos/$id/encerramento': typeof AuthenticatedProjetosIdEncerramentoRoute
   '/projetos/$id/execucao': typeof AuthenticatedProjetosIdExecucaoRoute
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
+  '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRoutesById {
@@ -359,6 +402,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/c/$token': typeof CTokenRoute
+  '/p/$token': typeof PTokenRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/_authenticated/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/_authenticated/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -371,6 +415,7 @@ export interface FileRoutesById {
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
   '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
+  '/_authenticated/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/_authenticated/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
@@ -382,15 +427,18 @@ export interface FileRoutesById {
   '/_authenticated/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/_authenticated/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
   '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/_authenticated/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
+  '/_authenticated/projetos/$id/encerramento': typeof AuthenticatedProjetosIdEncerramentoRoute
   '/_authenticated/projetos/$id/execucao': typeof AuthenticatedProjetosIdExecucaoRoute
   '/_authenticated/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/_authenticated/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/_authenticated/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
+  '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
   '/_authenticated/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -401,6 +449,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/empresas'
     | '/c/$token'
+    | '/p/$token'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
@@ -413,6 +462,7 @@ export interface FileRouteTypes {
     | '/processos/$id'
     | '/projetos/$id'
     | '/analise-critica/'
+    | '/calendario/'
     | '/causa-raiz/'
     | '/cronoanalise/'
     | '/diagnostico/'
@@ -424,15 +474,18 @@ export interface FileRouteTypes {
     | '/priorizacao/'
     | '/processos/'
     | '/projetos/'
+    | '/relatorios/'
     | '/roadmap/'
     | '/tobe/'
     | '/processos/sugerir/$interviewId'
     | '/projetos/$id/diagnostico'
+    | '/projetos/$id/encerramento'
     | '/projetos/$id/execucao'
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
     | '/api/public/coletas/$token'
+    | '/api/public/planos/$token'
     | '/projetos/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -441,6 +494,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/empresas'
     | '/c/$token'
+    | '/p/$token'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
@@ -452,6 +506,7 @@ export interface FileRouteTypes {
     | '/mapas/informacao'
     | '/processos/$id'
     | '/analise-critica'
+    | '/calendario'
     | '/causa-raiz'
     | '/cronoanalise'
     | '/diagnostico'
@@ -463,15 +518,18 @@ export interface FileRouteTypes {
     | '/priorizacao'
     | '/processos'
     | '/projetos'
+    | '/relatorios'
     | '/roadmap'
     | '/tobe'
     | '/processos/sugerir/$interviewId'
     | '/projetos/$id/diagnostico'
+    | '/projetos/$id/encerramento'
     | '/projetos/$id/execucao'
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
     | '/api/public/coletas/$token'
+    | '/api/public/planos/$token'
     | '/projetos/$id'
   id:
     | '__root__'
@@ -481,6 +539,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/empresas'
     | '/c/$token'
+    | '/p/$token'
     | '/_authenticated/causa-raiz/$id'
     | '/_authenticated/cronoanalise/$id'
     | '/_authenticated/cronoanalise/nova'
@@ -493,6 +552,7 @@ export interface FileRouteTypes {
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
     | '/_authenticated/analise-critica/'
+    | '/_authenticated/calendario/'
     | '/_authenticated/causa-raiz/'
     | '/_authenticated/cronoanalise/'
     | '/_authenticated/diagnostico/'
@@ -504,15 +564,18 @@ export interface FileRouteTypes {
     | '/_authenticated/priorizacao/'
     | '/_authenticated/processos/'
     | '/_authenticated/projetos/'
+    | '/_authenticated/relatorios/'
     | '/_authenticated/roadmap/'
     | '/_authenticated/tobe/'
     | '/_authenticated/processos/sugerir/$interviewId'
     | '/_authenticated/projetos/$id/diagnostico'
+    | '/_authenticated/projetos/$id/encerramento'
     | '/_authenticated/projetos/$id/execucao'
     | '/_authenticated/projetos/$id/gestao'
     | '/_authenticated/projetos/$id/mapeamento'
     | '/_authenticated/projetos/$id/melhorias'
     | '/api/public/coletas/$token'
+    | '/api/public/planos/$token'
     | '/_authenticated/projetos/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -521,7 +584,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
+  PTokenRoute: typeof PTokenRoute
   ApiPublicColetasTokenRoute: typeof ApiPublicColetasTokenRoute
+  ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -545,6 +610,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$token': {
@@ -580,6 +652,13 @@ declare module '@tanstack/react-router' {
       path: '/roadmap'
       fullPath: '/roadmap/'
       preLoaderRoute: typeof AuthenticatedRoadmapIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios/': {
+      id: '/_authenticated/relatorios/'
+      path: '/relatorios'
+      fullPath: '/relatorios/'
+      preLoaderRoute: typeof AuthenticatedRelatoriosIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projetos/': {
@@ -657,6 +736,13 @@ declare module '@tanstack/react-router' {
       path: '/causa-raiz'
       fullPath: '/causa-raiz/'
       preLoaderRoute: typeof AuthenticatedCausaRaizIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/calendario/': {
+      id: '/_authenticated/calendario/'
+      path: '/calendario'
+      fullPath: '/calendario/'
+      preLoaderRoute: typeof AuthenticatedCalendarioIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analise-critica/': {
@@ -750,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
+    '/api/public/planos/$token': {
+      id: '/api/public/planos/$token'
+      path: '/api/public/planos/$token'
+      fullPath: '/api/public/planos/$token'
+      preLoaderRoute: typeof ApiPublicPlanosTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/coletas/$token': {
       id: '/api/public/coletas/$token'
       path: '/api/public/coletas/$token'
@@ -785,6 +878,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdExecucaoRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
+    '/_authenticated/projetos/$id/encerramento': {
+      id: '/_authenticated/projetos/$id/encerramento'
+      path: '/encerramento'
+      fullPath: '/projetos/$id/encerramento'
+      preLoaderRoute: typeof AuthenticatedProjetosIdEncerramentoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
     '/_authenticated/projetos/$id/diagnostico': {
       id: '/_authenticated/projetos/$id/diagnostico'
       path: '/diagnostico'
@@ -804,6 +904,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedProjetosIdRouteChildren {
   AuthenticatedProjetosIdDiagnosticoRoute: typeof AuthenticatedProjetosIdDiagnosticoRoute
+  AuthenticatedProjetosIdEncerramentoRoute: typeof AuthenticatedProjetosIdEncerramentoRoute
   AuthenticatedProjetosIdExecucaoRoute: typeof AuthenticatedProjetosIdExecucaoRoute
   AuthenticatedProjetosIdGestaoRoute: typeof AuthenticatedProjetosIdGestaoRoute
   AuthenticatedProjetosIdMapeamentoRoute: typeof AuthenticatedProjetosIdMapeamentoRoute
@@ -815,6 +916,8 @@ const AuthenticatedProjetosIdRouteChildren: AuthenticatedProjetosIdRouteChildren
   {
     AuthenticatedProjetosIdDiagnosticoRoute:
       AuthenticatedProjetosIdDiagnosticoRoute,
+    AuthenticatedProjetosIdEncerramentoRoute:
+      AuthenticatedProjetosIdEncerramentoRoute,
     AuthenticatedProjetosIdExecucaoRoute: AuthenticatedProjetosIdExecucaoRoute,
     AuthenticatedProjetosIdGestaoRoute: AuthenticatedProjetosIdGestaoRoute,
     AuthenticatedProjetosIdMapeamentoRoute:
@@ -844,6 +947,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRouteWithChildren
   AuthenticatedAnaliseCriticaIndexRoute: typeof AuthenticatedAnaliseCriticaIndexRoute
+  AuthenticatedCalendarioIndexRoute: typeof AuthenticatedCalendarioIndexRoute
   AuthenticatedCausaRaizIndexRoute: typeof AuthenticatedCausaRaizIndexRoute
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedDiagnosticoIndexRoute: typeof AuthenticatedDiagnosticoIndexRoute
@@ -855,6 +959,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPriorizacaoIndexRoute: typeof AuthenticatedPriorizacaoIndexRoute
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
+  AuthenticatedRelatoriosIndexRoute: typeof AuthenticatedRelatoriosIndexRoute
   AuthenticatedRoadmapIndexRoute: typeof AuthenticatedRoadmapIndexRoute
   AuthenticatedTobeIndexRoute: typeof AuthenticatedTobeIndexRoute
   AuthenticatedProcessosSugerirInterviewIdRoute: typeof AuthenticatedProcessosSugerirInterviewIdRoute
@@ -875,6 +980,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRouteWithChildren,
   AuthenticatedAnaliseCriticaIndexRoute: AuthenticatedAnaliseCriticaIndexRoute,
+  AuthenticatedCalendarioIndexRoute: AuthenticatedCalendarioIndexRoute,
   AuthenticatedCausaRaizIndexRoute: AuthenticatedCausaRaizIndexRoute,
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedDiagnosticoIndexRoute: AuthenticatedDiagnosticoIndexRoute,
@@ -886,6 +992,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPriorizacaoIndexRoute: AuthenticatedPriorizacaoIndexRoute,
   AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
+  AuthenticatedRelatoriosIndexRoute: AuthenticatedRelatoriosIndexRoute,
   AuthenticatedRoadmapIndexRoute: AuthenticatedRoadmapIndexRoute,
   AuthenticatedTobeIndexRoute: AuthenticatedTobeIndexRoute,
   AuthenticatedProcessosSugerirInterviewIdRoute:
@@ -900,7 +1007,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
+  PTokenRoute: PTokenRoute,
   ApiPublicColetasTokenRoute: ApiPublicColetasTokenRoute,
+  ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
