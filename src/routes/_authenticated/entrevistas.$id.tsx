@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   getInterview, updateTranscript, analyzeInterview,
-  updateAnalysis, deleteInterview, exportInterviewPdf, transcribeInterview,
+  updateAnalysis, deleteInterview, transcribeInterview,
 } from "@/lib/interviews.functions";
 import { generateArtifactsFromInterview } from "@/lib/interview-pipeline.functions";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,6 @@ function InterviewDetail() {
   const analyze = useServerFn(analyzeInterview);
   const updateA = useServerFn(updateAnalysis);
   const del = useServerFn(deleteInterview);
-  const exportPdf = useServerFn(exportInterviewPdf);
   const transcribe = useServerFn(transcribeInterview);
   const generateAll = useServerFn(generateArtifactsFromInterview);
 
