@@ -54,12 +54,6 @@ function AuthenticatedLayout() {
             <SidebarLink key={n.to} {...n} />
           ))}
         </nav>
-        <button
-          onClick={signOut}
-          className="m-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" /> Sair
-        </button>
       </aside>
 
       {/* Content area */}
