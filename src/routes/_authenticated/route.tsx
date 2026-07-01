@@ -38,10 +38,6 @@ function AuthenticatedLayout() {
     return () => sub.subscription.unsubscribe();
   }, [router]);
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.navigate({ to: "/auth" });
-  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">
