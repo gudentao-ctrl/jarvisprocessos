@@ -1,14 +1,22 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Mic, Building2, LogOut, LayoutDashboard, Briefcase } from "lucide-react";
+import { Mic, Building2, LayoutDashboard, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    let { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      // Sem login: cria sessão anônima automaticamente
+      const { error: anonErr } = await supabase.auth.signInAnonymously();
+      if (anonErr) {
+        console.error("[auth] anon sign-in failed", anonErr);
+        throw redirect({ to: "/auth" });
+      }
+      ({ data } = await supabase.auth.getUser());
+    }
     return { user: data.user };
   },
   component: AuthenticatedLayout,
@@ -30,10 +38,6 @@ function AuthenticatedLayout() {
     return () => sub.subscription.unsubscribe();
   }, [router]);
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.navigate({ to: "/auth" });
-  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -50,12 +54,6 @@ function AuthenticatedLayout() {
             <SidebarLink key={n.to} {...n} />
           ))}
         </nav>
-        <button
-          onClick={signOut}
-          className="m-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" /> Sair
-        </button>
       </aside>
 
       {/* Content area */}
@@ -69,13 +67,7 @@ function AuthenticatedLayout() {
             <span className="text-base font-bold tracking-tight">JARVIS</span>
           </div>
           <div className="ml-auto" />
-          <button
-            onClick={signOut}
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
-            aria-label="Sair"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+
         </header>
 
         <main className="flex-1 overflow-y-auto">
