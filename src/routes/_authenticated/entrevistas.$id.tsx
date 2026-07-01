@@ -113,16 +113,70 @@ function InterviewDetail() {
   });
 
   const downloading = useMutation({
-    mutationFn: () => exportPdf({ data: { interview_id: id } }),
-    onSuccess: (result) => {
-      const bytes = Uint8Array.from(atob(result.base64), (c) => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = result.filename; a.click();
-      URL.revokeObjectURL(url);
+    mutationFn: async () => {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const marginX = 40;
+      const marginTop = 40;
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      let y = marginTop;
+      const write = (text: string, opts: { size?: number; bold?: boolean; color?: [number, number, number] } = {}) => {
+        const size = opts.size ?? 10;
+        doc.setFont("helvetica", opts.bold ? "bold" : "normal");
+        doc.setFontSize(size);
+        doc.setTextColor(...(opts.color ?? [30, 30, 40]));
+        const lines = doc.splitTextToSize(text || "—", pageW - marginX * 2) as string[];
+        for (const line of lines) {
+          if (y > pageH - 40) { doc.addPage(); y = marginTop; }
+          doc.text(line, marginX, y);
+          y += size + 3;
+        }
+      };
+      // Header bar
+      doc.setFillColor(249, 115, 22);
+      doc.rect(0, 0, pageW, 28, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("JARVIS — Entrevista Operacional", marginX, 18);
+      y = 50;
+      write(interview.title, { size: 16, bold: true });
+      const meta = [
+        interview.companies?.name && `Empresa: ${interview.companies.name}`,
+        interview.sectors?.name && `Setor: ${interview.sectors.name}`,
+        interview.participant && `Participante: ${interview.participant}`,
+        interview.interview_date && `Data: ${interview.interview_date}`,
+      ].filter(Boolean).join("  •  ");
+      write(meta, { size: 9, color: [100, 100, 110] });
+      y += 6;
+      if (analysisDraft?.summary) { write("RESUMO EXECUTIVO", { size: 11, bold: true, color: [249, 115, 22] }); write(analysisDraft.summary); y += 4; }
+      if (interview.minutes_md) { write("ATA DA REUNIÃO", { size: 11, bold: true, color: [249, 115, 22] }); write(interview.minutes_md); y += 4; }
+      const sections: Array<[string, string[] | undefined]> = [
+        ["Insights", analysisDraft?.insights],
+        ["Pontos críticos", analysisDraft?.critical_points],
+        ["Dores", analysisDraft?.pains],
+        ["Problemas", analysisDraft?.problems],
+        ["Decisões", analysisDraft?.decisions],
+        ["Fluxos", analysisDraft?.flows],
+        ["Sistemas", analysisDraft?.systems],
+      ];
+      for (const [title, items] of sections) {
+        if (!items || items.length === 0) continue;
+        write(title.toUpperCase(), { size: 11, bold: true, color: [249, 115, 22] });
+        for (const it of items) write(`• ${it}`);
+        y += 4;
+      }
+      if (transcript.trim()) {
+        write("TRANSCRIÇÃO", { size: 11, bold: true, color: [249, 115, 22] });
+        write(transcript, { size: 9, color: [70, 70, 80] });
+      }
+      const safe = (interview.title || "entrevista").replace(/[^\w\-]+/g, "_").slice(0, 60);
+      doc.save(`${safe}.pdf`);
+      return { ok: true };
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao gerar PDF"),
+    onSuccess: () => toast.success("PDF gerado"),
   });
 
   if (isLoading) return <p className="py-10 text-center text-muted-foreground">Carregando...</p>;
