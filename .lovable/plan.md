@@ -1,52 +1,86 @@
-## Problemas relatados
+# Correções e melhorias do JARVIS
 
-1. **Login não entra** (`g_zamboni@hotmail.com`) — a requisição para `/auth/v1/token?grant_type=password` retornou `TypeError: Load failed` (falha de rede no navegador, não erro de credencial). Pode ser: (a) usuário ainda não criado nesse projeto — a senha nunca foi cadastrada aqui, (b) rede/preview instável no momento, ou (c) credencial incorreta gerando retry que aparece como "load failed" no Safari iOS.
-2. **Torre de Controle duplicada** — o dashboard do projeto (`projetos.$id.index.tsx`) mostra hoje **3 blocos que se sobrepõem**:
-   - `DashboardHighlights` (4 tiles: sem coleta / abaixo meta / planos atrasados / reuniões)
-   - `AlertsPanel` (mesma lista + processos + entrevistas pendentes)
-   - Grid de 6 cards (Entrevistas, Processos, Oportunidades, Planos abertos, Ações vencidas, Indicadores)
-   
-   "Ações vencidas" aparece nos 3 lugares; "Reuniões" aparece em 2; "Indicadores sem coleta" aparece em 2.
-3. **Navegação não é mobile-first** — sidebar/topbar padrão desktop; no viewport 390px o consultor precisa de bottom-nav grande com as 3 áreas (Empresas / Dashboard / Projetos) + acesso rápido dentro do projeto por abas fixas na base.
+Vou tratar 7 pontos em ondas independentes, cada um pequeno e verificável.
 
-## Plano
+## 1. Botão "Exportar PDF" da entrevista
 
-### 1. Login — diagnóstico + ação
-- Verificar no backend se o usuário `g_zamboni@hotmail.com` existe. Se não existir, orientar a criar conta pela tela de cadastro (o app já tem toggle "Criar conta" em `/auth`).
-- Adicionar mensagens de erro mais claras em `src/routes/auth.tsx` distinguindo "credenciais inválidas" de "falha de rede" (retry automático 1x em `TypeError: Load failed`, comum no Safari iOS quando o preview reconecta).
-- Não alterar o fluxo de auth em si — já usa Lovable Cloud corretamente.
+**Sintoma**: nada acontece ao clicar.
+**Causa provável**: `exportInterviewPdf` roda no servidor com `pdf-lib` — em cold-start no worker pode estourar timeout / não expor erro; o botão só aparece depois de rodar Análise IA.
 
-### 2. Torre de Controle — deduplicar
-Reorganizar `projetos.$id.index.tsx` em **uma única superfície vertical** sem repetição:
+**Ação**:
+- Trocar para geração **client-side** com `jsPDF` + `html2canvas` (padrão que já usamos noutros lugares), renderizando um bloco oculto com título, meta, transcrição, ata e análise já em tela.
+- Toast de erro com mensagem real, `finally` liberando estado.
+- Manter a função servidor como fallback opcional (não bloquear).
 
-```text
-┌─ Header do projeto (nome/empresa/status) — já existe no layout pai
-├─ 🚨 Central de Alertas (AlertsPanel)         ← única fonte de "o que precisa de ação"
-├─ 📊 Painel do projeto (6 KPIs numéricos)     ← só contagens totais, sem repetir alertas
-└─ 📅 Próximas reuniões (lista compacta)       ← movida para cá, tirada do Highlights
-```
+## 2. "Sugerir processos com IA" quebrando
 
-- Remover `<DashboardHighlights>` da página (os 4 tiles são subconjunto exato do `AlertsPanel`).
-- Mover a lista "Próximas reuniões" (que hoje está dentro do `DashboardHighlights`) para um card próprio, já que reunião agendada **não é alerta** e não aparece no `AlertsPanel`.
-- Manter o grid de 6 KPIs como visão geral quantitativa (não redundante — mostra totais, não pendências).
+**Causa provável**: `google/gemini-3-flash-preview` respondendo 4xx (modelo trocado) e a resposta caindo em `Resposta da IA inválida.` genérica.
 
-### 3. Navegação mobile-first
-- **Bottom nav fixa** no layout `_authenticated/route.tsx` (visível apenas em `<md`): 3 botões grandes (48px) — Empresas / Dashboard / Projetos — com ícone + label, respeitando safe-area do iOS.
-- **Sidebar** oculta em mobile (`hidden md:flex`), permanece em tablet/desktop.
-- **Topbar mobile** compacta com título da rota + botão voltar contextual.
-- **Abas do projeto** (`projetos.$id.tsx` — Visão geral / Diagnóstico / Mapeamento / Melhorias / Execução / Gestão): trocar chips com scroll horizontal por **bottom sheet "Etapa"** acionado por um botão fixo no topo do conteúdo em mobile — evita usuário perder aba ao rolar.
-- Aumentar áreas de toque: cards de KPI/alertas com `min-h-[64px]` e chevron visível.
-- Padding inferior no conteúdo (`pb-24`) para não ficar atrás da bottom nav.
+**Ação em `src/lib/processes.functions.ts`**:
+- Encadear fallback de modelos: `google/gemini-2.5-flash` → `google/gemini-2.5-pro` → `openai/gpt-5-mini`.
+- Preservar mensagem original do gateway (429 / 402 / 4xx) no erro exibido.
+- Tolerar JSON com cerca de código (```json ... ```): fazer strip antes do `JSON.parse`.
+- Reforçar prompt para JSON estrito.
 
-## Arquivos afetados
+## 3. Coleta pública `/c/$token` pedindo login
 
-- `src/routes/auth.tsx` — mensagens de erro + retry.
-- `src/routes/_authenticated/projetos.$id.index.tsx` — remover `DashboardHighlights`, mover "Próximas reuniões" para card local.
-- `src/routes/_authenticated/route.tsx` — adicionar bottom nav mobile, ocultar sidebar em `<md`, ajustar padding.
-- `src/routes/_authenticated/projetos.$id.tsx` — abas viram bottom sheet no mobile.
-- `src/components/DashboardHighlights.tsx` — permanece (usado no Dashboard geral `/dashboard`), mas não mais no projeto.
+**Sintoma**: link externo cai na tela de login.
+**Causa**: hoje o `redirect` do app leva para `/auth` no primeiro carregamento (sessão anônima falha quando o backend está pausado, e o roteamento traz o usuário para o app protegido).
 
-## Fora do escopo (para não inflar a entrega)
-- Reformular BPM/mapas em mobile (já feito na Entrega 2).
-- Trocar biblioteca de sidebar.
-- Adicionar PWA/instalação.
+**Ação**:
+- Confirmar que o link enviado por WhatsApp/e-mail aponta para `/c/<token>` (não `/coletas/...`). Ajustar o botão "Copiar link" no cadastro de indicadores para usar `${origin}/c/<token>`.
+- Garantir que a rota `/c/$token` **não** faz `signInAnonymously()` nem redireciona ao `_authenticated`: adicionar `ssr: false` já existe; remover qualquer redirect global que atinja `/c/*`.
+- Ajustar `src/routes/index.tsx` e o wrapper `_authenticated/route.tsx` para ignorar rotas iniciadas por `/c/` e `/api/public/`.
+
+## 4. Torre de Controle: falta de coleta por frequência
+
+**Sintoma**: indicador diário sem coleta hoje não gera alerta.
+**Causa**: view `v_indicator_status` já calcula `atrasado`, mas AlertsPanel só mostra `sem_coleta` quando nunca houve nenhuma; um indicador com 1 coleta antiga não aparece por dia.
+
+**Ação (migração)**:
+- Ajustar view para retornar `atrasado` também quando **não há coleta** e o indicador é `diario/semanal/mensal` há mais de 1 período desde `created_at`.
+- Aceitar variantes de frequência (`diaria`, `diario`, `daily`) via `lower(trim(...))` normalizado.
+- Em `alerts.functions.ts`: um indicador com `atrasado` gera alerta **crítico** para diário (>1 dia) e **warning** para semanal/mensal, com subtítulo "última coleta há N dias / esperado hoje".
+
+## 5. Mapas de Decisão e Informação — CRUD completo
+
+Hoje as telas só listam por empresa. Precisamos editá-los.
+
+**Ação**:
+- Reformar `mapas.decisao.tsx` e `mapas.informacao.tsx` com botões "Adicionar", edição inline via `Dialog`, exclusão e filtro por processo.
+- Usar as funções já existentes (`saveInformationItem`, `saveDecisionItem`, `deleteInformationItem`, `deleteDecisionItem`).
+- Adicionar aba **Fluxo** dentro da tela do processo (`/processos/$id`) que exibe a matriz Info + Decisão do processo lado a lado.
+- Ligação: cada item passa a exigir `process_id` e opcionalmente `activity_id` (dropdown).
+
+## 6. Módulo "Horas Trabalhadas"
+
+**Novo** — registrar horas de consultoria/execução por projeto e responsável.
+
+**Migração** — nova tabela `work_hours`:
+- `id`, `project_id (FK)`, `company_id (FK)`, `responsible`, `activity_type` (`consultoria|execucao|reuniao|outro`), `date`, `hours numeric(5,2)`, `notes`, timestamps.
+- GRANT para `authenticated` + `service_role`, RLS `USING (true)` (equipe compartilhada, coerente com resto).
+
+**UI**:
+- Rota `/_authenticated/horas.index.tsx`: filtro por projeto + tabela + form rápido (data, responsável, horas, tipo).
+- Somatório por projeto e por responsável no topo.
+- Card no `projetos.$id.index.tsx` com total de horas do projeto (integrando com Torre de Controle).
+
+## 7. Vínculo empresa ↔ projeto ↔ dados
+
+Já existe `projects.company_id`. Consolidar:
+- No hub do projeto exibir a empresa vinculada no cabeçalho.
+- Ao criar entrevistas / processos / indicadores dentro do projeto, pré-selecionar (e travar) a `company_id` do projeto para evitar mistura.
+- Nas telas gerais (`indicadores`, `mapas.*`, `planos-acao`, `entrevistas`), quando a rota vier com `?projectId=...`, filtrar automaticamente.
+- Ajustar `getProjectAlerts` para juntar indicadores/planos/processos pela `company_id` do projeto além do `project_id` (cobre dados legados).
+
+## Ordem de execução
+1. Migração da view + tabela `work_hours` (1 chamada).
+2. Fixes de código: PDF client-side, fallback IA, roteamento público, alerts.
+3. CRUD mapas, tela horas, ajustes de vínculo com empresa.
+4. Verificar com `bun run build:dev` e teste manual dos fluxos-chave.
+
+## Detalhes técnicos
+- PDF client-side: bundle já tem `jspdf` e `html2canvas` via `pdf-lib` não é suficiente para render DOM; instalar via `bun add jspdf html2canvas`.
+- Fallback de IA: array `MODEL_FALLBACKS` percorrido em `try/catch`, primeiro sucesso vence.
+- View SQL usará `date_trunc` para tolerar `interval` fracionário.
+- `work_hours`: index em `(project_id, date)`.
