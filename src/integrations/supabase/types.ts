@@ -30,7 +30,9 @@ export type Database = {
           pain_point_id: string | null
           priority: Database["public"]["Enums"]["action_priority"]
           process_id: string | null
+          process_ids: string[] | null
           project_id: string | null
+          public_token: string | null
           responsible: string | null
           root_cause_id: string | null
           status: Database["public"]["Enums"]["action_status"]
@@ -52,7 +54,9 @@ export type Database = {
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
           process_id?: string | null
+          process_ids?: string[] | null
           project_id?: string | null
+          public_token?: string | null
           responsible?: string | null
           root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
@@ -74,7 +78,9 @@ export type Database = {
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
           process_id?: string | null
+          process_ids?: string[] | null
           project_id?: string | null
+          public_token?: string | null
           responsible?: string | null
           root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
@@ -577,6 +583,7 @@ export type Database = {
           instructions: string | null
           name: string
           process_id: string | null
+          process_ids: string[] | null
           project_id: string | null
           public_token: string | null
           responsible_email: string | null
@@ -603,6 +610,7 @@ export type Database = {
           instructions?: string | null
           name: string
           process_id?: string | null
+          process_ids?: string[] | null
           project_id?: string | null
           public_token?: string | null
           responsible_email?: string | null
@@ -629,6 +637,7 @@ export type Database = {
           instructions?: string | null
           name?: string
           process_id?: string | null
+          process_ids?: string[] | null
           project_id?: string | null
           public_token?: string | null
           responsible_email?: string | null
@@ -732,6 +741,7 @@ export type Database = {
           generation_status: string
           id: string
           interview_date: string
+          meeting_type: string | null
           minutes_md: string | null
           participant: string | null
           project_id: string | null
@@ -751,6 +761,7 @@ export type Database = {
           generation_status?: string
           id?: string
           interview_date?: string
+          meeting_type?: string | null
           minutes_md?: string | null
           participant?: string | null
           project_id?: string | null
@@ -770,6 +781,7 @@ export type Database = {
           generation_status?: string
           id?: string
           interview_date?: string
+          meeting_type?: string | null
           minutes_md?: string | null
           participant?: string | null
           project_id?: string | null
@@ -1007,8 +1019,12 @@ export type Database = {
           approval_required: boolean | null
           confidence: number | null
           created_at: string
+          criteria: string | null
+          data_used: string | null
           decider: string | null
           decision: string | null
+          financial_impact: number | null
+          frequency: string | null
           generated_by_ai: boolean
           id: string
           notes: string | null
@@ -1023,8 +1039,12 @@ export type Database = {
           approval_required?: boolean | null
           confidence?: number | null
           created_at?: string
+          criteria?: string | null
+          data_used?: string | null
           decider?: string | null
           decision?: string | null
+          financial_impact?: number | null
+          frequency?: string | null
           generated_by_ai?: boolean
           id?: string
           notes?: string | null
@@ -1039,8 +1059,12 @@ export type Database = {
           approval_required?: boolean | null
           confidence?: number | null
           created_at?: string
+          criteria?: string | null
+          data_used?: string | null
           decider?: string | null
           decision?: string | null
+          financial_impact?: number | null
+          frequency?: string | null
           generated_by_ai?: boolean
           id?: string
           notes?: string | null
@@ -1131,14 +1155,20 @@ export type Database = {
           destination: string | null
           document: string | null
           generated_by_ai: boolean
+          has_rework: boolean | null
           id: string
+          is_automated: boolean | null
+          is_digital: boolean | null
           loss_risk: boolean | null
           medium: string | null
           notes: string | null
           origin: string | null
+          periodicity: string | null
           process_id: string
           responsible: string | null
           source_interview_id: string | null
+          system: string | null
+          time_minutes: number | null
           validated_at: string | null
           validated_by: string | null
         }
@@ -1149,14 +1179,20 @@ export type Database = {
           destination?: string | null
           document?: string | null
           generated_by_ai?: boolean
+          has_rework?: boolean | null
           id?: string
+          is_automated?: boolean | null
+          is_digital?: boolean | null
           loss_risk?: boolean | null
           medium?: string | null
           notes?: string | null
           origin?: string | null
+          periodicity?: string | null
           process_id: string
           responsible?: string | null
           source_interview_id?: string | null
+          system?: string | null
+          time_minutes?: number | null
           validated_at?: string | null
           validated_by?: string | null
         }
@@ -1167,14 +1203,20 @@ export type Database = {
           destination?: string | null
           document?: string | null
           generated_by_ai?: boolean
+          has_rework?: boolean | null
           id?: string
+          is_automated?: boolean | null
+          is_digital?: boolean | null
           loss_risk?: boolean | null
           medium?: string | null
           notes?: string | null
           origin?: string | null
+          periodicity?: string | null
           process_id?: string
           responsible?: string | null
           source_interview_id?: string | null
+          system?: string | null
+          time_minutes?: number | null
           validated_at?: string | null
           validated_by?: string | null
         }

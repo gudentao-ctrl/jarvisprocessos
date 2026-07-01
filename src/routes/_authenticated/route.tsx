@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Mic, Building2, LayoutDashboard, Briefcase, Clock } from "lucide-react";
+import { Mic, Building2, LayoutDashboard, Briefcase, Clock, CalendarDays, FileBarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -23,11 +23,15 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const NAV = [
+  { to: "/dashboard", icon: LayoutDashboard, label: "Torre" },
   { to: "/empresas", icon: Building2, label: "Empresas" },
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/projetos", icon: Briefcase, label: "Projetos" },
+  { to: "/calendario", icon: CalendarDays, label: "Agenda" },
+  { to: "/relatorios", icon: FileBarChart2, label: "Relatórios" },
   { to: "/horas", icon: Clock, label: "Horas" },
 ] as const;
+
+const MOBILE_NAV = NAV.filter((n) => n.to !== "/horas");
 
 function AuthenticatedLayout() {
   const router = useRouter();
@@ -80,14 +84,14 @@ function AuthenticatedLayout() {
 
       {/* Bottom nav mobile */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t bg-background/95 backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background/95 backdrop-blur lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {NAV.map((n) => (
+        {MOBILE_NAV.map((n) => (
           <Link
             key={n.to}
             to={n.to}
-            className="flex min-h-[60px] flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-muted-foreground transition-colors active:bg-secondary"
+            className="flex min-h-[60px] flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground transition-colors active:bg-secondary"
             activeProps={{ className: "text-primary" }}
           >
             <n.icon className="h-5 w-5" />
