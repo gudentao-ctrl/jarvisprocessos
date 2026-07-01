@@ -1,86 +1,123 @@
-# Correções e melhorias do JARVIS
+# Refatoração JARVIS — Mobile-first, sem quebrar nada
 
-Vou tratar 7 pontos em ondas independentes, cada um pequeno e verificável.
+Nada é removido. Banco atual permanece intacto. Refatoração puramente de UX/navegação/arquitetura de informação, com **mobile-first** como regra em todas as telas (touch alvos ≥44px, bottom-nav persistente, sheets em vez de dialogs largos, tabelas viram cards, gestos de swipe onde fizer sentido).
 
-## 1. Botão "Exportar PDF" da entrevista
+## 1. Hierarquia Empresa → Projeto → Processo
 
-**Sintoma**: nada acontece ao clicar.
-**Causa provável**: `exportInterviewPdf` roda no servidor com `pdf-lib` — em cold-start no worker pode estourar timeout / não expor erro; o botão só aparece depois de rodar Análise IA.
+**Navegação raiz** (bottom-nav mobile, sidebar desktop):
+- Empresas · Projetos · Calendário · Relatórios · Mais
 
-**Ação**:
-- Trocar para geração **client-side** com `jsPDF` + `html2canvas` (padrão que já usamos noutros lugares), renderizando um bloco oculto com título, meta, transcrição, ata e análise já em tela.
-- Toast de erro com mensagem real, `finally` liberando estado.
-- Manter a função servidor como fallback opcional (não bloquear).
+**Empresa (`/empresas/$id`)** — abas horizontais scrolláveis:
+Visão geral · Indicadores · Planos · Projetos · Documentos · Histórico.
 
-## 2. "Sugerir processos com IA" quebrando
+**Projeto (`/projetos/$id`)** — Torre de Controle:
+- Cabeçalho compacto (empresa, consultor, dias, % conclusão, status) empilhado no mobile.
+- **Chips horizontais scrolláveis de fase** (livre, não bloqueante): Planejamento · Mapeamento · Análise · Melhorias · Execução · Gestão · Encerramento. Trocar fase só troca a tela.
+- Cartões grandes, 1 coluna no mobile, 2 no tablet, 3 no desktop.
 
-**Causa provável**: `google/gemini-3-flash-preview` respondendo 4xx (modelo trocado) e a resposta caindo em `Resposta da IA inválida.` genérica.
+**Processo (`/processos/$id`)** — menu interno em **bottom-sheet** no mobile (botão "Seções") e sidebar interna no desktop:
+Visão Geral · SIPOC · BPM · Informações · Decisões · Cronoanálise · Indicadores relacionados · Melhorias IA · Documentos · Histórico. Uma única rota, sub-views internas — não abre páginas novas.
 
-**Ação em `src/lib/processes.functions.ts`**:
-- Encadear fallback de modelos: `google/gemini-2.5-flash` → `google/gemini-2.5-pro` → `openai/gpt-5-mini`.
-- Preservar mensagem original do gateway (429 / 402 / 4xx) no erro exibido.
-- Tolerar JSON com cerca de código (```json ... ```): fazer strip antes do `JSON.parse`.
-- Reforçar prompt para JSON estrito.
+## 2. Indicadores e Planos pertencem à EMPRESA (não ao processo)
 
-## 3. Coleta pública `/c/$token` pedindo login
+Sem mudar schema (colunas `company_id` já existem). Vínculo N:N com processos via novo array `process_ids UUID[]` aditivo. Nas telas de Processo aparecem apenas os relacionados.
 
-**Sintoma**: link externo cai na tela de login.
-**Causa**: hoje o `redirect` do app leva para `/auth` no primeiro carregamento (sessão anônima falha quando o backend está pausado, e o roteamento traz o usuário para o app protegido).
+## 3. Torre de Controle (Dashboard do Projeto)
 
-**Ação**:
-- Confirmar que o link enviado por WhatsApp/e-mail aponta para `/c/<token>` (não `/coletas/...`). Ajustar o botão "Copiar link" no cadastro de indicadores para usar `${origin}/c/<token>`.
-- Garantir que a rota `/c/$token` **não** faz `signInAnonymously()` nem redireciona ao `_authenticated`: adicionar `ssr: false` já existe; remover qualquer redirect global que atinja `/c/*`.
-- Ajustar `src/routes/index.tsx` e o wrapper `_authenticated/route.tsx` para ignorar rotas iniciadas por `/c/` e `/api/public/`.
+Cartões clicáveis, todos com badge numérico e ação "Ir para item":
+Entrevistas pendentes · Processos mapeados · Processos sem BPM · Cronoanálises pendentes · Indicadores sem coleta · Indicadores abaixo da meta · Planos atrasados · Reuniões agendadas · Riscos · Alertas críticos.
 
-## 4. Torre de Controle: falta de coleta por frequência
+**Central de Alertas** contextualizada ("OEE sem coleta há 12 dias") — expansível, uma linha por alerta no mobile com swipe para "Ir".
 
-**Sintoma**: indicador diário sem coleta hoje não gera alerta.
-**Causa**: view `v_indicator_status` já calcula `atrasado`, mas AlertsPanel só mostra `sem_coleta` quando nunca houve nenhuma; um indicador com 1 coleta antiga não aparece por dia.
+## 4. Calendário (novo)
 
-**Ação (migração)**:
-- Ajustar view para retornar `atrasado` também quando **não há coleta** e o indicador é `diario/semanal/mensal` há mais de 1 período desde `created_at`.
-- Aceitar variantes de frequência (`diaria`, `diario`, `daily`) via `lower(trim(...))` normalizado.
-- Em `alerts.functions.ts`: um indicador com `atrasado` gera alerta **crítico** para diário (>1 dia) e **warning** para semanal/mensal, com subtítulo "última coleta há N dias / esperado hoje".
+Rota `/calendario` + aba no projeto. Visão mensal (react-day-picker já instalado) + lista scrollável de eventos abaixo. Botão flutuante "Agendar reunião" (Entrevista/Workshop/Follow-up/Apresentação/Auditoria/Visita/Status). Fonte: `interviews` + coluna aditiva `meeting_type`. Lembretes via toasts / e-mail futuro.
 
-## 5. Mapas de Decisão e Informação — CRUD completo
+## 5. Coleta pública de indicadores (já parcial)
 
-Hoje as telas só listam por empresa. Precisamos editá-los.
+`/c/$token` sem login, layout mobile-first (uma coluna, campos grandes, botão único "Enviar"). Bloquear qualquer wrapper de auth em `/c/*` e `/api/public/*`. Botão "Copiar link" nos indicadores gera `${origin}/c/<token>`. Envio dispara recalculo de alertas.
 
-**Ação**:
-- Reformar `mapas.decisao.tsx` e `mapas.informacao.tsx` com botões "Adicionar", edição inline via `Dialog`, exclusão e filtro por processo.
-- Usar as funções já existentes (`saveInformationItem`, `saveDecisionItem`, `deleteInformationItem`, `deleteDecisionItem`).
-- Adicionar aba **Fluxo** dentro da tela do processo (`/processos/$id`) que exibe a matriz Info + Decisão do processo lado a lado.
-- Ligação: cada item passa a exigir `process_id` e opcionalmente `activity_id` (dropdown).
+## 6. Compartilhamento público de Planos
 
-## 6. Módulo "Horas Trabalhadas"
+Espelha indicadores: `action_plans.public_token` (aditivo) + rota `/p/$token` — Status / Comentário / Anexo / Concluir, sem login.
 
-**Novo** — registrar horas de consultoria/execução por projeto e responsável.
+## 7. BPM profissional
 
-**Migração** — nova tabela `work_hours`:
-- `id`, `project_id (FK)`, `company_id (FK)`, `responsible`, `activity_type` (`consultoria|execucao|reuniao|outro`), `date`, `hours numeric(5,2)`, `notes`, timestamps.
-- GRANT para `authenticated` + `service_role`, RLS `USING (true)` (equipe compartilhada, coerente com resto).
+Refatora `BpmFlow.tsx` mantendo dados atuais:
+- React Flow com zoom, minimap, auto-layout Dagre, snap, undo/redo, duplicar, alinhar, conectores ortogonais (`smoothstep`), handles grandes (16px) para touch.
+- Piscinas/Raias via nós `group` (Departamento/Responsável); cor por setor.
+- **Mobile**: modo "Lista estruturada" (atual) continua sendo o default no touch; modo "Fluxo" abre em tela cheia com pan/pinch nativos.
+- Botão **"Construir com IA"**: reusa pipeline existente com nova entrada — gravar áudio, upload de áudio/vídeo/ata/Word/PDF (mammoth + pdfjs-dist), transcreve → IA extrai atividades/decisões/responsáveis/docs/entradas/saídas/esperas/retrabalho → grava em `process_activities`/`process_edges`.
 
-**UI**:
-- Rota `/_authenticated/horas.index.tsx`: filtro por projeto + tabela + form rápido (data, responsável, horas, tipo).
-- Somatório por projeto e por responsável no topo.
-- Card no `projetos.$id.index.tsx` com total de horas do projeto (integrando com Torre de Controle).
+## 8. Mapa de Informação em grafo
 
-## 7. Vínculo empresa ↔ projeto ↔ dados
+Substitui lista por grafo (React Flow). Nós com Origem, Documento, Meio, Responsável, Destino, Sistema, Periodicidade, Risco, Tempo, Automatizado, Digital, Retrabalho (colunas aditivas onde faltarem). Filtros por processo/risco/meio. Botão IA "Detectar gargalos" destaca nós problemáticos (docs duplicados, retrabalho, aprovações desnecessárias, informação perdida). No mobile: grafo full-screen com toolbar flutuante + fallback em cards agrupados.
 
-Já existe `projects.company_id`. Consolidar:
-- No hub do projeto exibir a empresa vinculada no cabeçalho.
-- Ao criar entrevistas / processos / indicadores dentro do projeto, pré-selecionar (e travar) a `company_id` do projeto para evitar mistura.
-- Nas telas gerais (`indicadores`, `mapas.*`, `planos-acao`, `entrevistas`), quando a rota vier com `?projectId=...`, filtrar automaticamente.
-- Ajustar `getProjectAlerts` para juntar indicadores/planos/processos pela `company_id` do projeto além do `project_id` (cobre dados legados).
+## 9. Mapa de Decisão em árvore
 
-## Ordem de execução
-1. Migração da view + tabela `work_hours` (1 chamada).
-2. Fixes de código: PDF client-side, fallback IA, roteamento público, alerts.
-3. CRUD mapas, tela horas, ajustes de vínculo com empresa.
-4. Verificar com `bun run build:dev` e teste manual dos fluxos-chave.
+Árvore hierárquica sobre `process_decision_map` com Quem decide, Critério, Dados, Tempo, Frequência, Consequência, Impacto, Valor financeiro, Risco. Botão IA "Analisar decisões" marca centralizadas / sem critério / duplicadas / subjetivas / aprovações desnecessárias.
+
+## 10. Assistente IA do Consultor
+
+Componente `<AskAi>` como **FAB (botão flutuante)** presente em qualquer processo/projeto — abre bottom-sheet no mobile / painel lateral no desktop. Nova server function `askConsultantAi(contextRef)` com contexto do processo/projeto e prompts sugeridos: gargalos, desperdícios, NVA, indicadores faltantes, riscos, melhorias Lean, automações, gerar plano de ação, gerar relatório. Usa fallback multi-modelo já implementado.
+
+## 11. Hub de Relatórios
+
+Rota `/relatorios` com cards por tipo (Executivo, Operacional, por Processo, por Empresa, Indicadores, Planos, Cronoanálise, Mapeamento). Export client-side: PDF (jspdf), Excel (xlsx), Word (docx).
+
+## 12. Preservação obrigatória
+
+Todas as rotas atuais permanecem funcionais. Migrações **apenas aditivas** (nullable/arrays/tabelas auxiliares). Nada é dropado. Rotas antigas continuam acessíveis a partir do menu "Mais".
+
+---
 
 ## Detalhes técnicos
-- PDF client-side: bundle já tem `jspdf` e `html2canvas` via `pdf-lib` não é suficiente para render DOM; instalar via `bun add jspdf html2canvas`.
-- Fallback de IA: array `MODEL_FALLBACKS` percorrido em `try/catch`, primeiro sucesso vence.
-- View SQL usará `date_trunc` para tolerar `interval` fracionário.
-- `work_hours`: index em `(project_id, date)`.
+
+**Regras mobile-first aplicadas em toda a refatoração**
+- Bottom-nav fixa em `< lg`, sidebar em `≥ lg`.
+- Todo botão/target ≥44×44px; inputs `text-base` para evitar zoom no iOS.
+- Diálogos > 500px viram `Sheet` bottom no mobile.
+- Grid padrão: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`.
+- Chips/tabs horizontais com `overflow-x-auto snap-x`.
+- Tabelas de listagem viram cards agrupados em `< sm`.
+- Grafos (BPM / Info / Decisão) abrem em tela cheia no mobile com toolbar flutuante e pinch-zoom.
+- Nenhum hover-only affordance; toda interação tem equivalente tap/long-press.
+
+**Estrutura de rotas nova (aditiva)**
+```
+/empresas/$id                (novas abas)
+/projetos/$id                (Torre de Controle + chips de fase)
+/processos/$id               (menu interno, sem sub-rotas novas)
+/calendario                  (nova)
+/relatorios                  (nova)
+/p/$token                    (nova, pública — planos)
+```
+Rotas atuais mantidas como atalhos.
+
+**Migrações aditivas** (nenhuma destrutiva)
+- `action_plans.public_token TEXT UNIQUE`
+- `interviews.meeting_type TEXT`
+- `indicators.process_ids UUID[]`, `action_plans.process_ids UUID[]`
+- `process_information_map`: `system`, `periodicity`, `is_automated`, `is_digital`, `has_rework`, `time_minutes` (onde faltar)
+- `process_decision_map`: `financial_impact`, `frequency`, `criteria`, `data_used` (onde faltar)
+
+**Bibliotecas a instalar**
+`docx`, `xlsx`, `mammoth`, `pdfjs-dist`. `jspdf`, `reactflow`, `dagre` já presentes.
+
+**Ordem de execução**
+1. Migração aditiva única.
+2. Torre de Controle + chips de fase livres.
+3. Menu interno do Processo (sub-views).
+4. Empresa como hub.
+5. Calendário + agendamento.
+6. BPM pro + upload multiformato para IA.
+7. Grafo de Informação + Árvore de Decisão + IA gargalos/análise.
+8. FAB Assistente IA.
+9. Hub de Relatórios (PDF/Excel/Word).
+10. Compartilhamento público de Planos.
+11. `bun run build:dev` + smoke test mobile (390px) e desktop de cada rota.
+
+**Guardrails**
+- Nenhum `DROP`, nenhum componente removido — apenas realocado.
+- Toda mudança isolada por commit lógico para rollback pontual.
+- Nenhuma tela nova sem passar no viewport 390×622 (o atual do usuário).
