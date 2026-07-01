@@ -6,6 +6,7 @@ import { getProject } from "@/lib/projects.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { AskAiFab } from "@/components/AskAiFab";
 import {
   ChevronLeft,
   Search,
@@ -15,6 +16,7 @@ import {
   BarChart3,
   LayoutGrid,
   ChevronDown,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +31,7 @@ const STAGES = [
   { id: "melhorias", label: "Melhorias", to: "/projetos/$id/melhorias" as const, icon: Lightbulb },
   { id: "execucao", label: "Execução", to: "/projetos/$id/execucao" as const, icon: ClipboardList },
   { id: "gestao", label: "Gestão", to: "/projetos/$id/gestao" as const, icon: BarChart3 },
+  { id: "encerramento", label: "Encerramento", to: "/projetos/$id/encerramento" as const, icon: Flag },
 ];
 
 function ProjectLayout() {
@@ -132,6 +135,7 @@ function ProjectLayout() {
       </div>
 
       <Outlet />
+      <AskAiFab scope="project" scopeId={id} />
     </div>
   );
 }
