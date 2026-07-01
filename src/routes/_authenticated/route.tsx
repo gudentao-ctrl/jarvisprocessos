@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Mic, Building2, LayoutDashboard, Briefcase } from "lucide-react";
+import { Mic, Building2, LayoutDashboard, Briefcase, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -26,6 +26,7 @@ const NAV = [
   { to: "/empresas", icon: Building2, label: "Empresas" },
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/projetos", icon: Briefcase, label: "Projetos" },
+  { to: "/horas", icon: Clock, label: "Horas" },
 ] as const;
 
 function AuthenticatedLayout() {
