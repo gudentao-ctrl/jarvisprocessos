@@ -67,13 +67,7 @@ function AuthenticatedLayout() {
             <span className="text-base font-bold tracking-tight">JARVIS</span>
           </div>
           <div className="ml-auto" />
-          <button
-            onClick={signOut}
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
-            aria-label="Sair"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+
         </header>
 
         <main className="flex-1 overflow-y-auto">
