@@ -23,6 +23,7 @@ import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
 import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
+import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
 import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
 import { Route as AuthenticatedDiagnosticoIndexRouteImport } from './routes/_authenticated/diagnostico.index'
 import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
@@ -124,6 +125,11 @@ const AuthenticatedIndicadoresIndexRoute =
     path: '/indicadores/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHorasIndexRoute = AuthenticatedHorasIndexRouteImport.update({
+  id: '/horas/',
+  path: '/horas/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEntrevistasIndexRoute =
   AuthenticatedEntrevistasIndexRouteImport.update({
     id: '/entrevistas/',
@@ -288,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/horas/': typeof AuthenticatedHorasIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -326,6 +333,7 @@ export interface FileRoutesByTo {
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
+  '/horas': typeof AuthenticatedHorasIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -367,6 +375,7 @@ export interface FileRoutesById {
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/_authenticated/horas/': typeof AuthenticatedHorasIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -408,6 +417,7 @@ export interface FileRouteTypes {
     | '/cronoanalise/'
     | '/diagnostico/'
     | '/entrevistas/'
+    | '/horas/'
     | '/indicadores/'
     | '/oportunidades/'
     | '/planos-acao/'
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/cronoanalise'
     | '/diagnostico'
     | '/entrevistas'
+    | '/horas'
     | '/indicadores'
     | '/oportunidades'
     | '/planos-acao'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cronoanalise/'
     | '/_authenticated/diagnostico/'
     | '/_authenticated/entrevistas/'
+    | '/_authenticated/horas/'
     | '/_authenticated/indicadores/'
     | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
@@ -610,6 +622,13 @@ declare module '@tanstack/react-router' {
       path: '/indicadores'
       fullPath: '/indicadores/'
       preLoaderRoute: typeof AuthenticatedIndicadoresIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/horas/': {
+      id: '/_authenticated/horas/'
+      path: '/horas'
+      fullPath: '/horas/'
+      preLoaderRoute: typeof AuthenticatedHorasIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/entrevistas/': {
@@ -829,6 +848,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedDiagnosticoIndexRoute: typeof AuthenticatedDiagnosticoIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
+  AuthenticatedHorasIndexRoute: typeof AuthenticatedHorasIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
@@ -859,6 +879,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedDiagnosticoIndexRoute: AuthenticatedDiagnosticoIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
+  AuthenticatedHorasIndexRoute: AuthenticatedHorasIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
   AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
