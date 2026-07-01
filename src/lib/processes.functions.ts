@@ -607,6 +607,21 @@ const ProcessSuggestionSchema = z.object({
 
 export type ProcessSuggestion = z.infer<typeof ProcessSuggestionSchema>;
 
+const MODEL_FALLBACKS = [
+  "google/gemini-2.5-flash",
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-pro",
+  "openai/gpt-5-mini",
+] as const;
+
+function stripCodeFences(s: string): string {
+  const t = s.trim();
+  if (t.startsWith("```")) {
+    return t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  }
+  return t;
+}
+
 export const suggestProcessFromInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
@@ -628,36 +643,44 @@ REGRAS:
 - Tipos de atividade: start, task, decision, wait, approval, end, info_in, info_out.
 - Tempos em minutos (decimal). Se não souber, use 0.
 
-Responda APENAS um JSON válido com os campos: process_name, process_objective, activities, information_map, decision_map, pains.`;
+Responda APENAS um objeto JSON válido com as chaves: process_name, process_objective, activities, information_map, decision_map, pains. Sem cercas de código, sem texto antes ou depois.`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Transcrição:\n\n${content}` },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Limite de IA atingido.");
-      if (res.status === 402) throw new Error("Créditos de IA esgotados.");
-      throw new Error(`Falha IA (${res.status}): ${txt.slice(0, 200)}`);
+    let lastErr = "";
+    for (const model of MODEL_FALLBACKS) {
+      try {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: `Transcrição:\n\n${content}` },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          lastErr = `[${model}] ${res.status}: ${txt.slice(0, 200)}`;
+          if (res.status === 429) throw new Error("Limite de IA atingido. Tente novamente em alguns minutos.");
+          if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos na área de billing.");
+          continue;
+        }
+        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const raw = stripCodeFences(json.choices?.[0]?.message?.content ?? "{}");
+        try {
+          return ProcessSuggestionSchema.parse(JSON.parse(raw));
+        } catch (e: any) {
+          lastErr = `[${model}] resposta inválida: ${e?.message ?? "parse error"}`;
+          continue;
+        }
+      } catch (e: any) {
+        if (e?.message?.startsWith("Limite de IA") || e?.message?.startsWith("Créditos")) throw e;
+        lastErr = `[${model}] ${e?.message ?? "erro"}`;
+      }
     }
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = json.choices?.[0]?.message?.content ?? "{}";
-    try {
-      return ProcessSuggestionSchema.parse(JSON.parse(raw));
-    } catch {
-      throw new Error("Resposta da IA inválida.");
-    }
+    throw new Error(`Nenhum modelo respondeu válido. ${lastErr}`);
   });
 
 export const applyProcessSuggestion = createServerFn({ method: "POST" })
