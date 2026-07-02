@@ -114,7 +114,11 @@ function PlanosPage() {
                 <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
               </Select>
-              <Button size="icon" variant="ghost" onClick={async () => { if (confirm("Excluir?")) { await deleteActionPlan({ data: { id: p.id } }); reload(); } }}><Trash2 className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" onClick={async () => {
+                if (!confirm("Excluir plano de ação?")) return;
+                try { await deleteActionPlan({ data: { id: p.id } }); toast.success("Excluído"); reload(); }
+                catch (e: any) { toast.error(e?.message ?? "Erro ao excluir"); }
+              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>
           </Card>
         ))}</div>
