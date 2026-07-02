@@ -59,12 +59,13 @@ function IndicadoresPage() {
       setForm({ company_id: "", process_id: "", name: "", unit: "", target: "", frequency: "mensal" });
       toast.success("Indicador criado");
     },
-    onError: (e: any) => toast.error(e?.message),
+    onError: (e: any) => { console.error(e); toast.error(e?.message ?? "Erro ao criar indicador"); },
   });
 
   const del = useMutation({
     mutationFn: (id: string) => deleteIndicator({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["indicator-status"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["indicator-status"] }); toast.success("Excluído"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
   function submit() {
