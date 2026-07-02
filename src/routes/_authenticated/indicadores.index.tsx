@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Trash2, BarChart3, Link2, Copy, Settings2, MessageCircle } from "lucide-react";
+import { Plus, Trash2, BarChart3, Link2, Copy, Settings2, MessageCircle, Check } from "lucide-react";
 import { saveIndicator, deleteIndicator, listProcesses } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { listIndicatorStatus, updateIndicatorPublicSettings, listCollections } from "@/lib/indicator-collections.functions";
