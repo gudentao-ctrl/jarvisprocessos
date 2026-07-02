@@ -53,6 +53,7 @@ import { Route as AuthenticatedProjetosIdExecucaoRouteImport } from './routes/_a
 import { Route as AuthenticatedProjetosIdEncerramentoRouteImport } from './routes/_authenticated/projetos.$id.encerramento'
 import { Route as AuthenticatedProjetosIdDiagnosticoRouteImport } from './routes/_authenticated/projetos.$id.diagnostico'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
+import { Route as AuthenticatedIndicadoresIdColetarRouteImport } from './routes/_authenticated/indicadores.$id.coletar'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -304,6 +305,12 @@ const AuthenticatedProcessosSugerirInterviewIdRoute =
     path: '/processos/sugerir/$interviewId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedIndicadoresIdColetarRoute =
+  AuthenticatedIndicadoresIdColetarRouteImport.update({
+    id: '/indicadores/$id/coletar',
+    path: '/indicadores/$id/coletar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -339,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/tobe/': typeof AuthenticatedTobeIndexRoute
+  '/indicadores/$id/coletar': typeof AuthenticatedIndicadoresIdColetarRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
   '/projetos/$id/encerramento': typeof AuthenticatedProjetosIdEncerramentoRoute
@@ -383,6 +391,7 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap': typeof AuthenticatedRoadmapIndexRoute
   '/tobe': typeof AuthenticatedTobeIndexRoute
+  '/indicadores/$id/coletar': typeof AuthenticatedIndicadoresIdColetarRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
   '/projetos/$id/encerramento': typeof AuthenticatedProjetosIdEncerramentoRoute
@@ -430,6 +439,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
+  '/_authenticated/indicadores/$id/coletar': typeof AuthenticatedIndicadoresIdColetarRoute
   '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/_authenticated/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
   '/_authenticated/projetos/$id/encerramento': typeof AuthenticatedProjetosIdEncerramentoRoute
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/relatorios/'
     | '/roadmap/'
     | '/tobe/'
+    | '/indicadores/$id/coletar'
     | '/processos/sugerir/$interviewId'
     | '/projetos/$id/diagnostico'
     | '/projetos/$id/encerramento'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/roadmap'
     | '/tobe'
+    | '/indicadores/$id/coletar'
     | '/processos/sugerir/$interviewId'
     | '/projetos/$id/diagnostico'
     | '/projetos/$id/encerramento'
@@ -567,6 +579,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios/'
     | '/_authenticated/roadmap/'
     | '/_authenticated/tobe/'
+    | '/_authenticated/indicadores/$id/coletar'
     | '/_authenticated/processos/sugerir/$interviewId'
     | '/_authenticated/projetos/$id/diagnostico'
     | '/_authenticated/projetos/$id/encerramento'
@@ -899,6 +912,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcessosSugerirInterviewIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/indicadores/$id/coletar': {
+      id: '/_authenticated/indicadores/$id/coletar'
+      path: '/indicadores/$id/coletar'
+      fullPath: '/indicadores/$id/coletar'
+      preLoaderRoute: typeof AuthenticatedIndicadoresIdColetarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -962,6 +982,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatoriosIndexRoute: typeof AuthenticatedRelatoriosIndexRoute
   AuthenticatedRoadmapIndexRoute: typeof AuthenticatedRoadmapIndexRoute
   AuthenticatedTobeIndexRoute: typeof AuthenticatedTobeIndexRoute
+  AuthenticatedIndicadoresIdColetarRoute: typeof AuthenticatedIndicadoresIdColetarRoute
   AuthenticatedProcessosSugerirInterviewIdRoute: typeof AuthenticatedProcessosSugerirInterviewIdRoute
 }
 
@@ -995,6 +1016,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatoriosIndexRoute: AuthenticatedRelatoriosIndexRoute,
   AuthenticatedRoadmapIndexRoute: AuthenticatedRoadmapIndexRoute,
   AuthenticatedTobeIndexRoute: AuthenticatedTobeIndexRoute,
+  AuthenticatedIndicadoresIdColetarRoute:
+    AuthenticatedIndicadoresIdColetarRoute,
   AuthenticatedProcessosSugerirInterviewIdRoute:
     AuthenticatedProcessosSugerirInterviewIdRoute,
 }

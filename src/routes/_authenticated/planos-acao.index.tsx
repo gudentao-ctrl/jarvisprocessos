@@ -39,7 +39,7 @@ function PlanosPage() {
       await saveActionPlan({ data: { ...form, company_id: form.company_id || null, due_date: form.due_date || null, priority: form.priority as any, status: form.status as any } });
       toast.success("Salvo"); setOpen(false); setForm({ title: "", description: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "" });
       reload();
-    } catch (e: any) { toast.error(e?.message); }
+    } catch (e: any) { console.error(e); toast.error(e?.message ?? "Erro ao salvar plano"); }
   }
   async function updateStatus(p: any, status: string) {
     await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
@@ -114,7 +114,11 @@ function PlanosPage() {
                 <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
               </Select>
-              <Button size="icon" variant="ghost" onClick={async () => { if (confirm("Excluir?")) { await deleteActionPlan({ data: { id: p.id } }); reload(); } }}><Trash2 className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" onClick={async () => {
+                if (!confirm("Excluir plano de ação?")) return;
+                try { await deleteActionPlan({ data: { id: p.id } }); toast.success("Excluído"); reload(); }
+                catch (e: any) { toast.error(e?.message ?? "Erro ao excluir"); }
+              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>
           </Card>
         ))}</div>

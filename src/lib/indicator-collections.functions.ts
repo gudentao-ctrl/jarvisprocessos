@@ -70,3 +70,40 @@ export const regenerateIndicatorToken = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+export const getIndicator = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("indicators")
+      .select("*, companies(name), processes(name)")
+      .eq("id", data.id).single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const createCollection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    indicator_id: z.string().uuid(),
+    value: z.number(),
+    reference_period: z.string().optional().default(""),
+    observation: z.string().optional().default(""),
+    submitted_by_name: z.string().optional().default(""),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("indicator_collections").insert(data).select().single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const deleteCollection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("indicator_collections").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

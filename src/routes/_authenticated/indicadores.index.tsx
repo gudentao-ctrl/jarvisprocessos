@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Trash2, BarChart3, Link2, Copy, Settings2, MessageCircle } from "lucide-react";
+import { Plus, Trash2, BarChart3, Link2, Copy, Settings2, MessageCircle, Check } from "lucide-react";
 import { saveIndicator, deleteIndicator, listProcesses } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { listIndicatorStatus, updateIndicatorPublicSettings, listCollections } from "@/lib/indicator-collections.functions";
@@ -59,12 +59,13 @@ function IndicadoresPage() {
       setForm({ company_id: "", process_id: "", name: "", unit: "", target: "", frequency: "mensal" });
       toast.success("Indicador criado");
     },
-    onError: (e: any) => toast.error(e?.message),
+    onError: (e: any) => { console.error(e); toast.error(e?.message ?? "Erro ao criar indicador"); },
   });
 
   const del = useMutation({
     mutationFn: (id: string) => deleteIndicator({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["indicator-status"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["indicator-status"] }); toast.success("Excluído"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
   function submit() {
@@ -165,7 +166,12 @@ function IndicadoresPage() {
                 <span className={cn("inline-flex items-center text-[11px] font-medium rounded-full border px-2 py-0.5", st.chip)}>
                   {st.label}
                 </span>
-                <div className="flex gap-2 pt-1 border-t">
+                <div className="flex flex-wrap gap-2 pt-1 border-t">
+                  <Button asChild size="sm" className="min-h-9">
+                    <Link to="/indicadores/$id/coletar" params={{ id: i.id }}>
+                      <Check className="h-3.5 w-3.5 mr-1" /> Registrar
+                    </Link>
+                  </Button>
                   <LinkButton token={i.public_token} indicatorName={i.name} />
                   <Button
                     size="sm"

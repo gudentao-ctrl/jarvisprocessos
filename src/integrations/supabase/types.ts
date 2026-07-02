@@ -160,6 +160,69 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          ends_at: string | null
+          event_type: string
+          id: string
+          location: string
+          participants: string[]
+          project_id: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          ends_at?: string | null
+          event_type?: string
+          id?: string
+          location?: string
+          participants?: string[]
+          project_id?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          ends_at?: string | null
+          event_type?: string
+          id?: string
+          location?: string
+          participants?: string[]
+          project_id?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
