@@ -39,7 +39,7 @@ function PlanosPage() {
       await saveActionPlan({ data: { ...form, company_id: form.company_id || null, due_date: form.due_date || null, priority: form.priority as any, status: form.status as any } });
       toast.success("Salvo"); setOpen(false); setForm({ title: "", description: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "" });
       reload();
-    } catch (e: any) { toast.error(e?.message); }
+    } catch (e: any) { console.error(e); toast.error(e?.message ?? "Erro ao salvar plano"); }
   }
   async function updateStatus(p: any, status: string) {
     await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
