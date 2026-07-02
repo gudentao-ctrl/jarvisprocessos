@@ -166,7 +166,12 @@ function IndicadoresPage() {
                 <span className={cn("inline-flex items-center text-[11px] font-medium rounded-full border px-2 py-0.5", st.chip)}>
                   {st.label}
                 </span>
-                <div className="flex gap-2 pt-1 border-t">
+                <div className="flex flex-wrap gap-2 pt-1 border-t">
+                  <Button asChild size="sm" className="min-h-9">
+                    <Link to="/indicadores/$id/coletar" params={{ id: i.id }}>
+                      <Check className="h-3.5 w-3.5 mr-1" /> Registrar
+                    </Link>
+                  </Button>
                   <LinkButton token={i.public_token} indicatorName={i.name} />
                   <Button
                     size="sm"
