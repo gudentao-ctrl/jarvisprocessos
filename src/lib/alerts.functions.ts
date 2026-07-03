@@ -32,7 +32,7 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
     const todayISO = today.toISOString().slice(0, 10);
     const in7 = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
 
-    const scope = <T extends { eq: (col: string, val: unknown) => T }>(q: T, col = "project_id"): T => {
+    const scope = (q: any, col = "project_id"): any => {
       if (projectId) return q.eq(col, projectId);
       if (companyId) return q.eq("company_id", companyId);
       return q;
@@ -41,28 +41,28 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
     const [indStatus, plans, procs, intvs, upcoming] = await Promise.all([
       scope(
         sb.from("v_indicator_status").select("id, name, code, status, last_value, target, unit, company_id, project_id"),
-      ),
+      ) as any,
       scope(
         sb.from("action_plans")
           .select("id, title, due_date, status, responsible, company_id, project_id")
           .neq("status", "concluido")
           .not("due_date", "is", null),
-      ),
+      ) as any,
       scope(
         sb.from("processes").select("id, name, status, company_id, project_id").eq("status", "draft"),
-      ),
+      ) as any,
       scope(
         sb.from("interviews")
           .select("id, title, generation_status, status, interview_date, company_id, project_id")
           .in("generation_status", ["pending", "processing", "failed"]),
-      ),
+      ) as any,
       scope(
         sb.from("interviews")
           .select("id, title, interview_date, participant, status, company_id, project_id")
           .gte("interview_date", todayISO)
           .order("interview_date", { ascending: true })
           .limit(20),
-      ),
+      ) as any,
     ]);
 
     const alerts: AlertItem[] = [];
