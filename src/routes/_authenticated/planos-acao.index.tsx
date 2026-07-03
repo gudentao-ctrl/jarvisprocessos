@@ -29,21 +29,43 @@ function PlanosPage() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [filter, setFilter] = useState<"all" | "aberto" | "em_andamento" | "concluido">("all");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "" });
-  const reload = () => listActionPlans().then(setList);
+  const [form, setForm] = useState({
+    title: "", description: "", problem: "", cause: "", responsible: "",
+    company_id: "", priority: "media", status: "aberto", due_date: "",
+    gravity: 3, urgency: 3, trend: 3,
+  });
+  const reload = () => listActionPlans({ data: {} }).then(setList).catch(() => setList([]));
   useEffect(() => { reload(); listCompanies().then(setCompanies); }, []);
 
   async function submit() {
     if (!form.title) return toast.error("Título obrigatório");
     try {
-      await saveActionPlan({ data: { ...form, company_id: form.company_id || null, due_date: form.due_date || null, priority: form.priority as any, status: form.status as any } });
-      toast.success("Salvo"); setOpen(false); setForm({ title: "", description: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "" });
+      await saveActionPlan({
+        data: {
+          title: form.title,
+          description: form.description,
+          problem: form.problem || null,
+          cause: form.cause || null,
+          responsible: form.responsible,
+          company_id: form.company_id || null,
+          due_date: form.due_date || null,
+          priority: form.priority as any,
+          status: form.status as any,
+          gravity: form.gravity,
+          urgency: form.urgency,
+          trend: form.trend,
+        },
+      });
+      toast.success("Salvo"); setOpen(false);
+      setForm({ title: "", description: "", problem: "", cause: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "", gravity: 3, urgency: 3, trend: 3 });
       reload();
     } catch (e: any) { console.error(e); toast.error(e?.message ?? "Erro ao salvar plano"); }
   }
   async function updateStatus(p: any, status: string) {
-    await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
-    reload();
+    try {
+      await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
+      reload();
+    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
   }
 
   const filtered = filter === "all" ? list : list.filter((p) => p.status === filter);
