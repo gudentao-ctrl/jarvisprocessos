@@ -1,14 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   listCompanies, createCompany, deleteCompany, createSector, deleteSector,
 } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Building2, Plus, Trash2, X } from "lucide-react";
+import { Building2, Plus, Trash2, X, Radar, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/empresas")({
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/empresas")({
 
 function CompaniesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { companyId, setCompanyId } = useActiveCompany();
   const list = useServerFn(listCompanies);
   const addCo = useServerFn(createCompany);
   const delCo = useServerFn(deleteCompany);
@@ -29,26 +32,31 @@ function CompaniesPage() {
   const addCompany = useMutation({
     mutationFn: () => addCo({ data: { name: newName.trim() } }),
     onSuccess: () => { setNewName(""); qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Empresa criada"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao criar empresa"),
   });
 
   const removeCompany = useMutation({
     mutationFn: (id: string) => delCo({ data: { id } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Empresa excluída"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
   const addSector = useMutation({
     mutationFn: (vars: { company_id: string; name: string }) => addSec({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["companies"] }),
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
   const removeSector = useMutation({
     mutationFn: (id: string) => delSec({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["companies"] }),
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
+
+  function openCompany(id: string) {
+    setCompanyId(id);
+    navigate({ to: "/controle" });
+  }
 
   return (
     <div className="space-y-5">
