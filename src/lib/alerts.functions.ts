@@ -167,7 +167,7 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
 
     const indicatorRows = indStatus.data ?? [];
     const planRows = plans.data ?? [];
-    const upcomingRows = (upcoming.data ?? []).map((u) => ({
+    const upcomingRows = (upcoming.data ?? []).map((u: any) => ({
       id: u.id as string,
       title: (u.title as string) ?? "Reunião",
       interview_date: u.interview_date as string,
@@ -175,9 +175,9 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
     }));
 
     const highlights = {
-      sem_coleta: indicatorRows.filter((i) => i.status === "sem_coleta").length,
-      abaixo_meta: indicatorRows.filter((i) => i.status === "abaixo_meta" || i.status === "critico").length,
-      planos_atrasados: planRows.filter((p) => p.due_date && p.due_date < todayISO).length,
+      sem_coleta: indicatorRows.filter((i: any) => i.status === "sem_coleta").length,
+      abaixo_meta: indicatorRows.filter((i: any) => i.status === "abaixo_meta" || i.status === "critico").length,
+      planos_atrasados: planRows.filter((p: any) => p.due_date && p.due_date < todayISO).length,
       reunioes_marcadas: upcomingRows.length,
     };
 
