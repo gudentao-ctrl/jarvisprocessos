@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mic } from "lucide-react";
+import { Mic, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
 });
+
+const ALLOWED_EMAIL = "g_zamboni@hotmail.com";
 
 function isNetworkError(err: unknown): boolean {
   if (!err) return false;
@@ -21,31 +23,23 @@ function isNetworkError(err: unknown): boolean {
 
 function friendlyAuthError(err: unknown): string {
   const msg = (err as { message?: string })?.message ?? String(err);
-  if (isNetworkError(err)) {
-    return "Falha de conexão com o servidor. Verifique sua internet e tente novamente.";
-  }
-  if (/invalid login credentials/i.test(msg)) {
-    return "E-mail ou senha incorretos. Se você ainda não tem conta, clique em 'Criar conta'.";
-  }
-  if (/email not confirmed/i.test(msg)) {
-    return "Confirme seu e-mail antes de entrar.";
-  }
-  if (/user already registered/i.test(msg)) {
-    return "Já existe uma conta com este e-mail. Entre em vez de criar.";
-  }
+  if (isNetworkError(err)) return "Falha de conexão. Verifique sua internet.";
+  if (/invalid login credentials/i.test(msg)) return "E-mail ou senha incorretos.";
+  if (/email not confirmed/i.test(msg)) return "Confirme seu e-mail antes de entrar.";
   return msg || "Erro ao autenticar";
 }
 
 export function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/projetos" });
+      if (data.user?.email?.toLowerCase() === ALLOWED_EMAIL) {
+        navigate({ to: "/empresas" });
+      }
     });
   }, [navigate]);
 
@@ -56,7 +50,6 @@ export function AuthPage() {
       return res;
     } catch (err) {
       if (!isNetworkError(err)) throw err;
-      // 1 retry on flaky mobile networks / preview reconnects
       await new Promise((r) => setTimeout(r, 800));
       return supabase.auth.signInWithPassword({ email, password });
     }
@@ -64,22 +57,15 @@ export function AuthPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (email.trim().toLowerCase() !== ALLOWED_EMAIL) {
+      toast.error("Acesso restrito. Apenas o consultor autorizado pode entrar.");
+      return;
+    }
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("Conta criada! Você já pode entrar.");
-        setMode("signin");
-      } else {
-        const { error } = await signInWithRetry();
-        if (error) throw error;
-        navigate({ to: "/projetos" });
-      }
+      const { error } = await signInWithRetry();
+      if (error) throw error;
+      navigate({ to: "/empresas" });
     } catch (err) {
       toast.error(friendlyAuthError(err));
     } finally {
@@ -102,40 +88,31 @@ export function AuthPage() {
           <div>
             <Label htmlFor="email">E-mail</Label>
             <Input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="email" type="email" required autoComplete="email"
+              value={email} onChange={(e) => setEmail(e.target.value)}
               className="mt-1.5 h-12"
             />
           </div>
           <div>
             <Label htmlFor="password">Senha</Label>
             <Input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              id="password" type="password" required minLength={6}
+              autoComplete="current-password"
+              value={password} onChange={(e) => setPassword(e.target.value)}
               className="mt-1.5 h-12"
             />
           </div>
           <Button type="submit" disabled={loading} className="h-12 w-full text-base font-medium">
-            {loading ? "Aguarde..." : mode === "signin" ? "Entrar" : "Criar conta"}
+            {loading ? "Aguarde..." : "Entrar"}
           </Button>
         </form>
 
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="mt-6 w-full text-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          {mode === "signin" ? "Não tem conta? Criar conta da equipe" : "Já tem conta? Entrar"}
-        </button>
+        <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Sistema privado. Criação de novos usuários bloqueada — apenas o consultor autorizado pode acessar.
+          </span>
+        </div>
       </Card>
     </div>
   );

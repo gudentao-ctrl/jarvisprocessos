@@ -422,13 +422,18 @@ export const deleteIndicator = createServerFn({ method: "POST" })
 
 export const listActionPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) =>
+    z.object({ company_id: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
       .from("action_plans")
       .select("*, companies(name), processes(name)")
       .order("created_at", { ascending: false });
+    if (data.company_id) q = q.eq("company_id", data.company_id);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return rows ?? [];
   });
 
 export const saveActionPlan = createServerFn({ method: "POST" })
@@ -448,6 +453,17 @@ export const saveActionPlan = createServerFn({ method: "POST" })
       due_date: z.string().nullable().optional(),
       status: z.enum(["aberto", "em_andamento", "concluido"]).default("aberto"),
       priority: z.enum(["baixa", "media", "alta", "critica"]).default("media"),
+      // Extended fields (GUT + details)
+      problem: z.string().nullable().optional(),
+      cause: z.string().nullable().optional(),
+      category: z.string().nullable().optional(),
+      gravity: z.number().int().min(1).max(5).nullable().optional(),
+      urgency: z.number().int().min(1).max(5).nullable().optional(),
+      trend: z.number().int().min(1).max(5).nullable().optional(),
+      new_due_date: z.string().nullable().optional(),
+      expected_result: z.string().nullable().optional(),
+      observations: z.string().nullable().optional(),
+      origin: z.string().nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {

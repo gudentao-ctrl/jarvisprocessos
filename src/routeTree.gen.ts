@@ -29,6 +29,7 @@ import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
 import { Route as AuthenticatedDiagnosticoIndexRouteImport } from './routes/_authenticated/diagnostico.index'
 import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
+import { Route as AuthenticatedControleIndexRouteImport } from './routes/_authenticated/controle.index'
 import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
 import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
 import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
@@ -163,6 +164,12 @@ const AuthenticatedCronoanaliseIndexRoute =
   AuthenticatedCronoanaliseIndexRouteImport.update({
     id: '/cronoanalise/',
     path: '/cronoanalise/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedControleIndexRoute =
+  AuthenticatedControleIndexRouteImport.update({
+    id: '/controle/',
+    path: '/controle/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCausaRaizIndexRoute =
@@ -333,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
+  '/controle/': typeof AuthenticatedControleIndexRoute
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
@@ -378,6 +386,7 @@ export interface FileRoutesByTo {
   '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz': typeof AuthenticatedCausaRaizIndexRoute
+  '/controle': typeof AuthenticatedControleIndexRoute
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
@@ -426,6 +435,7 @@ export interface FileRoutesById {
   '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/_authenticated/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/_authenticated/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
+  '/_authenticated/controle/': typeof AuthenticatedControleIndexRoute
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/analise-critica/'
     | '/calendario/'
     | '/causa-raiz/'
+    | '/controle/'
     | '/cronoanalise/'
     | '/diagnostico/'
     | '/entrevistas/'
@@ -519,6 +530,7 @@ export interface FileRouteTypes {
     | '/analise-critica'
     | '/calendario'
     | '/causa-raiz'
+    | '/controle'
     | '/cronoanalise'
     | '/diagnostico'
     | '/entrevistas'
@@ -566,6 +578,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analise-critica/'
     | '/_authenticated/calendario/'
     | '/_authenticated/causa-raiz/'
+    | '/_authenticated/controle/'
     | '/_authenticated/cronoanalise/'
     | '/_authenticated/diagnostico/'
     | '/_authenticated/entrevistas/'
@@ -742,6 +755,13 @@ declare module '@tanstack/react-router' {
       path: '/cronoanalise'
       fullPath: '/cronoanalise/'
       preLoaderRoute: typeof AuthenticatedCronoanaliseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/controle/': {
+      id: '/_authenticated/controle/'
+      path: '/controle'
+      fullPath: '/controle/'
+      preLoaderRoute: typeof AuthenticatedControleIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/causa-raiz/': {
@@ -969,6 +989,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnaliseCriticaIndexRoute: typeof AuthenticatedAnaliseCriticaIndexRoute
   AuthenticatedCalendarioIndexRoute: typeof AuthenticatedCalendarioIndexRoute
   AuthenticatedCausaRaizIndexRoute: typeof AuthenticatedCausaRaizIndexRoute
+  AuthenticatedControleIndexRoute: typeof AuthenticatedControleIndexRoute
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedDiagnosticoIndexRoute: typeof AuthenticatedDiagnosticoIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
@@ -1003,6 +1024,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnaliseCriticaIndexRoute: AuthenticatedAnaliseCriticaIndexRoute,
   AuthenticatedCalendarioIndexRoute: AuthenticatedCalendarioIndexRoute,
   AuthenticatedCausaRaizIndexRoute: AuthenticatedCausaRaizIndexRoute,
+  AuthenticatedControleIndexRoute: AuthenticatedControleIndexRoute,
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedDiagnosticoIndexRoute: AuthenticatedDiagnosticoIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
@@ -1037,13 +1059,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

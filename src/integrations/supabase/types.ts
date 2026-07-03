@@ -14,78 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_plan_history: {
+        Row: {
+          changed_at: string
+          comment: string | null
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          plan_id: string
+          user_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          comment?: string | null
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          plan_id: string
+          user_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          comment?: string | null
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          plan_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_plan_history_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "action_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       action_plans: {
         Row: {
+          category: string | null
+          cause: string | null
           company_id: string | null
           created_at: string
           created_by: string | null
           cronoanalysis_id: string | null
           description: string | null
           due_date: string | null
+          evidences: Json | null
           expected_benefit: string
+          expected_result: string | null
+          gravity: number | null
+          gut_score: number | null
           id: string
           indicator_id: string | null
           interview_id: string | null
+          new_due_date: string | null
+          observations: string | null
           opportunity_id: string | null
+          origin: string | null
           pain_point_id: string | null
           priority: Database["public"]["Enums"]["action_priority"]
+          problem: string | null
           process_id: string | null
           process_ids: string[] | null
           project_id: string | null
           public_token: string | null
+          related_process_ids: string[] | null
           responsible: string | null
           root_cause_id: string | null
           status: Database["public"]["Enums"]["action_status"]
           title: string
+          trend: number | null
           updated_at: string
+          urgency: number | null
         }
         Insert: {
+          category?: string | null
+          cause?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           cronoanalysis_id?: string | null
           description?: string | null
           due_date?: string | null
+          evidences?: Json | null
           expected_benefit?: string
+          expected_result?: string | null
+          gravity?: number | null
+          gut_score?: number | null
           id?: string
           indicator_id?: string | null
           interview_id?: string | null
+          new_due_date?: string | null
+          observations?: string | null
           opportunity_id?: string | null
+          origin?: string | null
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
+          problem?: string | null
           process_id?: string | null
           process_ids?: string[] | null
           project_id?: string | null
           public_token?: string | null
+          related_process_ids?: string[] | null
           responsible?: string | null
           root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title: string
+          trend?: number | null
           updated_at?: string
+          urgency?: number | null
         }
         Update: {
+          category?: string | null
+          cause?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           cronoanalysis_id?: string | null
           description?: string | null
           due_date?: string | null
+          evidences?: Json | null
           expected_benefit?: string
+          expected_result?: string | null
+          gravity?: number | null
+          gut_score?: number | null
           id?: string
           indicator_id?: string | null
           interview_id?: string | null
+          new_due_date?: string | null
+          observations?: string | null
           opportunity_id?: string | null
+          origin?: string | null
           pain_point_id?: string | null
           priority?: Database["public"]["Enums"]["action_priority"]
+          problem?: string | null
           process_id?: string | null
           process_ids?: string[] | null
           project_id?: string | null
           public_token?: string | null
+          related_process_ids?: string[] | null
           responsible?: string | null
           root_cause_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title?: string
+          trend?: number | null
           updated_at?: string
+          urgency?: number | null
         }
         Relationships: [
           {
@@ -162,49 +242,73 @@ export type Database = {
       }
       calendar_events: {
         Row: {
+          activity_type: string | null
+          audio_url: string | null
           company_id: string | null
           created_at: string
           created_by: string | null
           description: string
+          duration_min: number | null
           ends_at: string | null
           event_type: string
           id: string
           location: string
+          minutes: string | null
+          next_actions: Json | null
           participants: string[]
           project_id: string | null
           starts_at: string
           title: string
+          transcript: string | null
+          travel_min: number | null
           updated_at: string
+          work_hours: number | null
         }
         Insert: {
+          activity_type?: string | null
+          audio_url?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
+          duration_min?: number | null
           ends_at?: string | null
           event_type?: string
           id?: string
           location?: string
+          minutes?: string | null
+          next_actions?: Json | null
           participants?: string[]
           project_id?: string | null
           starts_at: string
           title: string
+          transcript?: string | null
+          travel_min?: number | null
           updated_at?: string
+          work_hours?: number | null
         }
         Update: {
+          activity_type?: string | null
+          audio_url?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
+          duration_min?: number | null
           ends_at?: string | null
           event_type?: string
           id?: string
           location?: string
+          minutes?: string | null
+          next_actions?: Json | null
           participants?: string[]
           project_id?: string | null
           starts_at?: string
           title?: string
+          transcript?: string | null
+          travel_min?: number | null
           updated_at?: string
+          work_hours?: number | null
         }
         Relationships: [
           {

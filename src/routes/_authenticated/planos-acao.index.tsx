@@ -29,21 +29,43 @@ function PlanosPage() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [filter, setFilter] = useState<"all" | "aberto" | "em_andamento" | "concluido">("all");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "" });
-  const reload = () => listActionPlans().then(setList);
+  const [form, setForm] = useState({
+    title: "", description: "", problem: "", cause: "", responsible: "",
+    company_id: "", priority: "media", status: "aberto", due_date: "",
+    gravity: 3, urgency: 3, trend: 3,
+  });
+  const reload = () => listActionPlans({ data: {} }).then(setList).catch(() => setList([]));
   useEffect(() => { reload(); listCompanies().then(setCompanies); }, []);
 
   async function submit() {
     if (!form.title) return toast.error("Título obrigatório");
     try {
-      await saveActionPlan({ data: { ...form, company_id: form.company_id || null, due_date: form.due_date || null, priority: form.priority as any, status: form.status as any } });
-      toast.success("Salvo"); setOpen(false); setForm({ title: "", description: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "" });
+      await saveActionPlan({
+        data: {
+          title: form.title,
+          description: form.description,
+          problem: form.problem || null,
+          cause: form.cause || null,
+          responsible: form.responsible,
+          company_id: form.company_id || null,
+          due_date: form.due_date || null,
+          priority: form.priority as any,
+          status: form.status as any,
+          gravity: form.gravity,
+          urgency: form.urgency,
+          trend: form.trend,
+        },
+      });
+      toast.success("Salvo"); setOpen(false);
+      setForm({ title: "", description: "", problem: "", cause: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "", gravity: 3, urgency: 3, trend: 3 });
       reload();
     } catch (e: any) { console.error(e); toast.error(e?.message ?? "Erro ao salvar plano"); }
   }
   async function updateStatus(p: any, status: string) {
-    await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
-    reload();
+    try {
+      await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
+      reload();
+    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
   }
 
   const filtered = filter === "all" ? list : list.filter((p) => p.status === filter);
@@ -56,12 +78,22 @@ function PlanosPage() {
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Novo</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Novo plano de ação</DialogTitle></DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto">
               <div><Label>Título *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-              <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+              <div><Label>Problema</Label><Textarea rows={2} value={form.problem} onChange={(e) => setForm({ ...form, problem: e.target.value })} /></div>
+              <div><Label>Causa</Label><Textarea rows={2} value={form.cause} onChange={(e) => setForm({ ...form, cause: e.target.value })} /></div>
+              <div><Label>Descrição / Ação</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-2">
                 <div><Label>Responsável</Label><Input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
                 <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+              </div>
+              <div className="rounded-md border p-3 bg-muted/30">
+                <p className="text-xs font-semibold mb-2">Matriz GUT (1–5) · pontuação: <span className="tabular-nums text-primary">{form.gravity * form.urgency * form.trend}</span></p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div><Label className="text-xs">Gravidade</Label><Input type="number" min={1} max={5} value={form.gravity} onChange={(e) => setForm({ ...form, gravity: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
+                  <div><Label className="text-xs">Urgência</Label><Input type="number" min={1} max={5} value={form.urgency} onChange={(e) => setForm({ ...form, urgency: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
+                  <div><Label className="text-xs">Tendência</Label><Input type="number" min={1} max={5} value={form.trend} onChange={(e) => setForm({ ...form, trend: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div><Label>Prioridade</Label>
@@ -77,7 +109,7 @@ function PlanosPage() {
                   </Select>
                 </div>
               </div>
-              <Button onClick={submit} className="w-full">Criar</Button>
+              <Button onClick={submit} className="w-full min-h-11">Criar</Button>
             </div>
           </DialogContent>
         </Dialog>

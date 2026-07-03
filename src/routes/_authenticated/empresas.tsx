@@ -1,14 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   listCompanies, createCompany, deleteCompany, createSector, deleteSector,
 } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Building2, Plus, Trash2, X } from "lucide-react";
+import { Building2, Plus, Trash2, X, Radar, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/empresas")({
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/empresas")({
 
 function CompaniesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { companyId, setCompanyId } = useActiveCompany();
   const list = useServerFn(listCompanies);
   const addCo = useServerFn(createCompany);
   const delCo = useServerFn(deleteCompany);
@@ -29,26 +32,31 @@ function CompaniesPage() {
   const addCompany = useMutation({
     mutationFn: () => addCo({ data: { name: newName.trim() } }),
     onSuccess: () => { setNewName(""); qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Empresa criada"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao criar empresa"),
   });
 
   const removeCompany = useMutation({
     mutationFn: (id: string) => delCo({ data: { id } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Empresa excluída"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
   const addSector = useMutation({
     mutationFn: (vars: { company_id: string; name: string }) => addSec({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["companies"] }),
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
   const removeSector = useMutation({
     mutationFn: (id: string) => delSec({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["companies"] }),
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
+
+  function openCompany(id: string) {
+    setCompanyId(id);
+    navigate({ to: "/controle" });
+  }
 
   return (
     <div className="space-y-5">
@@ -84,6 +92,8 @@ function CompaniesPage() {
           <CompanyCard
             key={c.id}
             company={c}
+            active={c.id === companyId}
+            onOpen={() => openCompany(c.id)}
             onDelete={() => confirm(`Excluir "${c.name}" e seus setores?`) && removeCompany.mutate(c.id)}
             onAddSector={(name) => addSector.mutate({ company_id: c.id, name })}
             onDeleteSector={(id) => removeSector.mutate(id)}
@@ -95,16 +105,23 @@ function CompaniesPage() {
 }
 
 function CompanyCard({
-  company, onDelete, onAddSector, onDeleteSector,
+  company, active, onOpen, onDelete, onAddSector, onDeleteSector,
 }: {
-  company: any; onDelete: () => void;
+  company: any; active: boolean; onOpen: () => void; onDelete: () => void;
   onAddSector: (name: string) => void; onDeleteSector: (id: string) => void;
 }) {
   const [sectorName, setSectorName] = useState("");
   return (
-    <Card className="p-4">
+    <Card className={active ? "p-4 ring-2 ring-primary" : "p-4"}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold">{company.name}</h3>
+        <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+          <Building2 className="h-4 w-4 shrink-0 text-primary" />
+          <h3 className="truncate font-semibold">{company.name}</h3>
+          {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+        </button>
+        <Button size="sm" variant="outline" onClick={onOpen} className="h-8 gap-1">
+          <Radar className="h-3.5 w-3.5" /> Abrir
+        </Button>
         <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 text-muted-foreground hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </Button>
