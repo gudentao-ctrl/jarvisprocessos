@@ -67,7 +67,7 @@ function ProjectHome() {
             <span className="ml-auto text-xs tabular-nums text-muted-foreground">{upcoming.length}</span>
           </div>
           <ul className="divide-y">
-            {upcoming.slice(0, 5).map((u) => (
+            {upcoming.slice(0, 5).map((u: any) => (
               <li key={u.id}>
                 <Link
                   to="/entrevistas/$id"
