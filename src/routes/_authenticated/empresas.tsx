@@ -92,6 +92,8 @@ function CompaniesPage() {
           <CompanyCard
             key={c.id}
             company={c}
+            active={c.id === companyId}
+            onOpen={() => openCompany(c.id)}
             onDelete={() => confirm(`Excluir "${c.name}" e seus setores?`) && removeCompany.mutate(c.id)}
             onAddSector={(name) => addSector.mutate({ company_id: c.id, name })}
             onDeleteSector={(id) => removeSector.mutate(id)}
@@ -103,16 +105,23 @@ function CompaniesPage() {
 }
 
 function CompanyCard({
-  company, onDelete, onAddSector, onDeleteSector,
+  company, active, onOpen, onDelete, onAddSector, onDeleteSector,
 }: {
-  company: any; onDelete: () => void;
+  company: any; active: boolean; onOpen: () => void; onDelete: () => void;
   onAddSector: (name: string) => void; onDeleteSector: (id: string) => void;
 }) {
   const [sectorName, setSectorName] = useState("");
   return (
-    <Card className="p-4">
+    <Card className={active ? "p-4 ring-2 ring-primary" : "p-4"}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold">{company.name}</h3>
+        <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+          <Building2 className="h-4 w-4 shrink-0 text-primary" />
+          <h3 className="truncate font-semibold">{company.name}</h3>
+          {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+        </button>
+        <Button size="sm" variant="outline" onClick={onOpen} className="h-8 gap-1">
+          <Radar className="h-3.5 w-3.5" /> Abrir
+        </Button>
         <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 text-muted-foreground hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </Button>
