@@ -41,7 +41,10 @@ const emptyForm = {
   company_id: "", project_id: "",
 };
 
+import { useActiveCompany } from "@/lib/active-company";
+
 function CalendarioPage() {
+  const { companyId } = useActiveCompany();
   const listEv = useServerFn(listEvents);
   const listI = useServerFn(listInterviews);
   const listC = useServerFn(listCompanies);
@@ -50,8 +53,14 @@ function CalendarioPage() {
   const del = useServerFn(deleteEvent);
   const qc = useQueryClient();
 
-  const { data: events = [] } = useQuery({ queryKey: ["calendar-events"], queryFn: () => listEv({ data: {} }) });
-  const { data: interviews = [] } = useQuery({ queryKey: ["interviews"], queryFn: () => listI() });
+  const { data: events = [] } = useQuery({
+    queryKey: ["calendar-events", companyId],
+    queryFn: () => listEv({ data: companyId ? { company_id: companyId } : {} }),
+  });
+  const { data: interviews = [] } = useQuery({
+    queryKey: ["interviews", companyId],
+    queryFn: () => listI({ data: companyId ? { company_id: companyId } : {} }),
+  });
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => listC() });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => listP() });
 

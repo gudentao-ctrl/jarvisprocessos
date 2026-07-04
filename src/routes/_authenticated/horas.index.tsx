@@ -46,8 +46,10 @@ const empty = (): Row => ({
   notes: "",
 });
 
+import { useActiveCompany } from "@/lib/active-company";
 function HorasPage() {
   const qc = useQueryClient();
+  const { companyId } = useActiveCompany();
   const [filter, setFilter] = useState<string>("__all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -59,8 +61,13 @@ function HorasPage() {
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => projs() });
   const { data: rows = [] } = useQuery({
-    queryKey: ["work-hours", filter],
-    queryFn: () => list({ data: filter === "__all" ? {} : { project_id: filter } }),
+    queryKey: ["work-hours", companyId, filter],
+    queryFn: () => list({
+      data: {
+        ...(companyId ? { company_id: companyId } : {}),
+        ...(filter !== "__all" ? { project_id: filter } : {}),
+      },
+    }),
   });
 
   const saveMut = useMutation({
@@ -89,7 +96,7 @@ function HorasPage() {
     if (!editing.responsible.trim()) return toast.error("Informe o responsável");
     if (!editing.hours || editing.hours <= 0) return toast.error("Horas > 0");
     const project = projects.find((p: any) => p.id === editing.project_id);
-    saveMut.mutate({ ...editing, company_id: project?.company_id ?? editing.company_id });
+    saveMut.mutate({ ...editing, company_id: project?.company_id ?? editing.company_id ?? companyId ?? null });
   }
 
   const total = rows.reduce((s: number, r: any) => s + Number(r.hours ?? 0), 0);

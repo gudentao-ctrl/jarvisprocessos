@@ -106,7 +106,7 @@ function IndicadoresPage() {
           <h1 className="truncate text-xl font-bold sm:text-2xl">Indicadores</h1>
           <p className="text-xs text-muted-foreground">Coleta externa via link público</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={openDialog}>
           <DialogTrigger asChild>
             <Button className="shrink-0 min-h-11"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
           </DialogTrigger>
