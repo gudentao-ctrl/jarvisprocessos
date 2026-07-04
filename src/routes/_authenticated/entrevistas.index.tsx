@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listInterviews } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Mic, Calendar, User, FileText, CheckCircle2, Clock } from "lucide-react";
@@ -18,10 +19,11 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 };
 
 function InterviewsList() {
+  const { companyId } = useActiveCompany();
   const list = useServerFn(listInterviews);
   const { data, isLoading } = useQuery({
-    queryKey: ["interviews"],
-    queryFn: () => list(),
+    queryKey: ["interviews", companyId],
+    queryFn: () => list({ data: companyId ? { company_id: companyId } : {} }),
   });
 
   return (

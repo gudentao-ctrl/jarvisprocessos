@@ -6,6 +6,7 @@ import { Plus, Trash2, BarChart3, Link2, Copy, Settings2, MessageCircle, Check }
 import { saveIndicator, deleteIndicator, listProcesses } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { listIndicatorStatus, updateIndicatorPublicSettings, listCollections } from "@/lib/indicator-collections.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,23 +39,37 @@ const FREQUENCIES = [
 ];
 
 function IndicadoresPage() {
+  const { companyId } = useActiveCompany();
   const list = useServerFn(listIndicatorStatus);
   const comp = useServerFn(listCompanies);
   const proc = useServerFn(listProcesses);
   const qc = useQueryClient();
 
-  const { data: items = [] } = useQuery({ queryKey: ["indicator-status"], queryFn: () => list({ data: {} }) });
+  const { data: items = [] } = useQuery({
+    queryKey: ["indicator-status", companyId],
+    queryFn: () => list({ data: companyId ? { company_id: companyId } : {} }),
+  });
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => comp() });
-  const { data: processes = [] } = useQuery({ queryKey: ["processes"], queryFn: () => proc() });
+  const { data: processes = [] } = useQuery({
+    queryKey: ["processes", companyId],
+    queryFn: () => proc({ data: companyId ? { company_id: companyId } : {} }),
+  });
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState({ company_id: "", process_id: "", name: "", unit: "", target: "", frequency: "mensal" });
 
+  // Preencher automaticamente com a empresa ativa ao abrir o diálogo
+  const openDialog = (o: boolean) => {
+    setOpen(o);
+    if (o && companyId && !form.company_id) setForm((f) => ({ ...f, company_id: companyId }));
+  };
+
   const create = useMutation({
     mutationFn: (data: any) => saveIndicator({ data }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["indicator-status"] });
+      qc.invalidateQueries({ queryKey: ["company-alerts"] });
       setOpen(false);
       setForm({ company_id: "", process_id: "", name: "", unit: "", target: "", frequency: "mensal" });
       toast.success("Indicador criado");
@@ -64,7 +79,11 @@ function IndicadoresPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => deleteIndicator({ data: { id } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["indicator-status"] }); toast.success("Excluído"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["indicator-status"] });
+      qc.invalidateQueries({ queryKey: ["company-alerts"] });
+      toast.success("Excluído");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 

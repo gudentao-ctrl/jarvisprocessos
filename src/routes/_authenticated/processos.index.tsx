@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Plus, Workflow, ChevronRight } from "lucide-react";
 import { listProcesses, createProcess } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,19 +21,28 @@ type Company = Awaited<ReturnType<typeof listCompanies>>[number];
 
 function ProcessosPage() {
   const router = useRouter();
+  const { companyId } = useActiveCompany();
   const [processes, setProcesses] = useState<Proc[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ company_id: "", parent_id: "", level: "0" as "0" | "1" | "2", name: "" });
+  const [form, setForm] = useState({ company_id: companyId ?? "", parent_id: "", level: "0" as "0" | "1" | "2", name: "" });
 
   useEffect(() => {
-    Promise.all([listProcesses(), listCompanies()]).then(([p, c]) => {
+    setLoading(true);
+    Promise.all([
+      listProcesses({ data: companyId ? { company_id: companyId } : {} }),
+      listCompanies(),
+    ]).then(([p, c]) => {
       setProcesses(p as Proc[]);
       setCompanies(c as Company[]);
       setLoading(false);
     });
-  }, []);
+  }, [companyId]);
+
+  useEffect(() => {
+    if (companyId) setForm((f) => ({ ...f, company_id: companyId }));
+  }, [companyId]);
 
   async function submit() {
     if (!form.company_id || !form.name) return toast.error("Empresa e nome são obrigatórios");
