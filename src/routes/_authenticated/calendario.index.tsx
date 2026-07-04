@@ -41,8 +41,6 @@ const emptyForm = {
   company_id: "", project_id: "",
 };
 
-import { useActiveCompany } from "@/lib/active-company";
-
 function CalendarioPage() {
   const { companyId } = useActiveCompany();
   const listEv = useServerFn(listEvents);

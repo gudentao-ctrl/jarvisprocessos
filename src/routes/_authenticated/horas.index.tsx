@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2, Clock, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/horas/")({
   component: HorasPage,
@@ -46,7 +47,6 @@ const empty = (): Row => ({
   notes: "",
 });
 
-import { useActiveCompany } from "@/lib/active-company";
 function HorasPage() {
   const qc = useQueryClient();
   const { companyId } = useActiveCompany();
