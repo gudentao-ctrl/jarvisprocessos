@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Plus, ClipboardList, Trash2 } from "lucide-react";
 import { listActionPlans, saveActionPlan, deleteActionPlan } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,17 +26,24 @@ const PRIORITY_COLORS: any = {
 };
 
 function PlanosPage() {
+  const { companyId } = useActiveCompany();
   const [list, setList] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [filter, setFilter] = useState<"all" | "aberto" | "em_andamento" | "concluido">("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", problem: "", cause: "", responsible: "",
-    company_id: "", priority: "media", status: "aberto", due_date: "",
+    company_id: companyId ?? "", priority: "media", status: "aberto", due_date: "",
     gravity: 3, urgency: 3, trend: 3,
   });
-  const reload = () => listActionPlans({ data: {} }).then(setList).catch(() => setList([]));
-  useEffect(() => { reload(); listCompanies().then(setCompanies); }, []);
+  const reload = () =>
+    listActionPlans({ data: companyId ? { company_id: companyId } : {} })
+      .then(setList)
+      .catch(() => setList([]));
+  useEffect(() => { reload(); listCompanies().then(setCompanies); }, [companyId]);
+  useEffect(() => {
+    if (companyId) setForm((f) => ({ ...f, company_id: f.company_id || companyId }));
+  }, [companyId]);
 
   async function submit() {
     if (!form.title) return toast.error("Título obrigatório");
@@ -47,7 +55,7 @@ function PlanosPage() {
           problem: form.problem || null,
           cause: form.cause || null,
           responsible: form.responsible,
-          company_id: form.company_id || null,
+          company_id: form.company_id || companyId || null,
           due_date: form.due_date || null,
           priority: form.priority as any,
           status: form.status as any,
@@ -57,7 +65,7 @@ function PlanosPage() {
         },
       });
       toast.success("Salvo"); setOpen(false);
-      setForm({ title: "", description: "", problem: "", cause: "", responsible: "", company_id: "", priority: "media", status: "aberto", due_date: "", gravity: 3, urgency: 3, trend: 3 });
+      setForm({ title: "", description: "", problem: "", cause: "", responsible: "", company_id: companyId ?? "", priority: "media", status: "aberto", due_date: "", gravity: 3, urgency: 3, trend: 3 });
       reload();
     } catch (e: any) { console.error(e); toast.error(e?.message ?? "Erro ao salvar plano"); }
   }

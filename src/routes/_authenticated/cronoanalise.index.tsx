@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Timer } from "lucide-react";
 import { listCronoSessions } from "@/lib/processes.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -10,9 +11,14 @@ export const Route = createFileRoute("/_authenticated/cronoanalise/")({
 });
 
 function CronoIndex() {
+  const { companyId } = useActiveCompany();
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { listCronoSessions().then((d) => { setList(d); setLoading(false); }); }, []);
+  useEffect(() => {
+    setLoading(true);
+    listCronoSessions({ data: companyId ? { company_id: companyId } : {} })
+      .then((d) => { setList(d); setLoading(false); });
+  }, [companyId]);
 
   return (
     <div className="space-y-4">

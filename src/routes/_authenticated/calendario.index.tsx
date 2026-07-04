@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, CalendarClock, Trash2, Pencil, MapPin } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/calendario/")({
   component: CalendarioPage,
@@ -42,6 +43,7 @@ const emptyForm = {
 };
 
 function CalendarioPage() {
+  const { companyId } = useActiveCompany();
   const listEv = useServerFn(listEvents);
   const listI = useServerFn(listInterviews);
   const listC = useServerFn(listCompanies);
@@ -50,8 +52,14 @@ function CalendarioPage() {
   const del = useServerFn(deleteEvent);
   const qc = useQueryClient();
 
-  const { data: events = [] } = useQuery({ queryKey: ["calendar-events"], queryFn: () => listEv({ data: {} }) });
-  const { data: interviews = [] } = useQuery({ queryKey: ["interviews"], queryFn: () => listI() });
+  const { data: events = [] } = useQuery({
+    queryKey: ["calendar-events", companyId],
+    queryFn: () => listEv({ data: companyId ? { company_id: companyId } : {} }),
+  });
+  const { data: interviews = [] } = useQuery({
+    queryKey: ["interviews", companyId],
+    queryFn: () => listI({ data: companyId ? { company_id: companyId } : {} }),
+  });
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => listC() });
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => listP() });
 

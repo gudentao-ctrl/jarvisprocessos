@@ -8,14 +8,19 @@ import { z } from "zod";
 
 export const listProcesses = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) =>
+    z.object({ company_id: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
       .from("processes")
-      .select("id, name, level, parent_id, company_id, responsible, companies(name)")
+      .select("id, name, level, parent_id, company_id, status, responsible, companies(name)")
       .order("level")
       .order("name");
+    if (data.company_id) q = q.eq("company_id", data.company_id);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return rows ?? [];
   });
 
 export const getProcess = createServerFn({ method: "GET" })
@@ -495,13 +500,18 @@ export const deleteActionPlan = createServerFn({ method: "POST" })
 
 export const listCronoSessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) =>
+    z.object({ company_id: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
       .from("cronoanalysis_sessions")
       .select("*, companies(name), processes(name)")
       .order("observation_date", { ascending: false });
+    if (data.company_id) q = q.eq("company_id", data.company_id);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return rows ?? [];
   });
 
 export const getCronoSession = createServerFn({ method: "GET" })

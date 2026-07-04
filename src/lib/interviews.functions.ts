@@ -69,14 +69,19 @@ export const deleteSector = createServerFn({ method: "POST" })
 
 export const listInterviews = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) =>
+    z.object({ company_id: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
       .from("interviews")
-      .select("id, title, participant, interview_date, status, created_at, companies(name), sectors(name)")
+      .select("id, title, participant, interview_date, status, meeting_type, company_id, created_at, companies(name), sectors(name)")
       .order("created_at", { ascending: false })
       .limit(100);
+    if (data.company_id) q = q.eq("company_id", data.company_id);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return rows ?? [];
   });
 
 export const getInterview = createServerFn({ method: "GET" })

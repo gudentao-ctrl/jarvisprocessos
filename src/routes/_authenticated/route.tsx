@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/re
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import {
-  Mic, Building2, LayoutDashboard, Briefcase, Clock, CalendarDays, FileBarChart2, Radar,
+  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
@@ -27,14 +27,12 @@ export const Route = createFileRoute("/_authenticated")({
 const NAV = [
   { to: "/empresas", icon: Building2, label: "Empresas" },
   { to: "/controle", icon: Radar, label: "Controle" },
-  { to: "/projetos", icon: Briefcase, label: "Projetos" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda" },
-  { to: "/relatorios", icon: FileBarChart2, label: "Relatórios" },
-  { to: "/dashboard", icon: LayoutDashboard, label: "Torre" },
   { to: "/horas", icon: Clock, label: "Horas" },
+  { to: "/relatorios", icon: FileBarChart2, label: "Relatórios" },
 ] as const;
 
-const MOBILE_NAV = NAV.slice(0, 5);
+const MOBILE_NAV = NAV;
 
 function AuthenticatedLayout() {
   const router = useRouter();
