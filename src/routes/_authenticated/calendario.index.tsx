@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, CalendarClock, Trash2, Pencil, MapPin } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/calendario/")({
   component: CalendarioPage,
