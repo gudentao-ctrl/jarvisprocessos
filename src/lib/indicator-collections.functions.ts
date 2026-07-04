@@ -5,11 +5,15 @@ import { z } from "zod";
 export const listIndicatorStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ project_id: z.string().uuid().optional() }).parse(d ?? {}),
+    z.object({
+      project_id: z.string().uuid().optional(),
+      company_id: z.string().uuid().optional(),
+    }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     let q = context.supabase.from("v_indicator_status").select("*").order("name");
     if (data.project_id) q = q.eq("project_id", data.project_id);
+    if (data.company_id) q = q.eq("company_id", data.company_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
