@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/fase/$slug")({
 function FasePage() {
   const { slug } = Route.useParams();
   const phase = PHASES.find((p) => p.slug === slug);
-  if (!phase) throw notFound();
+  if (!phase || slug === "controle") throw notFound();
   const items = PHASE_TOOLS[slug as PhaseSlug] ?? [];
 
   return (
