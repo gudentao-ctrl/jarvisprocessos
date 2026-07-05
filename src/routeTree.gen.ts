@@ -38,6 +38,7 @@ import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
+import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticated/fase.$slug'
 import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
 import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
 import { Route as AuthenticatedDiagnosticoIdRouteImport } from './routes/_authenticated/diagnostico.$id'
@@ -218,6 +219,11 @@ const AuthenticatedMapasDecisaoRoute =
     path: '/mapas/decisao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFaseSlugRoute = AuthenticatedFaseSlugRouteImport.update({
+  id: '/fase/$slug',
+  path: '/fase/$slug',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEntrevistasNovaRoute =
   AuthenticatedEntrevistasNovaRouteImport.update({
     id: '/entrevistas/nova',
@@ -332,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/diagnostico/$id': typeof AuthenticatedDiagnosticoIdRoute
   '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/fase/$slug': typeof AuthenticatedFaseSlugRoute
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
@@ -379,6 +386,7 @@ export interface FileRoutesByTo {
   '/diagnostico/$id': typeof AuthenticatedDiagnosticoIdRoute
   '/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/fase/$slug': typeof AuthenticatedFaseSlugRoute
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
@@ -427,6 +435,7 @@ export interface FileRoutesById {
   '/_authenticated/diagnostico/$id': typeof AuthenticatedDiagnosticoIdRoute
   '/_authenticated/entrevistas/$id': typeof AuthenticatedEntrevistasIdRoute
   '/_authenticated/entrevistas/nova': typeof AuthenticatedEntrevistasNovaRoute
+  '/_authenticated/fase/$slug': typeof AuthenticatedFaseSlugRoute
   '/_authenticated/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
@@ -476,6 +485,7 @@ export interface FileRouteTypes {
     | '/diagnostico/$id'
     | '/entrevistas/$id'
     | '/entrevistas/nova'
+    | '/fase/$slug'
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
@@ -523,6 +533,7 @@ export interface FileRouteTypes {
     | '/diagnostico/$id'
     | '/entrevistas/$id'
     | '/entrevistas/nova'
+    | '/fase/$slug'
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/_authenticated/diagnostico/$id'
     | '/_authenticated/entrevistas/$id'
     | '/_authenticated/entrevistas/nova'
+    | '/_authenticated/fase/$slug'
     | '/_authenticated/mapas/decisao'
     | '/_authenticated/mapas/dores'
     | '/_authenticated/mapas/informacao'
@@ -820,6 +832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMapasDecisaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fase/$slug': {
+      id: '/_authenticated/fase/$slug'
+      path: '/fase/$slug'
+      fullPath: '/fase/$slug'
+      preLoaderRoute: typeof AuthenticatedFaseSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/entrevistas/nova': {
       id: '/_authenticated/entrevistas/nova'
       path: '/entrevistas/nova'
@@ -981,6 +1000,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDiagnosticoIdRoute: typeof AuthenticatedDiagnosticoIdRoute
   AuthenticatedEntrevistasIdRoute: typeof AuthenticatedEntrevistasIdRoute
   AuthenticatedEntrevistasNovaRoute: typeof AuthenticatedEntrevistasNovaRoute
+  AuthenticatedFaseSlugRoute: typeof AuthenticatedFaseSlugRoute
   AuthenticatedMapasDecisaoRoute: typeof AuthenticatedMapasDecisaoRoute
   AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
   AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
@@ -1016,6 +1036,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDiagnosticoIdRoute: AuthenticatedDiagnosticoIdRoute,
   AuthenticatedEntrevistasIdRoute: AuthenticatedEntrevistasIdRoute,
   AuthenticatedEntrevistasNovaRoute: AuthenticatedEntrevistasNovaRoute,
+  AuthenticatedFaseSlugRoute: AuthenticatedFaseSlugRoute,
   AuthenticatedMapasDecisaoRoute: AuthenticatedMapasDecisaoRoute,
   AuthenticatedMapasDoresRoute: AuthenticatedMapasDoresRoute,
   AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,

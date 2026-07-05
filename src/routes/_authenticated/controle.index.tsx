@@ -9,6 +9,7 @@ import {
   Building2, AlertTriangle, BarChart3, TrendingDown, ClipboardX,
   CalendarClock, ChevronRight, Info, AlertCircle, Clock, ClipboardList, Workflow, Mic,
 } from "lucide-react";
+import { PhaseMenu, PhaseGrid } from "@/components/PhaseMenu";
 
 export const Route = createFileRoute("/_authenticated/controle/")({
   component: ControlePage,
@@ -83,10 +84,21 @@ function ControlePage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Torre de Controle</p>
-        <h1 className="truncate text-2xl font-bold">{company?.name}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Torre de Controle</p>
+          <h1 className="truncate text-2xl font-bold">{company?.name}</h1>
+        </div>
+        <PhaseMenu current="controle" />
       </div>
+
+      <div className="rounded-xl border bg-card p-3">
+        <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Etapas da consultoria
+        </p>
+        <PhaseGrid />
+      </div>
+
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {tiles.map((t) => {
