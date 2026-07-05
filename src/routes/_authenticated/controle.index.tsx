@@ -9,6 +9,7 @@ import {
   Building2, AlertTriangle, BarChart3, TrendingDown, ClipboardX,
   CalendarClock, ChevronRight, Info, AlertCircle, Clock, ClipboardList, Workflow, Mic,
 } from "lucide-react";
+import { PhaseMenu, PhaseGrid } from "@/components/PhaseMenu";
 
 export const Route = createFileRoute("/_authenticated/controle/")({
   component: ControlePage,
