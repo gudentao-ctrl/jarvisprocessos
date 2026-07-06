@@ -1,10 +1,13 @@
 import { format, parseISO, startOfWeek, startOfMonth } from "date-fns";
-import type { ReportData } from "@/lib/report-data.functions";
 import type { ChartKey } from "@/lib/report-types";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
 } from "recharts";
+
+// Use loose typing here — ReportData is produced by Supabase queries and
+// carries nested unknowns after the serverFn boundary.
+export type ReportData = any;
 
 const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
 
@@ -14,12 +17,12 @@ function Empty({ msg = "Sem dados no período" }: { msg?: string }) {
   return <div className="grid h-56 place-items-center text-sm text-muted-foreground">{msg}</div>;
 }
 
-function groupBy<T>(arr: T[], key: (t: T) => string): Record<string, T[]> {
-  return arr.reduce((acc: any, item) => {
+function groupBy<T = any>(arr: T[], key: (t: T) => string): Record<string, T[]> {
+  return (arr ?? []).reduce((acc: any, item: T) => {
     const k = key(item) || "—";
     (acc[k] ||= []).push(item);
     return acc;
-  }, {});
+  }, {} as Record<string, T[]>);
 }
 
 // ---- Planos ----
