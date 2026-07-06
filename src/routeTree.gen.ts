@@ -19,6 +19,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
+import { Route as AuthenticatedRelatorioAcompanhamentoIndexRouteImport } from './routes/_authenticated/relatorio-acompanhamento.index'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
 import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
 import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
@@ -106,6 +107,12 @@ const AuthenticatedRelatoriosIndexRoute =
   AuthenticatedRelatoriosIndexRouteImport.update({
     id: '/relatorios/',
     path: '/relatorios/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatorioAcompanhamentoIndexRoute =
+  AuthenticatedRelatorioAcompanhamentoIndexRouteImport.update({
+    id: '/relatorio-acompanhamento/',
+    path: '/relatorio-acompanhamento/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProjetosIndexRoute =
@@ -358,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos/': typeof AuthenticatedProcessosIndexRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/relatorio-acompanhamento/': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   '/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/tobe/': typeof AuthenticatedTobeIndexRoute
@@ -405,6 +413,7 @@ export interface FileRoutesByTo {
   '/priorizacao': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos': typeof AuthenticatedProcessosIndexRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
+  '/relatorio-acompanhamento': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   '/relatorios': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap': typeof AuthenticatedRoadmapIndexRoute
   '/tobe': typeof AuthenticatedTobeIndexRoute
@@ -455,6 +464,7 @@ export interface FileRoutesById {
   '/_authenticated/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/_authenticated/relatorio-acompanhamento/': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   '/_authenticated/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
@@ -505,6 +515,7 @@ export interface FileRouteTypes {
     | '/priorizacao/'
     | '/processos/'
     | '/projetos/'
+    | '/relatorio-acompanhamento/'
     | '/relatorios/'
     | '/roadmap/'
     | '/tobe/'
@@ -552,6 +563,7 @@ export interface FileRouteTypes {
     | '/priorizacao'
     | '/processos'
     | '/projetos'
+    | '/relatorio-acompanhamento'
     | '/relatorios'
     | '/roadmap'
     | '/tobe'
@@ -601,6 +613,7 @@ export interface FileRouteTypes {
     | '/_authenticated/priorizacao/'
     | '/_authenticated/processos/'
     | '/_authenticated/projetos/'
+    | '/_authenticated/relatorio-acompanhamento/'
     | '/_authenticated/relatorios/'
     | '/_authenticated/roadmap/'
     | '/_authenticated/tobe/'
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios/'
       preLoaderRoute: typeof AuthenticatedRelatoriosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorio-acompanhamento/': {
+      id: '/_authenticated/relatorio-acompanhamento/'
+      path: '/relatorio-acompanhamento'
+      fullPath: '/relatorio-acompanhamento/'
+      preLoaderRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projetos/': {
@@ -1020,6 +1040,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPriorizacaoIndexRoute: typeof AuthenticatedPriorizacaoIndexRoute
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
+  AuthenticatedRelatorioAcompanhamentoIndexRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   AuthenticatedRelatoriosIndexRoute: typeof AuthenticatedRelatoriosIndexRoute
   AuthenticatedRoadmapIndexRoute: typeof AuthenticatedRoadmapIndexRoute
   AuthenticatedTobeIndexRoute: typeof AuthenticatedTobeIndexRoute
@@ -1056,6 +1077,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPriorizacaoIndexRoute: AuthenticatedPriorizacaoIndexRoute,
   AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
+  AuthenticatedRelatorioAcompanhamentoIndexRoute:
+    AuthenticatedRelatorioAcompanhamentoIndexRoute,
   AuthenticatedRelatoriosIndexRoute: AuthenticatedRelatoriosIndexRoute,
   AuthenticatedRoadmapIndexRoute: AuthenticatedRoadmapIndexRoute,
   AuthenticatedTobeIndexRoute: AuthenticatedTobeIndexRoute,
@@ -1080,13 +1103,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
