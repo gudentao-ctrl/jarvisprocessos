@@ -28,13 +28,13 @@ function groupBy<T = any>(arr: T[], key: (t: T) => string): Record<string, T[]> 
 // ---- Planos ----
 function ActionsByStatus({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.plans, (p) => p.status || "sem_status"))
-    .map(([name, arr]) => ({ name, value: arr.length }));
+    .map(([name, arr]: [string, any]) => ({ name, value: arr.length }));
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <PieChart>
         <Pie data={rows} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-          {rows.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          {rows.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
         </Pie>
         <Legend />
         <Tooltip />
@@ -45,7 +45,7 @@ function ActionsByStatus({ d }: { d: ReportData }) {
 
 function ActionsByPriority({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.plans, (p) => p.priority || "sem_prioridade"))
-    .map(([name, arr]) => ({ name, total: arr.length }));
+    .map(([name, arr]: [string, any]) => ({ name, total: arr.length }));
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
@@ -60,7 +60,7 @@ function ActionsByPriority({ d }: { d: ReportData }) {
 
 function ActionsByResponsible({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.plans, (p) => p.responsible || "—"))
-    .map(([name, arr]) => ({ name, total: arr.length })).slice(0, 12);
+    .map(([name, arr]: [string, any]) => ({ name, total: arr.length })).slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
@@ -73,9 +73,9 @@ function ActionsByResponsible({ d }: { d: ReportData }) {
 }
 
 function ActionsByProcess({ d }: { d: ReportData }) {
-  const procMap = new Map(d.processes.map((p) => [p.id, p.name]));
+  const procMap = new Map(d.processes.map((p: any) => [p.id, p.name]));
   const rows = Object.entries(groupBy(d.plans, (p) => procMap.get(p.process_id) || "Sem processo"))
-    .map(([name, arr]) => ({ name, total: arr.length })).slice(0, 12);
+    .map(([name, arr]: [string, any]) => ({ name, total: arr.length })).slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
@@ -121,7 +121,7 @@ function ActionsEvolution({ d }: { d: ReportData }) {
 
 function ActionsCompletion({ d }: { d: ReportData }) {
   const total = d.plans.length;
-  const done = d.plans.filter((p) => p.status === "concluido").length;
+  const done = d.plans.filter((p: any) => p.status === "concluido").length;
   const pct = total ? Math.round((done / total) * 100) : 0;
   return (
     <div className="grid h-56 place-items-center">
@@ -135,7 +135,7 @@ function ActionsCompletion({ d }: { d: ReportData }) {
 
 // ---- Indicadores ----
 function IndicatorsEvolution({ d }: { d: ReportData }) {
-  const indMap = new Map(d.indicators.map((i) => [i.id, i.name]));
+  const indMap = new Map(d.indicators.map((i: any) => [i.id, i.name]));
   const byInd = groupBy(d.collections, (c) => c.indicator_id);
   const series: any[] = [];
   const keys: string[] = [];
@@ -144,7 +144,7 @@ function IndicatorsEvolution({ d }: { d: ReportData }) {
     keys.push(name);
     for (const c of coll) {
       const dt = format(parseISO(c.submitted_at), "dd/MM");
-      let row = series.find((r) => r.data === dt);
+      let row = series.find((r: any) => r.data === dt);
       if (!row) { row = { data: dt }; series.push(row); }
       row[name] = c.value;
     }
@@ -155,18 +155,18 @@ function IndicatorsEvolution({ d }: { d: ReportData }) {
       <LineChart data={series}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="data" /><YAxis /><Tooltip /><Legend />
-        {keys.slice(0, 6).map((k, i) => <Line key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} />)}
+        {keys.slice(0, 6).map((k: any, i: number) => <Line key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} />)}
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
 function IndicatorsTargetVsActual({ d }: { d: ReportData }) {
-  const rows = d.indicators.map((i) => {
-    const coll = d.collections.filter((c) => c.indicator_id === i.id);
-    const last = coll.sort((a, b) => a.submitted_at.localeCompare(b.submitted_at)).pop();
+  const rows = d.indicators.map((i: any) => {
+    const coll = d.collections.filter((c: any) => c.indicator_id === i.id);
+    const last = coll.sort((a: any, b: any) => a.submitted_at.localeCompare(b.submitted_at)).pop();
     return { name: i.code || i.name, meta: i.target ?? 0, realizado: last?.value ?? 0 };
-  }).filter((r) => r.meta || r.realizado).slice(0, 12);
+  }).filter((r: any) => r.meta || r.realizado).slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
@@ -183,8 +183,8 @@ function IndicatorsTargetVsActual({ d }: { d: ReportData }) {
 function IndicatorsBelowTarget({ d }: { d: ReportData }) {
   const rows: any[] = [];
   for (const i of d.indicators) {
-    const coll = d.collections.filter((c) => c.indicator_id === i.id);
-    const last = coll.sort((a, b) => a.submitted_at.localeCompare(b.submitted_at)).pop();
+    const coll = d.collections.filter((c: any) => c.indicator_id === i.id);
+    const last = coll.sort((a: any, b: any) => a.submitted_at.localeCompare(b.submitted_at)).pop();
     if (!last || i.target == null) continue;
     const below = i.direction === "lower_better" ? last.value > i.target : last.value < i.target;
     if (below) rows.push({ name: i.code || i.name, gap: Math.abs(last.value - i.target) });
@@ -201,12 +201,12 @@ function IndicatorsBelowTarget({ d }: { d: ReportData }) {
 }
 
 function IndicatorsNoCollection({ d }: { d: ReportData }) {
-  const withData = new Set(d.collections.map((c) => c.indicator_id));
-  const rows = d.indicators.filter((i) => !withData.has(i.id));
+  const withData = new Set(d.collections.map((c: any) => c.indicator_id));
+  const rows = d.indicators.filter((i: any) => !withData.has(i.id));
   if (!rows.length) return <Empty msg="Todos os indicadores têm coleta" />;
   return (
     <ul className="space-y-1 p-4 text-sm">
-      {rows.map((i) => (
+      {rows.map((i: any) => (
         <li key={i.id} className="flex justify-between border-b py-1">
           <span>{i.code} {i.name}</span>
           <span className="text-muted-foreground">{i.frequency ?? "—"}</span>
@@ -239,13 +239,13 @@ function HoursByBucket({ d, unit }: { d: ReportData; unit: "week" | "month" }) {
 
 function HoursByActivity({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.hours, (h) => h.activity_type || "outros"))
-    .map(([name, arr]) => ({ name, value: arr.reduce((s, x) => s + (x.hours ?? 0), 0) }));
+    .map(([name, arr]: [string, any]) => ({ name, value: arr.reduce((s: any, x: any) => s + (x.hours ?? 0), 0) }));
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <PieChart>
         <Pie data={rows} dataKey="value" nameKey="name" outerRadius={80} label>
-          {rows.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          {rows.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
         </Pie><Legend /><Tooltip />
       </PieChart>
     </ResponsiveContainer>
@@ -254,7 +254,7 @@ function HoursByActivity({ d }: { d: ReportData }) {
 
 function HoursByProcess({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.hours, (h) => h.responsible || "—"))
-    .map(([name, arr]) => ({ name, horas: arr.reduce((s, x) => s + (x.hours ?? 0), 0) })).slice(0, 12);
+    .map(([name, arr]: [string, any]) => ({ name, horas: arr.reduce((s: any, x: any) => s + (x.hours ?? 0), 0) })).slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
@@ -278,7 +278,7 @@ function CronoValueAdded({ d }: { d: ReportData }) {
     { name: "Agrega valor", value: acc.va },
     { name: "Não agrega mas necessário", value: acc.nnva },
     { name: "Não agrega valor", value: acc.nva },
-  ].filter((r) => r.value > 0);
+  ].filter((r: any) => r.value > 0);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
