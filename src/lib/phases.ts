@@ -52,7 +52,7 @@ export const PHASE_TOOLS: Record<Exclude<PhaseSlug, "controle">, PhaseTool[]> = 
   execucao: [
     { label: "Planos de ação", description: "Ações em andamento e atrasadas", to: "/planos-acao", icon: "ClipboardList" },
     { label: "Indicadores",    description: "Indicadores e metas",            to: "/indicadores", icon: "BarChart3" },
-    { label: "Coletas",        description: "Pendências e envios recentes",   to: "/indicadores", icon: "Inbox" },
+    { label: "Relatório de Acompanhamento", description: "Relatório executivo periódico gerado pela IA", to: "/relatorio-acompanhamento", icon: "FileBarChart2" },
   ],
   gestao: [
     { label: "Dashboard",              description: "Visão executiva consolidada",           to: "/dashboard",     icon: "BarChart3" },
