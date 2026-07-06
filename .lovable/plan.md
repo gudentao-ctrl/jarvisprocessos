@@ -1,110 +1,89 @@
+# Fase 3 – Relatório Executivo de Acompanhamento
+
+Este módulo substitui o antigo "Coletas" dentro da fase **Execução** por um gerador completo de relatórios de acompanhamento. Nada é removido: apenas o card "Coletas" no menu da fase Execução é renomeado e reaproveitado.
 
 ## Escopo
 
-Reorganização de UX e correções críticas na plataforma JARVIS. Nada é removido; todas as funcionalidades atuais (Entrevistas, IA, SIPOC, BPM, Cronoanálise, Mapas, Indicadores, Coleta Pública, Planos, Agenda, Horas, Relatórios) são preservadas.
+1. Novo módulo `/relatorio-acompanhamento` (mantém `/indicadores/*` intacto para coleta técnica).
+2. Filtro de período com presets + intervalo customizado.
+3. Resumo executivo gerado pela IA usando dados reais da empresa ativa.
+4. Biblioteca de gráficos (Recharts) com checkboxes por bloco.
+5. Drag-and-drop para reordenar blocos do relatório.
+6. Tela de edição WYSIWYG antes do PDF (textos, títulos, observações, imagens, tabelas, blocos extras).
+7. Recomendações automáticas da IA (gargalos, riscos, próximos passos).
+8. Informações automáticas de planos, indicadores, agenda, horas, cronoanálise, melhorias.
+9. Identidade visual: logo consultoria, nome cliente, período, data, cabeçalho, rodapé, numeração.
+10. Exportação PDF profissional (jsPDF + html2canvas).
+11. Isolamento estrito por `company_id`.
 
----
+## Arquivos a criar
 
-### 1. Correção crítica do erro ao criar Indicador / Plano de Ação (raiz identificada)
+- `src/lib/report-data.functions.ts` — server fn `getReportData({ company_id, from, to })` que agrega TODOS os dados do período: entrevistas, processos, BPM, SIPOC, cronoanálise, indicadores + coletas, planos + histórico, agenda, horas, oportunidades, melhorias implantadas.
+- `src/lib/report-ai.functions.ts` — server fn `generateReportNarrative({ company_id, from, to, sections })` que chama Lovable AI Gateway (`google/gemini-3-flash-preview`) com contexto real e retorna: `resumo_executivo`, `recomendacoes[]`, `gargalos[]`, `riscos[]`, `proximos_passos[]`. System prompt estrito: "responda apenas com base nos dados; nunca invente".
+- `src/lib/report-types.ts` — tipos compartilhados (`ReportBlock`, `PeriodPreset`, `ChartKey`).
+- `src/components/report/PeriodFilter.tsx` — presets + calendário custom.
+- `src/components/report/ChartLibrary.tsx` — catálogo com checkboxes agrupados (Planos, Indicadores, Horas, Cronoanálise, Consultoria).
+- `src/components/report/charts/*.tsx` — um componente por gráfico (Recharts): `ActionsByStatus`, `ActionsByPriority`, `ActionsByResponsible`, `ActionsByProcess`, `ActionsCompletionTrend`, `IndicatorsEvolution`, `IndicatorsTargetVsActual`, `IndicatorsBelowTarget`, `HoursByWeek`, `HoursByMonth`, `HoursByActivity`, `HoursByProcess`, `CronoValueAdded`, `ConsultingActivity`.
+- `src/components/report/BlockList.tsx` — lista drag-and-drop (`@dnd-kit/core` + `@dnd-kit/sortable`, já compatíveis com o stack).
+- `src/components/report/BlockEditor.tsx` — editor por bloco (texto, título, observação, imagem upload, tabela simples, remover).
+- `src/components/report/ReportPreview.tsx` — renderização A4 (cabeçalho, rodapé, numeração) espelhando o PDF final.
+- `src/components/report/ExportPdfButton.tsx` — usa `html2canvas` + `jsPDF` para gerar PDF multi-página com paginação por bloco.
+- `src/routes/_authenticated/relatorio-acompanhamento.index.tsx` — página principal com passos: 1) período, 2) seleção de gráficos, 3) gerar IA, 4) editar, 5) exportar.
 
-Os triggers `indicators_autofill` e `action_plans_autofill` chamam `gen_random_bytes()` mas rodam com `SET search_path = public`. A extensão `pgcrypto` está instalada em `extensions`, então a função não é resolvida — é este o "erro de função random inexistente" reportado.
+## Arquivos a editar
 
-**Migração**: recriar ambos os triggers com `SET search_path = public, extensions` (mudança mínima, sem alterar lógica) e trocar chamadas para `extensions.gen_random_bytes(...)` como segurança extra. Nada nas tabelas muda.
+- `src/lib/phases.ts` — em `PHASE_TOOLS.execucao`, trocar o card "Coletas" por `{ label: "Relatório de Acompanhamento", to: "/relatorio-acompanhamento", icon: "FileBarChart2", description: "Relatório executivo periódico gerado pela IA" }`. Mantém "Planos de ação" e "Indicadores".
+- `package.json` — adicionar `@dnd-kit/core`, `@dnd-kit/sortable`, `jspdf`, `html2canvas`, `date-fns` (se ainda não estiver). `recharts` já está.
 
-Client-side, além do fix do trigger:
-- Toasts com `e?.message` real em todas as mutations de criar/editar/excluir (já feito em várias telas — auditar as restantes).
-- Após criar/editar/excluir: `invalidateQueries` da lista + `indicator-status` + `alerts` + `dashboard-highlights`, sem reload manual.
+## Fluxo do usuário
 
----
+```
+Empresa ativa
+   ↓
+/relatorio-acompanhamento
+   ↓
+[Período: Últimos 30 dias ▾]  [Presets rápidos]
+   ↓
+Biblioteca de blocos (checkbox)
+   ├─ ☑ Resumo executivo (IA)
+   ├─ ☑ Planos de ação (4 gráficos)
+   ├─ ☑ Indicadores (4 gráficos)
+   ├─ ☐ Horas
+   ├─ ☑ Cronoanálise
+   ├─ ☑ Consultoria (KPIs)
+   └─ ☑ Recomendações IA
+   ↓
+[Gerar Relatório] → chama IA, monta blocos, exibe preview
+   ↓
+Edição drag-and-drop + editor inline
+   ↓
+[Exportar PDF] → PDF A4 com identidade da consultoria
+```
 
-### 2. Empresa como raiz da navegação
+## Detalhes técnicos
 
-Nova estrutura sem quebrar rotas existentes:
+- **Isolamento**: toda query recebe `company_id` obrigatório e filtra por `created_at` dentro de `[from, to]`. Server fn valida com Zod.
+- **Auth**: `requireSupabaseAuth` em todas as server fns novas.
+- **IA**: contexto enviado é o resultado do `getReportData` serializado, limitado a campos essenciais (evita explosão de tokens). Fallback de modelos igual ao `ask-ai.functions.ts`.
+- **PDF**: cada bloco é uma `<section class="report-page">` A4 (`210mm × 297mm`). `html2canvas` renderiza → `jsPDF.addImage`. Cabeçalho (logo Jarvis + nome empresa) e rodapé (data emissão + página X/Y) via template fixo.
+- **Identidade visual**: por enquanto usa nome "Jarvis Processos" + inicial. Logo do cliente lê `companies.logo_url` se existir; senão placeholder.
+- **Drag-and-drop**: `DndContext` + `SortableContext` do `@dnd-kit/sortable` com estratégia vertical.
+- **Uploads de imagem (fotos antes/depois)**: convertidas para base64 no cliente e embutidas no bloco (sem tocar storage nesta fase).
 
-- Rota inicial `/` (após login) redireciona para `/empresas` (já é a home natural do sistema).
-- Ao clicar numa empresa em `/empresas`, seleciona-a e navega para `/controle` (Torre de Controle da empresa).
-- Contexto global `ActiveCompanyProvider` (React context + `localStorage` `jarvis:active_company_id`), com hook `useActiveCompany()`.
-- Header persistente com **seletor de Empresa** (Combobox) visível em toda a área autenticada. Trocar empresa mantém a fase/rota atual e apenas dispara `invalidateQueries` para recarregar dados da nova empresa.
-- Nav principal (bottom nav mobile / sidebar desktop) passa a ser:  
-  `Empresas · Controle · Fases · Agenda · Relatórios`  
-  onde "Fases" abre um sheet mobile com as fases atuais (Diagnóstico, Mapeamento, Melhorias, Execução, Gestão, Encerramento) — **as fases ficam exatamente como estão hoje**.
+## Fora de escopo (não mexer)
 
----
+- Módulos Entrevistas, BPM, SIPOC, Cronoanálise, Indicadores (coleta), Planos, Agenda, Horas, IA global, Relatórios legado, Torre de Controle, filtro global por empresa.
 
-### 3. Isolamento por `company_id` em todas as consultas
+## Checkpoints de verificação
 
-Ajustar todas as `list*` server functions para aceitar `company_id` opcional e filtrar quando presente. Telas passam `useActiveCompany().id` como parâmetro:
+1. Typecheck limpo.
+2. `/indicadores` continua funcionando (coleta técnica preservada).
+3. Card "Coletas" na fase Execução aparece como "Relatório de Acompanhamento" e navega para o novo módulo.
+4. Trocar empresa recarrega dados corretamente (query key contém `company_id + from + to`).
+5. PDF gerado abre com cabeçalho, gráficos e paginação.
 
-- `listProcesses`, `listIndicatorStatus`, `listActionPlans`, `listPainPoints`, `listCronoanalyses`, `listCollections`, `listEvents`, `listWorkHours`, `listInterviews`, `listOpportunities`, `listRoadmap`, `listDecisionMap`, `listInformationMap`.
-- Nas criações, `company_id` é auto-preenchido com a empresa ativa.
-- Torre de Controle (`/controle`) e Dashboard consomem apenas dados dessa empresa.
+## Próximos passos (fora desta fase)
 
-Sem alteração de schema — todas as tabelas já têm `company_id`.
-
----
-
-### 4. Torre de Controle (`/controle`)
-
-Nova rota `/_authenticated/controle.index.tsx` que reaproveita `AlertsPanel` + `DashboardHighlights` já existentes, filtrando por empresa ativa. Cards clicáveis para: indicadores sem coleta, abaixo da meta, críticos, planos atrasados, planos próximos, entrevistas pendentes, cronoanálises pendentes, processos sem BPM, processos sem SIPOC, próximas reuniões e próximas coletas.
-
----
-
-### 5. Planos de Ação — campos GUT e histórico
-
-Migração aditiva (`IF NOT EXISTS`) em `public.action_plans`:
-- Colunas novas: `problem`, `cause`, `category`, `gravity` (1–5), `urgency` (1–5), `trend` (1–5), `gut_score` (generated: g*u*t), `new_due_date`, `expected_result`, `observations`, `evidences` (jsonb), `related_process_ids` (uuid[]), `origin`.
-
-Nova tabela `action_plan_history` (id, plan_id, user_id, field, old_value, new_value, comment, changed_at) + trigger `AFTER UPDATE` que insere uma linha por campo alterado. Nunca apaga histórico.
-
-UI: formulário de plano expandido (Dialog / Sheet mobile-first) exibindo os novos campos, com "Linha do tempo" abaixo listando o histórico.
-
----
-
-### 6. Coleta pública de indicador — layout limpo
-
-Ajustar `/c/$token` já pública: mostrar apenas logo, nome do indicador, descrição, meta, campo valor, observação, botão Enviar. Após envio, `invalidate` client-side em `indicator-status` + `alerts` para a próxima abertura interna refletir a coleta.
-
----
-
-### 7. Agenda + Horas unificadas
-
-Adicionar em `calendar_events` (via migração aditiva): `duration_min`, `travel_min`, `work_hours`, `minutes` (ata), `audio_url`, `transcript`, `next_actions` (jsonb).
-
-Tela `/agenda` (renomeia `calendario`) permite criar compromisso com todos esses campos. Nova rota `/relatorios/horas-mes` gera consolidado mensal por empresa (reaproveitando `work_hours.functions` + `calendar_events`).
-
----
-
-### 8. Restrição de login (segurança)
-
-- Desabilitar signup anônimo em `configure_auth`.
-- Bloquear criação de novos usuários (`disable_signup=true`).
-- Adicionar guard em `_authenticated/route.tsx`: se `user.email !== 'g_zamboni@hotmail.com'`, faz `signOut()` e redireciona para `/auth` com mensagem "Acesso restrito".
-- Trigger `auth.users` BEFORE INSERT que rejeita qualquer email diferente do autorizado (defesa em profundidade). Autorização por email verificado (padrão da knowledge).
-
----
-
-### 9. Mobile-first
-
-Auditoria das telas ajustadas nesta task para: sem scroll horizontal, botões `min-h-11`, inputs grandes, dialogs viram `Sheet` no mobile, cards em coluna única <sm.
-
----
-
-### Detalhes técnicos
-
-Arquivos principais a criar/editar:
-- **Migração única**: fix triggers `indicators_autofill` + `action_plans_autofill` (search_path), colunas GUT em `action_plans`, tabela `action_plan_history` + trigger, colunas extras em `calendar_events`, trigger de restrição de email em `auth.users`. Todas as mudanças com `IF NOT EXISTS` / `CREATE OR REPLACE`.
-- `src/lib/active-company.tsx` (novo) — context + hook.
-- `src/components/CompanySwitcher.tsx` (novo) — combobox no header.
-- `src/routes/_authenticated/route.tsx` — guard de email, header com switcher, nav atualizada.
-- `src/routes/_authenticated/controle.index.tsx` (novo) — Torre consolidada por empresa.
-- `src/routes/index.tsx` — redirect para `/empresas`.
-- `src/lib/processes.functions.ts` + demais `*.functions.ts` — aceitar filtro `company_id`.
-- `src/routes/_authenticated/planos-acao.index.tsx` — form GUT + histórico + timeline.
-- `src/lib/action-plan-history.functions.ts` (novo).
-- `src/routes/_authenticated/calendario.index.tsx` — campos ata/áudio/horas/deslocamento.
-- `src/routes/c.$token.tsx` — layout limpo.
-- Configuração auth via `supabase--configure_auth`.
-
-### Fora do escopo
-
-Não mexer em: pipeline de IA de entrevistas, editor BPM em si, exportações PDF/Excel/Word existentes, estrutura das fases do projeto.
+- Persistência de relatórios gerados (tabela `executive_reports`).
+- Templates salvos por consultor.
+- Envio por e-mail direto ao cliente.
