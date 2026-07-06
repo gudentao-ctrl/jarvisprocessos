@@ -73,7 +73,7 @@ function ActionsByResponsible({ d }: { d: ReportData }) {
 }
 
 function ActionsByProcess({ d }: { d: ReportData }) {
-  const procMap = new Map(d.processes.map((p: any) => [p.id, p.name]));
+  const procMap = new Map<string, string>(d.processes.map((p: any) => [p.id, p.name]));
   const rows = Object.entries(groupBy(d.plans, (p) => procMap.get(p.process_id) || "Sem processo"))
     .map(([name, arr]: [string, any]) => ({ name, total: arr.length })).slice(0, 12);
   if (!rows.length) return <Empty />;
@@ -135,14 +135,14 @@ function ActionsCompletion({ d }: { d: ReportData }) {
 
 // ---- Indicadores ----
 function IndicatorsEvolution({ d }: { d: ReportData }) {
-  const indMap = new Map(d.indicators.map((i: any) => [i.id, i.name]));
+  const indMap = new Map<string, string>(d.indicators.map((i: any) => [i.id, i.name]));
   const byInd = groupBy(d.collections, (c) => c.indicator_id);
   const series: any[] = [];
   const keys: string[] = [];
   for (const [id, coll] of Object.entries(byInd)) {
     const name = indMap.get(id) ?? id.slice(0, 6);
     keys.push(name);
-    for (const c of coll) {
+    for (const c of (coll as any[])) {
       const dt = format(parseISO(c.submitted_at), "dd/MM");
       let row = series.find((r: any) => r.data === dt);
       if (!row) { row = { data: dt }; series.push(row); }
