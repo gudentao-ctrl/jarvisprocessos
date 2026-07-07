@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 
 export function ExportPdfButton({ filename = "relatorio.pdf" }: { filename?: string }) {
@@ -21,6 +21,7 @@ export function ExportPdfButton({ filename = "relatorio.pdf" }: { filename?: str
       const pageH = pdf.internal.pageSize.getHeight();
 
       for (let i = 0; i < pages.length; i++) {
+        // html2canvas-pro supports oklch() colors used by Tailwind v4.
         const canvas = await html2canvas(pages[i], {
           scale: 2,
           backgroundColor: "#ffffff",
@@ -34,7 +35,8 @@ export function ExportPdfButton({ filename = "relatorio.pdf" }: { filename?: str
       pdf.save(filename);
       toast.success("PDF gerado");
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao gerar PDF");
+      console.error("[ExportPdf]", e);
+      toast.error(e?.message ?? "Falha ao gerar PDF");
     } finally {
       setBusy(false);
     }

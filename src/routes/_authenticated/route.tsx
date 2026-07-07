@@ -7,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
+import { AskAiFab } from "@/components/AskAiFab";
 
 const ALLOWED_EMAIL = "g_zamboni@hotmail.com";
 
@@ -101,6 +102,8 @@ function AuthenticatedLayout() {
             </Link>
           ))}
         </nav>
+
+        <AskAiFab />
       </div>
     </ActiveCompanyProvider>
   );
