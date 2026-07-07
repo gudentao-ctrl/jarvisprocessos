@@ -102,6 +102,8 @@ function AuthenticatedLayout() {
             </Link>
           ))}
         </nav>
+
+        <AskAiFab />
       </div>
     </ActiveCompanyProvider>
   );
