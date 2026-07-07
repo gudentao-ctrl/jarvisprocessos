@@ -10,10 +10,57 @@ const MODEL_FALLBACKS = [
 ] as const;
 
 const Input = z.object({
-  question: z.string().min(3).max(2000),
-  scope: z.enum(["project", "process"]),
+  question: z.string().min(2).max(2000),
+  scope: z.enum(["project", "process", "company"]),
   scopeId: z.string().uuid(),
+  moduleHint: z.string().max(80).optional(),
 });
+
+async function buildCompanyContext(sb: any, companyId: string) {
+  const today = new Date().toISOString();
+  const [
+    company, projects, processes, indicators, collections, plans,
+    interviews, calendar, hours, opps, pains, crono, cronoObs,
+  ] = await Promise.all([
+    sb.from("companies").select("id, name, description").eq("id", companyId).maybeSingle(),
+    sb.from("projects").select("id, name, status, responsible").eq("company_id", companyId).limit(50),
+    sb.from("processes").select("id, name, status, objective").eq("company_id", companyId).limit(100),
+    sb.from("indicators").select("id, code, name, target, unit, frequency, direction").eq("company_id", companyId).limit(100),
+    sb.from("indicator_collections").select("indicator_id, value, reference_period, submitted_at, evaluation").limit(500),
+    sb.from("action_plans").select("id, title, status, priority, responsible, due_date, gut_score, process_id, category").eq("company_id", companyId).limit(200),
+    sb.from("interviews").select("id, title, participant, interview_date, status, generation_status").eq("company_id", companyId).limit(80),
+    sb.from("calendar_events").select("title, event_type, starts_at, ends_at, participants").eq("company_id", companyId).limit(80),
+    sb.from("work_hours").select("work_date, hours, activity_type, responsible").eq("company_id", companyId).limit(200),
+    sb.from("improvement_opportunities").select("title, category, status, expected_impact").eq("company_id", companyId).limit(80),
+    sb.from("pain_points").select("description, category, severity, source_id").limit(200),
+    sb.from("cronoanalysis_sessions").select("id, process_id, observation_date, product").eq("company_id", companyId).limit(50),
+    sb.from("cronoanalysis_observations").select("session_id, activity, classification, time_minutes").limit(500),
+  ]);
+
+  // Scope collections by indicator ids that belong to this company
+  const indIds = new Set((indicators.data ?? []).map((i: any) => i.id));
+  const scopedCollections = (collections.data ?? []).filter((c: any) => indIds.has(c.indicator_id));
+
+  const sessIds = new Set((crono.data ?? []).map((s: any) => s.id));
+  const scopedObs = (cronoObs.data ?? []).filter((o: any) => sessIds.has(o.session_id));
+
+  return {
+    empresa: company.data,
+    hoje: today,
+    projetos: projects.data ?? [],
+    processos: processes.data ?? [],
+    indicadores: indicators.data ?? [],
+    coletas_indicadores: scopedCollections,
+    planos_acao: plans.data ?? [],
+    entrevistas: interviews.data ?? [],
+    agenda: calendar.data ?? [],
+    horas: hours.data ?? [],
+    oportunidades: opps.data ?? [],
+    dores: pains.data ?? [],
+    cronoanalises: crono.data ?? [],
+    observacoes_crono: scopedObs,
+  };
+}
 
 export const askConsultantAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -23,9 +70,10 @@ export const askConsultantAi = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
     const sb = context.supabase;
 
-    // Assemble grounded context (only real records — nunca inventar)
     let contextBlock = "";
-    if (data.scope === "project") {
+    if (data.scope === "company") {
+      contextBlock = JSON.stringify(await buildCompanyContext(sb, data.scopeId));
+    } else if (data.scope === "project") {
       const [proj, procs, inds, plans, pains, opps] = await Promise.all([
         sb.from("projects").select("name, description, responsible, status, companies(name)").eq("id", data.scopeId).maybeSingle(),
         sb.from("processes").select("name, objective, status").eq("project_id", data.scopeId).limit(50),
@@ -61,13 +109,15 @@ export const askConsultantAi = createServerFn({ method: "POST" })
       });
     }
 
-    const systemPrompt = `Você é um consultor sênior de melhoria contínua (Lean, Six Sigma, BPM).
+    const systemPrompt = `Você é o copiloto de consultoria da Jarvis Processos — especialista em Lean, Six Sigma e BPM.
 REGRAS ESTRITAS:
-- Responda APENAS com base nos dados fornecidos abaixo. NÃO invente informações.
-- Se faltar evidência para uma resposta, diga claramente "Sem evidência nos dados atuais".
-- Seja objetivo, use bullets, negrito nos pontos-chave. Máx. 400 palavras.
-- Sempre que possível, cite o nome do processo, indicador ou plano correspondente.
-- Formate em Markdown.`;
+- Responda EXCLUSIVAMENTE com base nos dados JSON fornecidos abaixo. NUNCA invente informações, nomes ou números.
+- Se faltar evidência, diga claramente "Sem evidência nos dados atuais" e sugira o que cadastrar.
+- Cite explicitamente nomes de processos, indicadores, responsáveis, datas e planos quando existirem.
+- Considere datas: um plano é "atrasado" quando due_date < hoje e status != 'concluido'. Um indicador é "abaixo da meta" conforme direction (higher_better/lower_better).
+- Seja objetivo, direto, use bullets e negrito nos pontos-chave. Formate em Markdown.
+- Máx. 500 palavras. Ao gerar diagnóstico ou plano de ação completo, use seções claras (## Título).
+${data.moduleHint ? `- Contexto do usuário: está no módulo "${data.moduleHint}".` : ""}`;
 
     let lastErr = "";
     for (const model of MODEL_FALLBACKS) {
@@ -79,7 +129,7 @@ REGRAS ESTRITAS:
             model,
             messages: [
               { role: "system", content: systemPrompt },
-              { role: "user", content: `Contexto (JSON):\n${contextBlock}\n\nPergunta: ${data.question}` },
+              { role: "user", content: `Dados da empresa (JSON):\n${contextBlock}\n\nPergunta / comando: ${data.question}` },
             ],
           }),
         });
