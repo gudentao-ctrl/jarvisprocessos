@@ -240,6 +240,96 @@ export type Database = {
           },
         ]
       }
+      activity_connections: {
+        Row: {
+          created_at: string
+          from_activity_id: string
+          id: string
+          label: string
+          order_index: number
+          process_id: string
+          to_activity_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_activity_id: string
+          id?: string
+          label?: string
+          order_index?: number
+          process_id: string
+          to_activity_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_activity_id?: string
+          id?: string
+          label?: string
+          order_index?: number
+          process_id?: string
+          to_activity_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_connections_from_activity_id_fkey"
+            columns: ["from_activity_id"]
+            isOneToOne: false
+            referencedRelation: "process_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_connections_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_connections_to_activity_id_fkey"
+            columns: ["to_activity_id"]
+            isOneToOne: false
+            referencedRelation: "process_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_links: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          link_type: string
+          target_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          link_type: string
+          target_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          link_type?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_links_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "process_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           activity_type: string | null
@@ -461,6 +551,68 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          accent_color: string
+          client_logo_url: string | null
+          code_prefix: string
+          company_id: string | null
+          consultancy_logo_url: string | null
+          created_at: string
+          font_family: string
+          footer_html: string
+          header_html: string
+          id: string
+          is_default: boolean
+          name: string
+          numbering_seed: number
+          primary_color: string
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string
+          client_logo_url?: string | null
+          code_prefix?: string
+          company_id?: string | null
+          consultancy_logo_url?: string | null
+          created_at?: string
+          font_family?: string
+          footer_html?: string
+          header_html?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          numbering_seed?: number
+          primary_color?: string
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string
+          client_logo_url?: string | null
+          code_prefix?: string
+          company_id?: string | null
+          consultancy_logo_url?: string | null
+          created_at?: string
+          font_family?: string
+          footer_html?: string
+          header_html?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          numbering_seed?: number
+          primary_color?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1099,13 +1251,20 @@ export type Database = {
       process_activities: {
         Row: {
           area: string | null
+          attachments: Json
           confidence: number | null
           created_at: string
           description: string | null
+          documents: string[]
           generated_by_ai: boolean
           id: string
+          improvements: string
+          inputs: string
+          interview_snippet: string
           notes: string | null
           ordering: number
+          outputs: string
+          problems: string
           process_id: string
           responsible: string | null
           source_interview_id: string | null
@@ -1121,13 +1280,20 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          attachments?: Json
           confidence?: number | null
           created_at?: string
           description?: string | null
+          documents?: string[]
           generated_by_ai?: boolean
           id?: string
+          improvements?: string
+          inputs?: string
+          interview_snippet?: string
           notes?: string | null
           ordering?: number
+          outputs?: string
+          problems?: string
           process_id: string
           responsible?: string | null
           source_interview_id?: string | null
@@ -1143,13 +1309,20 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          attachments?: Json
           confidence?: number | null
           created_at?: string
           description?: string | null
+          documents?: string[]
           generated_by_ai?: boolean
           id?: string
+          improvements?: string
+          inputs?: string
+          interview_snippet?: string
           notes?: string | null
           ordering?: number
+          outputs?: string
+          problems?: string
           process_id?: string
           responsible?: string | null
           source_interview_id?: string | null
@@ -1261,6 +1434,38 @@ export type Database = {
             columns: ["source_interview_id"]
             isOneToOne: false
             referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_decisions: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          question?: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_decisions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: true
+            referencedRelation: "process_activities"
             referencedColumns: ["id"]
           },
         ]
