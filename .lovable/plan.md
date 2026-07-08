@@ -1,89 +1,93 @@
-# Fase 3 – Relatório Executivo de Acompanhamento
+# Refatoração Processos — Fluxo Mestre + BPMN Automático
 
-Este módulo substitui o antigo "Coletas" dentro da fase **Execução** por um gerador completo de relatórios de acompanhamento. Nada é removido: apenas o card "Coletas" no menu da fase Execução é renomeado e reaproveitado.
+Escopo grande. Proponho executar em **4 sub-fases sequenciais**, cada uma entregando algo utilizável, sem quebrar nada existente. Confirma antes de eu iniciar cada uma.
 
-## Escopo
+## Princípios
+- Zero perda de dados. Migro `process_activities` + `process_edges` atuais para o novo modelo de Fluxo.
+- Fluxo = fonte da verdade. BPMN vira **render read-only** derivado do Fluxo.
+- Módulos existentes (Cronoanálise, Indicadores, Planos, TO BE, Relatórios, IA, Agenda, Horas, Entrevistas, Controle) permanecem intactos — apenas ganham vínculos opcionais.
+- Mobile-first. Edição via Bottom Sheet.
 
-1. Novo módulo `/relatorio-acompanhamento` (mantém `/indicadores/*` intacto para coleta técnica).
-2. Filtro de período com presets + intervalo customizado.
-3. Resumo executivo gerado pela IA usando dados reais da empresa ativa.
-4. Biblioteca de gráficos (Recharts) com checkboxes por bloco.
-5. Drag-and-drop para reordenar blocos do relatório.
-6. Tela de edição WYSIWYG antes do PDF (textos, títulos, observações, imagens, tabelas, blocos extras).
-7. Recomendações automáticas da IA (gargalos, riscos, próximos passos).
-8. Informações automáticas de planos, indicadores, agenda, horas, cronoanálise, melhorias.
-9. Identidade visual: logo consultoria, nome cliente, período, data, cabeçalho, rodapé, numeração.
-10. Exportação PDF profissional (jsPDF + html2canvas).
-11. Isolamento estrito por `company_id`.
+---
 
-## Arquivos a criar
+## Sub-fase 4.1 — Modelo de dados + migração (base)
 
-- `src/lib/report-data.functions.ts` — server fn `getReportData({ company_id, from, to })` que agrega TODOS os dados do período: entrevistas, processos, BPM, SIPOC, cronoanálise, indicadores + coletas, planos + histórico, agenda, horas, oportunidades, melhorias implantadas.
-- `src/lib/report-ai.functions.ts` — server fn `generateReportNarrative({ company_id, from, to, sections })` que chama Lovable AI Gateway (`google/gemini-3-flash-preview`) com contexto real e retorna: `resumo_executivo`, `recomendacoes[]`, `gargalos[]`, `riscos[]`, `proximos_passos[]`. System prompt estrito: "responda apenas com base nos dados; nunca invente".
-- `src/lib/report-types.ts` — tipos compartilhados (`ReportBlock`, `PeriodPreset`, `ChartKey`).
-- `src/components/report/PeriodFilter.tsx` — presets + calendário custom.
-- `src/components/report/ChartLibrary.tsx` — catálogo com checkboxes agrupados (Planos, Indicadores, Horas, Cronoanálise, Consultoria).
-- `src/components/report/charts/*.tsx` — um componente por gráfico (Recharts): `ActionsByStatus`, `ActionsByPriority`, `ActionsByResponsible`, `ActionsByProcess`, `ActionsCompletionTrend`, `IndicatorsEvolution`, `IndicatorsTargetVsActual`, `IndicatorsBelowTarget`, `HoursByWeek`, `HoursByMonth`, `HoursByActivity`, `HoursByProcess`, `CronoValueAdded`, `ConsultingActivity`.
-- `src/components/report/BlockList.tsx` — lista drag-and-drop (`@dnd-kit/core` + `@dnd-kit/sortable`, já compatíveis com o stack).
-- `src/components/report/BlockEditor.tsx` — editor por bloco (texto, título, observação, imagem upload, tabela simples, remover).
-- `src/components/report/ReportPreview.tsx` — renderização A4 (cabeçalho, rodapé, numeração) espelhando o PDF final.
-- `src/components/report/ExportPdfButton.tsx` — usa `html2canvas` + `jsPDF` para gerar PDF multi-página com paginação por bloco.
-- `src/routes/_authenticated/relatorio-acompanhamento.index.tsx` — página principal com passos: 1) período, 2) seleção de gráficos, 3) gerar IA, 4) editar, 5) exportar.
+**Migração SQL (aditiva, não destrutiva):**
+- `process_activities`: adicionar colunas `documents text[]`, `system text`, `estimated_time_min int`, `problems text`, `improvements text`, `attachments jsonb`, `interview_snippet text`, `position_x float`, `position_y float`. Manter colunas existentes.
+- Nova tabela `activity_connections` (substitui edges com semântica rica):
+  - `id`, `process_id`, `from_activity_id`, `to_activity_id`, `type` (`sequential|decision|parallel|return|subprocess`), `label` (resposta da decisão), `order_index`, timestamps.
+  - GRANT + RLS por company_id via processo.
+- Nova tabela `process_decisions`:
+  - `id`, `activity_id` (a decisão é uma atividade tipo `decision`), `question`, timestamps.
+- Nova tabela `activity_links` (vínculos cruzados opcionais):
+  - `id`, `activity_id`, `link_type` (`indicator|cronoanalysis|action_plan`), `target_id`.
+- Nova tabela `document_templates` (config única para todos os PDFs):
+  - `id`, `company_id`, `consultancy_logo_url`, `client_logo_url`, `header_html`, `footer_html`, `primary_color`, `font_family`, `code_prefix`, `numbering_seed int`.
+- Backfill: converter `process_edges` atuais → `activity_connections` tipo `sequential`.
 
-## Arquivos a editar
+## Sub-fase 4.2 — Editor de Fluxo (UI mestre)
 
-- `src/lib/phases.ts` — em `PHASE_TOOLS.execucao`, trocar o card "Coletas" por `{ label: "Relatório de Acompanhamento", to: "/relatorio-acompanhamento", icon: "FileBarChart2", description: "Relatório executivo periódico gerado pela IA" }`. Mantém "Planos de ação" e "Indicadores".
-- `package.json` — adicionar `@dnd-kit/core`, `@dnd-kit/sortable`, `jspdf`, `html2canvas`, `date-fns` (se ainda não estiver). `recharts` já está.
+**Novo componente `<FlowEditor />`** substitui a aba "Fluxo BPM" atual na tela `/processos/$id`.
+- Duas abas: **Fluxo | BPMN**. BPMN passa a ser read-only.
+- Cartões verticais empilhados, com indicadores visuais de tipo (ação, decisão, paralelo, subprocesso).
+- Tap no cartão → **Bottom Sheet** (Drawer shadcn) com todos os campos: nome, descrição, responsável, tempo, entradas, saídas, docs, sistema, observações, problemas, melhorias, anexos, vínculos (indicadores/crono/planos), trecho de entrevista.
+- Ações no sheet: Adicionar antes / depois / paralelo, Criar decisão, Criar subprocesso, Duplicar, Mover, Excluir.
+- **Gerenciador de conexões** por atividade (lista de entradas + lista de saídas, com tipo).
+- **Decisão**: pergunta + N respostas, cada uma aponta para atividade existente (Select).
+- **Paralelismo**: multi-select "após esta, executar em paralelo".
+- **Convergência**: atividade recebe múltiplas entradas nativamente.
+- Drag & drop com `@dnd-kit/sortable` (já instalado). Reordenação mantém conexões.
 
-## Fluxo do usuário
+**Painel lateral de inconsistências** (`<FlowIssuesPanel />`):
+- Regras client-side: sem início, sem fim, atividade sem responsável, decisão sem respostas, loop infinito (DFS), atividade órfã.
+- Botão "Corrigir automaticamente" quando aplicável.
 
-```
-Empresa ativa
-   ↓
-/relatorio-acompanhamento
-   ↓
-[Período: Últimos 30 dias ▾]  [Presets rápidos]
-   ↓
-Biblioteca de blocos (checkbox)
-   ├─ ☑ Resumo executivo (IA)
-   ├─ ☑ Planos de ação (4 gráficos)
-   ├─ ☑ Indicadores (4 gráficos)
-   ├─ ☐ Horas
-   ├─ ☑ Cronoanálise
-   ├─ ☑ Consultoria (KPIs)
-   └─ ☑ Recomendações IA
-   ↓
-[Gerar Relatório] → chama IA, monta blocos, exibe preview
-   ↓
-Edição drag-and-drop + editor inline
-   ↓
-[Exportar PDF] → PDF A4 com identidade da consultoria
-```
+## Sub-fase 4.3 — IA + BPMN automático
+
+**IA:**
+- Botão "Gerar Processo IA" muda o prompt: extrai atividades **estruturadas** (JSON com atividades, responsáveis, decisões, paralelismos, loops, subprocessos, problemas, oportunidades) e grava direto no novo modelo de Fluxo — nunca mais no formato BPM antigo.
+- Botão "Criar Processo" cria Fluxo vazio.
+- Análise pós-geração popula o painel de inconsistências.
+
+**BPMN read-only (`<BpmnRenderer />`):**
+- Transformer `flow → bpmn` em `src/lib/flow-to-bpmn.ts`:
+  - Adiciona StartEvent (atividade sem entrada), EndEvent (atividade sem saída).
+  - Decisão → Gateway XOR. Paralelo → AND. Convergência de N → AND join.
+  - Retorno → sequence flow reverso. Subprocess → CollapsedSubprocess.
+  - Layout automático com `dagre` (top-down ou left-right).
+- Renderiza com `bpmn-js` (viewer, não modeler). Regenera on-demand quando o Fluxo muda.
+- Validação BPMN 2.0 antes do salvar: lista erros no painel.
+
+## Sub-fase 4.4 — Exportação PDF profissional + Template unificado
+
+**Nova tela `/config/template-documentos`** para editar `document_templates` da empresa.
+
+**Novo `exportBpmDocument()`** em `src/lib/bpm-pdf.functions.ts` (server fn) usando `jsPDF` + `html2canvas-pro` (já instalados):
+- Capa (logos, empresa, processo, código, versão, revisão, consultor, data).
+- Cabeçalho/rodapé em cada página (do template).
+- Dados Gerais, Matriz do Processo (tabela), BPMN em alta resolução com quebra de página inteligente (nunca cortar atividades — segmenta por pool/lane), Legenda BPMN, Indicadores, Planos, Cronoanálise (Lead Time, TC, TA, TNA, gargalos), Histórico de Revisões (`process_versions`), Aprovação.
+- Suporte A4 paisagem e A3.
+
+**Reuso do template** (fase seguinte, fora deste escopo imediato mas com hooks prontos): Ata, Relatório Executivo, Cronoanálise, POP, IT, Relatório Final consomem `document_templates`.
+
+---
 
 ## Detalhes técnicos
 
-- **Isolamento**: toda query recebe `company_id` obrigatório e filtra por `created_at` dentro de `[from, to]`. Server fn valida com Zod.
-- **Auth**: `requireSupabaseAuth` em todas as server fns novas.
-- **IA**: contexto enviado é o resultado do `getReportData` serializado, limitado a campos essenciais (evita explosão de tokens). Fallback de modelos igual ao `ask-ai.functions.ts`.
-- **PDF**: cada bloco é uma `<section class="report-page">` A4 (`210mm × 297mm`). `html2canvas` renderiza → `jsPDF.addImage`. Cabeçalho (logo Jarvis + nome empresa) e rodapé (data emissão + página X/Y) via template fixo.
-- **Identidade visual**: por enquanto usa nome "Jarvis Processos" + inicial. Logo do cliente lê `companies.logo_url` se existir; senão placeholder.
-- **Drag-and-drop**: `DndContext` + `SortableContext` do `@dnd-kit/sortable` com estratégia vertical.
-- **Uploads de imagem (fotos antes/depois)**: convertidas para base64 no cliente e embutidas no bloco (sem tocar storage nesta fase).
+- **Compatibilidade**: processos existentes continuam abrindo. `activity_connections` populada via migração de `process_edges`. Componente antigo `BpmFlow` fica temporariamente disponível na aba BPMN em modo view enquanto o novo renderer não estabiliza.
+- **TO BE**: `duplicateProcessAsTobe()` já existe — passa a duplicar `activity_connections` e vínculos, jamais BPM.
+- **Vínculos cruzados**: cronoanálise, indicadores e planos ganham campo opcional `activity_id` via `activity_links` (não altera schema deles).
+- **Server fns**: novas em `src/lib/flow.functions.ts` (CRUD atividades/conexões/decisões/vínculos), `src/lib/flow-ai.functions.ts` (geração + análise), `src/lib/bpm-pdf.functions.ts` (export), `src/lib/document-templates.functions.ts`.
+- **Pacotes a adicionar**: `bpmn-js` (viewer), `dagre`. Restante já instalado.
 
-## Fora de escopo (não mexer)
+## Ordem de execução proposta
+1. **4.1** primeiro (migração + backfill). Você aprova a migração.
+2. **4.2** (editor de Fluxo). Ponto de parada para você testar em mobile.
+3. **4.3** (IA + BPMN auto).
+4. **4.4** (PDF + template).
 
-- Módulos Entrevistas, BPM, SIPOC, Cronoanálise, Indicadores (coleta), Planos, Agenda, Horas, IA global, Relatórios legado, Torre de Controle, filtro global por empresa.
+## Fora deste ciclo
+- Aplicar `document_templates` nos outros documentos (Ata, POP, IT, Relatório Final) — próxima fase.
+- Editor visual BPMN (não haverá — BPMN é derivado).
 
-## Checkpoints de verificação
-
-1. Typecheck limpo.
-2. `/indicadores` continua funcionando (coleta técnica preservada).
-3. Card "Coletas" na fase Execução aparece como "Relatório de Acompanhamento" e navega para o novo módulo.
-4. Trocar empresa recarrega dados corretamente (query key contém `company_id + from + to`).
-5. PDF gerado abre com cabeçalho, gráficos e paginação.
-
-## Próximos passos (fora desta fase)
-
-- Persistência de relatórios gerados (tabela `executive_reports`).
-- Templates salvos por consultor.
-- Envio por e-mail direto ao cliente.
+**Confirma para iniciar pela 4.1 (migração de banco)?**
