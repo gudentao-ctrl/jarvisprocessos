@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BpmFlow } from "@/components/BpmFlow";
+import { FlowEditor } from "@/components/flow/FlowEditor";
+import { getFlow } from "@/lib/flow.functions";
 
 export const Route = createFileRoute("/_authenticated/processos/$id")({
   component: ProcessoDetail,
