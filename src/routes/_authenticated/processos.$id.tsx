@@ -21,13 +21,18 @@ function ProcessoDetail() {
   const { id } = Route.useParams();
   const router = useRouter();
   const [data, setData] = useState<Awaited<ReturnType<typeof getProcess>> | null>(null);
+  const [flow, setFlow] = useState<Awaited<ReturnType<typeof getFlow>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState({ name: "", description: "", objective: "", responsible: "", inputs: "", outputs: "" });
 
   const reload = useCallback(() => {
     setLoading(true);
-    getProcess({ data: { id } }).then((d) => {
+    Promise.all([
+      getProcess({ data: { id } }),
+      getFlow({ data: { process_id: id } }),
+    ]).then(([d, f]) => {
       setData(d);
+      setFlow(f);
       setEdit({
         name: d.process.name ?? "",
         description: d.process.description ?? "",
