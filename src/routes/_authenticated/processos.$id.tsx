@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BpmFlow } from "@/components/BpmFlow";
+import { FlowEditor } from "@/components/flow/FlowEditor";
+import { getFlow } from "@/lib/flow.functions";
 
 export const Route = createFileRoute("/_authenticated/processos/$id")({
   component: ProcessoDetail,
@@ -19,13 +21,18 @@ function ProcessoDetail() {
   const { id } = Route.useParams();
   const router = useRouter();
   const [data, setData] = useState<Awaited<ReturnType<typeof getProcess>> | null>(null);
+  const [flow, setFlow] = useState<Awaited<ReturnType<typeof getFlow>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState({ name: "", description: "", objective: "", responsible: "", inputs: "", outputs: "" });
 
   const reload = useCallback(() => {
     setLoading(true);
-    getProcess({ data: { id } }).then((d) => {
+    Promise.all([
+      getProcess({ data: { id } }),
+      getFlow({ data: { process_id: id } }),
+    ]).then(([d, f]) => {
       setData(d);
+      setFlow(f);
       setEdit({
         name: d.process.name ?? "",
         description: d.process.description ?? "",
@@ -91,9 +98,10 @@ function ProcessoDetail() {
         </div>
       </Card>
 
-      <Tabs defaultValue="bpm">
+      <Tabs defaultValue="fluxo">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="bpm">Fluxo BPM</TabsTrigger>
+          <TabsTrigger value="fluxo">Fluxo</TabsTrigger>
+          <TabsTrigger value="bpmn">BPMN</TabsTrigger>
           <TabsTrigger value="info">Informação ({data.informationMap.length})</TabsTrigger>
           <TabsTrigger value="decision">Decisão ({data.decisionMap.length})</TabsTrigger>
           <TabsTrigger value="indicators">Indicadores ({data.indicators.length})</TabsTrigger>
@@ -101,8 +109,21 @@ function ProcessoDetail() {
           <TabsTrigger value="crono">Cronoanálise ({data.cronoanalysis.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="bpm" className="mt-4">
+        <TabsContent value="fluxo" className="mt-4">
+          {flow && (
+            <FlowEditor
+              processId={id}
+              activities={flow.activities as any}
+              connections={flow.connections as any}
+              decisions={flow.decisions as any}
+              onChange={reload}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="bpmn" className="mt-4">
           <BpmFlow processId={id} activities={data.activities as any} edges={data.edges as any} />
+          <p className="text-xs text-muted-foreground text-center mt-2">Renderização automática — edite no Fluxo. BPMN 2.0 gerado na próxima fase.</p>
         </TabsContent>
 
         <TabsContent value="info" className="mt-4">
