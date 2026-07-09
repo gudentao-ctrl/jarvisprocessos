@@ -283,7 +283,8 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           }
         }
 
-        // Edges
+        // Edges (legado process_edges + espelho em activity_connections)
+        let connOrder = 0;
         for (const e of p.edges) {
           const sid = actIdByRef.get(e.from);
           const tid = actIdByRef.get(e.to);
@@ -293,6 +294,14 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
             source_id: sid,
             target_id: tid,
             label: e.label,
+          });
+          await supabase.from("activity_connections").insert({
+            process_id: created.id,
+            from_activity_id: sid,
+            to_activity_id: tid,
+            type: "sequential",
+            label: e.label,
+            order_index: connOrder++,
           });
           stats.edges++;
         }

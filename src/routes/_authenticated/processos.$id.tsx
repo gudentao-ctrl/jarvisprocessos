@@ -9,8 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { BpmFlow } from "@/components/BpmFlow";
 import { FlowEditor } from "@/components/flow/FlowEditor";
+import { FlowBpmnPreview } from "@/components/flow/FlowBpmnPreview";
+import { GenerateFlowAiButton } from "@/components/flow/GenerateFlowAiButton";
+import { ExportProcessPdfButton } from "@/components/flow/ExportProcessPdfButton";
 import { getFlow } from "@/lib/flow.functions";
 
 export const Route = createFileRoute("/_authenticated/processos/$id")({
