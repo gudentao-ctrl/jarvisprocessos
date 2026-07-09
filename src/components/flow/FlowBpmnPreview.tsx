@@ -82,20 +82,23 @@ export function FlowBpmnPreview({
       const isCircle = shape === "circle";
       const isDiamond = shape === "diamond";
       const question = decByAct.get(a.id);
+      const label = isDiamond && question
+        ? `◇ ${a.title}\n${question}`
+        : a.title;
       return {
         id: a.id,
         position: { x: 0, y: 0 },
-        data: { shape, label: a.title, sub: isDiamond ? question ?? "" : a.responsible ?? "" },
+        data: { shape, label },
         type: "default",
         draggable: false,
         selectable: false,
         connectable: false,
-        style: isDiamond
-          ? { width: GATEWAY, height: GATEWAY, borderRadius: 0, transform: "rotate(45deg)" }
-          : isCircle
-            ? { width: NODE_H, height: NODE_H, borderRadius: "50%" }
+        style: isCircle
+          ? { width: NODE_H, height: NODE_H, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center" }
+          : isDiamond
+            ? { width: NODE_W, minHeight: NODE_H, borderRadius: 4, transform: "skewX(-8deg)" }
             : { width: NODE_W, minHeight: NODE_H, borderRadius: 8 },
-        className: `border-2 shadow-sm text-xs font-medium ${styleFor(a.type)}`,
+        className: `border-2 shadow-sm text-xs font-medium ${styleFor(a.type)} whitespace-pre-line`,
       };
     });
 
@@ -151,14 +154,6 @@ export function FlowBpmnPreview({
         <Background />
         <Controls showInteractive={false} />
       </ReactFlow>
-      <style>{`
-        .bpmn-preview .react-flow__node-default > div {
-          display: none;
-        }
-        .bpmn-preview .react-flow__node-default::before {
-          content: attr(data-label);
-        }
-      `}</style>
     </div>
   );
 }
