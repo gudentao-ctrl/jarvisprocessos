@@ -68,7 +68,7 @@ function ProcessoDetail() {
   if (loading || !data) return <div className="flex items-center justify-center py-12"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="space-y-4">
+    <div id="process-doc-root" className="space-y-4 bg-background">
       <Link to="/processos" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Processos
       </Link>
@@ -82,7 +82,13 @@ function ProcessoDetail() {
             </div>
             <Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="text-xl font-bold border-0 px-0 h-auto" />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
+            <GenerateFlowAiButton
+              processId={id}
+              hasActivities={(flow?.activities.length ?? 0) > 0}
+              onDone={reload}
+            />
+            <ExportProcessPdfButton containerId="process-doc-root" processName={edit.name || "processo"} />
             <Button variant="outline" size="sm" onClick={saveHeader}>Salvar</Button>
             <Button variant="ghost" size="sm" onClick={remove}><Trash2 className="h-4 w-4" /></Button>
           </div>
@@ -124,8 +130,16 @@ function ProcessoDetail() {
         </TabsContent>
 
         <TabsContent value="bpmn" className="mt-4">
-          <BpmFlow processId={id} activities={data.activities as any} edges={data.edges as any} />
-          <p className="text-xs text-muted-foreground text-center mt-2">Renderização automática — edite no Fluxo. BPMN 2.0 gerado na próxima fase.</p>
+          {flow && (
+            <FlowBpmnPreview
+              activities={flow.activities as any}
+              connections={flow.connections as any}
+              decisions={flow.decisions as any}
+            />
+          )}
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Renderização automática a partir do Fluxo mestre — edite no Fluxo para atualizar.
+          </p>
         </TabsContent>
 
         <TabsContent value="info" className="mt-4">
