@@ -88,7 +88,12 @@ function ProcessoDetail() {
               hasActivities={(flow?.activities.length ?? 0) > 0}
               onDone={reload}
             />
-            <ExportProcessPdfButton containerId="process-doc-root" processName={edit.name || "processo"} />
+            <ExportProcessPdfButton
+              containerId="process-doc-root"
+              processName={edit.name || "processo"}
+              companyId={data.process.company_id}
+              companyName={data.process.companies?.name ?? null}
+            />
             <Button variant="outline" size="sm" onClick={saveHeader}>Salvar</Button>
             <Button variant="ghost" size="sm" onClick={remove}><Trash2 className="h-4 w-4" /></Button>
           </div>
