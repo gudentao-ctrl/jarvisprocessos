@@ -60,6 +60,7 @@ export const PHASE_TOOLS: Record<Exclude<PhaseSlug, "controle">, PhaseTool[]> = 
     { label: "Roadmap",                description: "Iniciativas por horizonte",             to: "/roadmap",       icon: "ListTodo" },
     { label: "Horas trabalhadas",      description: "Registrar apontamentos por responsável",to: "/horas",         icon: "Clock" },
     { label: "Relatórios",             description: "Exportações e consolidados",            to: "/relatorios",    icon: "FileBarChart2" },
+    { label: "Template de documentos", description: "Branding único dos PDFs (logos, cores)", to: "/template-documentos", icon: "FileText" },
   ],
   encerramento: [
     { label: "Diagnóstico executivo", description: "Consolidação final de dores, causas e ganhos", to: "/diagnostico",  icon: "FileText" },
