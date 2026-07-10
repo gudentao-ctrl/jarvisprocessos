@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as CTokenRouteImport } from './routes/c.$token'
+import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
@@ -82,6 +83,12 @@ const CTokenRoute = CTokenRouteImport.update({
   path: '/c/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTemplateDocumentosRoute =
+  AuthenticatedTemplateDocumentosRouteImport.update({
+    id: '/template-documentos',
+    path: '/template-documentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
   id: '/empresas',
   path: '/empresas',
@@ -337,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -386,6 +394,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
+  '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -436,6 +445,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
+  '/_authenticated/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -487,6 +497,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/empresas'
+    | '/template-documentos'
     | '/c/$token'
     | '/p/$token'
     | '/causa-raiz/$id'
@@ -536,6 +547,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/empresas'
+    | '/template-documentos'
     | '/c/$token'
     | '/p/$token'
     | '/causa-raiz/$id'
@@ -585,6 +597,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/empresas'
+    | '/_authenticated/template-documentos'
     | '/c/$token'
     | '/p/$token'
     | '/_authenticated/causa-raiz/$id'
@@ -676,6 +689,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/c/$token'
       preLoaderRoute: typeof CTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/template-documentos': {
+      id: '/_authenticated/template-documentos'
+      path: '/template-documentos'
+      fullPath: '/template-documentos'
+      preLoaderRoute: typeof AuthenticatedTemplateDocumentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/empresas': {
       id: '/_authenticated/empresas'
@@ -1014,6 +1034,7 @@ const AuthenticatedProjetosIdRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
+  AuthenticatedTemplateDocumentosRoute: typeof AuthenticatedTemplateDocumentosRoute
   AuthenticatedCausaRaizIdRoute: typeof AuthenticatedCausaRaizIdRoute
   AuthenticatedCronoanaliseIdRoute: typeof AuthenticatedCronoanaliseIdRoute
   AuthenticatedCronoanaliseNovaRoute: typeof AuthenticatedCronoanaliseNovaRoute
@@ -1051,6 +1072,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
+  AuthenticatedTemplateDocumentosRoute: AuthenticatedTemplateDocumentosRoute,
   AuthenticatedCausaRaizIdRoute: AuthenticatedCausaRaizIdRoute,
   AuthenticatedCronoanaliseIdRoute: AuthenticatedCronoanaliseIdRoute,
   AuthenticatedCronoanaliseNovaRoute: AuthenticatedCronoanaliseNovaRoute,
