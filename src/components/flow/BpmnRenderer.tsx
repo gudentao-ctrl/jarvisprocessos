@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import BpmnViewer from "bpmn-js/lib/NavigatedViewer";
 import { Button } from "@/components/ui/button";
 import { Maximize2, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
 import { buildBpmnXml } from "@/lib/flow-to-bpmn";
@@ -7,7 +6,8 @@ import type { FlowActivity, FlowConnection, FlowDecision } from "./FlowEditor";
 import { BpmnLegend } from "./BpmnLegend";
 
 /* Renderer BPMN 2.0 profissional — read-only.
- * Utiliza bpmn-js Viewer + XML gerado a partir do Fluxo mestre com raias. */
+ * Utiliza bpmn-js Viewer + XML gerado a partir do Fluxo mestre com raias.
+ * bpmn-js é carregado dinamicamente (window-dependente) para não quebrar SSR. */
 
 export type BpmnRendererProps = {
   activities: FlowActivity[];
@@ -25,7 +25,7 @@ export function BpmnRenderer({
   companyName,
 }: BpmnRendererProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<BpmnViewer | null>(null);
+  const viewerRef = useRef<any>(null);
   const [usedEls, setUsedEls] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +38,9 @@ export function BpmnRenderer({
       });
       setUsedEls(usedElements);
       if (!viewerRef.current) {
-        viewerRef.current = new BpmnViewer({ container: hostRef.current });
+        const mod = await import("bpmn-js/lib/NavigatedViewer");
+        const Viewer = (mod.default ?? mod) as any;
+        viewerRef.current = new Viewer({ container: hostRef.current });
       }
       await viewerRef.current.importXML(xml);
       const canvas: any = viewerRef.current.get("canvas");
@@ -111,7 +113,7 @@ export function BpmnRenderer({
   );
 }
 
-// expose imperative access for PDF export
+/* Gera SVG do BPMN off-screen para uso em exportação PDF. */
 export async function renderBpmnSvg(
   activities: FlowActivity[],
   connections: FlowConnection[],
@@ -122,11 +124,13 @@ export async function renderBpmnSvg(
   const host = document.createElement("div");
   host.style.position = "absolute";
   host.style.left = "-99999px";
-  host.style.width = "2000px";
-  host.style.height = "1200px";
+  host.style.width = "2400px";
+  host.style.height = "1400px";
   document.body.appendChild(host);
   try {
-    const viewer = new BpmnViewer({ container: host });
+    const mod = await import("bpmn-js/lib/NavigatedViewer");
+    const Viewer = (mod.default ?? mod) as any;
+    const viewer = new Viewer({ container: host });
     const { xml } = buildBpmnXml(activities, connections, decisions, {
       processName, companyName, direction: "LR",
     });
