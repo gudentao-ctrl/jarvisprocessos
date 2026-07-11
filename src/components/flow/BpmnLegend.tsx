@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 
 /* Legenda dos símbolos BPMN 2.0 utilizados no diagrama.
  * Renderizada abaixo do renderer e reutilizada na exportação em PDF. */
 
-const ITEMS: { key: string; name: string; description: string; icon: JSX.Element }[] = [
+const ITEMS: { key: string; name: string; description: string; icon: ReactNode }[] = [
   {
     key: "startEvent",
     name: "Evento inicial",
