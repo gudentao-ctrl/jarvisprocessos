@@ -89,10 +89,21 @@ function ProcessoDetail() {
               onDone={reload}
             />
             <ExportProcessPdfButton
-              containerId="process-doc-root"
               processName={edit.name || "processo"}
+              processObjective={edit.objective}
+              processScope={edit.description}
+              processResponsible={edit.responsible}
+              processInputs={edit.inputs}
+              processOutputs={edit.outputs}
+              processDescription={edit.description}
               companyId={data.process.company_id}
               companyName={data.process.companies?.name ?? null}
+              activities={(flow?.activities ?? []) as any}
+              connections={(flow?.connections ?? []) as any}
+              decisions={(flow?.decisions ?? []) as any}
+              indicators={data.indicators as any}
+              plans={data.actionPlans as any}
+              crono={data.cronoanalysis as any}
             />
             <Button variant="outline" size="sm" onClick={saveHeader}>Salvar</Button>
             <Button variant="ghost" size="sm" onClick={remove}><Trash2 className="h-4 w-4" /></Button>
@@ -140,6 +151,8 @@ function ProcessoDetail() {
               activities={flow.activities as any}
               connections={flow.connections as any}
               decisions={flow.decisions as any}
+              processName={data.process.name}
+              companyName={data.process.companies?.name ?? undefined}
             />
           )}
           <p className="text-xs text-muted-foreground text-center mt-2">

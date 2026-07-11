@@ -1,93 +1,136 @@
-# Refatoração Processos — Fluxo Mestre + BPMN Automático
+# Fase 6 — Refinamento Profissional do BPMN e Exportação
 
-Escopo grande. Proponho executar em **4 sub-fases sequenciais**, cada uma entregando algo utilizável, sem quebrar nada existente. Confirma antes de eu iniciar cada uma.
+Foco: **qualidade da entrega**. Nada de novas features. Preservar todo o restante do sistema e todos os dados.
 
 ## Princípios
-- Zero perda de dados. Migro `process_activities` + `process_edges` atuais para o novo modelo de Fluxo.
-- Fluxo = fonte da verdade. BPMN vira **render read-only** derivado do Fluxo.
-- Módulos existentes (Cronoanálise, Indicadores, Planos, TO BE, Relatórios, IA, Agenda, Horas, Entrevistas, Controle) permanecem intactos — apenas ganham vínculos opcionais.
-- Mobile-first. Edição via Bottom Sheet.
+- Fluxo mestre permanece fonte da verdade. BPMN continua sendo derivado (read-only).
+- Nenhuma migração destrutiva. Adições apenas onde estritamente necessário.
+- Mobile mantém edição via cartões; BPMN profissional é a camada de visualização/exportação.
 
 ---
 
-## Sub-fase 4.1 — Modelo de dados + migração (base)
+## 6.1 — Renderer BPMN 2.0 conforme (substitui `FlowBpmnPreview`)
 
-**Migração SQL (aditiva, não destrutiva):**
-- `process_activities`: adicionar colunas `documents text[]`, `system text`, `estimated_time_min int`, `problems text`, `improvements text`, `attachments jsonb`, `interview_snippet text`, `position_x float`, `position_y float`. Manter colunas existentes.
-- Nova tabela `activity_connections` (substitui edges com semântica rica):
-  - `id`, `process_id`, `from_activity_id`, `to_activity_id`, `type` (`sequential|decision|parallel|return|subprocess`), `label` (resposta da decisão), `order_index`, timestamps.
-  - GRANT + RLS por company_id via processo.
-- Nova tabela `process_decisions`:
-  - `id`, `activity_id` (a decisão é uma atividade tipo `decision`), `question`, timestamps.
-- Nova tabela `activity_links` (vínculos cruzados opcionais):
-  - `id`, `activity_id`, `link_type` (`indicator|cronoanalysis|action_plan`), `target_id`.
-- Nova tabela `document_templates` (config única para todos os PDFs):
-  - `id`, `company_id`, `consultancy_logo_url`, `client_logo_url`, `header_html`, `footer_html`, `primary_color`, `font_family`, `code_prefix`, `numbering_seed int`.
-- Backfill: converter `process_edges` atuais → `activity_connections` tipo `sequential`.
+Novo `src/components/flow/BpmnRenderer.tsx` usando **`bpmn-js` (Viewer)** + gerador de XML BPMN 2.0 em `src/lib/flow-to-bpmn.ts`:
 
-## Sub-fase 4.2 — Editor de Fluxo (UI mestre)
+- Elementos oficiais mapeados a partir do Fluxo:
+  - `start`/`end` → `bpmn:StartEvent` / `bpmn:EndEvent`
+  - `task`/`wait`/`approval` → `bpmn:Task` / `bpmn:ReceiveTask` / `bpmn:UserTask`
+  - `decision` → `bpmn:ExclusiveGateway` (XOR)
+  - Convergência de N entradas paralelas → `bpmn:ParallelGateway` (AND join) automático
+  - Divergência com múltiplas saídas `parallel` → `bpmn:ParallelGateway`
+  - Divergência com saídas condicionais múltiplas (2+ com labels) → mantém XOR; quando marcado "inclusivo" → `bpmn:InclusiveGateway` (OR)
+  - `subprocess` → `bpmn:SubProcess` colapsado
+  - Conexões: `bpmn:SequenceFlow` + `bpmn:MessageFlow` (quando envolve pool externa)
+  - Anotações de `notes` → `bpmn:TextAnnotation` + `bpmn:Association`
+  - `documents`/`systems` → `bpmn:DataObjectReference` associado à tarefa
+- Pools e raias reais via `bpmn:Participant` + `bpmn:Lane` (ver 6.5).
 
-**Novo componente `<FlowEditor />`** substitui a aba "Fluxo BPM" atual na tela `/processos/$id`.
-- Duas abas: **Fluxo | BPMN**. BPMN passa a ser read-only.
-- Cartões verticais empilhados, com indicadores visuais de tipo (ação, decisão, paralelo, subprocesso).
-- Tap no cartão → **Bottom Sheet** (Drawer shadcn) com todos os campos: nome, descrição, responsável, tempo, entradas, saídas, docs, sistema, observações, problemas, melhorias, anexos, vínculos (indicadores/crono/planos), trecho de entrevista.
-- Ações no sheet: Adicionar antes / depois / paralelo, Criar decisão, Criar subprocesso, Duplicar, Mover, Excluir.
-- **Gerenciador de conexões** por atividade (lista de entradas + lista de saídas, com tipo).
-- **Decisão**: pergunta + N respostas, cada uma aponta para atividade existente (Select).
-- **Paralelismo**: multi-select "após esta, executar em paralelo".
-- **Convergência**: atividade recebe múltiplas entradas nativamente.
-- Drag & drop com `@dnd-kit/sortable` (já instalado). Reordenação mantém conexões.
+## 6.2 — Auto layout profissional
 
-**Painel lateral de inconsistências** (`<FlowIssuesPanel />`):
-- Regras client-side: sem início, sem fim, atividade sem responsável, decisão sem respostas, loop infinito (DFS), atividade órfã.
-- Botão "Corrigir automaticamente" quando aplicável.
+`src/lib/bpmn-layout.ts` usando **`dagre`** com preset "LR" (esquerda→direita) para BPMN e "TB" para versão vertical mobile.
+- Executado automaticamente ao: gerar por IA, salvar atividade, adicionar/remover conexão, alterar responsável.
+- Botão **"Auto organizar"** no toolbar do renderer que reexecuta o layout preservando edições estruturais.
+- Regras: `ranksep=90`, `nodesep=50`, alinhamento de gateways centralizado, subprocessos agrupados, retrabalho (`return`) roteado por baixo com `edge type=step`.
+- Coordenadas persistidas em `process_activities.position_x/position_y` (colunas já existentes) só quando o usuário move manualmente; caso contrário sempre recalculadas.
 
-## Sub-fase 4.3 — IA + BPMN automático
+## 6.3 — Integridade de conexões
 
-**IA:**
-- Botão "Gerar Processo IA" muda o prompt: extrai atividades **estruturadas** (JSON com atividades, responsáveis, decisões, paralelismos, loops, subprocessos, problemas, oportunidades) e grava direto no novo modelo de Fluxo — nunca mais no formato BPM antigo.
-- Botão "Criar Processo" cria Fluxo vazio.
-- Análise pós-geração popula o painel de inconsistências.
+Validador ativo em `src/lib/flow-validate.ts` (roda no cliente ao editar e no servidor antes de exportar):
+- Toda `decision` possui ≥ 2 `activity_connections` de tipo `decision` com `label` distinto.
+- Toda atividade não-final tem ≥ 1 saída.
+- Toda atividade não-inicial tem ≥ 1 entrada.
+- Nenhum destino nulo ou apontando para atividade excluída.
+- Sem conexões duplicadas (`from`,`to`,`type`).
+- Detecção de nós órfãos via DFS a partir do `start`.
 
-**BPMN read-only (`<BpmnRenderer />`):**
-- Transformer `flow → bpmn` em `src/lib/flow-to-bpmn.ts`:
-  - Adiciona StartEvent (atividade sem entrada), EndEvent (atividade sem saída).
-  - Decisão → Gateway XOR. Paralelo → AND. Convergência de N → AND join.
-  - Retorno → sequence flow reverso. Subprocess → CollapsedSubprocess.
-  - Layout automático com `dagre` (top-down ou left-right).
-- Renderiza com `bpmn-js` (viewer, não modeler). Regenera on-demand quando o Fluxo muda.
-- Validação BPMN 2.0 antes do salvar: lista erros no painel.
+Painel `FlowIssuesPanel` recebe botão **"Corrigir automaticamente"**:
+- Cria `end` implícito para atividades sem saída.
+- Remove conexões duplicadas.
+- Sugere destino default (próxima atividade) para saídas de decisão sem `to`.
 
-## Sub-fase 4.4 — Exportação PDF profissional + Template unificado
+## 6.4 — Validador BPMN pré-salvar / pré-exportar
 
-**Nova tela `/config/template-documentos`** para editar `document_templates` da empresa.
+`validateBpmn(flow)` retorna `{ errors, warnings }`. Exportação PDF bloqueada quando há `errors`. UI mostra modal listando problemas com link "abrir atividade".
 
-**Novo `exportBpmDocument()`** em `src/lib/bpm-pdf.functions.ts` (server fn) usando `jsPDF` + `html2canvas-pro` (já instalados):
-- Capa (logos, empresa, processo, código, versão, revisão, consultor, data).
-- Cabeçalho/rodapé em cada página (do template).
-- Dados Gerais, Matriz do Processo (tabela), BPMN em alta resolução com quebra de página inteligente (nunca cortar atividades — segmenta por pool/lane), Legenda BPMN, Indicadores, Planos, Cronoanálise (Lead Time, TC, TA, TNA, gargalos), Histórico de Revisões (`process_versions`), Aprovação.
-- Suporte A4 paisagem e A3.
+Checagens: início único, ao menos um fim, gateways com ≥2 caminhos, ausência de loops infinitos sem `return`, subprocessos com pelo menos início e fim internos, raias com pelo menos uma atividade, responsáveis definidos (aviso, não erro).
 
-**Reuso do template** (fase seguinte, fora deste escopo imediato mas com hooks prontos): Ata, Relatório Executivo, Cronoanálise, POP, IT, Relatório Final consomem `document_templates`.
+## 6.5 — Swimlanes automáticas por Responsável
+
+- No gerador de BPMN XML: agrupar atividades por `responsible` (fallback `"Não definido"`) e emitir `bpmn:LaneSet` dentro de um `bpmn:Participant` chamado com o nome da empresa/processo.
+- Ao alterar responsável de uma atividade, o layout re-agrupa a raia automaticamente na próxima renderização.
+- Ordem de raias derivada da ordem de aparição no fluxo (start → end), estável entre renderizações.
+
+## 6.6 — Exportação PDF profissional
+
+Reescrita de `ExportProcessPdfButton.tsx` (mantém API atual, sem quebrar chamadas):
+
+**Pré-visualização editável (modal)** antes do download:
+- Campos: título, objetivo, escopo, observações.
+- Seleção de páginas a incluir (checkboxes): Capa, Matriz do Processo, BPMN, Legenda, Indicadores, Planos, Cronoanálise, Histórico.
+- Formato: A4 / A3 / Carta. Orientação: retrato / paisagem. Escala: automática / fit-to-page.
+
+**Motor de renderização:**
+- BPMN exportado via `viewer.saveSVG()` do `bpmn-js`, convertido para PNG @ 300 DPI (usando `canvg`) ou embutido como vetor quando possível.
+- Quebra de página inteligente: nunca corta atividade ou conexão. Para diagramas grandes → dividir em tiles horizontais (paisagem A3), cada tile com sobreposição de 5% e marcador "1/3", "2/3".
+- Multi-página automático para todo o documento; cabeçalho/rodapé em todas as páginas exceto capa.
+
+**Estrutura fixa:**
+1. Capa institucional (logos, empresa, processo, código, versão, revisão, consultor, data).
+2. Sumário automático.
+3. Dados Gerais (objetivo, escopo, entradas, saídas, responsável).
+4. Matriz do Processo — tabela com colunas: ID, Atividade, Responsável, Entradas, Saídas, Tempo, Sistema, Documentos.
+5. BPMN em alta resolução (300 DPI, vetorial quando possível).
+6. Legenda BPMN — símbolos usados no diagrama com descrição.
+7. Indicadores vinculados (se houver).
+8. Planos de ação vinculados (se houver).
+9. Cronoanálise consolidada (Lead Time, TC, TA, TNA — se houver).
+10. Histórico de revisões (`process_versions`).
+11. Aprovação (linhas para assinatura).
+
+**Cabeçalho** (todas as páginas de conteúdo):
+- Logo consultoria (esq) · Logo cliente (dir)
+- Nome empresa · Nome processo · Código · Versão · Data · Página X/Y · Consultor
+
+**Rodapé** (todas as páginas):
+- "Controle de Revisão: v{version} — emitido em {date}"
+- "Documento confidencial — uso interno"
+- "Página X/Y"
+
+## 6.7 — Legenda BPMN reutilizável
+
+`src/components/flow/BpmnLegend.tsx` — grid com ícones oficiais e descrição. Renderizado no PDF (após BPMN) e disponível como toggle na tela.
 
 ---
 
-## Detalhes técnicos
+## Estrutura de arquivos
 
-- **Compatibilidade**: processos existentes continuam abrindo. `activity_connections` populada via migração de `process_edges`. Componente antigo `BpmFlow` fica temporariamente disponível na aba BPMN em modo view enquanto o novo renderer não estabiliza.
-- **TO BE**: `duplicateProcessAsTobe()` já existe — passa a duplicar `activity_connections` e vínculos, jamais BPM.
-- **Vínculos cruzados**: cronoanálise, indicadores e planos ganham campo opcional `activity_id` via `activity_links` (não altera schema deles).
-- **Server fns**: novas em `src/lib/flow.functions.ts` (CRUD atividades/conexões/decisões/vínculos), `src/lib/flow-ai.functions.ts` (geração + análise), `src/lib/bpm-pdf.functions.ts` (export), `src/lib/document-templates.functions.ts`.
-- **Pacotes a adicionar**: `bpmn-js` (viewer), `dagre`. Restante já instalado.
+**Novos:**
+- `src/lib/flow-to-bpmn.ts` — gerador XML BPMN 2.0
+- `src/lib/bpmn-layout.ts` — dagre wrapper com presets
+- `src/lib/flow-validate.ts` — validador estrutural + BPMN
+- `src/components/flow/BpmnRenderer.tsx` — viewer bpmn-js
+- `src/components/flow/BpmnLegend.tsx`
+- `src/components/flow/ExportPdfDialog.tsx` — modal editável de exportação
+- `src/lib/pdf/render-bpmn.ts` — svg→png 300dpi
+- `src/lib/pdf/process-matrix.ts` — tabela matriz
+- `src/lib/pdf/headers-footers.ts` — cabeçalho/rodapé compartilhados
 
-## Ordem de execução proposta
-1. **4.1** primeiro (migração + backfill). Você aprova a migração.
-2. **4.2** (editor de Fluxo). Ponto de parada para você testar em mobile.
-3. **4.3** (IA + BPMN auto).
-4. **4.4** (PDF + template).
+**Alterados (não removidos):**
+- `src/components/flow/FlowBpmnPreview.tsx` — passa a delegar para `BpmnRenderer` (mantém a exportação da API para não quebrar imports).
+- `src/components/flow/ExportProcessPdfButton.tsx` — abre `ExportPdfDialog`.
+- `src/components/flow/FlowIssuesPanel.tsx` — botão "corrigir automaticamente".
+- `src/lib/flow.functions.ts` — hook de auto-layout ao mutar conexões.
+
+**Pacotes a instalar:** `bpmn-js`, `canvg` (svg→canvas para 300 dpi). `dagre`, `jspdf`, `html2canvas-pro` já instalados.
+
+## Ordem de execução
+1. 6.1 + 6.2 + 6.5 — Renderer BPMN 2.0 + auto-layout + raias (unitário: entrega visual profissional).
+2. 6.3 + 6.4 — Validação + correção automática.
+3. 6.6 + 6.7 — Exportação PDF profissional com prévia editável, matriz e legenda.
 
 ## Fora deste ciclo
-- Aplicar `document_templates` nos outros documentos (Ata, POP, IT, Relatório Final) — próxima fase.
-- Editor visual BPMN (não haverá — BPMN é derivado).
+- Editor visual do BPMN (BPMN permanece derivado).
+- Aplicar template unificado a Ata/POP/IT/Relatório Final (permanece em backlog da fase seguinte).
 
-**Confirma para iniciar pela 4.1 (migração de banco)?**
+Confirma iniciar por **6.1 + 6.2 + 6.5** (Renderer BPMN 2.0 + auto-layout + raias)?
