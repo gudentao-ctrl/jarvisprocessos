@@ -140,6 +140,8 @@ function ProcessoDetail() {
               activities={flow.activities as any}
               connections={flow.connections as any}
               decisions={flow.decisions as any}
+              processName={data.process.name}
+              companyName={data.process.companies?.name ?? undefined}
             />
           )}
           <p className="text-xs text-muted-foreground text-center mt-2">
