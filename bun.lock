@@ -50,6 +50,7 @@
         "cmdk": "^1.1.1",
         "dagre": "^0.8.5",
         "date-fns": "^4.1.0",
+        "diagram-js-minimap": "^5.4.0",
         "embla-carousel-react": "^8.6.0",
         "html2canvas": "^1.4.1",
         "html2canvas-pro": "^2.2.1",
@@ -906,6 +907,8 @@
     "diagram-js": ["diagram-js@15.20.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/diagram-js/-/diagram-js-15.20.1.tgz", { "dependencies": { "@bpmn-io/diagram-js-ui": "^0.2.4", "clsx": "^2.1.1", "didi": "^11.0.0", "inherits-browser": "^0.1.0", "min-dash": "^5.0.0", "min-dom": "^5.3.0", "object-refs": "^0.4.0", "path-intersection": "^4.1.0", "tiny-svg": "^4.1.4" } }, "sha512-ZAD/CSMJmzjw7EcPHWbhUqGEpueLQm5YnQ3kdIHI9ujTNMUJBop651N52zDEMFyXqV9AkvmKZKMFnNgD/ILhMA=="],
 
     "diagram-js-direct-editing": ["diagram-js-direct-editing@3.4.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/diagram-js-direct-editing/-/diagram-js-direct-editing-3.4.0.tgz", { "dependencies": { "min-dash": "^5.0.0", "min-dom": "^5.2.0" }, "peerDependencies": { "diagram-js": "*" } }, "sha512-eXfd+nxJr5xt3YlCrs+E53mPi+gqBWRBkAXkR99ZPL7Pl0B3H5nkv/uiwx4Q4vJU/Sp8Jy3zVdhP/Y2c6loTjw=="],
+
+    "diagram-js-minimap": ["diagram-js-minimap@5.4.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/diagram-js-minimap/-/diagram-js-minimap-5.4.0.tgz", { "dependencies": { "min-dash": "^5.0.0", "min-dom": "^5.3.0", "tiny-svg": "^4.1.4" } }, "sha512-jIvR26kqc7pKtI8dLvs8z7EZ7w51NUCx4PGFgcX48t3mLc0VJE3PuURq7j5NcRv8X/5xGR1CdAl1f6lxYlSNww=="],
 
     "didi": ["didi@11.0.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/didi/-/didi-11.0.0.tgz", {}, "sha512-PzCfRzQttvFpVcYMbSF7h8EsWjeJpVjWH4qDhB5LkMi1ILvHq4Ob0vhM2wLFziPkbUBi+PAo7ODbe2sacR7nJQ=="],
 
