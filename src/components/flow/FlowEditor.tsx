@@ -8,8 +8,10 @@ import {
   addActivityRelative,
   saveFlowActivity,
 } from "@/lib/flow.functions";
+import { autofixFlow } from "@/lib/flow-autofix.functions";
 import { ActivitySheet } from "./ActivitySheet";
 import { FlowIssuesPanel, type FlowIssue } from "./FlowIssuesPanel";
+import { FlowOptimizePanel } from "./FlowOptimizePanel";
 
 export type FlowActivity = {
   id: string;
