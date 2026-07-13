@@ -99,9 +99,29 @@ export function FlowEditor({
     }
   }
 
+  async function runAutofix() {
+    try {
+      const r = await autofixFlow({ data: { process_id: processId } });
+      const parts: string[] = [];
+      if (r.duplicatesRemoved) parts.push(`${r.duplicatesRemoved} duplicadas removidas`);
+      if (r.endCreated) parts.push("evento Fim criado");
+      if (r.decisionLabelsSet) parts.push(`${r.decisionLabelsSet} rótulos de decisão`);
+      if (r.orphansConnected) parts.push(`${r.orphansConnected} órfãos conectados`);
+      toast.success(parts.length ? `Corrigido: ${parts.join(" · ")}` : "Nenhuma correção necessária");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao corrigir");
+    }
+  }
+
   return (
     <div className="space-y-4">
-      {issues.length > 0 && <FlowIssuesPanel issues={issues} activities={sorted} onFocus={(id) => setOpenId(id)} />}
+      <div className="flex flex-wrap gap-2 justify-end">
+        <FlowOptimizePanel processId={processId} />
+      </div>
+      {issues.length > 0 && (
+        <FlowIssuesPanel issues={issues} activities={sorted} onFocus={(id) => setOpenId(id)} onAutofix={runAutofix} />
+      )}
 
       {sorted.length === 0 ? (
         <Card className="p-8 text-center space-y-3">
