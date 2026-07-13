@@ -64,7 +64,7 @@ export type ExportProcessPdfProps = {
 export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [format, setFormat] = useState<Format>("a4");
+  const [format, setFormat] = useState<Format>("auto");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [title, setTitle] = useState(props.processName);
   const [objective, setObjective] = useState(props.processObjective ?? "");
