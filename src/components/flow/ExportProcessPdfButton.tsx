@@ -505,6 +505,7 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
               <Select value={format} onValueChange={(v) => setFormat(v as Format)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="auto">Auto (recomendado)</SelectItem>
                   <SelectItem value="a4">A4</SelectItem>
                   <SelectItem value="a3">A3</SelectItem>
                   <SelectItem value="letter">Carta</SelectItem>
