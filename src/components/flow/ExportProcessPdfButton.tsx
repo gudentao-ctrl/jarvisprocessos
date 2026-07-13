@@ -97,7 +97,28 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       const version = "1.0";
       const consultant = "Consultor responsável";
 
-      const pdf = new jsPDF({ unit: "mm", format, orientation });
+      // Pré-medir BPMN para escolher formato automaticamente (Auto).
+      let bpmnSvg: string | null = null;
+      let bpmnAspect = 16 / 9;
+      if (sections.bpmn && props.activities.length > 0) {
+        try {
+          bpmnSvg = await renderBpmnSvg(
+            props.activities, props.connections, props.decisions,
+            props.processName, props.companyName ?? undefined,
+          );
+          bpmnAspect = measureSvgAspect(bpmnSvg);
+        } catch { /* ignore */ }
+      }
+
+      let effFormat: Exclude<Format, "auto"> = format === "auto" ? "a4" : format;
+      let effOrientation: Orientation = orientation;
+      if (format === "auto") {
+        // Landscape sempre para caber melhor. A3 se aspect > 1.9 (muito wide).
+        effOrientation = "landscape";
+        effFormat = bpmnAspect > 1.9 ? "a3" : "a4";
+      }
+
+      const pdf = new jsPDF({ unit: "mm", format: effFormat, orientation: effOrientation });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const marginX = 14;
