@@ -23,7 +23,7 @@ import type { FlowActivity, FlowConnection, FlowDecision } from "./FlowEditor";
  * - BPMN renderizado como SVG via bpmn-js, embutido em alta resolução.
  * - Quebra de página inteligente, cabeçalho e rodapé em todas as páginas. */
 
-type Format = "a4" | "a3" | "letter";
+type Format = "auto" | "a4" | "a3" | "letter";
 type Orientation = "portrait" | "landscape";
 
 type Sections = {
