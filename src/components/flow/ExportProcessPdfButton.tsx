@@ -566,6 +566,21 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
 
 /* ---------- helpers ---------- */
 
+function measureSvgAspect(svg: string): number {
+  const wMatch = svg.match(/width="([\d.]+)"/);
+  const hMatch = svg.match(/height="([\d.]+)"/);
+  const vb = svg.match(/viewBox="([\d.\s-]+)"/);
+  if (wMatch && hMatch) {
+    const w = parseFloat(wMatch[1]); const h = parseFloat(hMatch[1]);
+    if (w > 0 && h > 0) return w / h;
+  }
+  if (vb) {
+    const p = vb[1].split(/\s+/).map(parseFloat);
+    if (p[2] > 0 && p[3] > 0) return p[2] / p[3];
+  }
+  return 16 / 9;
+}
+
 function stripHtml(s: string) { return s.replace(/<[^>]*>/g, "").trim(); }
 
 function hexToRgb(hex: string): [number, number, number] {
