@@ -23,7 +23,7 @@ import type { FlowActivity, FlowConnection, FlowDecision } from "./FlowEditor";
  * - BPMN renderizado como SVG via bpmn-js, embutido em alta resolução.
  * - Quebra de página inteligente, cabeçalho e rodapé em todas as páginas. */
 
-type Format = "a4" | "a3" | "letter";
+type Format = "auto" | "a4" | "a3" | "letter";
 type Orientation = "portrait" | "landscape";
 
 type Sections = {
@@ -64,7 +64,7 @@ export type ExportProcessPdfProps = {
 export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [format, setFormat] = useState<Format>("a4");
+  const [format, setFormat] = useState<Format>("auto");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [title, setTitle] = useState(props.processName);
   const [objective, setObjective] = useState(props.processObjective ?? "");
@@ -97,7 +97,28 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       const version = "1.0";
       const consultant = "Consultor responsável";
 
-      const pdf = new jsPDF({ unit: "mm", format, orientation });
+      // Pré-medir BPMN para escolher formato automaticamente (Auto).
+      let bpmnSvg: string | null = null;
+      let bpmnAspect = 16 / 9;
+      if (sections.bpmn && props.activities.length > 0) {
+        try {
+          bpmnSvg = await renderBpmnSvg(
+            props.activities, props.connections, props.decisions,
+            props.processName, props.companyName ?? undefined,
+          );
+          bpmnAspect = measureSvgAspect(bpmnSvg);
+        } catch { /* ignore */ }
+      }
+
+      let effFormat: Exclude<Format, "auto"> = format === "auto" ? "a4" : format;
+      let effOrientation: Orientation = orientation;
+      if (format === "auto") {
+        // Landscape sempre para caber melhor. A3 se aspect > 1.9 (muito wide).
+        effOrientation = "landscape";
+        effFormat = bpmnAspect > 1.9 ? "a3" : "a4";
+      }
+
+      const pdf = new jsPDF({ unit: "mm", format: effFormat, orientation: effOrientation });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const marginX = 14;
@@ -277,25 +298,52 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         if (cursor > contentTop + 20) { addContentPage(); cursor = contentTop; }
         heading("Diagrama BPMN 2.0");
         try {
-          const svg = await renderBpmnSvg(
+          const svg = bpmnSvg ?? await renderBpmnSvg(
             props.activities, props.connections, props.decisions,
             props.processName, props.companyName ?? undefined,
           );
-          const png = await svgToPng(svg, 3000); // ~300dpi width
           const availW = pageW - marginX * 2;
           const availH = contentBottom - cursor;
-          // preserve aspect
-          const iw = png.width / (png.width / availW);
-          void iw;
-          const ratio = png.width / png.height;
-          let drawW = availW;
-          let drawH = drawW / ratio;
-          if (drawH > availH) {
-            drawH = availH;
-            drawW = drawH * ratio;
+          const pageAspect = availW / availH;
+          const ratio = bpmnAspect;
+          // Se o diagrama é muito mais largo que a página, dividir em tiles horizontais.
+          const tiles = ratio > pageAspect * 1.6 ? Math.min(4, Math.ceil(ratio / pageAspect)) : 1;
+
+          if (tiles === 1) {
+            const png = await svgToPng(svg, 3000);
+            let drawW = availW;
+            let drawH = drawW / ratio;
+            if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
+            pdf.addImage(png.dataUrl, "PNG", marginX + (availW - drawW) / 2, cursor, drawW, drawH);
+            cursor += drawH + 6;
+          } else {
+            // Renderiza em alta resolução e recorta em faixas verticais com 5% de sobreposição.
+            const fullW = 3000 * tiles / 2;
+            const png = await svgToPng(svg, fullW);
+            const tileW = png.width / tiles;
+            const overlap = Math.round(tileW * 0.05);
+            for (let t = 0; t < tiles; t++) {
+              if (t > 0) { addContentPage(); cursor = contentTop; heading(`Diagrama BPMN 2.0 — parte ${t + 1}/${tiles}`); }
+              const sx = Math.max(0, t * tileW - (t > 0 ? overlap : 0));
+              const sw = Math.min(png.width - sx, tileW + (t < tiles - 1 ? overlap : 0));
+              const c = document.createElement("canvas");
+              c.width = sw; c.height = png.height;
+              const img = new Image();
+              img.src = png.dataUrl;
+              await new Promise((r) => { img.onload = r; });
+              c.getContext("2d")!.drawImage(img, sx, 0, sw, png.height, 0, 0, sw, png.height);
+              const tileDataUrl = c.toDataURL("image/png");
+              const tileRatio = sw / png.height;
+              let drawW = availW;
+              let drawH = drawW / tileRatio;
+              if (drawH > availH) { drawH = availH; drawW = drawH * tileRatio; }
+              pdf.addImage(tileDataUrl, "PNG", marginX + (availW - drawW) / 2, cursor, drawW, drawH);
+              pdf.setFontSize(7);
+              pdf.setTextColor("#64748b");
+              pdf.text(`Tile ${t + 1}/${tiles}`, pageW - marginX, cursor + drawH + 3, { align: "right" });
+              cursor += drawH + 6;
+            }
           }
-          pdf.addImage(png.dataUrl, "PNG", marginX + (availW - drawW) / 2, cursor, drawW, drawH);
-          cursor += drawH + 6;
         } catch (e: any) {
           paragraph(`[Falha ao renderizar BPMN: ${e?.message ?? "erro"}]`);
         }
@@ -457,6 +505,7 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
               <Select value={format} onValueChange={(v) => setFormat(v as Format)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="auto">Auto (recomendado)</SelectItem>
                   <SelectItem value="a4">A4</SelectItem>
                   <SelectItem value="a3">A3</SelectItem>
                   <SelectItem value="letter">Carta</SelectItem>
@@ -517,6 +566,21 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
 }
 
 /* ---------- helpers ---------- */
+
+function measureSvgAspect(svg: string): number {
+  const wMatch = svg.match(/width="([\d.]+)"/);
+  const hMatch = svg.match(/height="([\d.]+)"/);
+  const vb = svg.match(/viewBox="([\d.\s-]+)"/);
+  if (wMatch && hMatch) {
+    const w = parseFloat(wMatch[1]); const h = parseFloat(hMatch[1]);
+    if (w > 0 && h > 0) return w / h;
+  }
+  if (vb) {
+    const p = vb[1].split(/\s+/).map(parseFloat);
+    if (p[2] > 0 && p[3] > 0) return p[2] / p[3];
+  }
+  return 16 / 9;
+}
 
 function stripHtml(s: string) { return s.replace(/<[^>]*>/g, "").trim(); }
 
