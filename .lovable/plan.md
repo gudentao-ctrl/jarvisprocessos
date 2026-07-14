@@ -1,174 +1,81 @@
-# Fase 7 — BPMN de Nível Consultoria (Bizagi / Camunda / Signavio)
+# Refactor Completo do Módulo BPMN — Padrão Consultoria
 
-Foco exclusivo: qualidade visual e operacional do módulo Fluxo/BPMN. Sem novas telas fora do fluxo. Toda a lógica de dados e sincronização com Cronoanálise/Indicadores/Planos/TO BE já existente é preservada — este ciclo apenas eleva a camada de renderização, edição e exportação.
+Escopo grande. Vou entregar em **5 blocos sequenciais**, cada um estável em produção antes do próximo. Confirme para começar pelo Bloco 1.
 
----
+## Arquitetura-alvo
 
-## Bloco A — Layout automático e conexões profissionais
+```text
+Fluxo (DB: process_activities + activity_connections + process_decisions)
+   │  ← única fonte de verdade, edição sempre aqui
+   ▼
+FlowGraph (modelo lógico normalizado in-memory)
+   │
+   ├─► BPMN Engine (novo)   ──► XML BPMN 2.0 ──► bpmn-js Viewer
+   │       • ranking por níveis
+   │       • detecção de bifurcação/convergência
+   │       • lanes por responsável
+   │       • orthogonal routing com anti-cruzamento
+   │
+   └─► Validator            ──► lista clicável com foco no elemento
+```
 
-### A.1 · Auto layout BPMN (dagre + refino)
-`src/lib/bpmn-layout.ts` reescrito:
-- Direção fixa **LR** no BPMN e **TB** para vertical mobile.
-- `ranksep=110`, `nodesep=70`, `edgesep=30`, `align=UL`.
-- Pós-processamento: alinhar gateways ao centro do rank, alinhar `end` ao último rank, colapsar retrabalho (`return`) para caminho inferior com `edge=step`.
-- Sem sobreposição: colisão testada por AABB; nós afetados são empurrados verticalmente dentro da própria raia.
-- Executado sempre que: gerar por IA · adicionar/remover atividade · alterar conexão · trocar responsável · clicar em **Organizar Fluxo**.
+Nenhuma coordenada é persistida. Toda alteração no Fluxo dispara re-layout automático. O BPMN é sempre derivado — nunca editado diretamente.
 
-### A.2 · Conectores ortogonais (Manhattan)
-`src/lib/bpmn-routing.ts`:
-- Todo `SequenceFlow` roteado em segmentos horizontais/verticais (Manhattan router).
-- Nunca diagonal. Nunca cruza um nó (waypoints re-roteados ao redor da AABB).
-- Rotas paralelas com **offset lane** (2, 4, 6 px) para evitar sobreposição de linhas.
-- Curvas apenas em quinas (raio 6 px) — sem curvas Bezier longas.
-- Labels de decisão (`Sim`/`Não`) posicionados no ponto médio do primeiro segmento horizontal, com fundo branco (evita cortar linha).
+## Bloco 1 — Núcleo: FlowGraph + Engine BPMN novo
 
-### A.3 · Gateways simétricos
-- Ao divergir: filhas distribuídas simetricamente em ±Y a partir do gateway (`spread = nodesep * (n-1)/2`).
-- Ao convergir: mesmo tratamento espelhado.
-- Rótulos das saídas centralizados no eixo do braço.
+Substitui `flow-to-bpmn.ts` por um engine em camadas:
 
----
+- **`src/lib/bpmn/graph.ts`** — normaliza activities/connections/decisions em `FlowGraph` com adjacência, in/out-degree, detecção de start/end/gateways.
+- **`src/lib/bpmn/ranking.ts`** — longest-path layering (níveis L→R), tratamento de back-edges (loops de retrabalho marcados para roteamento inferior).
+- **`src/lib/bpmn/lanes.ts`** — agrupa por `responsible`, ordem de aparição a partir do start, altura automática por conteúdo, "Não definido" no fim.
+- **`src/lib/bpmn/layout.ts`** — posiciona: X por rank, Y por lane + centralização de gateway entre filhos, alinhamento de eventos start/end, espaçamento uniforme (`RANK_GAP=140`, `NODE_GAP=60`).
+- **`src/lib/bpmn/routing.ts`** — Manhattan router evoluído: escolhe porta (L/R/T/B) por posição relativa, evita AABB de todas as caixas, offset por índice para paralelas, curvas suaves em quinas (arco 8px), back-edges pelo topo/base fora do bounding box.
+- **`src/lib/bpmn/emit.ts`** — serializa XML BPMN 2.0 válido (Pool + LaneSet + DI com waypoints).
 
-## Bloco B — Raias inteligentes e Pool
+Substitui uso em `BpmnRenderer.tsx` e `renderBpmnSvg`. Remove o dagre legado.
 
-### B.1 · Pool "Empresa" + LaneSet
-- Todo diagrama envolvido em `bpmn:Participant name="{empresa}"` com `bpmn:LaneSet` interno.
-- Uma `bpmn:Lane` por `responsible` distinto. Ordem: ordem de aparição no fluxo a partir do `start`.
-- Responsáveis externos comuns (`Cliente`, `Fornecedor`) detectados por keyword e renderizados como **pools separadas** com `MessageFlow` em vez de `SequenceFlow` na fronteira.
+**Critério de saída:** processo com 30+ atividades, decisões e loop renderiza sem cruzamentos, gateways centrados, lanes corretas.
 
-### B.2 · Reatividade de raias
-- Alterar `responsible` de uma atividade dispara re-layout: atividade migra de lane, dagre recalcula, roteamento Manhattan refeito.
-- Persistência: nenhum campo novo; derivado do fluxo mestre.
+## Bloco 2 — Renderer profissional + sincronização em tempo real
 
----
+- Toolbar completa em `BpmnRenderer.tsx`: MiniMap (já), Fit, Zoom±, Centralizar, Fullscreen, Grade on/off, Snap on/off, Mostrar/ocultar raias, Modo apresentação/edição.
+- Re-layout **automático** em qualquer mutação do Fluxo (mutation → invalidate query → engine → viewer.importXML). Sem botão "Organizar" obrigatório (mantido como reset).
+- Debounce de 150ms + cache do XML por hash do FlowGraph para responsividade.
 
-## Bloco C — Editor Fluxo profissional (mantém os dados)
+## Bloco 3 — Validador clicável + auto-fix reforçado
 
-### C.1 · Cartão de atividade rico
-`src/components/flow/FlowEditor.tsx` — cada cartão passa a mostrar em uma linha compacta:
-`ícone tipo · nome · responsável · tempo · [🎯 indicadores] · [⏱ cronoanálise] · [📋 planos] · [↕ mover] [🔗 conectar] [✎ editar] [🗑]`
+- `flow-validate.ts` estendido: gateways sem convergência, loops sem saída, eventos duplicados, gateways redundantes (1-in/1-out), sequências impossíveis, responsáveis ausentes.
+- `FlowIssuesPanel` — cada issue vira botão que: seleciona no editor, centraliza no BPMN (canvas.scrollToElement), destaca 2s.
+- `flow-autofix.functions.ts` amplia: remove gateway redundante, funde eventos duplicados, adiciona convergência quando faltante.
 
-Contadores clicáveis abrem drawer lateral do módulo correspondente (rotas existentes).
+## Bloco 4 — Exportação PDF Premium
 
-### C.2 · Drag & drop entre atividades
-- `@dnd-kit/sortable` (já instalado se disponível; senão adicionar).
-- Arrastar reordena visualmente e ajusta prioridade de layout; conexões recalculam automaticamente.
-- Handle explícito (`↕`) para não conflitar com toque em campos.
+Reescreve `ExportProcessPdfButton.tsx` completo:
 
-### C.3 · Conectar com tipos
-Ao clicar em **🔗 Conectar** abre popover com radios:
-- Atividade · Gateway · Evento intermediário · Subprocesso · Fim
-- Campo destino (busca por nome) + label opcional (usado nas saídas de decisão)
-- Ação **Remover conexão** listando as saídas atuais com botão de exclusão individual (não apaga atividade).
+- **Cabeçalho** por página: logo empresa (esq), logo consultoria (dir), nome/código/versão/revisão do processo.
+- **Rodapé**: consultor, cliente, data, "Confidencial", `Página X/Y`.
+- **Paginação inteligente**: mede bbox do SVG, calcula cortes **apenas nos gaps entre ranks** (nunca sobre nó ou linha). Se não couber em A3 landscape, tiling horizontal com overlap 5% e marcador `Tile x/y`.
+- Render em 300 DPI via canvg + pdf-lib. Tipografia Inter, margens 15mm, numeração consistente.
 
-### C.4 · Botão "Organizar Fluxo"
-No topo do editor: dispara A.1+A.2 e persiste posições apenas quando o usuário confirma. Sem alterar lógica.
+## Bloco 5 — Performance para 100–300+ atividades
 
----
-
-## Bloco D — Validação em tempo real e Auto Correção
-
-### D.1 · Validador live
-`flow-validate.ts` já detecta a maioria; adicionar:
-- Ciclo infinito sem `return` (DFS + detecção de back-edge sem tipo `return`).
-- Gateway com uma única saída (erro, não warning).
-- Conexão de decisão sem label.
-
-Painel `FlowIssuesPanel` roda em cada mutação (debounce 300ms), badge com contador ao lado do botão de exportação.
-
-### D.2 · Botão "Corrigir automaticamente"
-`src/lib/flow-autofix.ts` + IA (Lovable AI Gateway):
-- Determinístico primeiro: cria `end` faltantes; remove duplicadas; conecta órfãos ao próximo nó por proximidade; adiciona rótulo `Sim`/`Não` em decisões sem label.
-- Depois IA: para casos ambíguos (múltiplos órfãos, decisão com 3+ saídas sem labels significativos), pede sugestão estruturada `{fixes:[{op,target,...}]}` que o usuário revisa antes de aplicar (modal com diff).
-
-### D.3 · Bloqueio de exportação
-Exportar PDF continua bloqueado com `errors`; libera com apenas `warnings`.
-
----
-
-## Bloco E — Renderer profissional
-
-### E.1 · bpmn-js customizado
-`BpmnRenderer.tsx`:
-- **Zoom inicial**: `fit-viewport` com padding 40 px.
-- Botão **Centralizar Processo** (`fit-viewport` + reset pan).
-- **Minimapa** lateral direita via `diagram-js-minimap` (pacote oficial companheiro do bpmn-js).
-- Toolbar: Organizar · Ajustar · Zoom+ · Zoom- · Centralizar · Exportar (SVG · PNG · PDF).
-
-### E.2 · Legenda BPMN 2.0 conforme
-Só símbolos oficiais (já implementado em `BpmnLegend`). Garantir que todo elemento emitido pelo `flow-to-bpmn.ts` cai em um dos tipos oficiais listados. Auditoria: rejeitar qualquer XML com elemento fora do vocabulário BPMN 2.0.
-
----
-
-## Bloco F — Exportação
-
-### F.1 · PDF adaptativo
-`ExportProcessPdfButton.tsx` atualizado:
-- Medir bbox do SVG do bpmn-js.
-- `bbox.width ≤ 1600` → **A4 paisagem, 1 página**.
-- `bbox.width ≤ 3000` → **A3 paisagem, 1 página**.
-- Acima → **múltiplas páginas A3 paisagem contínuas** com sobreposição de 5% e marcador `Tile x/y`. Corte apenas em faixas verticais entre ranks (nunca sobre uma atividade ou linha) usando os `x` dos ranks devolvidos pelo dagre.
-- Render sempre a 300 DPI via `canvg` sobre canvas escalado.
-
-### F.2 · Cabeçalho / rodapé institucionais
-Header em toda página de conteúdo: logo consultoria (esq) · logo cliente (dir) · empresa · processo · código · versão · responsável · data · revisão · status.
-Footer: `Página X/Y` · `Gerado pelo JARVIS` · data · versão.
-
-### F.3 · Exportar SVG e PNG
-Botões adicionais na toolbar do renderer:
-- **SVG** — `viewer.saveSVG()` → download `.svg`.
-- **PNG @300dpi** — SVG → canvg → canvas 3x → `toBlob("image/png")` → download.
-
----
-
-## Bloco G — IA "Otimizar Processo" (TO BE assistido)
-
-`src/lib/flow-optimize.functions.ts`:
-- Input: fluxo AS IS completo + indicadores + cronoanálise (quando existentes).
-- Output estruturado: lista de achados por categoria — `duplicidade`, `retrabalho`, `aprovação_desnecessária`, `espera`, `gargalo`, `sem_valor_agregado` — cada um com atividades apontadas e sugestão de mudança.
-- Botão **Otimizar Processo** no topo do editor; resultado abre painel com opções "Aplicar como TO BE" (cria nova versão em `process_versions`, sem tocar no AS IS).
-
-Sincronização Fluxo ↔ BPMN ↔ Cronoanálise ↔ Indicadores ↔ Planos ↔ TO BE **já existe** — este bloco só consome os dados e propõe mutações via canais já testados.
-
----
-
-## Estrutura de arquivos
-
-**Novos**
-- `src/lib/bpmn-routing.ts` — Manhattan router
-- `src/lib/flow-autofix.ts` — auto-correção determinística + IA
-- `src/lib/flow-optimize.functions.ts` — server fn "Otimizar Processo"
-- `src/components/flow/FlowConnectPopover.tsx`
-- `src/components/flow/FlowOptimizePanel.tsx`
-- `src/components/flow/BpmnMinimap.tsx`
-
-**Alterados (aditivo)**
-- `src/lib/bpmn-layout.ts` — regras profissionais
-- `src/lib/flow-to-bpmn.ts` — Pool + Lanes múltiplas + MessageFlow para pools externas
-- `src/lib/flow-validate.ts` — ciclos, gateway 1-saída, labels
-- `src/components/flow/BpmnRenderer.tsx` — minimapa, zoom, centralizar, exportações SVG/PNG
-- `src/components/flow/FlowEditor.tsx` — cartão rico + DnD + Organizar Fluxo
-- `src/components/flow/FlowIssuesPanel.tsx` — badge live + Corrigir automaticamente
-- `src/components/flow/ExportProcessPdfButton.tsx` — adaptativo + tiles
-
-**Pacotes**
-- `diagram-js-minimap` (companheiro oficial do bpmn-js)
-- `@dnd-kit/core` + `@dnd-kit/sortable` se ainda não presentes
-
-**Sem migrações.** Nenhum campo novo em Supabase.
-
----
+- Memoização do FlowGraph por hash estável.
+- Incremental import: `viewer.importXML` só quando XML muda; caso contrário só `canvas.zoom`.
+- Virtualização da lista de atividades no `FlowEditor` (react-virtual) quando >80 itens.
+- Web Worker opcional para ranking/routing em processos >200 nós (fallback síncrono).
 
 ## Ordem de execução
 
-1. **Bloco A + B** — Layout, roteamento Manhattan, gateways simétricos, Pool+Lanes múltiplas. Entrega visível imediata.
-2. **Bloco C + D** — Editor rico com DnD, popover de conexão, validação live e Corrigir automaticamente.
-3. **Bloco E + F** — Minimapa, centralizar, SVG/PNG, PDF adaptativo com tiles A3.
-4. **Bloco G** — Otimizar Processo (TO BE assistido).
+1. Bloco 1 (núcleo) — sem ele o resto não muda visual.
+2. Bloco 2 (renderer + sync).
+3. Bloco 3 (validação/autofix).
+4. Bloco 4 (PDF premium).
+5. Bloco 5 (performance).
 
-## Fora do escopo
-- Editor visual arrastando shapes dentro do próprio bpmn-js (o BPMN continua derivado do fluxo mestre).
-- Assinatura eletrônica de PDF.
-- Novos módulos (Ata, POP/IT, Relatório Final permanecem no backlog anterior).
+## Detalhes técnicos
 
-Confirma iniciar por **Bloco A + B** (layout profissional + Manhattan + Pool com raias múltiplas)?
+- **Sem novas dependências** exceto se necessário para Bloco 5 (`@tanstack/react-virtual`). bpmn-js/diagram-js-minimap/canvg/pdf-lib já instalados.
+- Correção do **hydration error** em `/auth` incluída no Bloco 1 (root cause: branch server/client no route).
+- Todo XML gerado passa por `viewer.importXML` em teste unitário antes de commit do bloco.
+
+Confirme para iniciar **Bloco 1**.
