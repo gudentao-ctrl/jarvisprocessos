@@ -38,7 +38,7 @@ function hashInput(
 ): string {
   const parts: string[] = [processName ?? ""];
   for (const a of activities) {
-    parts.push(`A:${a.id}:${a.type}:${a.ordering ?? 0}:${a.responsible ?? ""}:${a.name ?? ""}`);
+    parts.push(`A:${a.id}:${a.type}:${a.ordering ?? 0}:${a.responsible ?? ""}:${a.title ?? ""}`);
   }
   for (const c of connections) {
     parts.push(`C:${c.id}:${c.from_activity_id}:${c.to_activity_id}:${c.type ?? ""}:${c.order_index ?? 0}:${c.label ?? ""}`);
