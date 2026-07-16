@@ -33,6 +33,8 @@ export const autofixFlow = createServerFn({ method: "POST" })
       endCreated: 0,
       decisionLabelsSet: 0,
       orphansConnected: 0,
+      redundantGatewaysRemoved: 0,
+      duplicateEventsRemoved: 0,
     };
 
     // 1) Remove duplicadas (mesma origem/destino/tipo)
@@ -100,6 +102,47 @@ export const autofixFlow = createServerFn({ method: "POST" })
         label: "",
       });
       summary.orphansConnected++;
+    }
+
+    // 5) Remove gateways redundantes (decision com 1-in/1-out): reconecta a origem direto ao destino.
+    const { data: conns3 } = await sb.from("activity_connections").select("*").eq("process_id", pid);
+    const insBy = new Map<string, any[]>();
+    const outsBy = new Map<string, any[]>();
+    for (const c of conns3 ?? []) {
+      if (!insBy.has(c.to_activity_id)) insBy.set(c.to_activity_id, []);
+      insBy.get(c.to_activity_id)!.push(c);
+      if (!outsBy.has(c.from_activity_id)) outsBy.set(c.from_activity_id, []);
+      outsBy.get(c.from_activity_id)!.push(c);
+    }
+    for (const a of activities) {
+      if (a.type !== "decision") continue;
+      const ins = insBy.get(a.id) ?? [];
+      const outs = outsBy.get(a.id) ?? [];
+      if (ins.length === 1 && outs.length === 1) {
+        // Reconecta ins[0].from → outs[0].to
+        await sb.from("activity_connections").update({
+          to_activity_id: outs[0].to_activity_id,
+        }).eq("id", ins[0].id);
+        await sb.from("activity_connections").delete().eq("id", outs[0].id);
+        await sb.from("process_decisions").delete().eq("activity_id", a.id);
+        await sb.from("process_activities").delete().eq("id", a.id);
+        summary.redundantGatewaysRemoved++;
+      }
+    }
+
+    // 6) Remove eventos start/end duplicados: mantém o de menor ordering.
+    for (const type of ["start", "end"] as const) {
+      const evs = activities.filter((x: any) => x.type === type)
+        .sort((a: any, b: any) => (a.ordering ?? 0) - (b.ordering ?? 0));
+      if (evs.length <= 1) continue;
+      const keep = evs[0].id;
+      for (const dup of evs.slice(1)) {
+        // Redireciona entradas do duplicado para o mantido
+        await sb.from("activity_connections").update({ to_activity_id: keep }).eq("to_activity_id", dup.id);
+        await sb.from("activity_connections").update({ from_activity_id: keep }).eq("from_activity_id", dup.id);
+        await sb.from("process_activities").delete().eq("id", dup.id);
+        summary.duplicateEventsRemoved++;
+      }
     }
 
     return summary;
