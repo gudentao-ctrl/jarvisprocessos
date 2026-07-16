@@ -141,3 +141,32 @@
     font-family: ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
   }
 }
+
+/* BPMN renderer — modos de visualização */
+.bpmn-host {
+  position: relative;
+  overflow: hidden;
+}
+.bpmn-host--grid {
+  background-image:
+    linear-gradient(to right, oklch(0.9 0.005 256 / 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.9 0.005 256 / 0.35) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.dark .bpmn-host--grid {
+  background-image:
+    linear-gradient(to right, oklch(1 0 0 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.bpmn-host--no-lanes .djs-group[data-element-id^="Lane_"],
+.bpmn-host--no-lanes .djs-group[data-element-id^="Participant_"] {
+  opacity: 0.15;
+}
+.bpmn-host--presentation {
+  box-shadow: 0 10px 40px oklch(0 0 0 / 0.15);
+}
+.bpmn-host--presentation .djs-minimap {
+  display: none;
+}
+
