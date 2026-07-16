@@ -33,6 +33,8 @@ export const autofixFlow = createServerFn({ method: "POST" })
       endCreated: 0,
       decisionLabelsSet: 0,
       orphansConnected: 0,
+      redundantGatewaysRemoved: 0,
+      duplicateEventsRemoved: 0,
     };
 
     // 1) Remove duplicadas (mesma origem/destino/tipo)
