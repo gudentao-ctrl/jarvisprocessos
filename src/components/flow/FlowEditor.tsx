@@ -219,20 +219,24 @@ export function FlowEditor({
 
 function SortableActivityCard({
   activity: a,
+  processId,
   decision,
   outgoing,
   activities,
   isLast,
   onOpen,
   onAddAfter,
+  onChange,
 }: {
   activity: FlowActivity;
+  processId: string;
   decision: FlowDecision | undefined;
   outgoing: FlowConnection[];
   activities: FlowActivity[];
   isLast: boolean;
   onOpen: () => void;
   onAddAfter: () => void;
+  onChange: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
   const style = {
