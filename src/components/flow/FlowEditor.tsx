@@ -179,12 +179,14 @@ export function FlowEditor({
                   <SortableActivityCard
                     key={a.id}
                     activity={a}
+                    processId={processId}
                     decision={decision}
                     outgoing={outgoing}
                     activities={activities}
                     isLast={idx === sorted.length - 1}
                     onOpen={() => setOpenId(a.id)}
                     onAddAfter={() => addAfter(a.id)}
+                    onChange={onChange}
                   />
                 );
               })}
@@ -217,20 +219,24 @@ export function FlowEditor({
 
 function SortableActivityCard({
   activity: a,
+  processId,
   decision,
   outgoing,
   activities,
   isLast,
   onOpen,
   onAddAfter,
+  onChange,
 }: {
   activity: FlowActivity;
+  processId: string;
   decision: FlowDecision | undefined;
   outgoing: FlowConnection[];
   activities: FlowActivity[];
   isLast: boolean;
   onOpen: () => void;
   onAddAfter: () => void;
+  onChange: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
   const style = {
@@ -261,14 +267,14 @@ function SortableActivityCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm truncate">{a.title}</p>
+              <InlineTitle activity={a} processId={processId} onChange={onChange} />
               <Badge variant="outline" className="text-[10px] py-0 h-4">{TYPE_LABEL[a.type] ?? a.type}</Badge>
             </div>
             {isDecision && decision?.question && (
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">? {decision.question}</p>
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-              {a.responsible && <span>👤 {a.responsible}</span>}
+              <InlineResponsible activity={a} processId={processId} onChange={onChange} />
               {a.area && <span>📂 {a.area}</span>}
               {a.time_minutes ? <span>⏱ {a.time_minutes} min</span> : null}
             </div>
@@ -294,6 +300,106 @@ function SortableActivityCard({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity; processId: string; onChange: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(activity.title);
+  const [busy, setBusy] = useState(false);
+
+  async function commit() {
+    const v = value.trim();
+    if (!v || v === activity.title) { setEditing(false); setValue(activity.title); return; }
+    setBusy(true);
+    try {
+      await saveFlowActivity({ data: { id: activity.id, process_id: processId, title: v, type: activity.type as any } });
+      toast.success("Título atualizado");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+      setValue(activity.title);
+    } finally {
+      setBusy(false);
+      setEditing(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        disabled={busy}
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Escape") { setValue(activity.title); setEditing(false); }
+        }}
+        className="font-medium text-sm bg-background border border-input rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-primary/40 min-w-0 flex-1"
+      />
+    );
+  }
+  return (
+    <p
+      className="font-medium text-sm truncate hover:underline decoration-dotted"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      title="Clique para editar"
+    >
+      {activity.title}
+    </p>
+  );
+}
+
+function InlineResponsible({ activity, processId, onChange }: { activity: FlowActivity; processId: string; onChange: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(activity.responsible ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function commit() {
+    const v = value.trim();
+    if (v === (activity.responsible ?? "")) { setEditing(false); return; }
+    setBusy(true);
+    try {
+      await saveFlowActivity({ data: { id: activity.id, process_id: processId, title: activity.title, type: activity.type as any, responsible: v } });
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+      setValue(activity.responsible ?? "");
+    } finally {
+      setBusy(false);
+      setEditing(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        disabled={busy}
+        placeholder="responsável"
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Escape") { setValue(activity.responsible ?? ""); setEditing(false); }
+        }}
+        className="text-xs bg-background border border-input rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-primary/40 w-32"
+      />
+    );
+  }
+  return (
+    <span
+      className="hover:underline decoration-dotted cursor-text"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      title="Clique para editar"
+    >
+      👤 {activity.responsible || <span className="italic opacity-60">definir</span>}
+    </span>
   );
 }
 
