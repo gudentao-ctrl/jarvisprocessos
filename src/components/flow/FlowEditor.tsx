@@ -179,12 +179,14 @@ export function FlowEditor({
                   <SortableActivityCard
                     key={a.id}
                     activity={a}
+                    processId={processId}
                     decision={decision}
                     outgoing={outgoing}
                     activities={activities}
                     isLast={idx === sorted.length - 1}
                     onOpen={() => setOpenId(a.id)}
                     onAddAfter={() => addAfter(a.id)}
+                    onChange={onChange}
                   />
                 );
               })}
