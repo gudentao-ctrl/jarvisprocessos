@@ -132,6 +132,28 @@ export function FlowEditor({
     }
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = sorted.findIndex((a) => a.id === active.id);
+    const newIdx = sorted.findIndex((a) => a.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const next = arrayMove(sorted, oldIdx, newIdx);
+    try {
+      await reorderFlowActivities({
+        data: { process_id: processId, items: next.map((a, i) => ({ id: a.id, ordering: i })) },
+      });
+      onChange();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao reordenar");
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 justify-end">
@@ -148,59 +170,26 @@ export function FlowEditor({
         </Card>
       ) : (
         <div className="space-y-2">
-          {sorted.map((a, idx) => {
-            const outgoing = connections.filter((c) => c.from_activity_id === a.id);
-            const decision = decisions.find((d) => d.activity_id === a.id);
-            const Icon = TYPE_ICON[a.type] ?? Layers;
-            const isDecision = a.type === "decision";
-            return (
-              <div key={a.id}>
-                <Card
-                  className="p-3 active:scale-[0.99] transition-transform cursor-pointer hover:bg-secondary/50"
-                  onClick={() => setOpenId(a.id)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`shrink-0 grid h-9 w-9 place-items-center rounded-lg ${isDecision ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm truncate">{a.title}</p>
-                        <Badge variant="outline" className="text-[10px] py-0 h-4">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-                      </div>
-                      {isDecision && decision?.question && (
-                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">? {decision.question}</p>
-                      )}
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-                        {a.responsible && <span>👤 {a.responsible}</span>}
-                        {a.area && <span>📂 {a.area}</span>}
-                        {a.time_minutes ? <span>⏱ {a.time_minutes} min</span> : null}
-                      </div>
-                    </div>
-                    <MoreVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </Card>
-
-                {/* Outgoing connections rendered as branches */}
-                {outgoing.length > 0 ? (
-                  <div className="pl-4 py-1 space-y-1">
-                    {outgoing.map((c) => (
-                      <ConnectionArrow key={c.id} connection={c} activities={activities} />
-                    ))}
-                  </div>
-                ) : idx < sorted.length - 1 ? (
-                  <div className="flex items-center justify-center py-1">
-                    <button
-                      onClick={() => addAfter(a.id)}
-                      className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
-                    >
-                      <ArrowDown className="h-3 w-3" /> conectar
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sorted.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+              {sorted.map((a, idx) => {
+                const outgoing = connections.filter((c) => c.from_activity_id === a.id);
+                const decision = decisions.find((d) => d.activity_id === a.id);
+                return (
+                  <SortableActivityCard
+                    key={a.id}
+                    activity={a}
+                    decision={decision}
+                    outgoing={outgoing}
+                    activities={activities}
+                    isLast={idx === sorted.length - 1}
+                    onOpen={() => setOpenId(a.id)}
+                    onAddAfter={() => addAfter(a.id)}
+                  />
+                );
+              })}
+            </SortableContext>
+          </DndContext>
 
           <div className="flex justify-center pt-2">
             <Button variant="outline" size="sm" onClick={addFirst}>
@@ -222,6 +211,88 @@ export function FlowEditor({
           onChange={onChange}
         />
       )}
+    </div>
+  );
+}
+
+function SortableActivityCard({
+  activity: a,
+  decision,
+  outgoing,
+  activities,
+  isLast,
+  onOpen,
+  onAddAfter,
+}: {
+  activity: FlowActivity;
+  decision: FlowDecision | undefined;
+  outgoing: FlowConnection[];
+  activities: FlowActivity[];
+  isLast: boolean;
+  onOpen: () => void;
+  onAddAfter: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const Icon = TYPE_ICON[a.type] ?? Layers;
+  const isDecision = a.type === "decision";
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card
+        className="p-3 transition-transform cursor-pointer hover:bg-secondary/50"
+        onClick={onOpen}
+      >
+        <div className="flex items-start gap-2">
+          <button
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 grid place-items-center h-9 w-6 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+            aria-label="Arrastar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <div className={`shrink-0 grid h-9 w-9 place-items-center rounded-lg ${isDecision ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-sm truncate">{a.title}</p>
+              <Badge variant="outline" className="text-[10px] py-0 h-4">{TYPE_LABEL[a.type] ?? a.type}</Badge>
+            </div>
+            {isDecision && decision?.question && (
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">? {decision.question}</p>
+            )}
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+              {a.responsible && <span>👤 {a.responsible}</span>}
+              {a.area && <span>📂 {a.area}</span>}
+              {a.time_minutes ? <span>⏱ {a.time_minutes} min</span> : null}
+            </div>
+          </div>
+          <MoreVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+        </div>
+      </Card>
+
+      {outgoing.length > 0 ? (
+        <div className="pl-4 py-1 space-y-1">
+          {outgoing.map((c) => (
+            <ConnectionArrow key={c.id} connection={c} activities={activities} />
+          ))}
+        </div>
+      ) : !isLast ? (
+        <div className="flex items-center justify-center py-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddAfter(); }}
+            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+          >
+            <ArrowDown className="h-3 w-3" /> conectar
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
