@@ -261,14 +261,14 @@ function SortableActivityCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm truncate">{a.title}</p>
+              <InlineTitle activity={a} />
               <Badge variant="outline" className="text-[10px] py-0 h-4">{TYPE_LABEL[a.type] ?? a.type}</Badge>
             </div>
             {isDecision && decision?.question && (
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">? {decision.question}</p>
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-              {a.responsible && <span>👤 {a.responsible}</span>}
+              <InlineResponsible activity={a} />
               {a.area && <span>📂 {a.area}</span>}
               {a.time_minutes ? <span>⏱ {a.time_minutes} min</span> : null}
             </div>
