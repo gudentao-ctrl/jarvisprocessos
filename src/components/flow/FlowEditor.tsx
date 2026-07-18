@@ -1,11 +1,29 @@
 import { useState } from "react";
-import { Plus, MoreVertical, ArrowDown, GitBranch, GitMerge, Repeat, Layers, Circle, CheckCircle2 } from "lucide-react";
+import { Plus, MoreVertical, ArrowDown, GitBranch, GitMerge, Repeat, Layers, Circle, CheckCircle2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   addActivityRelative,
+  reorderFlowActivities,
   saveFlowActivity,
 } from "@/lib/flow.functions";
 import { autofixFlow } from "@/lib/flow-autofix.functions";
