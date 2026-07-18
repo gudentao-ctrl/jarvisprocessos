@@ -274,7 +274,7 @@ function SortableActivityCard({
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">? {decision.question}</p>
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-              <InlineResponsible activity={a} />
+              <InlineResponsible activity={a} processId={processId} onChange={onChange} />
               {a.area && <span>📂 {a.area}</span>}
               {a.time_minutes ? <span>⏱ {a.time_minutes} min</span> : null}
             </div>
