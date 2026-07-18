@@ -303,7 +303,7 @@ function SortableActivityCard({
   );
 }
 
-function InlineTitle({ activity }: { activity: FlowActivity }) {
+function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity; processId: string; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(activity.title);
   const [busy, setBusy] = useState(false);
@@ -313,8 +313,9 @@ function InlineTitle({ activity }: { activity: FlowActivity }) {
     if (!v || v === activity.title) { setEditing(false); setValue(activity.title); return; }
     setBusy(true);
     try {
-      await saveFlowActivity({ data: { id: activity.id, process_id: (activity as any).process_id ?? "", title: v, type: activity.type as any } });
+      await saveFlowActivity({ data: { id: activity.id, process_id: processId, title: v, type: activity.type as any } });
       toast.success("Título atualizado");
+      onChange();
     } catch (e: any) {
       toast.error(e?.message ?? "Erro");
       setValue(activity.title);
