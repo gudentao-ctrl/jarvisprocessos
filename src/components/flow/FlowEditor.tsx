@@ -353,7 +353,7 @@ function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity
   );
 }
 
-function InlineResponsible({ activity }: { activity: FlowActivity }) {
+function InlineResponsible({ activity, processId, onChange }: { activity: FlowActivity; processId: string; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(activity.responsible ?? "");
   const [busy, setBusy] = useState(false);
@@ -363,7 +363,8 @@ function InlineResponsible({ activity }: { activity: FlowActivity }) {
     if (v === (activity.responsible ?? "")) { setEditing(false); return; }
     setBusy(true);
     try {
-      await saveFlowActivity({ data: { id: activity.id, process_id: (activity as any).process_id ?? "", title: activity.title, type: activity.type as any, responsible: v } });
+      await saveFlowActivity({ data: { id: activity.id, process_id: processId, title: activity.title, type: activity.type as any, responsible: v } });
+      onChange();
     } catch (e: any) {
       toast.error(e?.message ?? "Erro");
       setValue(activity.responsible ?? "");
