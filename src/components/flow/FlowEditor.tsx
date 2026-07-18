@@ -267,7 +267,7 @@ function SortableActivityCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <InlineTitle activity={a} />
+              <InlineTitle activity={a} processId={processId} onChange={onChange} />
               <Badge variant="outline" className="text-[10px] py-0 h-4">{TYPE_LABEL[a.type] ?? a.type}</Badge>
             </div>
             {isDecision && decision?.question && (
