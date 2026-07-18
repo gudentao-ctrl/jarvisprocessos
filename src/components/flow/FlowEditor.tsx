@@ -297,6 +297,104 @@ function SortableActivityCard({
   );
 }
 
+function InlineTitle({ activity }: { activity: FlowActivity }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(activity.title);
+  const [busy, setBusy] = useState(false);
+
+  async function commit() {
+    const v = value.trim();
+    if (!v || v === activity.title) { setEditing(false); setValue(activity.title); return; }
+    setBusy(true);
+    try {
+      await saveFlowActivity({ data: { id: activity.id, process_id: (activity as any).process_id ?? "", title: v, type: activity.type as any } });
+      toast.success("Título atualizado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+      setValue(activity.title);
+    } finally {
+      setBusy(false);
+      setEditing(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        disabled={busy}
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Escape") { setValue(activity.title); setEditing(false); }
+        }}
+        className="font-medium text-sm bg-background border border-input rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-primary/40 min-w-0 flex-1"
+      />
+    );
+  }
+  return (
+    <p
+      className="font-medium text-sm truncate hover:underline decoration-dotted"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      title="Clique para editar"
+    >
+      {activity.title}
+    </p>
+  );
+}
+
+function InlineResponsible({ activity }: { activity: FlowActivity }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(activity.responsible ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function commit() {
+    const v = value.trim();
+    if (v === (activity.responsible ?? "")) { setEditing(false); return; }
+    setBusy(true);
+    try {
+      await saveFlowActivity({ data: { id: activity.id, process_id: (activity as any).process_id ?? "", title: activity.title, type: activity.type as any, responsible: v } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+      setValue(activity.responsible ?? "");
+    } finally {
+      setBusy(false);
+      setEditing(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        disabled={busy}
+        placeholder="responsável"
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Escape") { setValue(activity.responsible ?? ""); setEditing(false); }
+        }}
+        className="text-xs bg-background border border-input rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-primary/40 w-32"
+      />
+    );
+  }
+  return (
+    <span
+      className="hover:underline decoration-dotted cursor-text"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      title="Clique para editar"
+    >
+      👤 {activity.responsible || <span className="italic opacity-60">definir</span>}
+    </span>
+  );
+}
+
 function ConnectionArrow({
   connection,
   activities,
