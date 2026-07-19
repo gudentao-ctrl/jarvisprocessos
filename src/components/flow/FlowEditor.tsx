@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, MoreVertical, ArrowDown, GitBranch, GitMerge, Repeat, Layers, Circle, CheckCircle2, GripVertical } from "lucide-react";
+import { memo, useMemo, useState } from "react";
+import { Plus, MoreVertical, ArrowDown, GitBranch, GitMerge, Repeat, Layers, Circle, CheckCircle2, GripVertical, User, Clock, Folder, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -87,11 +87,53 @@ export function FlowEditor({
   onChange: () => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
 
-  const sorted = [...activities].sort((a, b) => a.ordering - b.ordering);
-  const active = activities.find((a) => a.id === openId) ?? null;
+  // Ordenação e pré-agrupamento (evita O(n²) por render).
+  const sorted = useMemo(
+    () => [...activities].sort((a, b) => a.ordering - b.ordering),
+    [activities],
+  );
 
-  const issues = computeIssues(sorted, connections, decisions);
+  const outgoingByFrom = useMemo(() => {
+    const m = new Map<string, FlowConnection[]>();
+    for (const c of connections) {
+      const arr = m.get(c.from_activity_id);
+      if (arr) arr.push(c);
+      else m.set(c.from_activity_id, [c]);
+    }
+    return m;
+  }, [connections]);
+
+  const incomingByTo = useMemo(() => {
+    const m = new Map<string, FlowConnection[]>();
+    for (const c of connections) {
+      const arr = m.get(c.to_activity_id);
+      if (arr) arr.push(c);
+      else m.set(c.to_activity_id, [c]);
+    }
+    return m;
+  }, [connections]);
+
+  const decisionByActivity = useMemo(() => {
+    const m = new Map<string, FlowDecision>();
+    for (const d of decisions) m.set(d.activity_id, d);
+    return m;
+  }, [decisions]);
+
+  const activityById = useMemo(() => {
+    const m = new Map<string, FlowActivity>();
+    for (const a of activities) m.set(a.id, a);
+    return m;
+  }, [activities]);
+
+  const active = openId ? activityById.get(openId) ?? null : null;
+  const focused = focusId ? activityById.get(focusId) ?? null : null;
+
+  const issues = useMemo(
+    () => computeIssues(sorted, connections, decisions),
+    [sorted, connections, decisions],
+  );
 
   async function addFirst() {
     try {
@@ -160,7 +202,7 @@ export function FlowEditor({
         <FlowOptimizePanel processId={processId} />
       </div>
       {issues.length > 0 && (
-        <FlowIssuesPanel issues={issues} activities={sorted} onFocus={(id) => setOpenId(id)} onAutofix={runAutofix} />
+        <FlowIssuesPanel issues={issues} activities={sorted} onFocus={(id) => { setFocusId(id); setOpenId(id); }} onAutofix={runAutofix} />
       )}
 
       {sorted.length === 0 ? (
@@ -169,35 +211,52 @@ export function FlowEditor({
           <Button onClick={addFirst}><Plus className="h-4 w-4 mr-1" /> Primeira atividade</Button>
         </Card>
       ) : (
-        <div className="space-y-2">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={sorted.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-              {sorted.map((a, idx) => {
-                const outgoing = connections.filter((c) => c.from_activity_id === a.id);
-                const decision = decisions.find((d) => d.activity_id === a.id);
-                return (
-                  <SortableActivityCard
-                    key={a.id}
-                    activity={a}
-                    processId={processId}
-                    decision={decision}
-                    outgoing={outgoing}
-                    activities={activities}
-                    isLast={idx === sorted.length - 1}
-                    onOpen={() => setOpenId(a.id)}
-                    onAddAfter={() => addAfter(a.id)}
-                    onChange={onChange}
-                  />
-                );
-              })}
-            </SortableContext>
-          </DndContext>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-2 min-w-0">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={sorted.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                {sorted.map((a, idx) => {
+                  const outgoing = outgoingByFrom.get(a.id) ?? [];
+                  const decision = decisionByActivity.get(a.id);
+                  return (
+                    <SortableActivityCard
+                      key={a.id}
+                      activity={a}
+                      processId={processId}
+                      decision={decision}
+                      outgoing={outgoing}
+                      activityById={activityById}
+                      isLast={idx === sorted.length - 1}
+                      isFocused={focusId === a.id}
+                      onFocus={() => setFocusId(a.id)}
+                      onOpen={() => setOpenId(a.id)}
+                      onAddAfter={() => addAfter(a.id)}
+                      onChange={onChange}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
 
-          <div className="flex justify-center pt-2">
-            <Button variant="outline" size="sm" onClick={addFirst}>
-              <Plus className="h-4 w-4 mr-1" /> Nova atividade
-            </Button>
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" size="sm" onClick={addFirst}>
+                <Plus className="h-4 w-4 mr-1" /> Nova atividade
+              </Button>
+            </div>
           </div>
+
+          <aside className="hidden lg:block">
+            <div className="sticky top-4">
+              <ActivityDetailsPanel
+                activity={focused}
+                decision={focused ? decisionByActivity.get(focused.id) : undefined}
+                outgoing={focused ? outgoingByFrom.get(focused.id) ?? [] : []}
+                incoming={focused ? incomingByTo.get(focused.id) ?? [] : []}
+                activityById={activityById}
+                onOpen={() => focused && setOpenId(focused.id)}
+              />
+            </div>
+          </aside>
         </div>
       )}
 
@@ -217,27 +276,33 @@ export function FlowEditor({
   );
 }
 
-function SortableActivityCard({
-  activity: a,
-  processId,
-  decision,
-  outgoing,
-  activities,
-  isLast,
-  onOpen,
-  onAddAfter,
-  onChange,
-}: {
+type SortableCardProps = {
   activity: FlowActivity;
   processId: string;
   decision: FlowDecision | undefined;
   outgoing: FlowConnection[];
-  activities: FlowActivity[];
+  activityById: Map<string, FlowActivity>;
   isLast: boolean;
+  isFocused: boolean;
+  onFocus: () => void;
   onOpen: () => void;
   onAddAfter: () => void;
   onChange: () => void;
-}) {
+};
+
+const SortableActivityCard = memo(function SortableActivityCard({
+  activity: a,
+  processId,
+  decision,
+  outgoing,
+  activityById,
+  isLast,
+  isFocused,
+  onFocus,
+  onOpen,
+  onAddAfter,
+  onChange,
+}: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -249,8 +314,9 @@ function SortableActivityCard({
   return (
     <div ref={setNodeRef} style={style}>
       <Card
-        className="p-3 transition-transform cursor-pointer hover:bg-secondary/50"
-        onClick={onOpen}
+        className={`p-3 transition-colors cursor-pointer hover:bg-secondary/50 ${isFocused ? "ring-2 ring-primary/50" : ""}`}
+        onMouseEnter={onFocus}
+        onClick={() => { onFocus(); onOpen(); }}
       >
         <div className="flex items-start gap-2">
           <button
@@ -286,7 +352,7 @@ function SortableActivityCard({
       {outgoing.length > 0 ? (
         <div className="pl-4 py-1 space-y-1">
           {outgoing.map((c) => (
-            <ConnectionArrow key={c.id} connection={c} activities={activities} />
+            <ConnectionArrow key={c.id} connection={c} activityById={activityById} />
           ))}
         </div>
       ) : !isLast ? (
@@ -299,6 +365,101 @@ function SortableActivityCard({
           </button>
         </div>
       ) : null}
+    </div>
+  );
+});
+
+function ActivityDetailsPanel({
+  activity,
+  decision,
+  outgoing,
+  incoming,
+  activityById,
+  onOpen,
+}: {
+  activity: FlowActivity | null;
+  decision: FlowDecision | undefined;
+  outgoing: FlowConnection[];
+  incoming: FlowConnection[];
+  activityById: Map<string, FlowActivity>;
+  onOpen: () => void;
+}) {
+  if (!activity) {
+    return (
+      <Card className="p-4 text-xs text-muted-foreground">
+        Passe o mouse sobre uma atividade para ver detalhes.
+      </Card>
+    );
+  }
+  const Icon = TYPE_ICON[activity.type] ?? Layers;
+  const isDecision = activity.type === "decision";
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <div className={`grid h-8 w-8 place-items-center rounded-lg ${isDecision ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-sm truncate">{activity.title}</p>
+          <p className="text-[11px] text-muted-foreground">{TYPE_LABEL[activity.type] ?? activity.type}</p>
+        </div>
+      </div>
+
+      <div className="space-y-1.5 text-xs">
+        <DetailRow icon={User} label="Responsável" value={activity.responsible} />
+        <DetailRow icon={Folder} label="Área" value={activity.area} />
+        <DetailRow icon={Clock} label="Tempo" value={activity.time_minutes ? `${activity.time_minutes} min` : null} />
+        {isDecision && (
+          <DetailRow icon={HelpCircle} label="Pergunta" value={decision?.question ?? null} />
+        )}
+      </div>
+
+      {activity.description && (
+        <div className="text-xs">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Descrição</p>
+          <p className="text-muted-foreground line-clamp-4 whitespace-pre-wrap">{activity.description}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Entradas ({incoming.length})</p>
+          <ul className="space-y-0.5">
+            {incoming.length === 0 && <li className="text-muted-foreground/70 italic">—</li>}
+            {incoming.slice(0, 4).map((c) => (
+              <li key={c.id} className="truncate text-muted-foreground">← {activityById.get(c.from_activity_id)?.title ?? "?"}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Saídas ({outgoing.length})</p>
+          <ul className="space-y-0.5">
+            {outgoing.length === 0 && <li className="text-muted-foreground/70 italic">—</li>}
+            {outgoing.slice(0, 4).map((c) => (
+              <li key={c.id} className="truncate text-muted-foreground">
+                {c.label ? <span className="font-medium">{c.label}: </span> : null}
+                → {activityById.get(c.to_activity_id)?.title ?? "?"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <Button size="sm" variant="outline" className="w-full" onClick={onOpen}>
+        Editar em detalhes
+      </Button>
+    </Card>
+  );
+}
+
+function DetailRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null }) {
+  return (
+    <div className="flex items-start gap-1.5">
+      <Icon className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
+      <span className="text-muted-foreground w-20 shrink-0">{label}</span>
+      <span className="min-w-0 flex-1 break-words">
+        {value || <span className="italic opacity-60">—</span>}
+      </span>
     </div>
   );
 }
@@ -403,14 +564,14 @@ function InlineResponsible({ activity, processId, onChange }: { activity: FlowAc
   );
 }
 
-function ConnectionArrow({
+const ConnectionArrow = memo(function ConnectionArrow({
   connection,
-  activities,
+  activityById,
 }: {
   connection: FlowConnection;
-  activities: FlowActivity[];
+  activityById: Map<string, FlowActivity>;
 }) {
-  const target = activities.find((a) => a.id === connection.to_activity_id);
+  const target = activityById.get(connection.to_activity_id);
   const typeColor: Record<string, string> = {
     sequential: "text-muted-foreground",
     decision: "text-amber-600",
@@ -433,7 +594,7 @@ function ConnectionArrow({
       <span className="text-muted-foreground">→ {target?.title ?? "?"}</span>
     </div>
   );
-}
+});
 
 function computeIssues(
   activities: FlowActivity[],
