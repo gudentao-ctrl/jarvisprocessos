@@ -110,13 +110,17 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         } catch { /* ignore */ }
       }
 
-      let effFormat: Exclude<Format, "auto"> = format === "auto" ? "a4" : format;
+      let effFormat: Exclude<Format, "auto"> | [number, number] = format === "auto" ? "a4" : format;
       let effOrientation: Orientation = orientation;
       if (format === "auto") {
-        // Landscape sempre para caber melhor. A3 se aspect > 1.9 (muito wide).
+        // Landscape sempre. Escolhe formato pelo aspecto do diagrama para
+        // caber o fluxo COMPLETO em uma única página, sem tiling.
         effOrientation = "landscape";
-        effFormat = bpmnAspect > 1.9 ? "a3" : "a4";
+        if (bpmnAspect > 2.4) effFormat = "a2";
+        else if (bpmnAspect > 1.75) effFormat = "a3";
+        else effFormat = "a4";
       }
+
 
       const pdf = new jsPDF({ unit: "mm", format: effFormat, orientation: effOrientation });
       const pageW = pdf.internal.pageSize.getWidth();
