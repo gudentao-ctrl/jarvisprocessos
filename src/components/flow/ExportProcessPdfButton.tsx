@@ -299,60 +299,113 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       }
 
       // -------- BPMN --------
+      // Sempre em página dedicada, fluxo COMPLETO em uma única página (sem tiling).
+      // Se o diagrama for muito largo para o formato atual, criamos uma página
+      // customizada com dimensões proporcionais ao aspecto do fluxo.
       if (sections.bpmn && props.activities.length > 0) {
-        if (cursor > contentTop + 20) { addContentPage(); cursor = contentTop; }
-        heading("Diagrama BPMN 2.0");
         try {
           const svg = bpmnSvg ?? await renderBpmnSvg(
             props.activities, props.connections, props.decisions,
             props.processName, props.companyName ?? undefined,
           );
-          const availW = pageW - marginX * 2;
-          const availH = contentBottom - cursor;
-          const pageAspect = availW / availH;
           const ratio = bpmnAspect;
-          // Se o diagrama é muito mais largo que a página, dividir em tiles horizontais.
-          const tiles = ratio > pageAspect * 1.6 ? Math.min(4, Math.ceil(ratio / pageAspect)) : 1;
 
-          if (tiles === 1) {
-            const png = await svgToPng(svg, 3000);
+          // Área útil na página padrão (após heading).
+          const stdAvailW = pageW - marginX * 2;
+          const stdAvailH = pageH - contentTop - 22; // reserva header/footer/heading
+          const stdAspect = stdAvailW / stdAvailH;
+
+          // Se cabe folgado no formato padrão, usa página normal.
+          // Caso contrário, adiciona uma página com dimensões sob medida.
+          const fitsStd = ratio <= stdAspect * 1.05;
+
+          if (fitsStd) {
+            addContentPage();
+            cursor = contentTop;
+            heading("Diagrama BPMN 2.0");
+            const availW = pageW - marginX * 2;
+            const availH = contentBottom - cursor;
             let drawW = availW;
             let drawH = drawW / ratio;
             if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
-            pdf.addImage(png.dataUrl, "PNG", marginX + (availW - drawW) / 2, cursor, drawW, drawH);
-            cursor += drawH + 6;
+            const png = await svgToPng(svg, 4000);
+            pdf.addImage(
+              png.dataUrl, "PNG",
+              marginX + (availW - drawW) / 2,
+              cursor + (availH - drawH) / 2,
+              drawW, drawH,
+            );
           } else {
-            // Renderiza em alta resolução e recorta em faixas verticais com 5% de sobreposição.
-            const fullW = 3000 * tiles / 2;
-            const png = await svgToPng(svg, fullW);
-            const tileW = png.width / tiles;
-            const overlap = Math.round(tileW * 0.05);
-            for (let t = 0; t < tiles; t++) {
-              if (t > 0) { addContentPage(); cursor = contentTop; heading(`Diagrama BPMN 2.0 — parte ${t + 1}/${tiles}`); }
-              const sx = Math.max(0, t * tileW - (t > 0 ? overlap : 0));
-              const sw = Math.min(png.width - sx, tileW + (t < tiles - 1 ? overlap : 0));
-              const c = document.createElement("canvas");
-              c.width = sw; c.height = png.height;
-              const img = new Image();
-              img.src = png.dataUrl;
-              await new Promise((r) => { img.onload = r; });
-              c.getContext("2d")!.drawImage(img, sx, 0, sw, png.height, 0, 0, sw, png.height);
-              const tileDataUrl = c.toDataURL("image/png");
-              const tileRatio = sw / png.height;
-              let drawW = availW;
-              let drawH = drawW / tileRatio;
-              if (drawH > availH) { drawH = availH; drawW = drawH * tileRatio; }
-              pdf.addImage(tileDataUrl, "PNG", marginX + (availW - drawW) / 2, cursor, drawW, drawH);
-              pdf.setFontSize(7);
-              pdf.setTextColor("#64748b");
-              pdf.text(`Tile ${t + 1}/${tiles}`, pageW - marginX, cursor + drawH + 3, { align: "right" });
-              cursor += drawH + 6;
-            }
+            // Página customizada: mantém altura base ~ A4 landscape (210mm)
+            // e cresce a largura conforme o aspecto do fluxo, com margens.
+            const baseH = 210;
+            const topBand = 24;
+            const bottomBand = 18;
+            const innerH = baseH - topBand - bottomBand;
+            const innerW = innerH * ratio;
+            const customW = Math.min(1600, innerW + marginX * 2);
+            const customH = baseH;
+
+            pdf.addPage([customW, customH], "landscape");
+            pageNum++;
+
+            // Header/footer manuais nesta página (usam dimensões locais)
+            pdf.setDrawColor(primary);
+            pdf.setLineWidth(0.4);
+            pdf.line(marginX, 16, customW - marginX, 16);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(8);
+            pdf.setTextColor(primary);
+            pdf.text(stripHtml(header).slice(0, 60) || (props.companyName ?? ""), marginX, 11);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(accent);
+            pdf.text("Diagrama BPMN 2.0 — " + title.slice(0, 60), customW / 2, 11, { align: "center" });
+            pdf.setTextColor("#475569");
+            pdf.text(`${code} · v${version} · ${emissao}`, customW - marginX, 11, { align: "right" });
+
+            // Título da seção
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(14);
+            pdf.setTextColor(primary);
+            pdf.text("Diagrama BPMN 2.0", marginX, 22);
+
+            // Imagem do BPMN ocupa toda a área útil.
+            const availW = customW - marginX * 2;
+            const availH = customH - topBand - bottomBand;
+            let drawW = availW;
+            let drawH = drawW / ratio;
+            if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
+            // Resolução alta o bastante para páginas muito largas.
+            const targetPx = Math.max(4000, Math.round(customW * 12));
+            const png = await svgToPng(svg, targetPx);
+            pdf.addImage(
+              png.dataUrl, "PNG",
+              marginX + (availW - drawW) / 2,
+              topBand + (availH - drawH) / 2,
+              drawW, drawH,
+            );
+
+            // Footer
+            pdf.setDrawColor(primary);
+            pdf.line(marginX, customH - 14, customW - marginX, customH - 14);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(8);
+            pdf.setTextColor("#475569");
+            pdf.text(stripHtml(footer).slice(0, 90), marginX, customH - 8);
+            pdf.text(consultant, customW / 2, customH - 8, { align: "center" });
+            pdf.text(`Página ${pageNum} / ${totalPagesToken}`, customW - marginX, customH - 8, { align: "right" });
+
+            // Volta para página padrão para o próximo bloco.
+            addContentPage();
+            cursor = contentTop;
           }
         } catch (e: any) {
+          if (cursor > contentBottom - 20) { addContentPage(); cursor = contentTop; }
+          heading("Diagrama BPMN 2.0");
           paragraph(`[Falha ao renderizar BPMN: ${e?.message ?? "erro"}]`);
         }
       }
+
 
       // -------- LEGEND --------
       if (sections.legend) {
