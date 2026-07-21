@@ -110,7 +110,7 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         } catch { /* ignore */ }
       }
 
-      let effFormat: Exclude<Format, "auto"> | [number, number] = format === "auto" ? "a4" : format;
+      let effFormat: string | [number, number] = format === "auto" ? "a4" : format;
       let effOrientation: Orientation = orientation;
       if (format === "auto") {
         // Landscape sempre. Escolhe formato pelo aspecto do diagrama para
@@ -122,7 +122,8 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       }
 
 
-      const pdf = new jsPDF({ unit: "mm", format: effFormat, orientation: effOrientation });
+      const pdf = new jsPDF({ unit: "mm", format: effFormat as any, orientation: effOrientation });
+
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const marginX = 14;
