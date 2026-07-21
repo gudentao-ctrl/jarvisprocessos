@@ -103,11 +103,31 @@ ${outFlows}
   const allBoxes = [...layout.positions.values()];
   const outsByNode = new Map<string, string[]>();
   const insByNode = new Map<string, string[]>();
-  for (const c of g.connections) {
-    if (!outsByNode.has(c.from_activity_id)) outsByNode.set(c.from_activity_id, []);
-    if (!insByNode.has(c.to_activity_id)) insByNode.set(c.to_activity_id, []);
-    outsByNode.get(c.from_activity_id)!.push(c.id);
-    insByNode.get(c.to_activity_id)!.push(c.id);
+  // Ordena outgoings por Y do alvo (topo → base) para que os canais
+  // verticais do fan-out fiquem paralelos e não se cruzem.
+  const midY = (id: string) => {
+    const p = layout.positions.get(id);
+    return p ? p.y + p.h / 2 : 0;
+  };
+  const midX = (id: string) => {
+    const p = layout.positions.get(id);
+    return p ? p.x + p.w / 2 : 0;
+  };
+  for (const [fromId, node] of g.nodes) {
+    const outs = [...node.outs].sort((a, b) => {
+      const dy = midY(a.to_activity_id) - midY(b.to_activity_id);
+      if (Math.abs(dy) > 4) return dy;
+      return midX(a.to_activity_id) - midX(b.to_activity_id);
+    });
+    outsByNode.set(fromId, outs.map((c) => c.id));
+  }
+  for (const [toId, node] of g.nodes) {
+    const ins = [...node.ins].sort((a, b) => {
+      const dy = midY(a.from_activity_id) - midY(b.from_activity_id);
+      if (Math.abs(dy) > 4) return dy;
+      return midX(a.from_activity_id) - midX(b.from_activity_id);
+    });
+    insByNode.set(toId, ins.map((c) => c.id));
   }
   const edges: string[] = [];
   for (const c of g.connections) {
