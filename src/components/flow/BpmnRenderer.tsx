@@ -13,6 +13,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { buildBpmnXml } from "@/lib/flow-to-bpmn";
+import { autoLayoutBpmn } from "@/lib/bpmn/auto-layout";
 import type { FlowActivity, FlowConnection, FlowDecision } from "./FlowEditor";
 import { BpmnLegend } from "./BpmnLegend";
 
