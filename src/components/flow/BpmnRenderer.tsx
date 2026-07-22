@@ -326,7 +326,8 @@ export async function renderBpmnSvg(
     const { xml } = buildBpmnXml(activities, connections, decisions, {
       processName, companyName, direction: "LR",
     });
-    await viewer.importXML(xml);
+    const laidOut = await autoLayoutBpmn(xml);
+    await viewer.importXML(laidOut);
     const canvas: any = viewer.get("canvas");
     canvas.zoom("fit-viewport", 0);
     const { svg } = await viewer.saveSVG();
