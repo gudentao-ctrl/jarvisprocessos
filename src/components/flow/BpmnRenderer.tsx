@@ -103,7 +103,8 @@ export function BpmnRenderer({
         const { xml, usedElements } = buildBpmnXml(activities, connections, decisions, {
           processName, companyName, direction: "LR",
         });
-        cached = { xml, used: usedElements };
+        const laidOut = await autoLayoutBpmn(xml);
+        cached = { xml: laidOut, used: usedElements };
         xmlCache.set(inputHash, cached);
       }
       setUsedEls(cached.used);
