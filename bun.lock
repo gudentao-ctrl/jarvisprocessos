@@ -43,6 +43,7 @@
         "@tanstack/router-plugin": "^1.167.28",
         "@types/dagre": "^0.7.54",
         "ai": "^6.0.208",
+        "bpmn-auto-layout": "^1.3.0",
         "bpmn-js": "^18.21.0",
         "canvg": "^4.0.3",
         "class-variance-authority": "^0.7.1",
@@ -777,6 +778,8 @@
     "binary-extensions": ["binary-extensions@2.3.0", "", {}, "sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw=="],
 
     "boolbase": ["boolbase@1.0.0", "", {}, "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww=="],
+
+    "bpmn-auto-layout": ["bpmn-auto-layout@1.3.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/bpmn-auto-layout/-/bpmn-auto-layout-1.3.0.tgz", { "dependencies": { "bpmn-moddle": "^10.0.0", "min-dash": "^5.0.0" } }, "sha512-ufjMy1MaaZxkQF7f2wY6EL6TnRMSFr/r9eBhp0QvS41UHXW77aQVt65+dn2MmVMlHdyvZyOMNYXO2qYpgX6bQA=="],
 
     "bpmn-js": ["bpmn-js@18.21.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/bpmn-js/-/bpmn-js-18.21.0.tgz", { "dependencies": { "bpmn-moddle": "^10.0.0", "diagram-js": "^15.20.0", "diagram-js-direct-editing": "^3.4.0", "ids": "^3.0.2", "inherits-browser": "^0.1.0", "min-dash": "^5.0.0", "min-dom": "^5.3.0", "tiny-svg": "^4.1.4" } }, "sha512-TVPsgsTnD24jrcZ5bjU3LAfhEp4UtfnRIQ53Spf7Cs2nMofFU27uZ/Z5MTxNzfB5PVczjZbx7UTRmq+RcCZ7HA=="],
 
