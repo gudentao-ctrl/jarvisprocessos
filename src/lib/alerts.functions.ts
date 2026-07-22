@@ -125,16 +125,6 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
       }
     }
 
-    for (const pr of procs.data ?? []) {
-      alerts.push({
-        id: `proc-${pr.id}`,
-        category: "process_unvalidated",
-        severity: "info",
-        title: pr.name,
-        subtitle: "Processo em rascunho — aguarda validação",
-        href: `/processos/${pr.id}`,
-      });
-    }
 
     for (const iv of intvs.data ?? []) {
       alerts.push({
