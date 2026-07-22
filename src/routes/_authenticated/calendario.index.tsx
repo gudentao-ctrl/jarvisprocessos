@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { listInterviews, listCompanies } from "@/lib/interviews.functions";
-import { listProjects } from "@/lib/projects.functions";
 import { listEvents, saveEvent, deleteEvent } from "@/lib/calendar-events.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, CalendarClock, Trash2, Pencil, MapPin } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/calendario/")({
   component: CalendarioPage,
@@ -43,25 +41,23 @@ const emptyForm = {
 };
 
 function CalendarioPage() {
-  const { companyId } = useActiveCompany();
+  const [filterCompanyId, setFilterCompanyId] = useState<string>("");
   const listEv = useServerFn(listEvents);
   const listI = useServerFn(listInterviews);
   const listC = useServerFn(listCompanies);
-  const listP = useServerFn(listProjects);
   const save = useServerFn(saveEvent);
   const del = useServerFn(deleteEvent);
   const qc = useQueryClient();
 
   const { data: events = [] } = useQuery({
-    queryKey: ["calendar-events", companyId],
-    queryFn: () => listEv({ data: companyId ? { company_id: companyId } : {} }),
+    queryKey: ["calendar-events", filterCompanyId || "all"],
+    queryFn: () => listEv({ data: filterCompanyId ? { company_id: filterCompanyId } : {} }),
   });
   const { data: interviews = [] } = useQuery({
-    queryKey: ["interviews", companyId],
-    queryFn: () => listI({ data: companyId ? { company_id: companyId } : {} }),
+    queryKey: ["interviews", filterCompanyId || "all"],
+    queryFn: () => listI({ data: filterCompanyId ? { company_id: filterCompanyId } : {} }),
   });
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => listC() });
-  const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => listP() });
 
   const [selected, setSelected] = useState<Date | undefined>(new Date());
   const [open, setOpen] = useState(false);
@@ -167,6 +163,19 @@ function CalendarioPage() {
         </Button>
       </div>
 
+      <div>
+        <Label className="text-xs text-muted-foreground">Filtrar por empresa</Label>
+        <Select value={filterCompanyId || "all"} onValueChange={(v) => setFilterCompanyId(v === "all" ? "" : v)}>
+          <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as empresas</SelectItem>
+            {(companies as any[]).map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card className="p-2 sm:p-4">
         <Calendar
           mode="single"
@@ -251,33 +260,17 @@ function CalendarioPage() {
                 <Input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Empresa</Label>
-                <Select value={form.company_id || "none"} onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— sem empresa —</SelectItem>
-                    {(companies as any[]).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Projeto</Label>
-                <Select value={form.project_id || "none"} onValueChange={(v) => setForm({ ...form, project_id: v === "none" ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— sem projeto —</SelectItem>
-                    {(projects as any[])
-                      .filter((p) => !form.company_id || p.company_id === form.company_id)
-                      .map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label>Empresa</Label>
+              <Select value={form.company_id || "none"} onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— sem empresa —</SelectItem>
+                  {(companies as any[]).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Descrição</Label>
