@@ -41,25 +41,23 @@ const emptyForm = {
 };
 
 function CalendarioPage() {
-  const { companyId } = useActiveCompany();
+  const [filterCompanyId, setFilterCompanyId] = useState<string>("");
   const listEv = useServerFn(listEvents);
   const listI = useServerFn(listInterviews);
   const listC = useServerFn(listCompanies);
-  const listP = useServerFn(listProjects);
   const save = useServerFn(saveEvent);
   const del = useServerFn(deleteEvent);
   const qc = useQueryClient();
 
   const { data: events = [] } = useQuery({
-    queryKey: ["calendar-events", companyId],
-    queryFn: () => listEv({ data: companyId ? { company_id: companyId } : {} }),
+    queryKey: ["calendar-events", filterCompanyId || "all"],
+    queryFn: () => listEv({ data: filterCompanyId ? { company_id: filterCompanyId } : {} }),
   });
   const { data: interviews = [] } = useQuery({
-    queryKey: ["interviews", companyId],
-    queryFn: () => listI({ data: companyId ? { company_id: companyId } : {} }),
+    queryKey: ["interviews", filterCompanyId || "all"],
+    queryFn: () => listI({ data: filterCompanyId ? { company_id: filterCompanyId } : {} }),
   });
   const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => listC() });
-  const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => listP() });
 
   const [selected, setSelected] = useState<Date | undefined>(new Date());
   const [open, setOpen] = useState(false);
