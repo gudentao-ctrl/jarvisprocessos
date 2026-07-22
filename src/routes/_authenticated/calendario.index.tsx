@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { listInterviews, listCompanies } from "@/lib/interviews.functions";
-import { listProjects } from "@/lib/projects.functions";
 import { listEvents, saveEvent, deleteEvent } from "@/lib/calendar-events.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, CalendarClock, Trash2, Pencil, MapPin } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/calendario/")({
   component: CalendarioPage,
