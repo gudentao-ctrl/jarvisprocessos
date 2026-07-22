@@ -163,6 +163,19 @@ function CalendarioPage() {
         </Button>
       </div>
 
+      <div>
+        <Label className="text-xs text-muted-foreground">Filtrar por empresa</Label>
+        <Select value={filterCompanyId || "all"} onValueChange={(v) => setFilterCompanyId(v === "all" ? "" : v)}>
+          <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as empresas</SelectItem>
+            {(companies as any[]).map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card className="p-2 sm:p-4">
         <Calendar
           mode="single"
