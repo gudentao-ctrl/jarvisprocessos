@@ -13,6 +13,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { buildBpmnXml } from "@/lib/flow-to-bpmn";
+import { autoLayoutBpmn } from "@/lib/bpmn/auto-layout";
 import type { FlowActivity, FlowConnection, FlowDecision } from "./FlowEditor";
 import { BpmnLegend } from "./BpmnLegend";
 
@@ -102,7 +103,8 @@ export function BpmnRenderer({
         const { xml, usedElements } = buildBpmnXml(activities, connections, decisions, {
           processName, companyName, direction: "LR",
         });
-        cached = { xml, used: usedElements };
+        const laidOut = await autoLayoutBpmn(xml);
+        cached = { xml: laidOut, used: usedElements };
         xmlCache.set(inputHash, cached);
       }
       setUsedEls(cached.used);
@@ -324,7 +326,8 @@ export async function renderBpmnSvg(
     const { xml } = buildBpmnXml(activities, connections, decisions, {
       processName, companyName, direction: "LR",
     });
-    await viewer.importXML(xml);
+    const laidOut = await autoLayoutBpmn(xml);
+    await viewer.importXML(laidOut);
     const canvas: any = viewer.get("canvas");
     canvas.zoom("fit-viewport", 0);
     const { svg } = await viewer.saveSVG();
