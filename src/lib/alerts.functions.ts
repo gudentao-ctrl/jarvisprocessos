@@ -38,7 +38,7 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
       return q;
     };
 
-    const [indStatus, plans, procs, intvs, upcoming] = await Promise.all([
+    const [indStatus, plans, intvs, upcoming] = await Promise.all([
       scope(
         sb.from("v_indicator_status").select("id, name, code, status, last_value, target, unit, company_id, project_id"),
       ) as any,
@@ -47,9 +47,6 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
           .select("id, title, due_date, status, responsible, company_id, project_id")
           .neq("status", "concluido")
           .not("due_date", "is", null),
-      ) as any,
-      scope(
-        sb.from("processes").select("id, name, status, company_id, project_id").eq("status", "draft"),
       ) as any,
       scope(
         sb.from("interviews")
@@ -128,16 +125,6 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
       }
     }
 
-    for (const pr of procs.data ?? []) {
-      alerts.push({
-        id: `proc-${pr.id}`,
-        category: "process_unvalidated",
-        severity: "info",
-        title: pr.name,
-        subtitle: "Processo em rascunho — aguarda validação",
-        href: `/processos/${pr.id}`,
-      });
-    }
 
     for (const iv of intvs.data ?? []) {
       alerts.push({
