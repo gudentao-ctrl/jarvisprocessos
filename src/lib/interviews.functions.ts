@@ -11,7 +11,7 @@ export const listCompanies = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("companies")
-      .select("id, name, sectors(id, name)")
+      .select("id, name, public_enabled, sectors(id, name)")
       .order("name");
     if (error) throw new Error(error.message);
     return data ?? [];
