@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
@@ -76,6 +77,11 @@ const IndexRoute = IndexRouteImport.update({
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardTokenRoute = DashboardTokenRouteImport.update({
+  id: '/dashboard/$token',
+  path: '/dashboard/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CTokenRoute = CTokenRouteImport.update({
@@ -346,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
+  '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$token': typeof PTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
@@ -396,6 +403,7 @@ export interface FileRoutesByTo {
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
+  '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$token': typeof PTokenRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
@@ -447,6 +455,7 @@ export interface FileRoutesById {
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/_authenticated/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
+  '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$token': typeof PTokenRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/_authenticated/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
@@ -499,6 +508,7 @@ export interface FileRouteTypes {
     | '/empresas'
     | '/template-documentos'
     | '/c/$token'
+    | '/dashboard/$token'
     | '/p/$token'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
@@ -549,6 +559,7 @@ export interface FileRouteTypes {
     | '/empresas'
     | '/template-documentos'
     | '/c/$token'
+    | '/dashboard/$token'
     | '/p/$token'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
@@ -599,6 +610,7 @@ export interface FileRouteTypes {
     | '/_authenticated/empresas'
     | '/_authenticated/template-documentos'
     | '/c/$token'
+    | '/dashboard/$token'
     | '/p/$token'
     | '/_authenticated/causa-raiz/$id'
     | '/_authenticated/cronoanalise/$id'
@@ -648,6 +660,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
+  DashboardTokenRoute: typeof DashboardTokenRoute
   PTokenRoute: typeof PTokenRoute
   ApiPublicColetasTokenRoute: typeof ApiPublicColetasTokenRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$token'
       fullPath: '/p/$token'
       preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/$token': {
+      id: '/dashboard/$token'
+      path: '/dashboard/$token'
+      fullPath: '/dashboard/$token'
+      preLoaderRoute: typeof DashboardTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$token': {
@@ -1118,6 +1138,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
+  DashboardTokenRoute: DashboardTokenRoute,
   PTokenRoute: PTokenRoute,
   ApiPublicColetasTokenRoute: ApiPublicColetasTokenRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
