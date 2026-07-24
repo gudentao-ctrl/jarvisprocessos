@@ -42,7 +42,12 @@ export const updatePortalSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      public_enabled?: boolean;
+      public_title?: string | null;
+      public_company_logo_url?: string | null;
+      public_consultancy_logo_url?: string | null;
+    } = {};
     if (data.public_enabled !== undefined) patch.public_enabled = data.public_enabled;
     if (data.public_title !== undefined) patch.public_title = data.public_title || null;
     if (data.public_company_logo_url !== undefined)
