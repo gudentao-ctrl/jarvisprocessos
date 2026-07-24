@@ -9,7 +9,8 @@ import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Building2, Plus, Trash2, X, Radar, Check } from "lucide-react";
+import { Building2, Plus, Trash2, X, Radar, Check, Globe } from "lucide-react";
+import { PortalPublicoDialog } from "@/components/company/PortalPublicoDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/empresas")({
