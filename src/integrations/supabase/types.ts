@@ -423,6 +423,11 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
+          public_company_logo_url: string | null
+          public_consultancy_logo_url: string | null
+          public_enabled: boolean
+          public_title: string | null
+          public_token: string | null
           updated_at: string
         }
         Insert: {
@@ -430,6 +435,11 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
+          public_company_logo_url?: string | null
+          public_consultancy_logo_url?: string | null
+          public_enabled?: boolean
+          public_title?: string | null
+          public_token?: string | null
           updated_at?: string
         }
         Update: {
@@ -437,6 +447,11 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+          public_company_logo_url?: string | null
+          public_consultancy_logo_url?: string | null
+          public_enabled?: boolean
+          public_title?: string | null
+          public_token?: string | null
           updated_at?: string
         }
         Relationships: []
