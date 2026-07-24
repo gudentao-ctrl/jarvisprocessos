@@ -112,6 +112,7 @@ function CompanyCard({
   onAddSector: (name: string) => void; onDeleteSector: (id: string) => void;
 }) {
   const [sectorName, setSectorName] = useState("");
+  const [portalOpen, setPortalOpen] = useState(false);
   return (
     <Card className={active ? "p-4 ring-2 ring-primary" : "p-4"}>
       <div className="flex items-start justify-between gap-2">
@@ -119,7 +120,15 @@ function CompanyCard({
           <Building2 className="h-4 w-4 shrink-0 text-primary" />
           <h3 className="truncate font-semibold">{company.name}</h3>
           {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+          {company.public_enabled && (
+            <span title="Portal público ativo">
+              <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            </span>
+          )}
         </button>
+        <Button size="sm" variant="outline" onClick={() => setPortalOpen(true)} className="h-8 gap-1">
+          <Globe className="h-3.5 w-3.5" /> Portal
+        </Button>
         <Button size="sm" variant="outline" onClick={onOpen} className="h-8 gap-1">
           <Radar className="h-3.5 w-3.5" /> Abrir
         </Button>
@@ -127,6 +136,13 @@ function CompanyCard({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+      <PortalPublicoDialog
+        companyId={company.id}
+        companyName={company.name}
+        open={portalOpen}
+        onOpenChange={setPortalOpen}
+      />
+
 
       <div className="mt-3 space-y-1">
         {(company.sectors ?? []).map((s: any) => (
