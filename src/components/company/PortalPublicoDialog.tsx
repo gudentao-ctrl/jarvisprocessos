@@ -264,26 +264,20 @@ export function PortalPublicoDialog({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>URL do logotipo da empresa</Label>
-              <Input
-                value={companyLogo}
-                onChange={(e) => setCompanyLogo(e.target.value)}
-                placeholder="https://…/logo-empresa.png"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Cole a URL de uma imagem já hospedada (PNG/JPG/SVG).
-              </p>
-            </div>
+            <LogoUpload
+              label="Logotipo da empresa"
+              companyId={companyId}
+              path={companyLogo}
+              onChange={setCompanyLogo}
+            />
 
-            <div className="space-y-2">
-              <Label>URL do logotipo da consultoria</Label>
-              <Input
-                value={consultancyLogo}
-                onChange={(e) => setConsultancyLogo(e.target.value)}
-                placeholder="https://…/logo-consultoria.png"
-              />
-            </div>
+            <LogoUpload
+              label="Logotipo da consultoria"
+              companyId={companyId}
+              path={consultancyLogo}
+              onChange={setConsultancyLogo}
+            />
+
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
