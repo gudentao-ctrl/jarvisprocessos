@@ -30,14 +30,8 @@ export const updatePortalSettings = createServerFn({ method: "POST" })
         company_id: z.string().uuid(),
         public_enabled: z.boolean().optional(),
         public_title: z.string().max(200).nullable().optional(),
-        public_company_logo_url: z.string().url().max(1000).nullable().optional().or(z.literal("")),
-        public_consultancy_logo_url: z
-          .string()
-          .url()
-          .max(1000)
-          .nullable()
-          .optional()
-          .or(z.literal("")),
+        public_company_logo_url: z.string().max(1000).nullable().optional(),
+        public_consultancy_logo_url: z.string().max(1000).nullable().optional(),
       })
       .parse(d),
   )
@@ -99,6 +93,14 @@ async function adminClient() {
   });
 }
 
+/** Converte um caminho no bucket privado em URL assinada; mantém URLs http intactas. */
+async function resolveLogo(sb: any, value: string | null): Promise<string | null> {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  const { data } = await sb.storage.from("portal-logos").createSignedUrl(value, 60 * 60 * 12);
+  return data?.signedUrl ?? null;
+}
+
 export const getPublicDashboard = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ token: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
@@ -150,13 +152,18 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
       collections = cols ?? [];
     }
 
+    const [companyLogo, consultancyLogo] = await Promise.all([
+      resolveLogo(sb, company.public_company_logo_url as string | null),
+      resolveLogo(sb, company.public_consultancy_logo_url as string | null),
+    ]);
+
     return {
       company: {
         id: company.id,
         name: company.name,
         title: company.public_title || company.name,
-        company_logo_url: company.public_company_logo_url,
-        consultancy_logo_url: company.public_consultancy_logo_url,
+        company_logo_url: companyLogo,
+        consultancy_logo_url: consultancyLogo,
         updated_at: company.updated_at,
       },
       indicators: indicators.data ?? [],
