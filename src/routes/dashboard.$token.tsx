@@ -24,6 +24,14 @@ import {
   Legend,
 } from "recharts";
 import {
+  IndicatorSpark,
+  IndicatorDetailChart,
+  pickChartKind,
+  chartKindLabel,
+  formatValue,
+} from "@/components/portal/indicator-chart";
+
+import {
   TrendingUp,
   TrendingDown,
   Minus,
