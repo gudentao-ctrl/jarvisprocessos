@@ -464,11 +464,8 @@ function IndicatorCard({
 
         <div className="mt-3 flex items-end gap-2">
           <p className={`text-2xl font-bold tabular-nums ${toneClass}`}>
-            {currentValue != null ? Number(currentValue).toLocaleString("pt-BR") : "—"}
+            {formatValue(currentValue, indicator.unit)}
           </p>
-          {indicator.unit && (
-            <span className="pb-1 text-xs text-muted-foreground">{indicator.unit}</span>
-          )}
           {trend !== 0 && (
             <span className={`ml-auto pb-1 ${trend > 0 ? "text-emerald-600" : "text-destructive"}`}>
               {trend > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
@@ -479,24 +476,22 @@ function IndicatorCard({
           )}
         </div>
 
-        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           {indicator.target != null && (
             <span className="inline-flex items-center gap-1">
-              <Target className="h-3 w-3" /> Meta {Number(indicator.target).toLocaleString("pt-BR")}
+              <Target className="h-3 w-3" /> Meta {formatValue(Number(indicator.target), indicator.unit)}
             </span>
           )}
-          {pct != null && <span className="tabular-nums">· {pct}%</span>}
+          {pct != null && <span className="tabular-nums">· {pct}% atingido</span>}
+          <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+            {chartKindLabel(kind)}
+          </span>
         </div>
 
-        <div className="mt-3 h-12">
-          {spark.length > 1 && (
-            <ResponsiveContainer>
-              <LineChart data={spark} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-                <Line type="monotone" dataKey="y" stroke="hsl(217 91% 60%)" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
+        <div className="mt-3">
+          <IndicatorSpark indicator={indicator} collections={collections} height={64} />
         </div>
+
 
         <p className="mt-2 text-[10px] text-muted-foreground">
           {last
