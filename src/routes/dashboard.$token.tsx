@@ -447,7 +447,7 @@ function IndicatorCard({
       ? "text-amber-600 dark:text-amber-400"
       : "text-emerald-600 dark:text-emerald-400";
 
-  const spark = collections.slice(-12).map((c) => ({ x: c.submitted_at, y: Number(c.value) }));
+  const kind = pickChartKind(indicator, collections.length);
 
   return (
     <button
