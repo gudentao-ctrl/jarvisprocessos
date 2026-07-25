@@ -152,13 +152,18 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
       collections = cols ?? [];
     }
 
+    const [companyLogo, consultancyLogo] = await Promise.all([
+      resolveLogo(sb, company.public_company_logo_url as string | null),
+      resolveLogo(sb, company.public_consultancy_logo_url as string | null),
+    ]);
+
     return {
       company: {
         id: company.id,
         name: company.name,
         title: company.public_title || company.name,
-        company_logo_url: company.public_company_logo_url,
-        consultancy_logo_url: company.public_consultancy_logo_url,
+        company_logo_url: companyLogo,
+        consultancy_logo_url: consultancyLogo,
         updated_at: company.updated_at,
       },
       indicators: indicators.data ?? [],
