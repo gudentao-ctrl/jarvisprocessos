@@ -93,6 +93,14 @@ async function adminClient() {
   });
 }
 
+/** Converte um caminho no bucket privado em URL assinada; mantém URLs http intactas. */
+async function resolveLogo(sb: any, value: string | null): Promise<string | null> {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  const { data } = await sb.storage.from("portal-logos").createSignedUrl(value, 60 * 60 * 12);
+  return data?.signedUrl ?? null;
+}
+
 export const getPublicDashboard = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ token: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
