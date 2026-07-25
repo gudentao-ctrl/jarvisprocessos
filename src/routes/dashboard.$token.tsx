@@ -513,43 +513,40 @@ function IndicatorDialog({
   onClose: () => void;
 }) {
   if (!indicator) return null;
-  const chartData = collections.map((c) => ({
-    date: new Date(c.submitted_at).toLocaleDateString("pt-BR"),
-    value: Number(c.value),
-  }));
+  const kind = pickChartKind(indicator, collections.length);
+  const last = collections[collections.length - 1];
+  const pct =
+    indicator.target && last?.value != null && Number(indicator.target) !== 0
+      ? Math.round((Number(last.value) / Number(indicator.target)) * 100)
+      : null;
   return (
     <Dialog open={!!indicator} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{indicator.name}</DialogTitle>
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            {indicator.name}
+            <Badge variant="outline" className="text-[10px] font-normal">
+              {chartKindLabel(kind)}
+            </Badge>
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MiniStat label="Meta" value={indicator.target != null ? String(indicator.target) : "—"} />
-            <MiniStat label="Unidade" value={indicator.unit || "—"} />
-            <MiniStat label="Frequência" value={indicator.frequency || "—"} />
+            <MiniStat
+              label="Valor atual"
+              value={formatValue(last?.value != null ? Number(last.value) : null, indicator.unit)}
+            />
+            <MiniStat
+              label="Meta"
+              value={indicator.target != null ? formatValue(Number(indicator.target), indicator.unit) : "—"}
+            />
+            <MiniStat label="Atingimento" value={pct != null ? `${pct}%` : "—"} />
             <MiniStat label="Coletas" value={String(collections.length)} />
           </div>
           <div className="h-72">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="date" fontSize={11} />
-                  <YAxis fontSize={11} />
-                  <Tooltip />
-                  {indicator.target != null && (
-                    <ReferenceLine y={Number(indicator.target)} stroke="hsl(142 76% 36%)" strokeDasharray="4 4" label="Meta" />
-                  )}
-                  <Line type="monotone" dataKey="value" stroke="hsl(217 91% 60%)" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="grid h-full place-items-center text-sm text-muted-foreground">
-                Sem coletas no período
-              </div>
-            )}
+            <IndicatorDetailChart indicator={indicator} collections={collections} />
           </div>
+
           <div className="max-h-64 overflow-y-auto rounded-md border">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
