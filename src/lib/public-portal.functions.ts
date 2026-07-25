@@ -30,14 +30,8 @@ export const updatePortalSettings = createServerFn({ method: "POST" })
         company_id: z.string().uuid(),
         public_enabled: z.boolean().optional(),
         public_title: z.string().max(200).nullable().optional(),
-        public_company_logo_url: z.string().url().max(1000).nullable().optional().or(z.literal("")),
-        public_consultancy_logo_url: z
-          .string()
-          .url()
-          .max(1000)
-          .nullable()
-          .optional()
-          .or(z.literal("")),
+        public_company_logo_url: z.string().max(1000).nullable().optional(),
+        public_consultancy_logo_url: z.string().max(1000).nullable().optional(),
       })
       .parse(d),
   )
