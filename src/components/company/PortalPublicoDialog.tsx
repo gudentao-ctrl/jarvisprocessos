@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -6,13 +6,130 @@ import {
   updatePortalSettings,
   regeneratePortalToken,
 } from "@/lib/public-portal.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Copy, ExternalLink, RefreshCw, Globe } from "lucide-react";
+import { Copy, ExternalLink, RefreshCw, Globe, Upload, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const BUCKET = "portal-logos";
+
+function LogoUpload({
+  label,
+  companyId,
+  path,
+  onChange,
+}: {
+  label: string;
+  companyId: string;
+  path: string;
+  onChange: (path: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!path) {
+        setPreview(null);
+        return;
+      }
+      if (/^https?:\/\//i.test(path)) {
+        setPreview(path);
+        return;
+      }
+      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+      if (alive) setPreview(data?.signedUrl ?? null);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+
+  async function pick(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Envie um arquivo de imagem (PNG, JPG ou SVG)");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 2 MB)");
+      return;
+    }
+    setBusy(true);
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const key = `${companyId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(key, file, { contentType: file.type, upsert: true });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    onChange(key);
+    toast.success("Logotipo enviado — salve para aplicar");
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-3 rounded-md border p-3">
+        <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+          {preview ? (
+            <img src={preview} alt={label} className="max-h-16 max-w-24 object-contain" />
+          ) : (
+            <span className="text-[10px] text-muted-foreground">sem logo</span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? (
+              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="mr-1 h-3.5 w-3.5" />
+            )}
+            {path ? "Substituir" : "Enviar imagem"}
+          </Button>
+          {path && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onChange("")}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover
+            </Button>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) pick(f);
+            e.target.value = "";
+          }}
+        />
+      </div>
+      <p className="text-[10px] text-muted-foreground">PNG, JPG ou SVG até 2 MB.</p>
+    </div>
+  );
+}
+
 
 export function PortalPublicoDialog({
   companyId,
