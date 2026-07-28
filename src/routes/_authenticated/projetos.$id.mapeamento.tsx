@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, Workflow, Timer, Share2, GitBranch, HeartCrack, Map } from "lucide-react";
 import { listProcesses, listCronoSessions, listPains } from "@/lib/processes.functions";
-import { PageHeader, StatPill, accentBg, accentText, type MapAccent } from "@/components/mapping/PageHeader";
+import { PageHeader, StatPill, accentBar, accentBg, accentText, type MapAccent } from "@/components/mapping/PageHeader";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id/mapeamento")({
@@ -94,7 +94,7 @@ function MapeamentoHub() {
                 "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               )}
             >
-              <span className={cn("absolute inset-y-0 left-0 w-1", accentBg[i.accent].replace("/10", ""))} />
+              <span className={cn("absolute inset-y-0 left-0 w-1", accentBar[i.accent])} />
               <div
                 className={cn(
                   "ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-xl",
