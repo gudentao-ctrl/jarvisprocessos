@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Map, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, HeartCrack } from "lucide-react";
+import { PageHeader, StatPill } from "@/components/mapping/PageHeader";
+import { EmptyState } from "@/components/mapping/EmptyState";
 import { listPains, savePain, deletePain } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { Button } from "@/components/ui/button";
