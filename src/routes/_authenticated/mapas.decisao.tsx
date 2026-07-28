@@ -13,7 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, GitBranch, ShieldCheck, Clock, User } from "lucide-react";
+import { PageHeader, StatPill } from "@/components/mapping/PageHeader";
+import { EmptyState } from "@/components/mapping/EmptyState";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/mapas/decisao")({
@@ -78,76 +80,113 @@ function MapaDec() {
     saveMut.mutate(editing);
   }
 
+  const approvals = items.filter((i) => i.approval_required).length;
+  const delays = items.filter((i) => !!i.reported_delay).length;
+
+  const actions = (
+    <>
+      <Select value={companyId} onValueChange={setCompanyId}>
+        <SelectTrigger className="h-10 w-40 sm:w-52"><SelectValue placeholder="Empresa" /></SelectTrigger>
+        <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+      </Select>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button onClick={openNew} disabled={companyProcesses.length === 0} className="min-h-10"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
+        </DialogTrigger>
+
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing?.id ? "Editar" : "Nova"} decisão</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div>
+                <Label>Processo *</Label>
+                <Select value={editing.process_id} onValueChange={(v) => setEditing({ ...editing, process_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{companyProcesses.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Decisor</Label><Input value={editing.decider} onChange={(e) => setEditing({ ...editing, decider: e.target.value })} /></div>
+              <div><Label>Decisão</Label><Input value={editing.decision} onChange={(e) => setEditing({ ...editing, decision: e.target.value })} /></div>
+              <div><Label>Atraso relatado</Label><Input value={editing.reported_delay} onChange={(e) => setEditing({ ...editing, reported_delay: e.target.value })} placeholder="ex.: 2 dias" /></div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={editing.approval_required} onChange={(e) => setEditing({ ...editing, approval_required: e.target.checked })} />
+                Requer aprovação
+              </label>
+              <div><Label>Notas</Label><Textarea value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
+              <Button onClick={submit} className="w-full min-h-11" disabled={saveMut.isPending}>
+                <Check className="h-4 w-4 mr-1" /> {saveMut.isPending ? "Salvando…" : "Salvar"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold sm:text-2xl">Mapa de Decisão</h1>
-        <div className="flex items-center gap-2">
-          <Select value={companyId} onValueChange={setCompanyId}>
-            <SelectTrigger className="w-52"><SelectValue placeholder="Empresa" /></SelectTrigger>
-            <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openNew} disabled={companyProcesses.length === 0} className="min-h-10"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editing?.id ? "Editar" : "Nova"} decisão</DialogTitle></DialogHeader>
-              {editing && (
-                <div className="space-y-3">
-                  <div>
-                    <Label>Processo *</Label>
-                    <Select value={editing.process_id} onValueChange={(v) => setEditing({ ...editing, process_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{companyProcesses.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label>Decisor</Label><Input value={editing.decider} onChange={(e) => setEditing({ ...editing, decider: e.target.value })} /></div>
-                  <div><Label>Decisão</Label><Input value={editing.decision} onChange={(e) => setEditing({ ...editing, decision: e.target.value })} /></div>
-                  <div><Label>Atraso relatado</Label><Input value={editing.reported_delay} onChange={(e) => setEditing({ ...editing, reported_delay: e.target.value })} placeholder="ex.: 2 dias" /></div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={editing.approval_required} onChange={(e) => setEditing({ ...editing, approval_required: e.target.checked })} />
-                    Requer aprovação
-                  </label>
-                  <div><Label>Notas</Label><Textarea value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
-                  <Button onClick={submit} className="w-full min-h-11" disabled={saveMut.isPending}>
-                    <Check className="h-4 w-4 mr-1" /> {saveMut.isPending ? "Salvando…" : "Salvar"}
-                  </Button>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Mapa de Decisão"
+        subtitle="Quem decide, o que exige aprovação e onde o processo trava"
+        icon={GitBranch}
+        accent="decision"
+        actions={actions}
+        stats={
+          <>
+            <StatPill label="Decisões" value={items.length} accent="decision" />
+            <StatPill label="Com aprovação" value={approvals} accent="info" />
+            <StatPill label="Com atraso" value={delays} accent="pain" />
+          </>
+        }
+      />
 
       {companyProcesses.length === 0 && (
         <Card className="p-6 text-center text-sm text-muted-foreground">Cadastre processos nesta empresa primeiro.</Card>
       )}
 
       {items.length === 0 ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">Sem decisões mapeadas.</Card>
+        <EmptyState
+          icon={GitBranch}
+          accent="decision"
+          title="Sem decisões mapeadas"
+          description="Registre os pontos de decisão e aprovação que impactam o tempo de ciclo."
+        />
       ) : (
-        <div className="grid gap-2">
+        <div className="grid gap-2.5 lg:grid-cols-2">
           {items.map((i: any) => {
             const p = processes.find((x: any) => x.id === i.process_id);
             return (
-              <Card key={i.id} className="p-3">
+              <div
+                key={i.id}
+                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-4 pl-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="absolute inset-y-0 left-0 w-1 bg-map-decision" />
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase text-muted-foreground">{p?.name ?? "—"}</p>
-                    <p className="font-semibold">{i.decision || "(sem decisão)"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Decisor: <strong>{i.decider || "—"}</strong>
-                      {i.approval_required && " · requer aprovação"}
-                      {i.reported_delay && ` · atraso: ${i.reported_delay}`}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{p?.name ?? "—"}</p>
+                    <p className="mt-1 font-bold">{i.decision || "(sem decisão)"}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                        <User className="h-3 w-3" /> {i.decider || "—"}
+                      </span>
+                      {i.approval_required && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-map-decision/12 px-2 py-0.5 text-[11px] font-semibold text-map-decision">
+                          <ShieldCheck className="h-3 w-3" /> requer aprovação
+                        </span>
+                      )}
+                      {i.reported_delay && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-map-pain/12 px-2 py-0.5 text-[11px] font-semibold text-map-pain">
+                          <Clock className="h-3 w-3" /> {i.reported_delay}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex shrink-0 gap-1">
+                  <div className="flex shrink-0 gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" className="text-destructive" onClick={() => confirm("Excluir?") && delMut.mutate(i.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>

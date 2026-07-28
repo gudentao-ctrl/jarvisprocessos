@@ -1,71 +1,37 @@
-## Portal Público da Empresa (Dashboard Externo)
+## Objetivo
 
-Criar uma página pública read-only por empresa, acessível via link com token, sem login, para diretores/gestores acompanharem indicadores e planos de ação em tempo real.
+Elevar o visual do bloco de Mapeamento — hub, Processos & BPM e os três Mapas (Informação, Decisão, Dores) — de "cards genéricos" para uma entrega com hierarquia visual clara e identidade própria, mantendo toda a lógica de dados atual.
 
-### 1. Backend / Banco
+## Direção visual
 
-Migration em `public.companies`:
-- `public_token text unique` — gerado automaticamente (base64url ~24 chars).
-- `public_enabled boolean default false`.
-- `public_title text` — título exibido.
-- `public_company_logo_url text`, `public_consultancy_logo_url text`.
-- Trigger `companies_autofill` para popular `public_token` no insert.
+Uma linguagem única aplicada às quatro telas:
 
-GRANTs mantidos como estão (leitura pública será feita via server functions com service role — nunca com policies `TO anon`).
+- **Cabeçalho de página com faixa**: título grande, subtítulo, e um bloco de estatísticas à direita (contadores) sobre fundo sutil com gradiente do token `--primary`, borda arredondada e sombra suave.
+- **Cor por domínio**: cada mapa/módulo ganha um token de acento próprio (Processos, Informação, Decisão, Dores) definido em `src/styles.css`, usado em ícones, badges e barras laterais dos cards. Nada de cor hardcoded — tudo em tokens semânticos.
+- **Cards com estrutura**: barra de acento à esquerda, ícone em "chip" arredondado, título forte, metadados em linha secundária, ações reveladas no hover (e sempre visíveis no mobile).
+- **Estados vazios ilustrados**: ícone em círculo com gradiente, título, frase de apoio e botão de ação primária — em vez do texto solto atual.
+- **Skeletons** no lugar de "Carregando…".
+- **Micro-interações discretas**: elevação e leve translação no hover, transições de 150–200ms, entrada em fade dos cards.
 
-### 2. Rota pública
+## Telas
 
-`src/routes/dashboard.$token.tsx` (top-level, SSR ligado, sem gate de auth).
-- `head()` com título dinâmico e `robots: noindex`.
-- Loader chama `getPublicDashboard({ token })` — server fn sem middleware que:
-  - valida token, checa `public_enabled`;
-  - retorna `company`, `title`, logos, `last_updated`, lista de indicadores + últimas coletas (últimos 12 pontos por indicador), planos de ação (todos campos read-only) e histórico resumido.
-- `notFound` / desativado → tela "Link indisponível".
+**1. Hub de Mapeamento (`projetos.$id.mapeamento.tsx`)**
+Cards maiores em grade, cada um com ícone colorido, descrição e uma linha de contexto ("N processos mapeados" / "N sessões"). Inclui também atalhos para os três mapas, hoje ausentes do hub.
 
-Server fn secundária `getPublicPlanDetails({ token, plan_id })` para o drill-down de um plano (histórico + comentários + evidências).
+**2. Processos & BPM (lista)**
+- Cabeçalho com contadores por nível (N0/N1/N2) e total de empresas.
+- Árvore redesenhada: linhas de conexão verticais entre pai e filho, badge de nível colorido por nível, responsável em avatar-inicial, contagem de subprocessos, chevron animado.
+- Empresa como seção com cabeçalho fixo estilizado.
 
-Tudo lido via `supabaseAdmin` dentro do handler (`await import`), filtrado estritamente por `company_id` do token, projetando apenas colunas seguras (sem e-mails, sem `created_by`).
+**3. Mapas (Informação / Decisão / Dores)**
+- Mesma faixa de cabeçalho com seletor de empresa integrado.
+- Informação: card em formato "origem → destino" com seta desenhada, meio/documento como chips, alerta de risco como badge destacado.
+- Decisão: mesmo padrão de card estruturado.
+- Dores: colunas por categoria em estilo quadro, com contador, cor por categoria e severidade em barra/pontos.
 
-### 3. UI da página pública
+## Detalhes técnicos
 
-Layout Power BI/Looker-like, mobile-first, responsivo até TV:
-
-**Header executivo**
-- Logo empresa + logo consultoria, nome, título, "Atualizado em ...", resumo executivo (contagem de indicadores no alvo / abaixo, planos ativos/atrasados/concluídos).
-
-**Seção 1 — Indicadores**
-- Filtros: período (Semana / Mês / Trimestre / Ano / Personalizado), Processo, Categoria, Indicador, Responsável.
-- Grid responsivo de cards: nome, meta, valor atual, % atingido, tendência (↑/↓), última atualização, mini-sparkline.
-- Clique no card → Dialog full com gráfico ampliado (Recharts LineChart), tabela histórica, meta destacada.
-
-**Seção 2 — Planos de Ação**
-- Gráfico donut (Em andamento / Concluído / Atrasado / Não iniciado).
-- Lista com filtros (status, prioridade, responsável).
-- Cada linha mostra título, problema, causa, responsável, prioridade, status, prazo, % concluído.
-- Clique → Dialog com timeline (`action_plan_history` + comentários) e datas.
-
-Reatividade automática: React Query com `refetchInterval: 60s` + `refetchOnWindowFocus`. Não precisa republicar.
-
-### 4. Configuração dentro do JARVIS
-
-Nova seção "Página Pública" no card de empresa em `/empresas` (e no cabeçalho de `/controle`):
-- Toggle Ativar/Desativar.
-- Campo "Título exibido".
-- Uploads opcionais dos dois logos (bucket novo `public-branding`, público para leitura).
-- Botões: Copiar link, Abrir, Regenerar token (confirmação — invalida o anterior).
-
-Server fns em `src/lib/public-portal.functions.ts` (autenticadas):
-- `updatePublicPortal({ company_id, ... })`
-- `regeneratePublicToken({ company_id })`
-- `uploadPublicLogo` usando bucket dedicado.
-
-### Escopo intencionalmente fora
-- Sem autenticação por senha do link (apenas token opaco). Regenerar = revogar.
-- Sem edição/ações no portal.
-- Sem evidências novas — só listagem se já existirem em `action_plan_history` (não há tabela de anexos hoje; se você quiser evidências reais, precisamos criar `action_plan_attachments` — confirmo em passo separado).
-
-### Detalhes técnicos
-- Rota `dashboard.$token.tsx` fica **fora** de `_authenticated/` (público).
-- Ler dados só via server fn + `supabaseAdmin`, escopado por `company_id` do token; não expor colunas sensíveis.
-- Cache HTTP: `Cache-Control: private, max-age=30` nas respostas do server fn via `setResponseHeader`.
-- Sem `og:image` (evitar vazar dados em preview de link).
+- Novos tokens de acento e utilitários de gradiente/sombra em `src/styles.css` (oklch).
+- Componentes compartilhados novos em `src/components/mapping/`: `PageHeader` (faixa + stats), `EmptyState`, `StatPill`, `SectionCard` — reutilizados nas quatro telas para garantir consistência.
+- Alterações restritas a apresentação: nenhuma mudança em server functions, queries ou schema.
+- Responsivo mobile-first: grids `grid-cols-[minmax(0,1fr)_auto]` nos cabeçalhos, `min-w-0`/`truncate` nos textos, `shrink-0` nos ícones, alvos de toque ≥ 44px.
