@@ -80,8 +80,6 @@ function MapaDec() {
     saveMut.mutate(editing);
   }
 
-  return (
-    <div className="space-y-4">
   const approvals = items.filter((i) => i.approval_required).length;
   const delays = items.filter((i) => !!i.reported_delay).length;
 
