@@ -13,7 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, GitBranch, ShieldCheck, Clock, User } from "lucide-react";
+import { PageHeader, StatPill } from "@/components/mapping/PageHeader";
+import { EmptyState } from "@/components/mapping/EmptyState";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/mapas/decisao")({
