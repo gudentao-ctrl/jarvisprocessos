@@ -82,17 +82,20 @@ function MapaDec() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold sm:text-2xl">Mapa de Decisão</h1>
-        <div className="flex items-center gap-2">
-          <Select value={companyId} onValueChange={setCompanyId}>
-            <SelectTrigger className="w-52"><SelectValue placeholder="Empresa" /></SelectTrigger>
-            <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openNew} disabled={companyProcesses.length === 0} className="min-h-10"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
-            </DialogTrigger>
+  const approvals = items.filter((i) => i.approval_required).length;
+  const delays = items.filter((i) => !!i.reported_delay).length;
+
+  const actions = (
+    <>
+      <Select value={companyId} onValueChange={setCompanyId}>
+        <SelectTrigger className="h-10 w-40 sm:w-52"><SelectValue placeholder="Empresa" /></SelectTrigger>
+        <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+      </Select>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button onClick={openNew} disabled={companyProcesses.length === 0} className="min-h-10"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
+        </DialogTrigger>
+
             <DialogContent>
               <DialogHeader><DialogTitle>{editing?.id ? "Editar" : "Nova"} decisão</DialogTitle></DialogHeader>
               {editing && (
