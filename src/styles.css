@@ -108,6 +108,12 @@
   --map-decision: oklch(0.58 0.16 292);
   --map-pain: oklch(0.6 0.2 22);
   --map-time: oklch(0.6 0.13 172);
+  --acc-amber: oklch(0.72 0.16 78);
+  --acc-blue: oklch(0.6 0.13 232);
+  --acc-emerald: oklch(0.6 0.13 162);
+  --acc-slate: oklch(0.55 0.03 256);
+  --acc-red: oklch(0.6 0.2 22);
+  --acc-violet: oklch(0.58 0.16 292);
 }
 
 .dark {
