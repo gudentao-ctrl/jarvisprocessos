@@ -1,37 +1,37 @@
 ## Objetivo
 
-Elevar o visual do bloco de Mapeamento — hub, Processos & BPM e os três Mapas (Informação, Decisão, Dores) — de "cards genéricos" para uma entrega com hierarquia visual clara e identidade própria, mantendo toda a lógica de dados atual.
+Elevar o visual e a dinâmica das três telas de Entrevistas (lista, nova, detalhe) **mantendo 100% das funcionalidades atuais** — nada é removido, apenas reorganizado e otimizado na apresentação. Nenhuma alteração em server functions, queries, schema ou geração de PDF.
 
-## Direção visual
+## Garantia de funcionalidades preservadas
 
-Uma linguagem única aplicada às quatro telas:
-
-- **Cabeçalho de página com faixa**: título grande, subtítulo, e um bloco de estatísticas à direita (contadores) sobre fundo sutil com gradiente do token `--primary`, borda arredondada e sombra suave.
-- **Cor por domínio**: cada mapa/módulo ganha um token de acento próprio (Processos, Informação, Decisão, Dores) definido em `src/styles.css`, usado em ícones, badges e barras laterais dos cards. Nada de cor hardcoded — tudo em tokens semânticos.
-- **Cards com estrutura**: barra de acento à esquerda, ícone em "chip" arredondado, título forte, metadados em linha secundária, ações reveladas no hover (e sempre visíveis no mobile).
-- **Estados vazios ilustrados**: ícone em círculo com gradiente, título, frase de apoio e botão de ação primária — em vez do texto solto atual.
-- **Skeletons** no lugar de "Carregando…".
-- **Micro-interações discretas**: elevação e leve translação no hover, transições de 150–200ms, entrada em fade dos cards.
+Todas continuam existindo, apenas melhor apresentadas: criar entrevista, upload/gravação de áudio, transcrever, regerar transcrição, editar e salvar transcrição, analisar com IA, reanalisar, editar/adicionar/remover itens de todas as categorias de análise, salvar análise, gerar entregáveis (normal e forçado), ver ata da reunião, exportar PDF, sugerir processo com IA, excluir entrevista, filtro por empresa ativa.
 
 ## Telas
 
-**1. Hub de Mapeamento (`projetos.$id.mapeamento.tsx`)**
-Cards maiores em grade, cada um com ícone colorido, descrição e uma linha de contexto ("N processos mapeados" / "N sessões"). Inclui também atalhos para os três mapas, hoje ausentes do hub.
+**1. Lista (`entrevistas.index.tsx`)**
+- `PageHeader` com ícone de microfone, título, subtítulo e pills de estatística: total, transcritas, analisadas, rascunhos.
+- Botão "Nova Entrevista" mantido, promovido a ação do cabeçalho (e continua largo/acessível no mobile).
+- **Adições de dinâmica**: busca por título/participante e chips de filtro por status — puramente client-side sobre os dados já carregados.
+- Cards redesenhados: barra de acento por status, chip de ícone, título forte, metadados em linha e badge de status; elevação suave no hover.
+- `CardSkeleton` no carregamento e `EmptyState` ilustrado com CTA (mais variante "nenhum resultado" quando o filtro zera a lista).
 
-**2. Processos & BPM (lista)**
-- Cabeçalho com contadores por nível (N0/N1/N2) e total de empresas.
-- Árvore redesenhada: linhas de conexão verticais entre pai e filho, badge de nível colorido por nível, responsável em avatar-inicial, contagem de subprocessos, chevron animado.
-- Empresa como seção com cabeçalho fixo estilizado.
+**2. Nova entrevista (`entrevistas.nova.tsx`)**
+- `PageHeader` compacto com voltar.
+- Mesmos campos e mesma ordem, agrupados em duas seções visuais numeradas: "1. Contexto" e "2. Áudio".
+- O botão final passa a indicar o que ainda falta (título / áudio) em vez de apenas ficar desabilitado — mesma validação, feedback melhor.
+- Gravador dentro de card, com moldura de acento quando o áudio está pronto.
 
-**3. Mapas (Informação / Decisão / Dores)**
-- Mesma faixa de cabeçalho com seletor de empresa integrado.
-- Informação: card em formato "origem → destino" com seta desenhada, meio/documento como chips, alerta de risco como badge destacado.
-- Decisão: mesmo padrão de card estruturado.
-- Dores: colunas por categoria em estilo quadro, com contador, cor por categoria e severidade em barra/pontos.
+**3. Detalhe (`entrevistas.$id.tsx`)**
+- `PageHeader` com título, metadados como pills (empresa, setor, participante, data) e ações agrupadas (excluir, exportar PDF).
+- Trilha de progresso no topo: Áudio → Transcrição → Análise → Entregáveis, com o estado atual destacado.
+- Áudio e Transcrição em cards com cabeçalho padronizado; contador de palavras na transcrição; botões "Regerar" e "Salvar" mantidos.
+- Bloco "Gerar entregáveis com IA" vira card de destaque com gradiente sutil do token primário (mantendo os dois botões e a data da última geração).
+- `ListBlock` redesenhado: chip de ícone colorido por categoria, contador de itens, remover revelado no hover, adicionar discreto — mesma edição inline de sempre.
+- Ata da reunião em card com tipografia legível; skeletons no carregamento e `EmptyState` para "entrevista não encontrada".
 
 ## Detalhes técnicos
 
-- Novos tokens de acento e utilitários de gradiente/sombra em `src/styles.css` (oklch).
-- Componentes compartilhados novos em `src/components/mapping/`: `PageHeader` (faixa + stats), `EmptyState`, `StatPill`, `SectionCard` — reutilizados nas quatro telas para garantir consistência.
-- Alterações restritas a apresentação: nenhuma mudança em server functions, queries ou schema.
-- Responsivo mobile-first: grids `grid-cols-[minmax(0,1fr)_auto]` nos cabeçalhos, `min-w-0`/`truncate` nos textos, `shrink-0` nos ícones, alvos de toque ≥ 44px.
+- Reaproveita `src/components/mapping/PageHeader.tsx` (`PageHeader`, `StatPill`, mapas de acento) e `EmptyState.tsx` (`EmptyState`, `CardSkeleton`), sem duplicar componentes.
+- Novos tokens de acento por status de entrevista e por categoria de análise em `src/styles.css` (oklch), estendendo o padrão `--map-*`. As cores hardcoded atuais (`bg-amber-100`, `border-l-red-500`, etc.) passam a tokens semânticos.
+- Mudanças restritas a apresentação: `interviews.functions.ts`, `interview-pipeline.functions.ts` e o código do PDF não são tocados.
+- Mobile-first: alvos de toque ≥ 44px, `min-w-0`/`truncate`, `shrink-0` em ícones, grids que colapsam em uma coluna.

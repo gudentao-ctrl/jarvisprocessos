@@ -11,8 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/mapping/PageHeader";
+import { EmptyState, CardSkeleton } from "@/components/mapping/EmptyState";
+import { cn } from "@/lib/utils";
 import {
   ArrowLeft, Sparkles, Save, Trash2, Download, Plus, X, Loader2, RefreshCw, Workflow,
+  Mic, FileText, ListChecks, Rocket, Building2, User, Calendar, Layers, Lightbulb,
+  AlertTriangle, Frown, Wrench, GitBranch, Cpu, SearchX, ScrollText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,13 +27,70 @@ export const Route = createFileRoute("/_authenticated/entrevistas/$id")({
 
 type ListKey = "insights" | "critical_points" | "pains" | "problems" | "decisions" | "flows" | "systems";
 
-const CATEGORIES: { key: ListKey; label: string; emoji: string; color: string }[] = [
-  { key: "pains", label: "Dores", emoji: "🟥", color: "border-l-red-500" },
-  { key: "problems", label: "Problemas Operacionais", emoji: "🟨", color: "border-l-amber-500" },
-  { key: "decisions", label: "Decisões", emoji: "🔵", color: "border-l-blue-500" },
-  { key: "flows", label: "Fluxos de Processo", emoji: "🟢", color: "border-l-emerald-500" },
-  { key: "systems", label: "Sistemas Citados", emoji: "⚙️", color: "border-l-slate-500" },
+const CATEGORIES: { key: ListKey; label: string; icon: typeof Frown; tone: string; bar: string }[] = [
+  { key: "pains", label: "Dores", icon: Frown, tone: "bg-acc-red/10 text-acc-red", bar: "bg-acc-red" },
+  { key: "problems", label: "Problemas Operacionais", icon: Wrench, tone: "bg-acc-amber/10 text-acc-amber", bar: "bg-acc-amber" },
+  { key: "decisions", label: "Decisões", icon: GitBranch, tone: "bg-acc-blue/10 text-acc-blue", bar: "bg-acc-blue" },
+  { key: "flows", label: "Fluxos de Processo", icon: Workflow, tone: "bg-acc-emerald/10 text-acc-emerald", bar: "bg-acc-emerald" },
+  { key: "systems", label: "Sistemas Citados", icon: Cpu, tone: "bg-acc-slate/10 text-acc-slate", bar: "bg-acc-slate" },
 ];
+
+function MetaPill({ icon: Icon, label }: { icon: typeof User; label: string }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2.5 py-1.5 text-xs backdrop-blur-sm">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <span className="truncate font-medium">{label}</span>
+    </span>
+  );
+}
+
+function SectionHead({
+  icon: Icon,
+  title,
+  action,
+}: {
+  icon: typeof Mic;
+  title: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/70 bg-muted/40 px-4 py-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <h2 className="truncate text-sm font-bold">{title}</h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function ProgressTrail({ steps }: { steps: { label: string; icon: typeof Mic; done: boolean }[] }) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card p-2">
+      {steps.map((s, i) => (
+        <div key={s.label} className="flex min-w-0 flex-1 items-center gap-1">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors",
+              s.done ? "bg-primary/10 text-primary" : "text-muted-foreground",
+            )}
+          >
+            <s.icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate text-[11px] font-semibold">{s.label}</span>
+          </div>
+          {i < steps.length - 1 && (
+            <span
+              aria-hidden
+              className={cn("h-px w-2 shrink-0", s.done ? "bg-primary/40" : "bg-border")}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function InterviewDetail() {
   const { id } = Route.useParams();
@@ -178,11 +240,33 @@ function InterviewDetail() {
     onSuccess: () => toast.success("PDF gerado"),
   });
 
-  if (isLoading) return <p className="py-10 text-center text-muted-foreground">Carregando...</p>;
-  if (!data) return <p className="py-10 text-center text-muted-foreground">Entrevista não encontrada</p>;
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-24 animate-pulse rounded-2xl border border-border/60 bg-muted/50" />
+        <CardSkeleton rows={4} />
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <EmptyState
+        icon={SearchX}
+        title="Entrevista não encontrada"
+        description="Ela pode ter sido excluída ou o link está incorreto."
+        accent="info"
+        action={
+          <Button asChild variant="outline">
+            <Link to="/entrevistas"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar às entrevistas</Link>
+          </Button>
+        }
+      />
+    );
+  }
 
   const { interview, audio_url } = data;
   const hasTranscript = !!transcript.trim();
+  const words = transcript.trim() ? transcript.trim().split(/\s+/).length : 0;
 
   function updateListItem(key: ListKey, idx: number, value: string) {
     setAnalysisDraft((d: any) => {
@@ -199,71 +283,95 @@ function InterviewDetail() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Button asChild variant="ghost" size="icon" className="h-9 w-9 -ml-2 shrink-0">
-            <Link to="/entrevistas"><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <h1 className="truncate text-xl font-bold">{interview.title}</h1>
-        </div>
-        <Button
-          variant="ghost" size="icon"
-          onClick={() => confirm("Excluir esta entrevista?") && removing.mutate()}
-          className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-          aria-label="Excluir"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title={interview.title}
+        subtitle="Entrevista operacional"
+        icon={Mic}
+        accent="process"
+        actions={
+          <>
+            <Button asChild variant="ghost" size="icon" className="h-10 w-10">
+              <Link to="/entrevistas"><ArrowLeft className="h-5 w-5" /></Link>
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              onClick={() => confirm("Excluir esta entrevista?") && removing.mutate()}
+              className="h-10 w-10 text-muted-foreground hover:text-destructive"
+              aria-label="Excluir"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </>
+        }
+        stats={
+          <>
+            {interview.companies?.name && <MetaPill icon={Building2} label={interview.companies.name} />}
+            {interview.sectors?.name && <MetaPill icon={Layers} label={interview.sectors.name} />}
+            {interview.participant && <MetaPill icon={User} label={interview.participant} />}
+            <MetaPill icon={Calendar} label={String(interview.interview_date)} />
+          </>
+        }
+      />
 
-      {/* META */}
-      <Card className="p-4 text-sm">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {interview.companies?.name && <div><span className="text-muted-foreground">Empresa:</span> <strong>{interview.companies.name}</strong></div>}
-          {interview.sectors?.name && <div><span className="text-muted-foreground">Setor:</span> <strong>{interview.sectors.name}</strong></div>}
-          {interview.participant && <div><span className="text-muted-foreground">Participante:</span> <strong>{interview.participant}</strong></div>}
-          <div><span className="text-muted-foreground">Data:</span> <strong>{interview.interview_date}</strong></div>
-        </div>
-      </Card>
+      <ProgressTrail
+        steps={[
+          { label: "Áudio", icon: Mic, done: !!audio_url },
+          { label: "Transcrição", icon: FileText, done: hasTranscript },
+          { label: "Análise", icon: ListChecks, done: !!data.analysis },
+          { label: "Entregáveis", icon: Rocket, done: interview.generation_status === "done" },
+        ]}
+      />
 
       {/* AUDIO */}
       {audio_url && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Áudio</h2>
-          <audio src={audio_url} controls className="w-full" />
-        </section>
+        <Card className="overflow-hidden p-0">
+          <SectionHead icon={Mic} title="Áudio" />
+          <div className="p-4">
+            <audio src={audio_url} controls className="w-full" />
+          </div>
+        </Card>
       )}
 
       {/* TRANSCRIPT */}
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Transcrição</h2>
-          <Button
-            variant="ghost" size="sm" onClick={() => runTranscribe.mutate()}
-            disabled={runTranscribe.isPending} className="h-8 text-xs"
-          >
-            {runTranscribe.isPending
-              ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando...</>
-              : <><RefreshCw className="mr-1 h-3 w-3" /> Regerar</>}
-          </Button>
-        </div>
-        <Textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          rows={10}
-          placeholder="A transcrição aparecerá aqui — você pode editá-la livremente."
-          className="min-h-[200px] resize-y font-mono text-sm leading-relaxed"
+      <Card className="overflow-hidden p-0">
+        <SectionHead
+          icon={FileText}
+          title="Transcrição"
+          action={
+            <Button
+              variant="ghost" size="sm" onClick={() => runTranscribe.mutate()}
+              disabled={runTranscribe.isPending} className="h-9 shrink-0 text-xs"
+            >
+              {runTranscribe.isPending
+                ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando...</>
+                : <><RefreshCw className="mr-1 h-3 w-3" /> Regerar</>}
+            </Button>
+          }
         />
-        <Button
-          onClick={() => saveTranscript.mutate()}
-          disabled={saveTranscript.isPending}
-          variant="outline"
-          className="mt-2 h-10 w-full"
-        >
-          <Save className="mr-2 h-4 w-4" /> Salvar transcrição
-        </Button>
-      </section>
+        <div className="space-y-2 p-4">
+          <Textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            rows={10}
+            placeholder="A transcrição aparecerá aqui — você pode editá-la livremente."
+            className="min-h-[200px] resize-y font-mono text-sm leading-relaxed"
+          />
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+            <p className="truncate text-xs text-muted-foreground tabular-nums">
+              {words} palavras · {transcript.length} caracteres
+            </p>
+            <Button
+              onClick={() => saveTranscript.mutate()}
+              disabled={saveTranscript.isPending}
+              variant="outline"
+              className="h-10 shrink-0"
+            >
+              <Save className="mr-2 h-4 w-4" /> Salvar
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* ANALYZE BUTTON */}
       <Button
@@ -277,15 +385,26 @@ function InterviewDetail() {
       </Button>
 
       {/* PIPELINE COMPLETO */}
-      <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-primary">⚡ Gerar entregáveis com IA</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Em uma única ação, a IA produz a <strong>ata da reunião</strong>, os <strong>processos mapeados (BPM)</strong>, dores, indicadores sugeridos, oportunidades e mapas de informação e decisão a partir desta entrevista.
-            Itens que você já validou são preservados.
-          </p>
+      <div className="relative space-y-3 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4 shadow-sm">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-primary/20 opacity-60 blur-3xl"
+        />
+        <div className="relative flex min-w-0 items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+            <Rocket className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-black uppercase tracking-wide text-primary">
+              Gerar entregáveis com IA
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Em uma única ação, a IA produz a <strong>ata da reunião</strong>, os <strong>processos mapeados (BPM)</strong>, dores, indicadores sugeridos, oportunidades e mapas de informação e decisão a partir desta entrevista.
+              Itens que você já validou são preservados.
+            </p>
+          </div>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="relative grid gap-2 sm:grid-cols-2">
           <Button
             onClick={() => runPipeline.mutate(false)}
             disabled={!hasTranscript || runPipeline.isPending}
@@ -305,7 +424,7 @@ function InterviewDetail() {
           </Button>
         </div>
         {interview.generation_status === "done" && interview.generated_at && (
-          <p className="text-xs text-muted-foreground">
+          <p className="relative text-xs text-muted-foreground">
             Última geração: {new Date(interview.generated_at).toLocaleString("pt-BR")}
           </p>
         )}
@@ -313,36 +432,40 @@ function InterviewDetail() {
 
       {/* ATA DA REUNIÃO */}
       {interview.minutes_md && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ata da reunião</h2>
-          <Card className="p-4">
-            <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">{interview.minutes_md}</pre>
-          </Card>
-        </section>
+        <Card className="overflow-hidden p-0">
+          <SectionHead icon={ScrollText} title="Ata da reunião" />
+          <div className="p-4">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{interview.minutes_md}</pre>
+          </div>
+        </Card>
       )}
 
       {/* ANALYSIS */}
       {analysisDraft && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* SUMMARY */}
-          <section>
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Resumo Executivo</h2>
-            <Textarea
-              value={analysisDraft.summary ?? ""}
-              onChange={(e) => setAnalysisDraft({ ...analysisDraft, summary: e.target.value })}
-              rows={5} className="resize-y"
-            />
-          </section>
+          <Card className="overflow-hidden p-0">
+            <SectionHead icon={Sparkles} title="Resumo Executivo" />
+            <div className="p-4">
+              <Textarea
+                value={analysisDraft.summary ?? ""}
+                onChange={(e) => setAnalysisDraft({ ...analysisDraft, summary: e.target.value })}
+                rows={5} className="resize-y"
+              />
+            </div>
+          </Card>
 
           <ListBlock
-            title="Insights Principais" emoji="💡" colorClass="border-l-primary"
+            title="Insights Principais" icon={Lightbulb}
+            tone="bg-primary/10 text-primary" bar="bg-primary"
             items={analysisDraft.insights ?? []}
             onChange={(i, v) => updateListItem("insights", i, v)}
             onRemove={(i) => removeListItem("insights", i)}
             onAdd={() => addListItem("insights")}
           />
           <ListBlock
-            title="Pontos Críticos" emoji="⚠️" colorClass="border-l-destructive"
+            title="Pontos Críticos" icon={AlertTriangle}
+            tone="bg-destructive/10 text-destructive" bar="bg-destructive"
             items={analysisDraft.critical_points ?? []}
             onChange={(i, v) => updateListItem("critical_points", i, v)}
             onRemove={(i) => removeListItem("critical_points", i)}
@@ -352,7 +475,7 @@ function InterviewDetail() {
           {CATEGORIES.map((cat) => (
             <ListBlock
               key={cat.key}
-              title={cat.label} emoji={cat.emoji} colorClass={cat.color}
+              title={cat.label} icon={cat.icon} tone={cat.tone} bar={cat.bar}
               items={analysisDraft[cat.key] ?? []}
               onChange={(i, v) => updateListItem(cat.key, i, v)}
               onRemove={(i) => removeListItem(cat.key, i)}
@@ -360,24 +483,26 @@ function InterviewDetail() {
             />
           ))}
 
-          <Button
-            onClick={() => saveAnalysis.mutate()}
-            disabled={saveAnalysis.isPending}
-            variant="outline"
-            className="h-11 w-full"
-          >
-            <Save className="mr-2 h-4 w-4" /> Salvar edições da análise
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              onClick={() => saveAnalysis.mutate()}
+              disabled={saveAnalysis.isPending}
+              variant="outline"
+              className="h-12 w-full"
+            >
+              <Save className="mr-2 h-4 w-4" /> Salvar edições
+            </Button>
 
-          <Button
-            onClick={() => downloading.mutate()}
-            disabled={downloading.isPending}
-            className="h-12 w-full"
-          >
-            {downloading.isPending
-              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando PDF...</>
-              : <><Download className="mr-2 h-4 w-4" /> Exportar PDF</>}
-          </Button>
+            <Button
+              onClick={() => downloading.mutate()}
+              disabled={downloading.isPending}
+              className="h-12 w-full"
+            >
+              {downloading.isPending
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando PDF...</>
+                : <><Download className="mr-2 h-4 w-4" /> Exportar PDF</>}
+            </Button>
+          </div>
 
           <Link
             to="/processos/sugerir/$interviewId"
@@ -395,23 +520,32 @@ function InterviewDetail() {
 }
 
 function ListBlock({
-  title, emoji, colorClass, items, onChange, onRemove, onAdd,
+  title, icon: Icon, tone, bar, items, onChange, onRemove, onAdd,
 }: {
-  title: string; emoji: string; colorClass: string; items: string[];
+  title: string; icon: typeof Frown; tone: string; bar: string; items: string[];
   onChange: (i: number, v: string) => void; onRemove: (i: number) => void; onAdd: () => void;
 }) {
   return (
-    <section>
-      <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        <span>{emoji}</span> {title}
-      </h2>
-      <Card className={`border-l-4 p-3 ${colorClass}`}>
+    <Card className="relative overflow-hidden p-0">
+      <span className={cn("absolute inset-y-0 left-0 w-1", bar)} aria-hidden />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/70 bg-muted/40 px-4 py-3 pl-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", tone)}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <h2 className="truncate text-sm font-bold">{title}</h2>
+        </div>
+        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+          {items.length}
+        </span>
+      </div>
+      <div className="p-3 pl-4">
         {items.length === 0 && (
           <p className="px-1 py-2 text-xs text-muted-foreground">Nada identificado.</p>
         )}
         <div className="space-y-2">
           {items.map((item, i) => (
-            <div key={i} className="flex items-start gap-2">
+            <div key={i} className="group flex items-start gap-2">
               <Input
                 value={item}
                 onChange={(e) => onChange(i, e.target.value)}
@@ -420,7 +554,8 @@ function ListBlock({
               <Button
                 type="button" variant="ghost" size="icon"
                 onClick={() => onRemove(i)}
-                className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+                className="h-10 w-10 shrink-0 text-muted-foreground opacity-100 transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                aria-label="Remover item"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -430,11 +565,11 @@ function ListBlock({
         <Button
           type="button" variant="ghost" size="sm"
           onClick={onAdd}
-          className="mt-2 h-8 text-xs text-muted-foreground"
+          className="mt-2 h-9 text-xs text-muted-foreground"
         >
           <Plus className="mr-1 h-3 w-3" /> Adicionar item
         </Button>
-      </Card>
-    </section>
+      </div>
+    </Card>
   );
 }
