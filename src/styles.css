@@ -58,6 +58,12 @@
   --color-map-decision: var(--map-decision);
   --color-map-pain: var(--map-pain);
   --color-map-time: var(--map-time);
+  --color-acc-amber: var(--acc-amber);
+  --color-acc-blue: var(--acc-blue);
+  --color-acc-emerald: var(--acc-emerald);
+  --color-acc-slate: var(--acc-slate);
+  --color-acc-red: var(--acc-red);
+  --color-acc-violet: var(--acc-violet);
 }
 
 :root {
