@@ -67,7 +67,14 @@ function Page() {
       </Link>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <Input className="text-xl font-bold flex-1 min-w-[260px]" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <Button onClick={save}><Save className="h-4 w-4 mr-1" />Salvar</Button>
+        <div className="flex gap-2">
+          <ExportDiagnosticPdfButton
+            title={title}
+            content={content}
+            subtitle={(data as { companies?: { name?: string } })?.companies?.name}
+          />
+          <Button onClick={save}><Save className="h-4 w-4 mr-1" />Salvar</Button>
+        </div>
       </div>
 
       <Card>
