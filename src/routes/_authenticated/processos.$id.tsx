@@ -83,6 +83,11 @@ function ProcessoDetail() {
             <Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="text-xl font-bold border-0 px-0 h-auto" />
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/pop/$id" params={{ id: "novo" }}>
+                <ClipboardList className="h-4 w-4 mr-1" /> Gerar POP
+              </Link>
+            </Button>
             <GenerateFlowAiButton
               processId={id}
               hasActivities={(flow?.activities.length ?? 0) > 0}
