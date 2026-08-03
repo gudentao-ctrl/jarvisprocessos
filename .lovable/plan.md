@@ -1,37 +1,47 @@
-## Objetivo
+# POP – Procedimento Operacional Padrão (dentro de Gestão)
 
-Elevar o visual e a dinâmica das três telas de Entrevistas (lista, nova, detalhe) **mantendo 100% das funcionalidades atuais** — nada é removido, apenas reorganizado e otimizado na apresentação. Nenhuma alteração em server functions, queries, schema ou geração de PDF.
+Nova funcionalidade integrada ao fluxo do JARVIS: gerar, editar e armazenar POPs vinculados a um processo, dentro do módulo **Gestão**.
 
-## Garantia de funcionalidades preservadas
+## Onde fica
 
-Todas continuam existindo, apenas melhor apresentadas: criar entrevista, upload/gravação de áudio, transcrever, regerar transcrição, editar e salvar transcrição, analisar com IA, reanalisar, editar/adicionar/remover itens de todas as categorias de análise, salvar análise, gerar entregáveis (normal e forçado), ver ata da reunião, exportar PDF, sugerir processo com IA, excluir entrevista, filtro por empresa ativa.
+- Novo card **POP – Procedimento Operacional Padrão** na tela de Gestão do projeto, ao lado de Dashboard, Diagnóstico, Roadmap e Horas.
+- Nova rota `/pop` (lista de POPs da empresa ativa) e `/pop/$id` (editor do POP).
+- Atalho **Gerar POP** também dentro da tela do processo (aba Fluxo/BPMN), já pré-vinculado àquele processo.
 
-## Telas
+## Tela de lista
 
-**1. Lista (`entrevistas.index.tsx`)**
-- `PageHeader` com ícone de microfone, título, subtítulo e pills de estatística: total, transcritas, analisadas, rascunhos.
-- Botão "Nova Entrevista" mantido, promovido a ação do cabeçalho (e continua largo/acessível no mobile).
-- **Adições de dinâmica**: busca por título/participante e chips de filtro por status — puramente client-side sobre os dados já carregados.
-- Cards redesenhados: barra de acento por status, chip de ícone, título forte, metadados em linha e badge de status; elevação suave no hover.
-- `CardSkeleton` no carregamento e `EmptyState` ilustrado com CTA (mais variante "nenhum resultado" quando o filtro zera a lista).
+Cabeçalho no mesmo padrão visual das telas de Mapeamento/Entrevistas (PageHeader + estatísticas: total, rascunhos, aprovados) com busca por nome do processo e botão **Novo POP**.
 
-**2. Nova entrevista (`entrevistas.nova.tsx`)**
-- `PageHeader` compacto com voltar.
-- Mesmos campos e mesma ordem, agrupados em duas seções visuais numeradas: "1. Contexto" e "2. Áudio".
-- O botão final passa a indicar o que ainda falta (título / áudio) em vez de apenas ficar desabilitado — mesma validação, feedback melhor.
-- Gravador dentro de card, com moldura de acento quando o áudio está pronto.
+## Tela de geração
 
-**3. Detalhe (`entrevistas.$id.tsx`)**
-- `PageHeader` com título, metadados como pills (empresa, setor, participante, data) e ações agrupadas (excluir, exportar PDF).
-- Trilha de progresso no topo: Áudio → Transcrição → Análise → Entregáveis, com o estado atual destacado.
-- Áudio e Transcrição em cards com cabeçalho padronizado; contador de palavras na transcrição; botões "Regerar" e "Salvar" mantidos.
-- Bloco "Gerar entregáveis com IA" vira card de destaque com gradiente sutil do token primário (mantendo os dois botões e a data da última geração).
-- `ListBlock` redesenhado: chip de ícone colorido por categoria, contador de itens, remover revelado no hover, adicionar discreto — mesma edição inline de sempre.
-- Ata da reunião em card com tipografia legível; skeletons no carregamento e `EmptyState` para "entrevista não encontrada".
+Título "Procedimento Operacional Padrão (POP)" e a descrição: "Gere automaticamente um POP utilizando IA. O documento poderá ser editado antes de ser salvo."
+
+Três formas de entrada:
+
+1. **Descrição em texto** – campo com placeholder "Descreva como o processo funciona…".
+2. **Upload de fluxograma** – PNG, JPG, JPEG ou PDF; a IA interpreta a imagem/documento enviado.
+3. **A partir do fluxo do JARVIS** – ao selecionar um processo que já tenha fluxo mapeado, aparece o botão **Gerar POP a partir do Fluxo** (atividades, responsáveis, decisões e conexões alimentam a IA).
+
+Botão principal: **Gerar POP com IA**.
+
+## Documento gerado (todos os campos editáveis)
+
+Nome do Processo, Objetivo, Escopo, Responsáveis, Entradas, Procedimento Operacional (passo a passo numerado, com etapas reordenáveis), Saídas, Pontos de Atenção e Indicadores sugeridos (ex.: tempo médio, SLA, retrabalho, demandas em atraso, volume executado).
+
+Campos que a IA não conseguir identificar vêm preenchidos com "Informação não identificada. Validar durante o mapeamento do processo." e ficam destacados em amarelo para validação. A IA nunca inventa atividades ou responsáveis.
+
+## Ações
+
+- **Salvar POP** (versão do documento fica vinculada ao processo/empresa)
+- **Atualizar com IA** (reprocessa mantendo edições manuais como contexto)
+- **Exportar PDF** (mesmo padrão de branding dos demais relatórios: logo e cores do template de documentos)
+- **Exportar Word** (.docx)
 
 ## Detalhes técnicos
 
-- Reaproveita `src/components/mapping/PageHeader.tsx` (`PageHeader`, `StatPill`, mapas de acento) e `EmptyState.tsx` (`EmptyState`, `CardSkeleton`), sem duplicar componentes.
-- Novos tokens de acento por status de entrevista e por categoria de análise em `src/styles.css` (oklch), estendendo o padrão `--map-*`. As cores hardcoded atuais (`bg-amber-100`, `border-l-red-500`, etc.) passam a tokens semânticos.
-- Mudanças restritas a apresentação: `interviews.functions.ts`, `interview-pipeline.functions.ts` e o código do PDF não são tocados.
-- Mobile-first: alvos de toque ≥ 44px, `min-w-0`/`truncate`, `shrink-0` em ícones, grids que colapsam em uma coluna.
+- Tabela `pops` (id, company_id, project_id, process_id nullable, title, status draft/aprovado, campos do documento em JSONB, source_type text/imagem/fluxo, created_by, timestamps) com GRANTs e RLS por empresa, no mesmo padrão das demais tabelas.
+- Upload dos fluxogramas em bucket privado `pop-sources`, com URL assinada para envio à IA.
+- Server functions em `src/lib/pop.functions.ts`: `listPops`, `getPop`, `savePop`, `deletePop`, `generatePop` (protegidas por `requireSupabaseAuth`).
+- `generatePop` usa o AI Gateway com `google/gemini-3.6-flash`, prompt de especialista em BPM, saída estruturada em JSON; imagem/PDF enviados como bloco multimodal. Mesma cadeia de fallback de modelos já usada em `ask-ai.functions.ts`.
+- PDF via jsPDF (reaproveitando o padrão de `ExportDiagnosticPdfButton`); Word via biblioteca `docx` gerada no cliente.
+- Nenhuma alteração nos módulos existentes além do novo card em Gestão e do atalho na tela do processo.
