@@ -25,6 +25,7 @@ import { Route as AuthenticatedRelatorioAcompanhamentoIndexRouteImport } from '.
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
 import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
 import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
+import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
 import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
@@ -146,6 +147,11 @@ const AuthenticatedPriorizacaoIndexRoute =
     path: '/priorizacao/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPopIndexRoute = AuthenticatedPopIndexRouteImport.update({
+  id: '/pop/',
+  path: '/pop/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPlanosAcaoIndexRoute =
   AuthenticatedPlanosAcaoIndexRouteImport.update({
     id: '/planos-acao/',
@@ -377,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/pop/': typeof AuthenticatedPopIndexRoute
   '/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos/': typeof AuthenticatedProcessosIndexRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
@@ -427,6 +434,7 @@ export interface FileRoutesByTo {
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/pop': typeof AuthenticatedPopIndexRoute
   '/priorizacao': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos': typeof AuthenticatedProcessosIndexRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
@@ -480,6 +488,7 @@ export interface FileRoutesById {
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
+  '/_authenticated/pop/': typeof AuthenticatedPopIndexRoute
   '/_authenticated/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
@@ -533,6 +542,7 @@ export interface FileRouteTypes {
     | '/indicadores/'
     | '/oportunidades/'
     | '/planos-acao/'
+    | '/pop/'
     | '/priorizacao/'
     | '/processos/'
     | '/projetos/'
@@ -583,6 +593,7 @@ export interface FileRouteTypes {
     | '/indicadores'
     | '/oportunidades'
     | '/planos-acao'
+    | '/pop'
     | '/priorizacao'
     | '/processos'
     | '/projetos'
@@ -635,6 +646,7 @@ export interface FileRouteTypes {
     | '/_authenticated/indicadores/'
     | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
+    | '/_authenticated/pop/'
     | '/_authenticated/priorizacao/'
     | '/_authenticated/processos/'
     | '/_authenticated/projetos/'
@@ -778,6 +790,13 @@ declare module '@tanstack/react-router' {
       path: '/priorizacao'
       fullPath: '/priorizacao/'
       preLoaderRoute: typeof AuthenticatedPriorizacaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pop/': {
+      id: '/_authenticated/pop/'
+      path: '/pop'
+      fullPath: '/pop/'
+      preLoaderRoute: typeof AuthenticatedPopIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/planos-acao/': {
@@ -1078,6 +1097,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
+  AuthenticatedPopIndexRoute: typeof AuthenticatedPopIndexRoute
   AuthenticatedPriorizacaoIndexRoute: typeof AuthenticatedPriorizacaoIndexRoute
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
@@ -1116,6 +1136,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
   AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
+  AuthenticatedPopIndexRoute: AuthenticatedPopIndexRoute,
   AuthenticatedPriorizacaoIndexRoute: AuthenticatedPriorizacaoIndexRoute,
   AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
