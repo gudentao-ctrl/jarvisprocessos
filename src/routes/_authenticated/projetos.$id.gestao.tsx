@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, BarChart3, FileText, Clock, CheckCircle2, ListTodo } from "lucide-react";
+import { ArrowRight, BarChart3, FileText, Clock, CheckCircle2, ListTodo, ClipboardList } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id/gestao")({
   component: () => {
@@ -8,6 +8,7 @@ export const Route = createFileRoute("/_authenticated/projetos/$id/gestao")({
     const items = [
       { label: "Dashboard", description: "Visão executiva consolidada", to: "/dashboard" as const, icon: BarChart3, params: undefined },
       { label: "Diagnóstico executivo", description: "Relatório final gerado pela IA", to: "/diagnostico" as const, icon: FileText, params: undefined },
+      { label: "POP – Procedimento Operacional Padrão", description: "Gerar POPs com IA vinculados aos processos", to: "/pop" as const, icon: ClipboardList, params: undefined },
       { label: "Roadmap", description: "Iniciativas por horizonte", to: "/roadmap" as const, icon: ListTodo, params: undefined },
       { label: "Horas trabalhadas", description: "Registrar apontamentos por responsável", to: "/horas" as const, icon: Clock, params: undefined },
       { label: "Encerramento do projeto", description: "Em breve", to: "/projetos/$id/gestao" as const, icon: CheckCircle2, params: { id } },
