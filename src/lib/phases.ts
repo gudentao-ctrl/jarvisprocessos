@@ -57,6 +57,7 @@ export const PHASE_TOOLS: Record<Exclude<PhaseSlug, "controle">, PhaseTool[]> = 
   gestao: [
     { label: "Dashboard",              description: "Visão executiva consolidada",           to: "/dashboard",     icon: "BarChart3" },
     { label: "Diagnóstico executivo",  description: "Relatório final gerado pela IA",        to: "/diagnostico",   icon: "FileText" },
+    { label: "POP – Procedimento Operacional Padrão", description: "Gerar POPs profissionais com IA", to: "/pop", icon: "ClipboardList" },
     { label: "Roadmap",                description: "Iniciativas por horizonte",             to: "/roadmap",       icon: "ListTodo" },
     { label: "Horas trabalhadas",      description: "Registrar apontamentos por responsável",to: "/horas",         icon: "Clock" },
     { label: "Relatórios",             description: "Exportações e consolidados",            to: "/relatorios",    icon: "FileBarChart2" },

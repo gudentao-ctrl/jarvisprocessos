@@ -129,7 +129,7 @@ function PopEditorPage() {
       setContent(result);
       setSourceType(mode);
       if (path) setSourcePath(path);
-      if (title === "Novo POP" && result.process_name) setTitle(`POP – ${result.process_name}`);
+      if (title === "Novo POP" && result.identification.process_name) setTitle(`POP – ${result.identification.process_name}`);
       toast.success("POP gerado. Revise e edite antes de salvar.");
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar POP");
