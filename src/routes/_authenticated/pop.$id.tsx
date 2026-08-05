@@ -298,6 +298,7 @@ function PopEditorPage() {
 
       {content && (
         <>
+          <PopQuality pop={content} />
           <PopEditor value={content} onChange={setContent} />
           <div className="sticky bottom-4 flex flex-wrap gap-2">
             <Button size="lg" className="flex-1" onClick={handleSave} disabled={saving}>
@@ -306,6 +307,7 @@ function PopEditorPage() {
           </div>
         </>
       )}
+
     </div>
   );
 }
