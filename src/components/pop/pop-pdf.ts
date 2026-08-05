@@ -204,7 +204,7 @@ function decorate(ctx: Ctx) {
     doc.setFont("helvetica", "bold").setFontSize(8.5).setTextColor(255, 255, 255);
     doc.text(sanitize("POP - " + ctx.headerTitle), M, 10, { maxWidth: W - M * 2 - 45 });
     doc.setFont("helvetica", "normal");
-    doc.text(sanitize(`Cod. ${dash(ctx.code)}`).replace("Cod.", "Cód.") | Rev. ${dash(ctx.version)}`, W - M, 10, { align: "right" });
+    doc.text(`Cód. ${dash(ctx.code)} | Rev. ${dash(ctx.version)}`, W - M, 10, { align: "right" });
 
     doc.setDrawColor(214, 220, 230);
     doc.line(M, H - 14, W - M, H - 14);
