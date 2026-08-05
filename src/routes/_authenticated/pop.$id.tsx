@@ -10,6 +10,8 @@ import { useActiveCompany } from "@/lib/active-company";
 import { supabase } from "@/integrations/supabase/client";
 import { EMPTY_POP, normalizePop, type PopContent } from "@/lib/pop-types";
 import { PopEditor } from "@/components/pop/PopEditor";
+import { PopQuality } from "@/components/pop/PopQuality";
+
 import { ExportPopPdfButton, ExportPopWordButton } from "@/components/pop/PopExportButtons";
 import { PageHeader } from "@/components/mapping/PageHeader";
 import { Card } from "@/components/ui/card";
