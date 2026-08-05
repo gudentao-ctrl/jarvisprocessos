@@ -2,12 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
 import { popProcessName, type PopContent } from "@/lib/pop-types";
-
-function lines(doc: jsPDF, text: string, width: number) {
-  return doc.splitTextToSize(text || "-", width) as string[];
-}
+import { buildPopPdf } from "./pop-pdf";
 
 function fileBase(pop: PopContent) {
   return `POP-${(popProcessName(pop) || "processo").replace(/\W+/g, "-").toLowerCase()}`;
@@ -16,137 +12,7 @@ function fileBase(pop: PopContent) {
 export function ExportPopPdfButton({ pop, companyName }: { pop: PopContent; companyName?: string }) {
   function exportPdf() {
     try {
-      const doc = new jsPDF({ unit: "mm", format: "a4" });
-      const M = 18;
-      const W = doc.internal.pageSize.getWidth() - M * 2;
-      const H = doc.internal.pageSize.getHeight();
-      let y = M;
-
-      const ensure = (h: number) => {
-        if (y + h > H - M) { doc.addPage(); y = M; }
-      };
-      const title = (t: string) => {
-        ensure(14);
-        doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(20, 40, 90);
-        doc.text(t, M, y);
-        y += 2;
-        doc.setDrawColor(200).line(M, y, M + W, y);
-        y += 6;
-        doc.setTextColor(30);
-      };
-      const body = (t: string, indent = 0) => {
-        doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(30);
-        for (const l of lines(doc, t, W - indent)) { ensure(6); doc.text(l, M + indent, y); y += 5; }
-        y += 2;
-      };
-      const kv = (k: string, v: string) => {
-        doc.setFont("helvetica", "bold").setFontSize(9.5);
-        const label = `${k}: `;
-        const lw = doc.getTextWidth(label);
-        const parts = lines(doc, v || "-", W - lw);
-        ensure(6);
-        doc.text(label, M, y);
-        doc.setFont("helvetica", "normal");
-        doc.text(parts[0] ?? "-", M + lw, y);
-        y += 5;
-        for (const l of parts.slice(1)) { ensure(6); doc.text(l, M + lw, y); y += 5; }
-      };
-      const bullets = (items: string[]) => {
-        if (!items.length) return body("-");
-        doc.setFont("helvetica", "normal").setFontSize(10);
-        for (const it of items) {
-          for (const [i, l] of lines(doc, it, W - 5).entries()) {
-            ensure(6);
-            doc.text(i === 0 ? `•  ${l}` : `    ${l}`, M, y);
-            y += 5;
-          }
-        }
-        y += 2;
-      };
-
-      const id = pop.identification;
-
-      doc.setFont("helvetica", "bold").setFontSize(18);
-      doc.text("Procedimento Operacional Padrão (POP)", M, y); y += 8;
-      doc.setFont("helvetica", "normal").setFontSize(11).setTextColor(90);
-      doc.text([popProcessName(pop) || "Processo", companyName ?? ""].filter(Boolean).join(" — "), M, y);
-      y += 4;
-      doc.setFontSize(9).text(`Emitido em ${new Date().toLocaleDateString("pt-BR")}`, M, y);
-      y += 8; doc.setTextColor(30);
-
-      title("1. Identificação");
-      kv("Nome do processo", id.process_name);
-      kv("Código do POP", id.code);
-      kv("Versão", id.version);
-      kv("Data de emissão", id.issue_date);
-      kv("Última revisão", id.last_revision);
-      kv("Responsável pelo processo", id.process_owner);
-      kv("Área responsável", id.area);
-      kv("Elaborado por", id.prepared_by);
-      kv("Aprovado por", id.approved_by);
-      y += 3;
-
-      title("2. Objetivo"); body(pop.objective);
-      title("3. Aplicação / Escopo"); body(pop.scope);
-
-      title("4. Definições");
-      if (!pop.definitions.length) body("-");
-      else for (const d of pop.definitions) kv(d.term || "-", d.definition);
-      y += 3;
-
-      title("5. Responsabilidades");
-      if (!pop.responsibilities.length) body("-");
-      else for (const r of pop.responsibilities) {
-        doc.setFont("helvetica", "bold").setFontSize(10);
-        ensure(6); doc.text(`${r.role || "-"}${r.job_function ? ` — ${r.job_function}` : ""}`, M, y); y += 5;
-        doc.setFont("helvetica", "normal");
-        if (r.responsibility) body(r.responsibility, 6);
-      }
-
-      title("6. Entradas"); bullets(pop.inputs);
-
-      title("7. Procedimento Operacional");
-      pop.steps.forEach((s, i) => {
-        doc.setFont("helvetica", "bold").setFontSize(10.5);
-        for (const l of lines(doc, `${i + 1}. ${s.title}`, W)) { ensure(6); doc.text(l, M, y); y += 5; }
-        doc.setFont("helvetica", "normal").setFontSize(10);
-        if (s.description) body(s.description, 6);
-        const meta: Array<[string, string]> = [
-          ["Responsável", s.responsible],
-          ["Documentos", s.documents],
-          ["Sistema", s.system],
-          ["Critérios de decisão", s.decision_criteria],
-          ["Resultado esperado", s.expected_result],
-        ];
-        doc.setFontSize(9).setTextColor(90);
-        for (const [k, v] of meta) {
-          if (!v) continue;
-          for (const [i2, l] of lines(doc, `${k}: ${v}`, W - 6).entries()) {
-            ensure(5); doc.text(i2 === 0 ? l : `  ${l}`, M + 6, y); y += 4.5;
-          }
-        }
-        doc.setTextColor(30).setFontSize(10);
-        y += 3;
-      });
-      if (!pop.steps.length) body("-");
-
-      title("8. Regras de Negócio"); bullets(pop.business_rules);
-      title("9. Pontos de Controle"); bullets(pop.control_points);
-
-      title("10. Riscos do Processo");
-      if (!pop.risks.length) body("-");
-      else bullets(pop.risks.map((r) => [r.description, r.impact && `Impacto: ${r.impact}`, r.mitigation && `Mitigação: ${r.mitigation}`].filter(Boolean).join(" | ")));
-
-      title("11. Indicadores sugeridos");
-      bullets(pop.indicators.map((i) => [i.name, i.description, i.formula && `Fórmula: ${i.formula}`, i.goal && `Meta: ${i.goal}`].filter(Boolean).join(" — ")));
-
-      title("12. Saídas"); bullets(pop.outputs);
-      title("13. Sistemas utilizados"); bullets(pop.systems);
-      title("14. Documentos Relacionados"); bullets(pop.related_documents);
-      title("15. Pontos de Atenção"); bullets(pop.attention_points);
-      title("16. Observações"); body(pop.notes);
-
-      doc.save(`${fileBase(pop)}.pdf`);
+      buildPopPdf(pop, companyName).save(`${fileBase(pop)}.pdf`);
       toast.success("PDF gerado");
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar PDF");
@@ -159,6 +25,7 @@ export function ExportPopPdfButton({ pop, companyName }: { pop: PopContent; comp
     </Button>
   );
 }
+
 
 export function ExportPopWordButton({ pop, companyName }: { pop: PopContent; companyName?: string }) {
   const [busy, setBusy] = useState(false);
