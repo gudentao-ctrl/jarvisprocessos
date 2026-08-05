@@ -19,7 +19,23 @@ type Ctx = {
   version: string;
 };
 
-const dash = (v?: string) => (v && v.trim() ? v.trim() : "—");
+const CHAR_MAP: Record<string, string> = {
+  "\u2265": ">=", "\u2264": "<=", "\u2260": "!=", "\u2248": "~", "\u00b1": "+/-",
+  "\u2192": "->", "\u2190": "<-", "\u2022": "-", "\u2011": "-", "\u2212": "-",
+  "\u200b": "", "\u00a0": " ",
+};
+
+/** jsPDF core fonts are WinAnsi: swap glyphs they cannot render. */
+function sanitize(v?: string) {
+  return (v ?? "")
+    .replace(/[\u2265\u2264\u2260\u2248\u00b1\u2192\u2190\u2022\u2011\u2212\u200b\u00a0]/g, (c) => CHAR_MAP[c] ?? c)
+    .replace(/[\u0100-\u01ff\u2000-\u2bff]/g, (c) => (c === "\u2013" || c === "\u2014" ? "-" : c === "\u2018" || c === "\u2019" ? "'" : c === "\u201c" || c === "\u201d" ? '"' : ""));
+}
+
+const dash = (v?: string) => {
+  const t = sanitize(v).trim();
+  return t || "-";
+};
 
 function lastY(doc: jsPDF, fallback: number) {
   const t = (doc as any).lastAutoTable;
@@ -68,7 +84,7 @@ function bullets(ctx: Ctx, items: string[]) {
   doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(45, 45, 45);
   const width = ctx.W - M * 2 - 6;
   for (const item of items) {
-    const parts = doc.splitTextToSize(item, width) as string[];
+    const parts = doc.splitTextToSize(sanitize(item), width) as string[];
     parts.forEach((line, i) => {
       ensure(ctx, 6);
       if (i === 0) {
@@ -91,8 +107,9 @@ function table(ctx: Ctx, head: string[], body: string[][], widths?: number[]) {
   autoTable(ctx.doc, {
     startY: ctx.y,
     margin: { left: M, right: M, top: 32, bottom: 22 },
-    head: [head],
-    body: body.length ? body : [head.map(() => "—")],
+    head: [head.map(sanitize)],
+    body: (body.length ? body : [head.map(() => "-")]).map((r) => r.map(dash)),
+    rowPageBreak: "avoid",
     theme: "grid",
     styles: { font: "helvetica", fontSize: 9, cellPadding: 2.4, lineColor: [214, 220, 230], lineWidth: 0.15, textColor: [45, 45, 45], valign: "top" },
     headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
@@ -112,18 +129,18 @@ function coverPage(ctx: Ctx, pop: PopContent, companyName?: string) {
   doc.rect(0, 78, W, 2.5, "F");
 
   doc.setFont("helvetica", "bold").setFontSize(9).setTextColor(160, 190, 235);
-  doc.text("DOCUMENTO CONTROLADO — SISTEMA DE GESTÃO POR PROCESSOS", M, 24);
+  doc.text("DOCUMENTO CONTROLADO - SISTEMA DE GESTÃO POR PROCESSOS", M, 24);
 
   doc.setFontSize(24).setTextColor(255, 255, 255);
   doc.text("Procedimento", M, 42);
   doc.text("Operacional Padrão", M, 54);
 
   doc.setFont("helvetica", "normal").setFontSize(11).setTextColor(200, 215, 240);
-  doc.text(companyName || "—", M, 66);
+  doc.text(dash(companyName), M, 66);
 
   let y = 100;
   doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(...NAVY);
-  for (const line of doc.splitTextToSize(popProcessName(pop) || "Processo", W - M * 2) as string[]) {
+  for (const line of doc.splitTextToSize(dash(popProcessName(pop)) || "Processo", W - M * 2) as string[]) {
     doc.text(line, M, y);
     y += 8;
   }
@@ -185,14 +202,14 @@ function decorate(ctx: Ctx) {
     doc.setFillColor(...NAVY);
     doc.rect(0, 0, W, 16, "F");
     doc.setFont("helvetica", "bold").setFontSize(8.5).setTextColor(255, 255, 255);
-    doc.text("POP — " + ctx.headerTitle, M, 10, { maxWidth: W - M * 2 - 45 });
+    doc.text(sanitize("POP - " + ctx.headerTitle), M, 10, { maxWidth: W - M * 2 - 45 });
     doc.setFont("helvetica", "normal");
-    doc.text(`Cód. ${dash(ctx.code)} | Rev. ${dash(ctx.version)}`, W - M, 10, { align: "right" });
+    doc.text(sanitize(`Cod. ${dash(ctx.code)}`).replace("Cod.", "Cód.") | Rev. ${dash(ctx.version)}`, W - M, 10, { align: "right" });
 
     doc.setDrawColor(214, 220, 230);
     doc.line(M, H - 14, W - M, H - 14);
     doc.setFontSize(8).setTextColor(...GREY);
-    doc.text("Documento controlado — impressão sem controle de revisão", M, H - 9);
+    doc.text("Documento controlado - impressão sem controle de revisão", M, H - 9);
     doc.text(`Página ${p} de ${pages}`, W - M, H - 9, { align: "right" });
   }
 }
@@ -254,14 +271,14 @@ export function buildPopPdf(pop: PopContent, companyName?: string) {
   bullets(ctx, pop.inputs);
 
   sectionTitle(ctx, 7, "Procedimento Operacional");
-  if (!pop.steps.length) paragraph(ctx, "—");
+  if (!pop.steps.length) paragraph(ctx, "-");
   pop.steps.forEach((s, i) => {
     ensure(ctx, 26);
     const { doc: d } = ctx;
     d.setFillColor(...LIGHT);
     d.roundedRect(M, ctx.y - 5, ctx.W - M * 2, 8.5, 1.5, 1.5, "F");
     d.setFont("helvetica", "bold").setFontSize(10).setTextColor(...NAVY);
-    d.text(`Etapa ${i + 1} — ${s.title || "—"}`, M + 3, ctx.y + 0.6, { maxWidth: ctx.W - M * 2 - 6 });
+    d.text(sanitize(`Etapa ${i + 1} - ${s.title || "-"}`), M + 3, ctx.y + 0.6, { maxWidth: ctx.W - M * 2 - 6 });
     ctx.y += 10;
     if (s.description) paragraph(ctx, s.description);
     const meta = [
