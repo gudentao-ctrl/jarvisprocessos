@@ -62,6 +62,18 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   approval: CheckCircle2,
 };
 
+/* Cores semânticas por tipo (tokens do design system). */
+const TYPE_ACCENT: Record<string, { chip: string; bar: string; text: string }> = {
+  start: { chip: "bg-map-time/10 text-map-time", bar: "bg-map-time", text: "text-map-time" },
+  end: { chip: "bg-map-pain/10 text-map-pain", bar: "bg-map-pain", text: "text-map-pain" },
+  decision: { chip: "bg-map-decision/10 text-map-decision", bar: "bg-map-decision", text: "text-map-decision" },
+  approval: { chip: "bg-map-info/10 text-map-info", bar: "bg-map-info", text: "text-map-info" },
+  wait: { chip: "bg-muted text-muted-foreground", bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
+  task: { chip: "bg-map-process/10 text-map-process", bar: "bg-map-process", text: "text-map-process" },
+};
+const accentOf = (t: string) => TYPE_ACCENT[t] ?? TYPE_ACCENT.task;
+
+
 const TYPE_LABEL: Record<string, string> = {
   start: "Início",
   end: "Fim",
