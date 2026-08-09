@@ -203,3 +203,20 @@
   display: none;
 }
 
+/* Refino tipográfico e de traço do diagrama */
+.bpmn-host .djs-visual > text,
+.bpmn-host .djs-label {
+  font-family: var(--font-sans, ui-sans-serif), sans-serif !important;
+  letter-spacing: 0.005em;
+}
+.bpmn-host .djs-connection .djs-visual > path {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.bpmn-host .djs-minimap {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.12);
+}
+
+
