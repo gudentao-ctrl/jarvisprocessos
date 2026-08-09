@@ -640,11 +640,11 @@ const ConnectionArrow = memo(function ConnectionArrow({
 }) {
   const target = activityById.get(connection.to_activity_id);
   const typeColor: Record<string, string> = {
-    sequential: "text-muted-foreground",
-    decision: "text-amber-600",
-    parallel: "text-blue-600",
-    return: "text-red-600",
-    subprocess: "text-purple-600",
+    sequential: "text-muted-foreground border-border",
+    decision: "text-map-decision border-map-decision/40",
+    parallel: "text-map-info border-map-info/40",
+    return: "text-map-pain border-map-pain/40",
+    subprocess: "text-map-process border-map-process/40",
   };
   const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
     sequential: ArrowDown,
@@ -655,12 +655,15 @@ const ConnectionArrow = memo(function ConnectionArrow({
   };
   const Icon = typeIcon[connection.type] ?? ArrowDown;
   return (
-    <div className={`flex items-center gap-2 text-xs ${typeColor[connection.type]}`}>
-      <Icon className="h-3 w-3" />
+    <div
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card/60 px-2 py-0.5 text-[11px] ${typeColor[connection.type] ?? typeColor.sequential}`}
+    >
+      <Icon className="h-3 w-3 shrink-0" />
       {connection.label && <span className="font-medium">{connection.label}</span>}
-      <span className="text-muted-foreground">→ {target?.title ?? "?"}</span>
+      <span className="truncate text-muted-foreground">→ {target?.title ?? "?"}</span>
     </div>
   );
+
 });
 
 function computeIssues(
