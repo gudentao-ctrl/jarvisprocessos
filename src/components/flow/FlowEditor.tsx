@@ -210,7 +210,8 @@ export function FlowEditor({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 justify-end">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <FlowStats activities={sorted} connections={connections} />
         <FlowOptimizePanel processId={processId} />
       </div>
       {issues.length > 0 && (
@@ -224,7 +225,9 @@ export function FlowEditor({
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-2 min-w-0">
+          <div className="relative min-w-0">
+            {/* trilho vertical do fluxo */}
+            <div className="pointer-events-none absolute left-[26px] top-4 bottom-14 w-px bg-border md:left-[30px]" aria-hidden />
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sorted.map((a) => a.id)} strategy={verticalListSortingStrategy}>
                 {sorted.map((a, idx) => {
@@ -234,6 +237,7 @@ export function FlowEditor({
                     <SortableActivityCard
                       key={a.id}
                       activity={a}
+                      index={idx}
                       processId={processId}
                       decision={decision}
                       outgoing={outgoing}
@@ -250,12 +254,13 @@ export function FlowEditor({
               </SortableContext>
             </DndContext>
 
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-3">
               <Button variant="outline" size="sm" onClick={addFirst}>
                 <Plus className="h-4 w-4 mr-1" /> Nova atividade
               </Button>
             </div>
           </div>
+
 
           <aside className="hidden lg:block">
             <div className="sticky top-4">
