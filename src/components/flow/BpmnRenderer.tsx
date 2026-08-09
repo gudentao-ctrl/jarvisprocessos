@@ -216,62 +216,85 @@ export function BpmnRenderer({
     presentation ? "bpmn-host--presentation" : "",
   ].filter(Boolean).join(" ");
 
+  const groupCls = "inline-flex items-center overflow-hidden rounded-md border bg-card";
+  const iconBtn = "h-8 w-9 rounded-none border-0 border-l first:border-l-0";
+
   return (
     <div ref={containerRef} className="space-y-2 bg-background">
       {!presentation && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => render(true)} title="Reorganizar diagrama">
-            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Organizar
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => zoom(0.15)} title="Zoom +">
-            <ZoomIn className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => zoom(-0.15)} title="Zoom -">
-            <ZoomOut className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="sm" variant="outline" onClick={centralizar} title="Ajustar à tela">
-            <Maximize2 className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="sm" variant="outline" onClick={centralizar} title="Centralizar processo">
-            <Crosshair className="h-3.5 w-3.5 mr-1" /> Centralizar
-          </Button>
-          <Button
-            size="sm"
-            variant={showGrid ? "default" : "outline"}
-            onClick={() => setShowGrid((v) => !v)}
-            title="Alternar grade"
-          >
-            <Grid3x3 className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant={showLanes ? "default" : "outline"}
-            onClick={() => setShowLanes((v) => !v)}
-            title="Mostrar/ocultar raias"
-          >
-            <Rows3 className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant={presentation ? "default" : "outline"}
-            onClick={() => setPresentation((v) => !v)}
-            title="Modo apresentação"
-          >
-            <Presentation className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={toggleFullscreen}
-            title={fullscreen ? "Sair de tela cheia" : "Tela cheia"}
-          >
-            {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          </Button>
-          <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={exportSvg}>
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-2 py-2">
+          <div className="mr-1 hidden min-w-0 sm:block">
+            <p className="truncate text-xs font-semibold leading-tight">{processName ?? "Processo"}</p>
+            {companyName && (
+              <p className="truncate text-[10px] leading-tight text-muted-foreground">{companyName}</p>
+            )}
+          </div>
+
+          <div className={groupCls}>
+            <Button size="sm" variant="ghost" className={`${iconBtn} w-auto px-2.5`} onClick={() => render(true)} title="Reorganizar diagrama">
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Organizar
+            </Button>
+          </div>
+
+          <div className={groupCls}>
+            <Button size="sm" variant="ghost" className={iconBtn} onClick={() => zoom(0.15)} title="Aproximar">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" className={iconBtn} onClick={() => zoom(-0.15)} title="Afastar">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" className={iconBtn} onClick={centralizar} title="Ajustar à tela">
+              <Crosshair className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <div className={groupCls}>
+            <Button
+              size="sm"
+              variant={showGrid ? "secondary" : "ghost"}
+              className={iconBtn}
+              onClick={() => setShowGrid((v) => !v)}
+              title="Alternar grade"
+            >
+              <Grid3x3 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant={showLanes ? "secondary" : "ghost"}
+              className={iconBtn}
+              onClick={() => setShowLanes((v) => !v)}
+              title="Mostrar/ocultar raias"
+            >
+              <Rows3 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <div className={groupCls}>
+            <Button
+              size="sm"
+              variant={presentation ? "secondary" : "ghost"}
+              className={iconBtn}
+              onClick={() => setPresentation((v) => !v)}
+              title="Modo apresentação"
+            >
+              <Presentation className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className={iconBtn}
+              onClick={toggleFullscreen}
+              title={fullscreen ? "Sair de tela cheia" : "Tela cheia"}
+            >
+              {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+
+          <div className={`ml-auto ${groupCls}`}>
+            <Button size="sm" variant="ghost" className={`${iconBtn} w-auto px-2.5`} onClick={exportSvg}>
               <Download className="h-3.5 w-3.5 mr-1" /> SVG
             </Button>
-            <Button size="sm" variant="outline" onClick={exportPng}>
+            <Button size="sm" variant="ghost" className={`${iconBtn} w-auto px-2.5`} onClick={exportPng}>
               <Download className="h-3.5 w-3.5 mr-1" /> PNG
             </Button>
           </div>
@@ -293,6 +316,7 @@ export function BpmnRenderer({
       {!presentation && <BpmnLegend used={usedEls} />}
     </div>
   );
+
 }
 
 function downloadBlob(blob: Blob, filename: string) {

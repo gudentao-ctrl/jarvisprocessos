@@ -62,6 +62,18 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   approval: CheckCircle2,
 };
 
+/* Cores semânticas por tipo (tokens do design system). */
+const TYPE_ACCENT: Record<string, { chip: string; bar: string; text: string }> = {
+  start: { chip: "bg-map-time/10 text-map-time", bar: "bg-map-time", text: "text-map-time" },
+  end: { chip: "bg-map-pain/10 text-map-pain", bar: "bg-map-pain", text: "text-map-pain" },
+  decision: { chip: "bg-map-decision/10 text-map-decision", bar: "bg-map-decision", text: "text-map-decision" },
+  approval: { chip: "bg-map-info/10 text-map-info", bar: "bg-map-info", text: "text-map-info" },
+  wait: { chip: "bg-muted text-muted-foreground", bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
+  task: { chip: "bg-map-process/10 text-map-process", bar: "bg-map-process", text: "text-map-process" },
+};
+const accentOf = (t: string) => TYPE_ACCENT[t] ?? TYPE_ACCENT.task;
+
+
 const TYPE_LABEL: Record<string, string> = {
   start: "Início",
   end: "Fim",
@@ -198,7 +210,8 @@ export function FlowEditor({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 justify-end">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <FlowStats activities={sorted} connections={connections} />
         <FlowOptimizePanel processId={processId} />
       </div>
       {issues.length > 0 && (
@@ -212,7 +225,9 @@ export function FlowEditor({
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-2 min-w-0">
+          <div className="relative min-w-0">
+            {/* trilho vertical do fluxo */}
+            <div className="pointer-events-none absolute left-[26px] top-4 bottom-14 w-px bg-border md:left-[30px]" aria-hidden />
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sorted.map((a) => a.id)} strategy={verticalListSortingStrategy}>
                 {sorted.map((a, idx) => {
@@ -222,6 +237,7 @@ export function FlowEditor({
                     <SortableActivityCard
                       key={a.id}
                       activity={a}
+                      index={idx}
                       processId={processId}
                       decision={decision}
                       outgoing={outgoing}
@@ -238,12 +254,13 @@ export function FlowEditor({
               </SortableContext>
             </DndContext>
 
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-3">
               <Button variant="outline" size="sm" onClick={addFirst}>
                 <Plus className="h-4 w-4 mr-1" /> Nova atividade
               </Button>
             </div>
           </div>
+
 
           <aside className="hidden lg:block">
             <div className="sticky top-4">
@@ -276,8 +293,34 @@ export function FlowEditor({
   );
 }
 
+function FlowStats({ activities, connections }: { activities: FlowActivity[]; connections: FlowConnection[] }) {
+  const decisions = activities.filter((a) => a.type === "decision").length;
+  const responsaveis = new Set(activities.map((a) => (a.responsible ?? "").trim()).filter(Boolean)).size;
+  const minutos = activities.reduce((s, a) => s + (a.time_minutes ?? 0), 0);
+  const items: Array<[string, string | number]> = [
+    ["Etapas", activities.length],
+    ["Conexões", connections.length],
+    ["Decisões", decisions],
+    ["Responsáveis", responsaveis],
+  ];
+  if (minutos > 0) items.push(["Tempo", minutos >= 60 ? `${(minutos / 60).toFixed(1)} h` : `${minutos} min`]);
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      {items.map(([label, value]) => (
+        <span
+          key={label}
+          className="inline-flex items-center gap-1 rounded-full border bg-card px-2.5 py-1 text-[11px] text-muted-foreground"
+        >
+          <b className="text-foreground tabular-nums">{value}</b> {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 type SortableCardProps = {
   activity: FlowActivity;
+  index: number;
   processId: string;
   decision: FlowDecision | undefined;
   outgoing: FlowConnection[];
@@ -292,6 +335,7 @@ type SortableCardProps = {
 
 const SortableActivityCard = memo(function SortableActivityCard({
   activity: a,
+  index,
   processId,
   decision,
   outgoing,
@@ -308,66 +352,89 @@ const SortableActivityCard = memo(function SortableActivityCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 20 : undefined,
   };
   const Icon = TYPE_ICON[a.type] ?? Layers;
   const isDecision = a.type === "decision";
+  const accent = accentOf(a.type);
   return (
-    <div ref={setNodeRef} style={style}>
-      <Card
-        className={`p-3 transition-colors cursor-pointer hover:bg-secondary/50 ${isFocused ? "ring-2 ring-primary/50" : ""}`}
-        onMouseEnter={onFocus}
-        onClick={() => { onFocus(); onOpen(); }}
-      >
-        <div className="flex items-start gap-2">
+    <div ref={setNodeRef} style={style} className="relative">
+      <div className="flex items-stretch gap-2 md:gap-3">
+        {/* marcador de sequência */}
+        <div className="relative z-10 flex w-[52px] shrink-0 flex-col items-center pt-3 md:w-[60px]">
+          <span
+            className={`grid h-8 w-8 place-items-center rounded-full border-2 border-background text-[11px] font-bold tabular-nums shadow-sm ${accent.chip}`}
+          >
+            {index + 1}
+          </span>
           <button
             {...attributes}
             {...listeners}
             onClick={(e) => e.stopPropagation()}
-            className="shrink-0 grid place-items-center h-9 w-6 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+            className="mt-1 grid h-6 w-6 place-items-center rounded text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
             aria-label="Arrastar"
           >
-            <GripVertical className="h-4 w-4" />
+            <GripVertical className="h-3.5 w-3.5" />
           </button>
-          <div className={`shrink-0 grid h-9 w-9 place-items-center rounded-lg ${isDecision ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <InlineTitle activity={a} processId={processId} onChange={onChange} />
-              <Badge variant="outline" className="text-[10px] py-0 h-4">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-            </div>
-            {isDecision && decision?.question && (
-              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">? {decision.question}</p>
-            )}
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-              <InlineResponsible activity={a} processId={processId} onChange={onChange} />
-              {a.area && <span>📂 {a.area}</span>}
-              {a.time_minutes ? <span>⏱ {a.time_minutes} min</span> : null}
-            </div>
-          </div>
-          <MoreVertical className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
-      </Card>
+
+        <Card
+          className={`relative flex-1 min-w-0 overflow-hidden p-3 pl-4 my-1 transition-all cursor-pointer hover:shadow-md hover:bg-secondary/40 ${
+            isFocused ? "ring-2 ring-primary/40 shadow-sm" : ""
+          } ${isDragging ? "shadow-lg" : ""}`}
+          onMouseEnter={onFocus}
+          onClick={() => { onFocus(); onOpen(); }}
+        >
+          <span className={`absolute inset-y-0 left-0 w-1 ${accent.bar}`} aria-hidden />
+          <div className="flex items-start gap-2.5">
+            <div className={`shrink-0 grid h-9 w-9 place-items-center rounded-lg ${accent.chip}`}>
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <InlineTitle activity={a} processId={processId} onChange={onChange} />
+                <Badge variant="outline" className={`text-[10px] py-0 h-4 ${accent.text}`}>
+                  {TYPE_LABEL[a.type] ?? a.type}
+                </Badge>
+              </div>
+              {isDecision && decision?.question && (
+                <p className={`text-xs mt-0.5 ${accent.text}`}>? {decision.question}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted-foreground">
+                <InlineResponsible activity={a} processId={processId} onChange={onChange} />
+                {a.area && (
+                  <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> {a.area}</span>
+                )}
+                {a.time_minutes ? (
+                  <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {a.time_minutes} min</span>
+                ) : null}
+              </div>
+            </div>
+            <MoreVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </Card>
+      </div>
 
       {outgoing.length > 0 ? (
-        <div className="pl-4 py-1 space-y-1">
+        <div className="ml-[60px] flex flex-wrap gap-1 py-0.5 md:ml-[72px]">
           {outgoing.map((c) => (
             <ConnectionArrow key={c.id} connection={c} activityById={activityById} />
           ))}
         </div>
       ) : !isLast ? (
-        <div className="flex items-center justify-center py-1">
+        <div className="ml-[60px] py-1 md:ml-[72px]">
           <button
             onClick={(e) => { e.stopPropagation(); onAddAfter(); }}
-            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+            className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-primary"
           >
-            <ArrowDown className="h-3 w-3" /> conectar
+            <ArrowDown className="h-3 w-3" /> conectar à próxima
           </button>
         </div>
       ) : null}
     </div>
   );
 });
+
 
 function ActivityDetailsPanel({
   activity,
@@ -573,11 +640,11 @@ const ConnectionArrow = memo(function ConnectionArrow({
 }) {
   const target = activityById.get(connection.to_activity_id);
   const typeColor: Record<string, string> = {
-    sequential: "text-muted-foreground",
-    decision: "text-amber-600",
-    parallel: "text-blue-600",
-    return: "text-red-600",
-    subprocess: "text-purple-600",
+    sequential: "text-muted-foreground border-border",
+    decision: "text-map-decision border-map-decision/40",
+    parallel: "text-map-info border-map-info/40",
+    return: "text-map-pain border-map-pain/40",
+    subprocess: "text-map-process border-map-process/40",
   };
   const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
     sequential: ArrowDown,
@@ -588,12 +655,15 @@ const ConnectionArrow = memo(function ConnectionArrow({
   };
   const Icon = typeIcon[connection.type] ?? ArrowDown;
   return (
-    <div className={`flex items-center gap-2 text-xs ${typeColor[connection.type]}`}>
-      <Icon className="h-3 w-3" />
+    <div
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card/60 px-2 py-0.5 text-[11px] ${typeColor[connection.type] ?? typeColor.sequential}`}
+    >
+      <Icon className="h-3 w-3 shrink-0" />
       {connection.label && <span className="font-medium">{connection.label}</span>}
-      <span className="text-muted-foreground">→ {target?.title ?? "?"}</span>
+      <span className="truncate text-muted-foreground">→ {target?.title ?? "?"}</span>
     </div>
   );
+
 });
 
 function computeIssues(
