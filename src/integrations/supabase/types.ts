@@ -1066,7 +1066,9 @@ export type Database = {
       }
       interviews: {
         Row: {
+          audio_duration_sec: number | null
           audio_mime: string | null
+          audio_parts: string[] | null
           audio_path: string | null
           company_id: string | null
           created_at: string
@@ -1086,7 +1088,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audio_duration_sec?: number | null
           audio_mime?: string | null
+          audio_parts?: string[] | null
           audio_path?: string | null
           company_id?: string | null
           created_at?: string
@@ -1106,7 +1110,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audio_duration_sec?: number | null
           audio_mime?: string | null
+          audio_parts?: string[] | null
           audio_path?: string | null
           company_id?: string | null
           created_at?: string

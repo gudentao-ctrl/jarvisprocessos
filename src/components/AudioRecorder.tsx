@@ -1,84 +1,115 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Upload, Trash2 } from "lucide-react";
+import { Mic, Square, Upload, Trash2, Loader2, AudioLines } from "lucide-react";
+import { ChunkedRecorder, fileToWavChunks, CHUNK_SECONDS } from "@/lib/audio-chunks";
 
 type Props = {
-  onAudioReady: (blob: Blob, mime: string) => void;
+  /** Emits WAV chunks (5 min each) ready for upload + transcription. */
+  onAudioReady: (parts: Blob[], durationSec: number) => void;
   disabled?: boolean;
 };
+
+const MAX_SECONDS = 60 * 60; // 60 min
+
+function fmt(total: number) {
+  const s = Math.floor(total);
+  const hh = Math.floor(s / 3600);
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
+}
 
 export function AudioRecorder({ onAudioReady, disabled }: Props) {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [chunks, setChunks] = useState(0);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [ready, setReady] = useState<{ parts: number; duration: number; url: string | null } | null>(null);
+  const recRef = useRef<ChunkedRecorder | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      recRef.current?.stop();
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    },
+    [],
+  );
 
   async function start() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const mime = ["audio/webm", "audio/mp4"].find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
-      chunksRef.current = [];
-      rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-      rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: rec.mimeType });
-        if (blob.size < 1024) {
-          alert("Gravação muito curta. Tente novamente.");
-          return;
-        }
-        setAudioUrl(URL.createObjectURL(blob));
-        onAudioReady(blob, rec.mimeType || "audio/webm");
-      };
-      rec.start();
-      recorderRef.current = rec;
+      const rec = new ChunkedRecorder((i) => setChunks(i));
+      await rec.start();
+      recRef.current = rec;
       setRecording(true);
       setElapsed(0);
-      intervalRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+      setChunks(0);
+      intervalRef.current = setInterval(() => {
+        setElapsed((s) => {
+          const next = s + 1;
+          if (next >= MAX_SECONDS) void stop();
+          return next;
+        });
+      }, 1000);
     } catch {
       alert("Não foi possível acessar o microfone. Verifique as permissões.");
     }
   }
 
-  function stop() {
-    recorderRef.current?.stop();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+  async function stop() {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setRecording(false);
+    const rec = recRef.current;
+    recRef.current = null;
+    if (!rec) return;
+    const { parts, durationSec } = await rec.stop();
+    if (!parts.length || durationSec < 1) {
+      alert("Gravação muito curta. Tente novamente.");
+      return;
+    }
+    setReady({ parts: parts.length, duration: durationSec, url: URL.createObjectURL(parts[0]) });
+    onAudioReady(parts, durationSec);
   }
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    setAudioUrl(URL.createObjectURL(f));
-    onAudioReady(f, f.type || "audio/webm");
+    try {
+      setProcessing("Preparando áudio...");
+      const { parts, durationSec } = await fileToWavChunks(f, (m) => setProcessing(m));
+      setReady({ parts: parts.length, duration: durationSec, url: URL.createObjectURL(f) });
+      onAudioReady(parts, durationSec);
+    } catch {
+      alert("Não foi possível ler este arquivo de áudio. Tente MP3, M4A ou WAV.");
+    } finally {
+      setProcessing(null);
+    }
   }
 
   function clear() {
-    setAudioUrl(null);
-    chunksRef.current = [];
-    onAudioReady(new Blob(), "");
+    if (ready?.url) URL.revokeObjectURL(ready.url);
+    setReady(null);
+    setElapsed(0);
+    setChunks(0);
+    onAudioReady([], 0);
   }
 
-  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
-  const ss = String(elapsed % 60).padStart(2, "0");
+  const near = elapsed > MAX_SECONDS - 300;
 
   return (
     <div className="rounded-xl border bg-card p-4">
-      {!audioUrl && (
+      {processing && (
+        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> {processing}
+        </div>
+      )}
+
+      {!processing && !ready && (
         <div className="flex flex-col items-center gap-4">
           <button
             type="button"
-            onClick={recording ? stop : start}
+            onClick={() => (recording ? void stop() : void start())}
             disabled={disabled}
             className={`flex h-24 w-24 items-center justify-center rounded-full transition-all ${
               recording
@@ -90,12 +121,17 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
             {recording ? <Square className="h-8 w-8" /> : <Mic className="h-10 w-10" />}
           </button>
           <div className="text-center">
-            <div className="font-mono text-2xl font-semibold tabular-nums">
-              {mm}:{ss}
-            </div>
+            <div className="font-mono text-2xl font-semibold tabular-nums">{fmt(elapsed)}</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {recording ? "Gravando..." : "Toque para iniciar a gravação"}
+              {recording
+                ? `Gravando... ${chunks > 0 ? `${chunks} bloco(s) prontos · ` : ""}limite de 60 min`
+                : "Toque para iniciar (suporta até 60 minutos)"}
             </p>
+            {recording && near && (
+              <p className="mt-1 text-xs font-medium text-destructive">
+                Perto do limite de 60 min — a gravação será encerrada automaticamente.
+              </p>
+            )}
           </div>
           <div className="flex w-full items-center gap-2 pt-2">
             <div className="h-px flex-1 bg-border" />
@@ -103,20 +139,26 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
             <div className="h-px flex-1 bg-border" />
           </div>
           <label className="w-full">
-            <input type="file" accept="audio/*" onChange={onFile} className="hidden" />
+            <input type="file" accept="audio/*" onChange={onFile} className="hidden" disabled={recording} />
             <Button type="button" variant="outline" className="h-11 w-full" asChild>
               <span className="cursor-pointer">
                 <Upload className="mr-2 h-4 w-4" />
-                Enviar arquivo de áudio
+                Enviar arquivo de áudio (até 60 min)
               </span>
             </Button>
           </label>
         </div>
       )}
 
-      {audioUrl && (
+      {!processing && ready && (
         <div className="space-y-3">
-          <audio src={audioUrl} controls className="w-full" />
+          {ready.url && <audio src={ready.url} controls className="w-full" />}
+          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            <AudioLines className="h-4 w-4 text-primary" />
+            <span>
+              {fmt(ready.duration)} · {ready.parts} bloco(s) de até {CHUNK_SECONDS / 60} min para transcrição
+            </span>
+          </div>
           <Button type="button" variant="ghost" onClick={clear} className="w-full text-muted-foreground">
             <Trash2 className="mr-2 h-4 w-4" /> Remover e gravar novamente
           </Button>

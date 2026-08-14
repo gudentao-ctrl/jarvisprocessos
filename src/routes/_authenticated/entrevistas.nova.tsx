@@ -81,30 +81,38 @@ function NewInterview() {
   const [sectorId, setSectorId] = useState<string>("");
   const [participant, setParticipant] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioMime, setAudioMime] = useState("");
+  const [audioParts, setAudioParts] = useState<Blob[]>([]);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [progress, setProgress] = useState<string>("");
 
   const selectedCompany = companies?.find((c: any) => c.id === companyId);
   const sectors = selectedCompany?.sectors ?? [];
 
   const hasTitle = title.trim().length > 0;
-  const hasAudio = !!audioBlob && audioBlob.size >= 1024;
+  const hasAudio = audioParts.length > 0;
   const missing = [!hasTitle && "título", !hasAudio && "áudio"].filter(Boolean) as string[];
+
 
   const submitting = useMutation({
     mutationFn: async () => {
       if (!title.trim()) throw new Error("Informe um título");
-      if (!audioBlob || audioBlob.size < 1024) throw new Error("Grave ou envie um áudio");
+      if (!audioParts.length) throw new Error("Grave ou envie um áudio");
 
-      // 1) upload audio to storage
-      const ext = audioMime.includes("mp4") ? "mp4" : audioMime.includes("mpeg") ? "mp3" : audioMime.includes("wav") ? "wav" : "webm";
-      const path = `${crypto.randomUUID()}.${ext}`;
-      const up = await supabase.storage
-        .from("interview-audio")
-        .upload(path, audioBlob, { contentType: audioMime || "audio/webm", upsert: false });
-      if (up.error) throw new Error("Falha ao enviar áudio: " + up.error.message);
+      // 1) upload each audio chunk to storage
+      const folder = crypto.randomUUID();
+      const paths: string[] = [];
+      for (let i = 0; i < audioParts.length; i++) {
+        setProgress(`Enviando áudio ${i + 1}/${audioParts.length}...`);
+        const path = `${folder}/part-${String(i).padStart(3, "0")}.wav`;
+        const up = await supabase.storage
+          .from("interview-audio")
+          .upload(path, audioParts[i], { contentType: "audio/wav", upsert: true });
+        if (up.error) throw new Error("Falha ao enviar áudio: " + up.error.message);
+        paths.push(path);
+      }
 
       // 2) create interview row
+      setProgress("Criando entrevista...");
       const interview = await create({
         data: {
           title: title.trim(),
@@ -112,13 +120,16 @@ function NewInterview() {
           sector_id: sectorId || null,
           participant: participant.trim(),
           interview_date: date,
-          audio_path: path,
-          audio_mime: audioMime || "audio/webm",
+          audio_path: paths[0],
+          audio_parts: paths,
+          audio_duration_sec: Math.round(audioDuration),
+          audio_mime: "audio/wav",
         },
       });
 
-      // 3) kick off transcription (await — usually fast for short clips)
+      // 3) transcribe (chunk by chunk on the server)
       try {
+        setProgress(`Transcrevendo ${audioParts.length} bloco(s)...`);
         await transcribe({ data: { interview_id: interview.id } });
       } catch (e: any) {
         toast.error("Áudio salvo, mas transcrição falhou: " + e.message);
@@ -127,12 +138,17 @@ function NewInterview() {
       return interview;
     },
     onSuccess: (interview) => {
+      setProgress("");
       qc.invalidateQueries({ queryKey: ["interviews"] });
       toast.success("Entrevista criada!");
       navigate({ to: "/entrevistas/$id", params: { id: interview.id } });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao criar entrevista"),
+    onError: (e: any) => {
+      setProgress("");
+      toast.error(e.message ?? "Erro ao criar entrevista");
+    },
   });
+
 
   return (
     <div className="space-y-4">
@@ -231,12 +247,12 @@ function NewInterview() {
         highlight={hasAudio}
       >
         <AudioRecorder
-          onAudioReady={(b, m) => { setAudioBlob(b.size ? b : null); setAudioMime(m); }}
+          onAudioReady={(parts, dur) => { setAudioParts(parts); setAudioDuration(dur); }}
           disabled={submitting.isPending}
         />
         {hasAudio && (
           <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Áudio capturado
+            <CheckCircle2 className="h-3.5 w-3.5" /> Áudio capturado ({audioParts.length} bloco(s))
           </p>
         )}
       </SectionCard>
@@ -248,9 +264,10 @@ function NewInterview() {
           className="h-14 w-full text-base font-semibold"
         >
           {submitting.isPending ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Salvando e transcrevendo...</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {progress || "Salvando e transcrevendo..."}</>
           ) : "Salvar e Transcrever"}
         </Button>
+
         {missing.length > 0 && !submitting.isPending && (
           <p className="text-center text-xs text-muted-foreground">
             Falta preencher: <strong>{missing.join(" e ")}</strong>
