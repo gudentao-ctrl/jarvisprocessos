@@ -182,52 +182,89 @@ export const deleteInterview = createServerFn({ method: "POST" })
 
 export const transcribeInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        interview_id: z.string().uuid(),
+        /** Optional: transcribe a single chunk (long audio). Omit to transcribe everything. */
+        part_index: z.number().int().nonnegative().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
     const { data: interview, error: ie } = await context.supabase
       .from("interviews")
-      .select("id, audio_path, audio_mime")
+      .select("id, audio_path, audio_mime, audio_parts")
       .eq("id", data.interview_id)
       .single();
     if (ie || !interview?.audio_path) throw new Error("Áudio não encontrado");
 
-    // Download audio bytes
-    const { data: blob, error: dlErr } = await context.supabase.storage
-      .from("interview-audio")
-      .download(interview.audio_path);
-    if (dlErr || !blob) throw new Error("Falha ao baixar áudio: " + (dlErr?.message ?? ""));
+    const parts: string[] =
+      (interview.audio_parts as string[] | null)?.length
+        ? (interview.audio_parts as string[])
+        : [interview.audio_path];
 
-    const mime = interview.audio_mime || blob.type || "audio/webm";
-    const ext = mime.includes("mp4") ? "mp4" : mime.includes("mpeg") ? "mp3" : mime.includes("wav") ? "wav" : "webm";
+    async function transcribePart(path: string): Promise<string> {
+      const { data: blob, error: dlErr } = await context.supabase.storage
+        .from("interview-audio")
+        .download(path);
+      if (dlErr || !blob) throw new Error("Falha ao baixar áudio: " + (dlErr?.message ?? ""));
 
-    const form = new FormData();
-    form.append("file", blob, `audio.${ext}`);
-    form.append("model", "openai/gpt-4o-mini-transcribe");
-    form.append("language", "pt");
+      const mime = path.endsWith(".wav") ? "audio/wav" : interview!.audio_mime || blob.type || "audio/webm";
+      const ext = mime.includes("wav") ? "wav" : mime.includes("mp4") ? "mp4" : mime.includes("mpeg") ? "mp3" : "webm";
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
-    });
+      const form = new FormData();
+      form.append("file", blob, `audio.${ext}`);
+      form.append("model", "openai/gpt-4o-mini-transcribe");
+      form.append("language", "pt");
 
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Limite de requisições atingido. Tente novamente em instantes.");
-      if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos ao workspace.");
-      throw new Error(`Falha na transcrição (${res.status}): ${txt.slice(0, 200)}`);
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        if (res.status === 429) throw new Error("Limite de requisições atingido. Tente novamente em instantes.");
+        if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos ao workspace.");
+        throw new Error(`Falha na transcrição (${res.status}): ${txt.slice(0, 200)}`);
+      }
+
+      const json = (await res.json()) as { text?: string };
+      return (json.text ?? "").trim();
     }
 
-    const json = (await res.json()) as { text?: string };
-    const text = (json.text ?? "").trim();
+    const single = typeof data.part_index === "number";
+    const index = single ? Math.min(data.part_index!, parts.length - 1) : 0;
+
+    let text = "";
+    if (single) {
+      const chunkText = await transcribePart(parts[index]);
+      if (index > 0) {
+        const { data: prev } = await context.supabase
+          .from("transcripts")
+          .select("content")
+          .eq("interview_id", data.interview_id)
+          .maybeSingle();
+        text = [prev?.content ?? "", chunkText].filter(Boolean).join("\n\n");
+      } else {
+        text = chunkText;
+      }
+    } else {
+      const all: string[] = [];
+      for (const p of parts) all.push(await transcribePart(p));
+      text = all.filter(Boolean).join("\n\n");
+    }
 
     const { data: upserted, error: upErr } = await context.supabase
       .from("transcripts")
       .upsert({ interview_id: data.interview_id, content: text }, { onConflict: "interview_id" })
       .select()
+
       .single();
     if (upErr) throw new Error(upErr.message);
 
