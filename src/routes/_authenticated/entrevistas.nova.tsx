@@ -247,12 +247,12 @@ function NewInterview() {
         highlight={hasAudio}
       >
         <AudioRecorder
-          onAudioReady={(b, m) => { setAudioBlob(b.size ? b : null); setAudioMime(m); }}
+          onAudioReady={(parts, dur) => { setAudioParts(parts); setAudioDuration(dur); }}
           disabled={submitting.isPending}
         />
         {hasAudio && (
           <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Áudio capturado
+            <CheckCircle2 className="h-3.5 w-3.5" /> Áudio capturado ({audioParts.length} bloco(s))
           </p>
         )}
       </SectionCard>
@@ -264,9 +264,10 @@ function NewInterview() {
           className="h-14 w-full text-base font-semibold"
         >
           {submitting.isPending ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Salvando e transcrevendo...</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {progress || "Salvando e transcrevendo..."}</>
           ) : "Salvar e Transcrever"}
         </Button>
+
         {missing.length > 0 && !submitting.isPending && (
           <p className="text-center text-xs text-muted-foreground">
             Falta preencher: <strong>{missing.join(" e ")}</strong>
