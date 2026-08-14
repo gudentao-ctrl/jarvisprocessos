@@ -81,15 +81,17 @@ function NewInterview() {
   const [sectorId, setSectorId] = useState<string>("");
   const [participant, setParticipant] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioMime, setAudioMime] = useState("");
+  const [audioParts, setAudioParts] = useState<Blob[]>([]);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [progress, setProgress] = useState<string>("");
 
   const selectedCompany = companies?.find((c: any) => c.id === companyId);
   const sectors = selectedCompany?.sectors ?? [];
 
   const hasTitle = title.trim().length > 0;
-  const hasAudio = !!audioBlob && audioBlob.size >= 1024;
+  const hasAudio = audioParts.length > 0;
   const missing = [!hasTitle && "título", !hasAudio && "áudio"].filter(Boolean) as string[];
+
 
   const submitting = useMutation({
     mutationFn: async () => {
