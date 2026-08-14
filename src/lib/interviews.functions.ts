@@ -147,6 +147,9 @@ export const createInterview = createServerFn({ method: "POST" })
         interview_date: data.interview_date,
         audio_path: data.audio_path,
         audio_mime: data.audio_mime,
+        audio_parts: data.audio_parts ?? [data.audio_path],
+        audio_duration_sec: data.audio_duration_sec ?? null,
+
         status: "transcribing",
         created_by: context.userId,
       })
