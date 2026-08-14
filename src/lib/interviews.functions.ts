@@ -129,6 +129,9 @@ export const createInterview = createServerFn({ method: "POST" })
         participant: z.string().max(200).optional().default(""),
         interview_date: z.string().min(1),
         audio_path: z.string().min(1),
+        audio_parts: z.array(z.string()).optional(),
+        audio_duration_sec: z.number().int().nonnegative().optional(),
+
         audio_mime: z.string().min(1),
       })
       .parse(d),
