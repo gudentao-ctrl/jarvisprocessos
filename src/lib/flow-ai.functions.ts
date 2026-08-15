@@ -60,7 +60,30 @@ ESTRUTURA (responda APENAS este JSON, sem cercas):
   ]
 }`;
 
-async function callAi(user: string) {
+/** Reduz textos longos mantendo início e fim (o miolo é omitido). */
+function condense(text: string, max: number): string {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  const head = Math.floor(max * 0.7);
+  const tail = max - head;
+  return `${s.slice(0, head)}\n[…trecho omitido…]\n${s.slice(-tail)}`;
+}
+
+/** Extrai o primeiro objeto JSON válido de uma resposta (tolera cercas/ruído). */
+
+function extractJson(raw: string): any {
+  const s = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  try {
+    return JSON.parse(s);
+  } catch {
+    const i = s.indexOf("{");
+    const j = s.lastIndexOf("}");
+    if (i >= 0 && j > i) return JSON.parse(s.slice(i, j + 1));
+    throw new Error("resposta sem JSON");
+  }
+}
+
+async function callModel(model: string, user: string) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY ausente");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -70,12 +93,13 @@ async function callAi(user: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model,
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: user },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 8000,
     }),
   });
   if (!res.ok) {
@@ -87,6 +111,23 @@ async function callAi(user: string) {
   const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return j.choices?.[0]?.message?.content ?? "{}";
 }
+
+/** Modelo rápido primeiro (evita estouro de tempo com contextos grandes),
+ * com fallback para outro modelo caso a resposta venha inválida. */
+async function callAi(user: string) {
+  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
+  let lastErr: any;
+  for (const m of models) {
+    try {
+      return await callModel(m, user);
+    } catch (e: any) {
+      lastErr = e;
+      if (/Limite de IA|Créditos/.test(e?.message ?? "")) throw e;
+    }
+  }
+  throw lastErr ?? new Error("Falha IA");
+}
+
 
 export const generateFlowForProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -107,7 +148,9 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       .single();
     if (pe || !proc) throw new Error("Processo não encontrado");
 
-    // Reúne contexto: descrição do processo + trecho da entrevista (se houver)
+    // Reúne contexto: descrição do processo + trecho da entrevista (se houver).
+    // Transcrições longas são condensadas (início + fim) para não estourar o
+    // tamanho do pedido nem o tempo de resposta da IA.
     let transcript = "";
     if (proc.source_interview_id) {
       const { data: t } = await sb
@@ -115,7 +158,7 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
         .select("content")
         .eq("interview_id", proc.source_interview_id)
         .maybeSingle();
-      transcript = (t?.content ?? "").slice(0, 12000);
+      transcript = condense(t?.content ?? "", 6000);
     }
 
     const userMsg = [
@@ -124,18 +167,20 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       proc.responsible ? `Responsável: ${proc.responsible}` : "",
       proc.inputs ? `Entradas: ${proc.inputs}` : "",
       proc.outputs ? `Saídas: ${proc.outputs}` : "",
-      proc.description ? `Descrição: ${proc.description}` : "",
-      data.description ? `Contexto adicional do consultor: ${data.description}` : "",
+      proc.description ? `Descrição: ${condense(proc.description, 2000)}` : "",
+      data.description ? `Contexto adicional do consultor: ${condense(data.description, 2000)}` : "",
       transcript ? `\nTrecho da entrevista (referência):\n${transcript}` : "",
+      "\nGere no máximo 25 atividades.",
     ].filter(Boolean).join("\n");
 
     const raw = await callAi(userMsg);
     let parsed: z.infer<typeof AiFlow>;
     try {
-      parsed = AiFlow.parse(JSON.parse(raw));
+      parsed = AiFlow.parse(extractJson(raw));
     } catch (e: any) {
       throw new Error("IA retornou JSON inválido: " + (e?.message ?? ""));
     }
+
     if (parsed.activities.length === 0) throw new Error("IA não gerou atividades");
 
     // Se replace, apaga fluxo atual desse processo
@@ -163,52 +208,60 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       .maybeSingle();
     let nextOrder = (maxRow?.ordering ?? -1) + 1;
 
-    // Cria atividades
+    // Cria atividades em lote (evita dezenas de idas ao banco)
     const idByRef = new Map<string, string>();
-    for (const a of parsed.activities) {
-      const { data: row, error } = await sb
-        .from("process_activities")
-        .insert({
-          process_id: data.process_id,
-          ordering: nextOrder++,
-          type: a.type,
-          title: a.title,
-          responsible: a.responsible,
-          area: a.area,
-          time_minutes: a.time_minutes,
-          inputs: a.inputs,
-          outputs: a.outputs,
-          documents: a.documents,
-          systems: a.systems,
-          problems: a.problems,
-          improvements: a.improvements,
-          notes: a.notes,
-          generated_by_ai: true,
-        })
-        .select("id")
-        .single();
-      if (error || !row) continue;
-      idByRef.set(a.ref, row.id);
-      if (a.type === "decision" && a.decision_question) {
-        await sb.from("process_decisions").insert({ activity_id: row.id, question: a.decision_question });
-      }
-    }
+    const rows = parsed.activities.map((a) => ({
+      process_id: data.process_id,
+      ordering: nextOrder++,
+      type: a.type,
+      title: a.title,
+      responsible: a.responsible,
+      area: a.area,
+      time_minutes: a.time_minutes,
+      inputs: a.inputs,
+      outputs: a.outputs,
+      documents: a.documents,
+      systems: a.systems,
+      problems: a.problems,
+      improvements: a.improvements,
+      notes: a.notes,
+      generated_by_ai: true,
+    }));
+    const { data: inserted, error: insErr } = await sb
+      .from("process_activities")
+      .insert(rows)
+      .select("id, ordering");
+    if (insErr) throw new Error(insErr.message);
+    const byOrdering = new Map<number, string>((inserted ?? []).map((r: any) => [r.ordering, r.id]));
+    parsed.activities.forEach((a, i) => {
+      const id = byOrdering.get(rows[i].ordering);
+      if (id) idByRef.set(a.ref, id);
+    });
 
-    // Cria conexões
+    const decisionRows = parsed.activities
+      .filter((a) => a.type === "decision" && a.decision_question && idByRef.get(a.ref))
+      .map((a) => ({ activity_id: idByRef.get(a.ref)!, question: a.decision_question! }));
+    if (decisionRows.length) await sb.from("process_decisions").insert(decisionRows);
+
+    // Cria conexões em lote
     let orderIdx = 0;
-    for (const c of parsed.connections) {
-      const from = idByRef.get(c.from);
-      const to = idByRef.get(c.to);
-      if (!from || !to) continue;
-      await sb.from("activity_connections").insert({
-        process_id: data.process_id,
-        from_activity_id: from,
-        to_activity_id: to,
-        type: c.type,
-        label: c.label,
-        order_index: orderIdx++,
-      });
-    }
+    const connRows = parsed.connections
+      .map((c) => {
+        const from = idByRef.get(c.from);
+        const to = idByRef.get(c.to);
+        if (!from || !to) return null;
+        return {
+          process_id: data.process_id,
+          from_activity_id: from,
+          to_activity_id: to,
+          type: c.type,
+          label: c.label,
+          order_index: orderIdx++,
+        };
+      })
+      .filter(Boolean) as any[];
+    if (connRows.length) await sb.from("activity_connections").insert(connRows);
+
 
     return {
       ok: true,
