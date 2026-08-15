@@ -10,7 +10,7 @@ type Props = {
   disabled?: boolean;
 };
 
-const MAX_SECONDS = 60 * 60; // 60 min
+// Sem limite de duração: a gravação é fatiada em blocos WAV enquanto acontece.
 
 function fmt(total: number) {
   const s = Math.floor(total);
