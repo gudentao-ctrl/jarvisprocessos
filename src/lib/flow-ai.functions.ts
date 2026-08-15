@@ -60,7 +60,20 @@ ESTRUTURA (responda APENAS este JSON, sem cercas):
   ]
 }`;
 
-async function callAi(user: string) {
+/** Extrai o primeiro objeto JSON válido de uma resposta (tolera cercas/ruído). */
+function extractJson(raw: string): any {
+  const s = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  try {
+    return JSON.parse(s);
+  } catch {
+    const i = s.indexOf("{");
+    const j = s.lastIndexOf("}");
+    if (i >= 0 && j > i) return JSON.parse(s.slice(i, j + 1));
+    throw new Error("resposta sem JSON");
+  }
+}
+
+async function callModel(model: string, user: string) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY ausente");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -70,12 +83,13 @@ async function callAi(user: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model,
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: user },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 8000,
     }),
   });
   if (!res.ok) {
@@ -87,6 +101,23 @@ async function callAi(user: string) {
   const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return j.choices?.[0]?.message?.content ?? "{}";
 }
+
+/** Modelo rápido primeiro (evita estouro de tempo com contextos grandes),
+ * com fallback para outro modelo caso a resposta venha inválida. */
+async function callAi(user: string) {
+  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
+  let lastErr: any;
+  for (const m of models) {
+    try {
+      return await callModel(m, user);
+    } catch (e: any) {
+      lastErr = e;
+      if (/Limite de IA|Créditos/.test(e?.message ?? "")) throw e;
+    }
+  }
+  throw lastErr ?? new Error("Falha IA");
+}
+
 
 export const generateFlowForProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
