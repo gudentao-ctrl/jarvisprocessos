@@ -129,10 +129,21 @@ function InterviewDetail() {
   });
 
   const runTranscribe = useMutation({
-    mutationFn: () => transcribe({ data: { interview_id: id } }),
+    mutationFn: async () => {
+      // Transcribes chunk by chunk so long interviews (up to 60 min) never time out.
+      let i = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const r: any = await transcribe({ data: { interview_id: id, part_index: i } });
+        if (r?.done || i >= (r?.parts_total ?? 1) - 1) break;
+        i++;
+        toast.info(`Transcrevendo bloco ${i + 1}/${r.parts_total}...`);
+      }
+    },
     onSuccess: () => { toast.success("Transcrição gerada"); refetch(); },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const runPipeline = useMutation({
     mutationFn: (force: boolean) => generateAll({ data: { interview_id: id, force } }),
