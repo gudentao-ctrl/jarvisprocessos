@@ -139,24 +139,26 @@ export const optimizeProcess = createServerFn({ method: "POST" })
     const indsText = (inds ?? []).map((i: any) => `- ${i.name}${i.unit ? ` (${i.unit})` : ""}${i.target != null ? ` meta:${i.target}` : ""}`).join("\n");
     const cronoText = (cronos ?? []).map((c: any) => `- ${c.production_line ?? ""} ${c.product ?? ""} tc:${c.cycle_time_seconds ?? "-"}s`).join("\n");
 
-    const userMsg = [
+    const userMsg = condense([
       `PROCESSO: ${proc.name}`,
-      proc.objective ? `Objetivo: ${proc.objective}` : "",
-      proc.description ? `Descrição: ${proc.description}` : "",
+      proc.objective ? `Objetivo: ${condense(proc.objective, 1000)}` : "",
+      proc.description ? `Descrição: ${condense(proc.description, 1500)}` : "",
       "",
       "ATIVIDADES E FLUXO:",
-      flowText || "(nenhuma)",
-      indsText ? `\nINDICADORES:\n${indsText}` : "",
-      cronoText ? `\nCRONOANÁLISE:\n${cronoText}` : "",
-    ].filter(Boolean).join("\n");
+      condense(flowText, 12000) || "(nenhuma)",
+      indsText ? `\nINDICADORES:\n${condense(indsText, 1500)}` : "",
+      cronoText ? `\nCRONOANÁLISE:\n${condense(cronoText, 1500)}` : "",
+      "\nRetorne no máximo 12 achados, os mais relevantes.",
+    ].filter(Boolean).join("\n"), 18000);
 
     const raw = await callAi(userMsg);
     let parsed: z.infer<typeof OptimizeResult>;
     try {
-      parsed = OptimizeResult.parse(JSON.parse(raw));
+      parsed = OptimizeResult.parse(extractJson(raw));
     } catch (e: any) {
       throw new Error("IA retornou JSON inválido: " + (e?.message ?? ""));
     }
+
     return parsed;
   });
 
