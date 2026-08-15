@@ -198,52 +198,60 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       .maybeSingle();
     let nextOrder = (maxRow?.ordering ?? -1) + 1;
 
-    // Cria atividades
+    // Cria atividades em lote (evita dezenas de idas ao banco)
     const idByRef = new Map<string, string>();
-    for (const a of parsed.activities) {
-      const { data: row, error } = await sb
-        .from("process_activities")
-        .insert({
-          process_id: data.process_id,
-          ordering: nextOrder++,
-          type: a.type,
-          title: a.title,
-          responsible: a.responsible,
-          area: a.area,
-          time_minutes: a.time_minutes,
-          inputs: a.inputs,
-          outputs: a.outputs,
-          documents: a.documents,
-          systems: a.systems,
-          problems: a.problems,
-          improvements: a.improvements,
-          notes: a.notes,
-          generated_by_ai: true,
-        })
-        .select("id")
-        .single();
-      if (error || !row) continue;
-      idByRef.set(a.ref, row.id);
-      if (a.type === "decision" && a.decision_question) {
-        await sb.from("process_decisions").insert({ activity_id: row.id, question: a.decision_question });
-      }
-    }
+    const rows = parsed.activities.map((a) => ({
+      process_id: data.process_id,
+      ordering: nextOrder++,
+      type: a.type,
+      title: a.title,
+      responsible: a.responsible,
+      area: a.area,
+      time_minutes: a.time_minutes,
+      inputs: a.inputs,
+      outputs: a.outputs,
+      documents: a.documents,
+      systems: a.systems,
+      problems: a.problems,
+      improvements: a.improvements,
+      notes: a.notes,
+      generated_by_ai: true,
+    }));
+    const { data: inserted, error: insErr } = await sb
+      .from("process_activities")
+      .insert(rows)
+      .select("id, ordering");
+    if (insErr) throw new Error(insErr.message);
+    const byOrdering = new Map<number, string>((inserted ?? []).map((r: any) => [r.ordering, r.id]));
+    parsed.activities.forEach((a, i) => {
+      const id = byOrdering.get(rows[i].ordering);
+      if (id) idByRef.set(a.ref, id);
+    });
 
-    // Cria conexões
+    const decisionRows = parsed.activities
+      .filter((a) => a.type === "decision" && a.decision_question && idByRef.get(a.ref))
+      .map((a) => ({ activity_id: idByRef.get(a.ref)!, question: a.decision_question! }));
+    if (decisionRows.length) await sb.from("process_decisions").insert(decisionRows);
+
+    // Cria conexões em lote
     let orderIdx = 0;
-    for (const c of parsed.connections) {
-      const from = idByRef.get(c.from);
-      const to = idByRef.get(c.to);
-      if (!from || !to) continue;
-      await sb.from("activity_connections").insert({
-        process_id: data.process_id,
-        from_activity_id: from,
-        to_activity_id: to,
-        type: c.type,
-        label: c.label,
-        order_index: orderIdx++,
-      });
-    }
+    const connRows = parsed.connections
+      .map((c) => {
+        const from = idByRef.get(c.from);
+        const to = idByRef.get(c.to);
+        if (!from || !to) return null;
+        return {
+          process_id: data.process_id,
+          from_activity_id: from,
+          to_activity_id: to,
+          type: c.type,
+          label: c.label,
+          order_index: orderIdx++,
+        };
+      })
+      .filter(Boolean) as any[];
+    if (connRows.length) await sb.from("activity_connections").insert(connRows);
+
 
     return {
       ok: true,
