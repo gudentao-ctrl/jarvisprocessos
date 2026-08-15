@@ -648,6 +648,27 @@ function stripCodeFences(s: string): string {
   return t;
 }
 
+/* Reduz textos muito longos mantendo início e fim (mais contexto útil). */
+function condenseText(text: string, max: number): string {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  const head = Math.floor(max * 0.7);
+  return `${s.slice(0, head)}\n[…trecho omitido…]\n${s.slice(-(max - head))}`;
+}
+
+function looseJson(raw: string): any {
+  const s = stripCodeFences(raw);
+  try {
+    return JSON.parse(s);
+  } catch {
+    const i = s.indexOf("{");
+    const j = s.lastIndexOf("}");
+    if (i >= 0 && j > i) return JSON.parse(s.slice(i, j + 1));
+    throw new Error("resposta sem JSON");
+  }
+}
+
+
 export const suggestProcessFromInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
