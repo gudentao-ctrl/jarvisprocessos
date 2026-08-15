@@ -138,7 +138,9 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       .single();
     if (pe || !proc) throw new Error("Processo não encontrado");
 
-    // Reúne contexto: descrição do processo + trecho da entrevista (se houver)
+    // Reúne contexto: descrição do processo + trecho da entrevista (se houver).
+    // Transcrições longas são condensadas (início + fim) para não estourar o
+    // tamanho do pedido nem o tempo de resposta da IA.
     let transcript = "";
     if (proc.source_interview_id) {
       const { data: t } = await sb
@@ -146,7 +148,7 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
         .select("content")
         .eq("interview_id", proc.source_interview_id)
         .maybeSingle();
-      transcript = (t?.content ?? "").slice(0, 12000);
+      transcript = condense(t?.content ?? "", 6000);
     }
 
     const userMsg = [
@@ -155,18 +157,20 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       proc.responsible ? `Responsável: ${proc.responsible}` : "",
       proc.inputs ? `Entradas: ${proc.inputs}` : "",
       proc.outputs ? `Saídas: ${proc.outputs}` : "",
-      proc.description ? `Descrição: ${proc.description}` : "",
-      data.description ? `Contexto adicional do consultor: ${data.description}` : "",
+      proc.description ? `Descrição: ${condense(proc.description, 2000)}` : "",
+      data.description ? `Contexto adicional do consultor: ${condense(data.description, 2000)}` : "",
       transcript ? `\nTrecho da entrevista (referência):\n${transcript}` : "",
+      "\nGere no máximo 25 atividades.",
     ].filter(Boolean).join("\n");
 
     const raw = await callAi(userMsg);
     let parsed: z.infer<typeof AiFlow>;
     try {
-      parsed = AiFlow.parse(JSON.parse(raw));
+      parsed = AiFlow.parse(extractJson(raw));
     } catch (e: any) {
       throw new Error("IA retornou JSON inválido: " + (e?.message ?? ""));
     }
+
     if (parsed.activities.length === 0) throw new Error("IA não gerou atividades");
 
     // Se replace, apaga fluxo atual desse processo
