@@ -43,19 +43,39 @@ Português do Brasil. Responda APENAS o JSON no formato:
   ]
 }`;
 
-async function callAi(user: string): Promise<string> {
+function condense(text: string, max: number): string {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  const head = Math.floor(max * 0.7);
+  return `${s.slice(0, head)}\n[…trecho omitido…]\n${s.slice(-(max - head))}`;
+}
+
+function extractJson(raw: string): any {
+  const s = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  try {
+    return JSON.parse(s);
+  } catch {
+    const i = s.indexOf("{");
+    const j = s.lastIndexOf("}");
+    if (i >= 0 && j > i) return JSON.parse(s.slice(i, j + 1));
+    throw new Error("resposta sem JSON");
+  }
+}
+
+async function callModel(model: string, user: string): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY ausente");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "Lovable-API-Key": key, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model,
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: user },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 6000,
     }),
   });
   if (!res.ok) {
@@ -67,6 +87,21 @@ async function callAi(user: string): Promise<string> {
   const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return j.choices?.[0]?.message?.content ?? "{}";
 }
+
+async function callAi(user: string): Promise<string> {
+  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
+  let lastErr: any;
+  for (const m of models) {
+    try {
+      return await callModel(m, user);
+    } catch (e: any) {
+      lastErr = e;
+      if (/Limite de IA|Créditos/.test(e?.message ?? "")) throw e;
+    }
+  }
+  throw lastErr ?? new Error("Falha IA");
+}
+
 
 export const optimizeProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
