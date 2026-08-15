@@ -648,6 +648,27 @@ function stripCodeFences(s: string): string {
   return t;
 }
 
+/* Reduz textos muito longos mantendo início e fim (mais contexto útil). */
+function condenseText(text: string, max: number): string {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  const head = Math.floor(max * 0.7);
+  return `${s.slice(0, head)}\n[…trecho omitido…]\n${s.slice(-(max - head))}`;
+}
+
+function looseJson(raw: string): any {
+  const s = stripCodeFences(raw);
+  try {
+    return JSON.parse(s);
+  } catch {
+    const i = s.indexOf("{");
+    const j = s.lastIndexOf("}");
+    if (i >= 0 && j > i) return JSON.parse(s.slice(i, j + 1));
+    throw new Error("resposta sem JSON");
+  }
+}
+
+
 export const suggestProcessFromInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
@@ -657,7 +678,7 @@ export const suggestProcessFromInterview = createServerFn({ method: "POST" })
 
     const { data: t } = await context.supabase
       .from("transcripts").select("content").eq("interview_id", data.interview_id).maybeSingle();
-    const content = (t?.content ?? "").trim();
+    const content = condenseText(t?.content ?? "", 18000);
     if (!content) throw new Error("Sem transcrição. Transcreva a entrevista primeiro.");
 
     const systemPrompt = `Você é um analista de processos BPM. A partir da transcrição abaixo, ESTRUTURE um processo operacional.
@@ -668,6 +689,7 @@ REGRAS:
 - Categorias de dor: processo, informacao, governanca, pessoas, tecnologia, planejamento, qualidade, producao, compras, logistica.
 - Tipos de atividade: start, task, decision, wait, approval, end, info_in, info_out.
 - Tempos em minutos (decimal). Se não souber, use 0.
+- Seja objetivo: no máximo 25 atividades, 15 itens em cada mapa e 15 dores.
 
 Responda APENAS um objeto JSON válido com as chaves: process_name, process_objective, activities, information_map, decision_map, pains. Sem cercas de código, sem texto antes ou depois.`;
 
@@ -676,7 +698,7 @@ Responda APENAS um objeto JSON válido com as chaves: process_name, process_obje
       try {
         const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          headers: { "Lovable-API-Key": apiKey, "Content-Type": "application/json" },
           body: JSON.stringify({
             model,
             messages: [
@@ -684,6 +706,7 @@ Responda APENAS um objeto JSON válido com as chaves: process_name, process_obje
               { role: "user", content: `Transcrição:\n\n${content}` },
             ],
             response_format: { type: "json_object" },
+            max_tokens: 8000,
           }),
         });
         if (!res.ok) {
@@ -694,9 +717,8 @@ Responda APENAS um objeto JSON válido com as chaves: process_name, process_obje
           continue;
         }
         const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        const raw = stripCodeFences(json.choices?.[0]?.message?.content ?? "{}");
         try {
-          return ProcessSuggestionSchema.parse(JSON.parse(raw));
+          return ProcessSuggestionSchema.parse(looseJson(json.choices?.[0]?.message?.content ?? "{}"));
         } catch (e: any) {
           lastErr = `[${model}] resposta inválida: ${e?.message ?? "parse error"}`;
           continue;
@@ -707,6 +729,7 @@ Responda APENAS um objeto JSON válido com as chaves: process_name, process_obje
       }
     }
     throw new Error(`Nenhum modelo respondeu válido. ${lastErr}`);
+
   });
 
 export const applyProcessSuggestion = createServerFn({ method: "POST" })
