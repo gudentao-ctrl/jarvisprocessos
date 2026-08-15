@@ -127,13 +127,16 @@ function NewInterview() {
         },
       });
 
-      // 3) transcribe (chunk by chunk on the server)
+      // 3) transcribe (one chunk per request, so long audio never times out)
       try {
-        setProgress(`Transcrevendo ${audioParts.length} bloco(s)...`);
-        await transcribe({ data: { interview_id: interview.id } });
+        for (let i = 0; i < paths.length; i++) {
+          setProgress(`Transcrevendo bloco ${i + 1}/${paths.length}...`);
+          await transcribe({ data: { interview_id: interview.id, part_index: i } });
+        }
       } catch (e: any) {
         toast.error("Áudio salvo, mas transcrição falhou: " + e.message);
       }
+
 
       return interview;
     },

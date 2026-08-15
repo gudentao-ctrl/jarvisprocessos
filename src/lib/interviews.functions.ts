@@ -165,12 +165,17 @@ export const deleteInterview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: interview } = await context.supabase
       .from("interviews")
-      .select("audio_path")
+      .select("audio_path, audio_parts")
       .eq("id", data.id)
       .single();
-    if (interview?.audio_path) {
-      await context.supabase.storage.from("interview-audio").remove([interview.audio_path]);
+    const files = [
+      ...((interview?.audio_parts as string[] | null) ?? []),
+      ...(interview?.audio_path ? [interview.audio_path] : []),
+    ];
+    if (files.length) {
+      await context.supabase.storage.from("interview-audio").remove([...new Set(files)]);
     }
+
     const { error } = await context.supabase.from("interviews").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -264,17 +269,19 @@ export const transcribeInterview = createServerFn({ method: "POST" })
       .from("transcripts")
       .upsert({ interview_id: data.interview_id, content: text }, { onConflict: "interview_id" })
       .select()
-
       .single();
     if (upErr) throw new Error(upErr.message);
 
+    const done = !single || index >= parts.length - 1;
+
     await context.supabase
       .from("interviews")
-      .update({ status: "transcribed" })
+      .update({ status: done ? "transcribed" : "transcribing" })
       .eq("id", data.interview_id);
 
-    return upserted;
+    return { ...upserted, part_index: index, parts_total: parts.length, done };
   });
+
 
 export const updateTranscript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
