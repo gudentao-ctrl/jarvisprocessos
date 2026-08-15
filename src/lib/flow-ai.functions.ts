@@ -60,7 +60,17 @@ ESTRUTURA (responda APENAS este JSON, sem cercas):
   ]
 }`;
 
+/** Reduz textos longos mantendo início e fim (o miolo é omitido). */
+function condense(text: string, max: number): string {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  const head = Math.floor(max * 0.7);
+  const tail = max - head;
+  return `${s.slice(0, head)}\n[…trecho omitido…]\n${s.slice(-tail)}`;
+}
+
 /** Extrai o primeiro objeto JSON válido de uma resposta (tolera cercas/ruído). */
+
 function extractJson(raw: string): any {
   const s = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
   try {
