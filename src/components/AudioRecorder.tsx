@@ -46,11 +46,7 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
       setElapsed(0);
       setChunks(0);
       intervalRef.current = setInterval(() => {
-        setElapsed((s) => {
-          const next = s + 1;
-          if (next >= MAX_SECONDS) void stop();
-          return next;
-        });
+        setElapsed((s) => s + 1);
       }, 1000);
     } catch {
       alert("Não foi possível acessar o microfone. Verifique as permissões.");
