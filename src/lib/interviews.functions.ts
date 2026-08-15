@@ -264,17 +264,19 @@ export const transcribeInterview = createServerFn({ method: "POST" })
       .from("transcripts")
       .upsert({ interview_id: data.interview_id, content: text }, { onConflict: "interview_id" })
       .select()
-
       .single();
     if (upErr) throw new Error(upErr.message);
 
+    const done = !single || index >= parts.length - 1;
+
     await context.supabase
       .from("interviews")
-      .update({ status: "transcribed" })
+      .update({ status: done ? "transcribed" : "transcribing" })
       .eq("id", data.interview_id);
 
-    return upserted;
+    return { ...upserted, part_index: index, parts_total: parts.length, done };
   });
+
 
 export const updateTranscript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
