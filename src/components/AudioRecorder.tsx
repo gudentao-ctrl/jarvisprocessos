@@ -91,7 +91,7 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
     onAudioReady([], 0);
   }
 
-  const near = elapsed > MAX_SECONDS - 300;
+  
 
   return (
     <div className="rounded-xl border bg-card p-4">
