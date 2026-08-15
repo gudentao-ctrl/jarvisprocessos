@@ -120,14 +120,9 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
             <div className="font-mono text-2xl font-semibold tabular-nums">{fmt(elapsed)}</div>
             <p className="mt-1 text-xs text-muted-foreground">
               {recording
-                ? `Gravando... ${chunks > 0 ? `${chunks} bloco(s) prontos · ` : ""}limite de 60 min`
-                : "Toque para iniciar (suporta até 60 minutos)"}
+                ? `Gravando... ${chunks > 0 ? `${chunks} bloco(s) prontos · ` : ""}sem limite de duração`
+                : "Toque para iniciar (qualquer duração)"}
             </p>
-            {recording && near && (
-              <p className="mt-1 text-xs font-medium text-destructive">
-                Perto do limite de 60 min — a gravação será encerrada automaticamente.
-              </p>
-            )}
           </div>
           <div className="flex w-full items-center gap-2 pt-2">
             <div className="h-px flex-1 bg-border" />
@@ -135,11 +130,17 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
             <div className="h-px flex-1 bg-border" />
           </div>
           <label className="w-full">
-            <input type="file" accept="audio/*" onChange={onFile} className="hidden" disabled={recording} />
+            <input
+              type="file"
+              accept="audio/*,video/mp4,.m4a,.mp4,.mp3,.wav,.aac,.caf,.ogg,.opus,.amr,.webm"
+              onChange={onFile}
+              className="hidden"
+              disabled={recording}
+            />
             <Button type="button" variant="outline" className="h-11 w-full" asChild>
               <span className="cursor-pointer">
                 <Upload className="mr-2 h-4 w-4" />
-                Enviar arquivo de áudio (até 60 min)
+                Enviar arquivo de áudio (MP3, M4A/Apple, WAV — qualquer duração)
               </span>
             </Button>
           </label>
