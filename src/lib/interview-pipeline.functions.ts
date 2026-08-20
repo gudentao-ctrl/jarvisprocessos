@@ -231,8 +231,8 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
 
     let parsed: z.infer<typeof PipelineSchema>;
     try {
-      const raw = await callGemini(SYSTEM_PROMPT, `Transcrição:\n\n${content}`);
-      parsed = PipelineSchema.parse(JSON.parse(raw));
+      const raw = await callGemini(SYSTEM_PROMPT, `Transcrição:\n\n${condenseText(content)}`);
+      parsed = PipelineSchema.parse(looseJson(raw));
     } catch (e: any) {
       await supabase
         .from("interviews")
