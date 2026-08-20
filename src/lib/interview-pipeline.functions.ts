@@ -429,7 +429,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         project_id: interview.project_id ?? null,
         source: "interview",
         source_id: interview.id,
-        category: allowedCat.has(p.category) ? p.category : "processo",
+        category: allowedCat.has(norm(p.category)) ? norm(p.category) : "processo",
         description: p.description,
         severity: sevMap[p.severity] ?? 3,
         generated_by_ai: true,
