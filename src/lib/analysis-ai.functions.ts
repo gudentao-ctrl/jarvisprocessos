@@ -171,7 +171,14 @@ export const generateExecutiveDiagnostic = createServerFn({ method: "POST" })
       context.supabase.from("cronoanalysis_sessions").select("activity_name,total_observations").eq("company_id", data.company_id),
     ]);
 
-    const ctx = { empresa: comp, dores: pains ?? [], processos: procs ?? [], oportunidades: opps ?? [], causas: rcas ?? [], cronoanalises: cronos ?? [] };
+    const ctx = {
+      empresa: comp,
+      dores: (pains ?? []).slice(0, 80),
+      processos: (procs ?? []).slice(0, 120),
+      oportunidades: (opps ?? []).slice(0, 120),
+      causas: (rcas ?? []).slice(0, 60),
+      cronoanalises: (cronos ?? []).slice(0, 60),
+    };
 
     const systemPrompt = `Você é um consultor de melhoria de processos. Gere um Diagnóstico Executivo objetivo, em português, usando APENAS os dados fornecidos.
 
