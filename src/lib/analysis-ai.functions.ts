@@ -2,19 +2,50 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-async function callGateway(systemPrompt: string, userPrompt: string) {
+/** Reduz textos longos mantendo início e fim (o miolo é omitido). */
+function condense(text: string, max: number): string {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  const head = Math.floor(max * 0.7);
+  return `${s.slice(0, head)}\n[…trecho omitido…]\n${s.slice(-(max - head))}`;
+}
+
+/** Condensa qualquer payload de contexto para caber no limite de tokens. */
+function condenseContext(ctx: unknown, max = 24000): string {
+  return condense(JSON.stringify(ctx), max);
+}
+
+/** Extrai o primeiro objeto JSON válido (tolera cercas/ruído). */
+function extractJson(raw: string): any {
+  const s = String(raw ?? "").replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  try {
+    return JSON.parse(s);
+  } catch {
+    const i = s.indexOf("{");
+    const j = s.lastIndexOf("}");
+    if (i >= 0 && j > i) return JSON.parse(s.slice(i, j + 1));
+    throw new Error("resposta sem JSON");
+  }
+}
+
+async function callModel(model: string, systemPrompt: string, userPrompt: string) {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+    headers: {
+      "Lovable-API-Key": apiKey,
+      "Content-Type": "application/json",
+      "X-Lovable-AIG-SDK": "fetch",
+    },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 8000,
     }),
   });
   if (!res.ok) {
@@ -25,6 +56,21 @@ async function callGateway(systemPrompt: string, userPrompt: string) {
   }
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return json.choices?.[0]?.message?.content ?? "{}";
+}
+
+/** Modelo rápido primeiro, com fallback caso a resposta falhe. */
+async function callGateway(systemPrompt: string, userPrompt: string) {
+  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
+  let lastErr: unknown;
+  for (const m of models) {
+    try {
+      return await callModel(m, systemPrompt, userPrompt);
+    } catch (e) {
+      lastErr = e;
+      if (/Limite de IA|Créditos/.test((e as Error)?.message ?? "")) throw e;
+    }
+  }
+  throw lastErr ?? new Error("Falha IA");
 }
 
 /* ============================================================
