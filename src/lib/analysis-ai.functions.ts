@@ -131,9 +131,9 @@ REGRAS:
 
 Responda APENAS JSON: { "findings": [ { "title", "description", "category", "expected_benefit", "effort", "impact" } ] }`;
 
-    const raw = await callGateway(systemPrompt, JSON.stringify(ctx));
+    const raw = await callGateway(systemPrompt, condenseContext(ctx));
     let parsed;
-    try { parsed = AnalysisSchema.parse(JSON.parse(raw)); } catch { throw new Error("Resposta da IA inválida."); }
+    try { parsed = AnalysisSchema.parse(extractJson(raw)); } catch { throw new Error("Resposta da IA inválida."); }
 
     // Persist as opportunities (status sugerida, source ia)
     const inserts = parsed.findings.map((f) => {
@@ -194,9 +194,9 @@ Estruture a resposta em JSON com chaves:
 
 Use APENAS o que está nos dados. Seja conciso.`;
 
-    const raw = await callGateway(systemPrompt, JSON.stringify(ctx));
+    const raw = await callGateway(systemPrompt, condenseContext(ctx));
     let content: Record<string, unknown> = {};
-    try { content = JSON.parse(raw); } catch { throw new Error("Resposta da IA inválida."); }
+    try { content = extractJson(raw); } catch { throw new Error("Resposta da IA inválida."); }
 
     const { data: row, error } = await context.supabase.from("executive_diagnostics").insert({
       company_id: data.company_id,
@@ -253,6 +253,6 @@ REGRAS:
 
 Responda APENAS JSON: { "process_name", "description", "activities": [...], "changes": [...] }`;
 
-    const raw = await callGateway(systemPrompt, JSON.stringify({ processo: proc, atividades_as_is: acts ?? [], oportunidades: opps ?? [] }));
-    try { return TobeSuggestionSchema.parse(JSON.parse(raw)); } catch { throw new Error("Resposta da IA inválida."); }
+    const raw = await callGateway(systemPrompt, condenseContext({ processo: { name: proc.name, objective: proc.objective, responsible: proc.responsible, description: condense(String(proc.description ?? ""), 3000) }, atividades_as_is: (acts ?? []).slice(0, 150), oportunidades: (opps ?? []).slice(0, 60) }));
+    try { return TobeSuggestionSchema.parse(extractJson(raw)); } catch { throw new Error("Resposta da IA inválida."); }
   });
