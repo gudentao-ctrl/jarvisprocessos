@@ -12,91 +12,156 @@ import { z } from "zod";
  * são preservados — só rascunhos da IA são substituídos.
  * ============================================================ */
 
-const ActivityType = z.enum([
-  "start", "task", "decision", "wait", "approval", "end", "info_in", "info_out",
-]);
+/* ---------- Helpers tolerantes (a IA nem sempre respeita tipos/enums) ---------- */
+const norm = (v: unknown) =>
+  String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+const str = (def = "") =>
+  z.preprocess((v) => {
+    if (v === null || v === undefined) return def;
+    if (typeof v === "string") return v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    return JSON.stringify(v);
+  }, z.string()).catch(def);
+
+const num = (def = 0) =>
+  z.preprocess((v) => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    const n = parseFloat(String(v ?? "").replace(",", "."));
+    return Number.isFinite(n) ? n : def;
+  }, z.number()).catch(def);
+
+const bool = (def = false) =>
+  z.preprocess((v) => {
+    if (typeof v === "boolean") return v;
+    const s = norm(v);
+    if (["sim", "true", "yes", "1", "obrigatorio", "necessario"].includes(s)) return true;
+    if (s === "") return def;
+    if (["nao", "false", "no", "0"].includes(s)) return false;
+    return def;
+  }, z.boolean()).catch(def);
+
+const strList = () =>
+  z.preprocess((v) => {
+    if (Array.isArray(v)) return v.map((x) => String(x ?? "")).filter(Boolean);
+    if (typeof v === "string") return v.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+    return [];
+  }, z.array(z.string())).catch([] as string[]);
+
+function enumLoose<T extends string>(values: readonly T[], def: T, aliases: Record<string, T> = {}) {
+  return z.preprocess((v) => {
+    const s = norm(v);
+    if ((values as readonly string[]).includes(s)) return s;
+    if (aliases[s]) return aliases[s];
+    const partial = values.find((x) => s.startsWith(x) || s.includes(x));
+    return partial ?? def;
+  }, z.enum(values as unknown as [T, ...T[]])).catch(def);
+}
+
+const ActivityType = enumLoose(
+  ["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"] as const,
+  "task",
+  {
+    inicio: "start", fim: "end", tarefa: "task", atividade: "task",
+    decisao: "decision", espera: "wait", aprovacao: "approval",
+    entrada: "info_in", saida: "info_out",
+  },
+);
+
+const Severity = enumLoose(["baixa", "media", "alta", "critica"] as const, "media", {
+  low: "baixa", medium: "media", high: "alta", critical: "critica", moderada: "media",
+});
+
+const Level = enumLoose(["baixo", "medio", "alto"] as const, "medio", {
+  low: "baixo", medium: "medio", high: "alto", baixa: "baixo", media: "medio", alta: "alto",
+});
 
 const ActivitySchema = z.object({
-  ref: z.string(), // identificador local (ex: "a1")
-  type: ActivityType.default("task"),
-  title: z.string(),
-  responsible: z.string().default(""),
-  area: z.string().default(""),
-  time_minutes: z.number().default(0),
-  systems: z.array(z.string()).default([]),
-  notes: z.string().default(""),
+  ref: str(),
+  type: ActivityType,
+  title: str(),
+  responsible: str(),
+  area: str(),
+  time_minutes: num(0),
+  systems: strList(),
+  notes: str(),
 });
 
 const EdgeSchema = z.object({
-  from: z.string(),
-  to: z.string(),
-  label: z.string().default(""),
+  from: str(),
+  to: str(),
+  label: str(),
 });
 
 const ProcessSchema = z.object({
-  name: z.string(),
-  objective: z.string().default(""),
-  responsible: z.string().default(""),
-  inputs: z.string().default(""),
-  outputs: z.string().default(""),
-  activities: z.array(ActivitySchema).default([]),
-  edges: z.array(EdgeSchema).default([]),
+  name: str(),
+  objective: str(),
+  responsible: str(),
+  inputs: str(),
+  outputs: str(),
+  activities: z.array(ActivitySchema).catch([]).default([]),
+  edges: z.array(EdgeSchema).catch([]).default([]),
 });
 
 const PainSchema = z.object({
-  category: z.string().default("operacional"),
-  description: z.string(),
-  severity: z.enum(["baixa", "media", "alta", "critica"]).default("media"),
+  category: str("operacional"),
+  description: str(),
+  severity: Severity,
 });
 
 const IndicatorSchema = z.object({
-  name: z.string(),
-  description: z.string().default(""),
-  unit: z.string().default(""),
-  target: z.string().default(""),
-  frequency: z.string().default("mensal"),
-  process_ref: z.string().nullable().optional(),
+  name: str(),
+  description: str(),
+  unit: str(),
+  target: str(),
+  frequency: str("mensal"),
+  process_ref: str().nullable().optional(),
 });
 
 const OpportunitySchema = z.object({
-  title: z.string(),
-  description: z.string().default(""),
-  category: z.string().default("melhoria"),
-  expected_benefit: z.string().default(""),
-  effort: z.enum(["baixo", "medio", "alto"]).default("medio"),
-  impact: z.enum(["baixo", "medio", "alto"]).default("medio"),
-  process_ref: z.string().nullable().optional(),
+  title: str(),
+  description: str(),
+  category: str("melhoria"),
+  expected_benefit: str(),
+  effort: Level,
+  impact: Level,
+  process_ref: str().nullable().optional(),
 });
 
 const InfoMapSchema = z.object({
-  process_ref: z.string().nullable().optional(),
-  origin: z.string().default(""),
-  destination: z.string().default(""),
-  medium: z.string().default(""),
-  responsible: z.string().default(""),
-  document: z.string().default(""),
-  loss_risk: z.string().default(""),
-  notes: z.string().default(""),
+  process_ref: str().nullable().optional(),
+  origin: str(),
+  destination: str(),
+  medium: str(),
+  responsible: str(),
+  document: str(),
+  loss_risk: str(),
+  notes: str(),
 });
 
 const DecisionMapSchema = z.object({
-  process_ref: z.string().nullable().optional(),
-  decider: z.string().default(""),
-  decision: z.string(),
-  approval_required: z.boolean().default(false),
-  reported_delay: z.string().default(""),
-  notes: z.string().default(""),
+  process_ref: str().nullable().optional(),
+  decider: str(),
+  decision: str(),
+  approval_required: bool(false),
+  reported_delay: str(),
+  notes: str(),
 });
 
 const PipelineSchema = z.object({
-  minutes_md: z.string().default(""),
-  processes: z.array(ProcessSchema).default([]),
-  pains: z.array(PainSchema).default([]),
-  indicators: z.array(IndicatorSchema).default([]),
-  opportunities: z.array(OpportunitySchema).default([]),
-  information_map: z.array(InfoMapSchema).default([]),
-  decision_map: z.array(DecisionMapSchema).default([]),
+  minutes_md: str(),
+  processes: z.array(ProcessSchema).catch([]).default([]),
+  pains: z.array(PainSchema).catch([]).default([]),
+  indicators: z.array(IndicatorSchema).catch([]).default([]),
+  opportunities: z.array(OpportunitySchema).catch([]).default([]),
+  information_map: z.array(InfoMapSchema).catch([]).default([]),
+  decision_map: z.array(DecisionMapSchema).catch([]).default([]),
 });
+
 
 const SYSTEM_PROMPT = `Você é um consultor de processos sênior. A partir de uma transcrição de entrevista operacional, gere TODOS os entregáveis abaixo em uma única resposta JSON.
 
