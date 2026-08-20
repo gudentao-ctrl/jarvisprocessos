@@ -128,7 +128,27 @@ function hashString(s: string): string {
   return String(h);
 }
 
-async function callGemini(systemPrompt: string, userPrompt: string, model = "google/gemini-2.5-pro") {
+function condenseText(s: string, max = 18000): string {
+  const t = (s ?? "").trim();
+  if (t.length <= max) return t;
+  const head = t.slice(0, Math.floor(max * 0.6));
+  const tail = t.slice(-Math.floor(max * 0.4));
+  return `${head}\n\n[...trecho intermediário omitido por tamanho...]\n\n${tail}`;
+}
+
+function looseJson(raw: string): any {
+  const txt = (raw ?? "").trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  try {
+    return JSON.parse(txt);
+  } catch {
+    const start = txt.indexOf("{");
+    const end = txt.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(txt.slice(start, end + 1));
+    throw new Error("Resposta da IA não é um JSON válido.");
+  }
+}
+
+async function callGeminiOnce(systemPrompt: string, userPrompt: string, model: string) {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -136,7 +156,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, model = "goo
     headers: {
       "Lovable-API-Key": apiKey,
       "Content-Type": "application/json",
-      "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+      "X-Lovable-AIG-SDK": "fetch",
     },
     body: JSON.stringify({
       model,
@@ -145,6 +165,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, model = "goo
         { role: "user", content: userPrompt },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 12000,
     }),
   });
   if (!res.ok) {
@@ -154,8 +175,25 @@ async function callGemini(systemPrompt: string, userPrompt: string, model = "goo
     throw new Error(`Falha IA (${res.status}): ${txt.slice(0, 300)}`);
   }
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return json.choices?.[0]?.message?.content ?? "{}";
+  const content = json.choices?.[0]?.message?.content ?? "";
+  if (!content.trim()) throw new Error("Resposta da IA vazia.");
+  return content;
 }
+
+async function callGemini(systemPrompt: string, userPrompt: string) {
+  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview", "google/gemini-2.5-pro"];
+  let last: any;
+  for (const m of models) {
+    try {
+      return await callGeminiOnce(systemPrompt, userPrompt, m);
+    } catch (e: any) {
+      last = e;
+      if (/Créditos/.test(e?.message ?? "")) throw e;
+    }
+  }
+  throw last ?? new Error("Falha IA");
+}
+
 
 export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
