@@ -528,7 +528,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           medium: m.medium,
           responsible: m.responsible,
           document: m.document,
-          loss_risk: !!(m.loss_risk && m.loss_risk.trim()),
+          loss_risk: !["", "nao", "baixo", "nenhum", "false", "0"].includes(norm(m.loss_risk)),
           notes: m.notes,
           generated_by_ai: true,
           source_interview_id: interview.id,
