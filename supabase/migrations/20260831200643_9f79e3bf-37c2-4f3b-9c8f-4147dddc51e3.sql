@@ -1,0 +1,1 @@
+ALTER TABLE public.action_plans ADD COLUMN IF NOT EXISTS sector text;
