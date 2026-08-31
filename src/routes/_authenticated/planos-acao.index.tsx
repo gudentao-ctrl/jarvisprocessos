@@ -247,6 +247,7 @@ function PlanosPage() {
             <div><Label>Resultado esperado</Label><Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-2">
               <div><Label>Responsável</Label><Input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
+              <div><Label>Setor responsável</Label><Input placeholder="Comercial, Produção..." value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} /></div>
               <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
             </div>
             <div className="rounded-xl border p-3 bg-muted/30">
