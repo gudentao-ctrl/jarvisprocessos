@@ -57,8 +57,8 @@ type FormState = {
   problem: string;
   cause: string;
   responsible: string;
+  sector: string;
   company_id: string;
-  priority: string;
   status: string;
   due_date: string;
   gravity: number;
