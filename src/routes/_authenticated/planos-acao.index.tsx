@@ -72,8 +72,8 @@ type FormState = {
 
 function emptyForm(companyId: string | null): FormState {
   return {
-    title: "", description: "", problem: "", cause: "", responsible: "",
-    company_id: companyId ?? "", priority: "media", status: "aberto", due_date: "",
+    title: "", description: "", problem: "", cause: "", responsible: "", sector: "",
+    company_id: companyId ?? "", status: "aberto", due_date: "",
     gravity: 3, urgency: 3, trend: 3,
     expected_result: "", observations: "", origin: "", demand_type: "processo",
   };
