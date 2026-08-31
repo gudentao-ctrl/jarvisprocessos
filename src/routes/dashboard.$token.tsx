@@ -466,6 +466,32 @@ function PublicDashboard() {
           </div>
 
           <Card className="p-4">
+            <p className="mb-1 text-sm font-semibold">Avanço por setor</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Percentual de ações concluídas em relação às ações abertas de cada setor
+            </p>
+            {sectorStats.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nenhuma ação para os filtros selecionados.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {sectorStats.map((s) => (
+                  <li key={s.setor}>
+                    <div className="mb-1 flex items-baseline justify-between gap-2">
+                      <span className="truncate text-sm font-medium">{s.setor}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {s.concluidas} de {s.total} concluídas · {s.pct}%
+                      </span>
+                    </div>
+                    <Progress value={s.pct} className="h-2" />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="p-4">
             <p className="mb-1 text-sm font-semibold">Ações por tipo de demanda</p>
             <p className="mb-3 text-xs text-muted-foreground">
               Processo, Pessoas e Negócio — por situação da ação
