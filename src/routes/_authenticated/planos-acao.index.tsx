@@ -43,6 +43,13 @@ function gut(p: any) {
   return g * u * t;
 }
 
+function priorityFromGut(score: number) {
+  if (score >= 75) return "critica";
+  if (score >= 40) return "alta";
+  if (score >= 15) return "media";
+  return "baixa";
+}
+
 function tierOf(score: number): Tier {
   if (score >= 75) return { label: "Crítico", accent: "pain", bar: "bg-map-pain", chip: "bg-map-pain/10 text-map-pain border-map-pain/30" };
   if (score >= 40) return { label: "Alto", accent: "time", bar: "bg-map-process", chip: "bg-map-process/10 text-map-process border-map-process/30" };
