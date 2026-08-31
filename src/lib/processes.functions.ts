@@ -462,6 +462,7 @@ export const saveActionPlan = createServerFn({ method: "POST" })
       problem: z.string().nullable().optional(),
       cause: z.string().nullable().optional(),
       category: z.string().nullable().optional(),
+      demand_type: z.enum(["processo", "pessoas", "negocio"]).nullable().optional(),
       gravity: z.number().int().min(1).max(5).nullable().optional(),
       urgency: z.number().int().min(1).max(5).nullable().optional(),
       trend: z.number().int().min(1).max(5).nullable().optional(),
