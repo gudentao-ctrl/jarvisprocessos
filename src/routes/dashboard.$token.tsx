@@ -107,6 +107,8 @@ function PublicDashboard() {
   const [processFilter, setProcessFilter] = useState<string>("all");
   const [indicatorFilter, setIndicatorFilter] = useState<string>("all");
   const [responsibleFilter, setResponsibleFilter] = useState<string>("all");
+  const [planSector, setPlanSector] = useState<string>("all");
+  const [planResponsible, setPlanResponsible] = useState<string>("all");
   const [openIndicator, setOpenIndicator] = useState<any>(null);
   const [openPlan, setOpenPlan] = useState<any>(null);
 
@@ -381,11 +383,29 @@ function PublicDashboard() {
 
         {/* ================ Section 2 — Plans ================ */}
         <section className="space-y-4">
-          <div>
-            <h2 className="text-lg font-bold sm:text-xl">Planos de ação</h2>
-            <p className="text-xs text-muted-foreground">
-              {d.plans.length} planos cadastrados
-            </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold sm:text-xl">Planos de ação</h2>
+              <p className="text-xs text-muted-foreground">
+                {plans.length} de {d.plans.length} planos
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Select value={planSector} onValueChange={setPlanSector}>
+                <SelectTrigger className="w-44"><SelectValue placeholder="Setor" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os setores</SelectItem>
+                  {planSectors.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={planResponsible} onValueChange={setPlanResponsible}>
+                <SelectTrigger className="w-44"><SelectValue placeholder="Responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os responsáveis</SelectItem>
+                  {planResponsibles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -405,11 +425,13 @@ function PublicDashboard() {
                       nameKey="name"
                       innerRadius={45}
                       outerRadius={75}
+                      label={renderPieLabel}
+                      labelLine={false}
                     >
                       {[0, 1, 2, 3].map((k) => <Cell key={k} />)}
                     </Pie>
                     <Legend />
-                    <Tooltip />
+                    <Tooltip formatter={(v: any) => `${v} ação(ões)`} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -417,11 +439,11 @@ function PublicDashboard() {
 
             <Card className="overflow-hidden">
               <ul className="divide-y max-h-[520px] overflow-y-auto">
-                {d.plans.map((p: any) => (
+                {plans.map((p: any) => (
                   <PlanRow key={p.id} plan={p} onOpen={() => setOpenPlan(p)} />
                 ))}
-                {d.plans.length === 0 && (
-                  <li className="p-6 text-center text-sm text-muted-foreground">Nenhum plano cadastrado.</li>
+                {plans.length === 0 && (
+                  <li className="p-6 text-center text-sm text-muted-foreground">Nenhum plano para os filtros selecionados.</li>
                 )}
               </ul>
             </Card>
@@ -682,6 +704,23 @@ function statusMeta(status: string, due?: string | null, newDue?: string | null)
   return { label: "Não iniciado", color: "bg-muted text-muted-foreground", icon: Circle };
 }
 
+function gutScore(p: any) {
+  return (Number(p?.gravity) || 0) * (Number(p?.urgency) || 0) * (Number(p?.trend) || 0);
+}
+
+function gutTier(score: number) {
+  if (score >= 75) return { label: "Crítica", color: "bg-destructive/15 text-destructive" };
+  if (score >= 40) return { label: "Alta", color: "bg-orange-500/15 text-orange-700 dark:text-orange-400" };
+  if (score >= 15) return { label: "Média", color: "bg-amber-500/15 text-amber-700 dark:text-amber-400" };
+  return { label: "Baixa", color: "bg-muted text-muted-foreground" };
+}
+
+function renderPieLabel(props: any) {
+  const { percent, name } = props;
+  if (!percent) return null;
+  return `${name}: ${(percent * 100).toFixed(0)}%`;
+}
+
 function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
   const meta = statusMeta(plan.status, plan.due_date, plan.new_due_date);
   const due = plan.new_due_date || plan.due_date;
@@ -699,7 +738,11 @@ function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
                 {plan.demand_type === "negocio" ? "Negócio" : plan.demand_type === "pessoas" ? "Pessoas" : "Processo"}
               </Badge>
             )}
-            {plan.priority && <span>Prioridade: {plan.priority}</span>}
+            <Badge variant="outline" className={gutTier(gutScore(plan)).color}>
+              GUT {gutScore(plan) || "—"} · {gutTier(gutScore(plan)).label}
+            </Badge>
+            {plan.origin && <span>Origem: {plan.origin}</span>}
+            {plan.sector && <span>· {plan.sector}</span>}
             {plan.responsible && <span>· {plan.responsible}</span>}
             {due && <span>· prazo {new Date(due).toLocaleDateString("pt-BR")}</span>}
           </div>
