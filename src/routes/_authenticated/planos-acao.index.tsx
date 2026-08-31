@@ -43,6 +43,13 @@ function gut(p: any) {
   return g * u * t;
 }
 
+function priorityFromGut(score: number) {
+  if (score >= 75) return "critica";
+  if (score >= 40) return "alta";
+  if (score >= 15) return "media";
+  return "baixa";
+}
+
 function tierOf(score: number): Tier {
   if (score >= 75) return { label: "Crítico", accent: "pain", bar: "bg-map-pain", chip: "bg-map-pain/10 text-map-pain border-map-pain/30" };
   if (score >= 40) return { label: "Alto", accent: "time", bar: "bg-map-process", chip: "bg-map-process/10 text-map-process border-map-process/30" };
@@ -57,8 +64,8 @@ type FormState = {
   problem: string;
   cause: string;
   responsible: string;
+  sector: string;
   company_id: string;
-  priority: string;
   status: string;
   due_date: string;
   gravity: number;
@@ -72,8 +79,8 @@ type FormState = {
 
 function emptyForm(companyId: string | null): FormState {
   return {
-    title: "", description: "", problem: "", cause: "", responsible: "",
-    company_id: companyId ?? "", priority: "media", status: "aberto", due_date: "",
+    title: "", description: "", problem: "", cause: "", responsible: "", sector: "",
+    company_id: companyId ?? "", status: "aberto", due_date: "",
     gravity: 3, urgency: 3, trend: 3,
     expected_result: "", observations: "", origin: "", demand_type: "processo",
   };
@@ -110,8 +117,8 @@ function PlanosPage() {
       problem: p.problem ?? "",
       cause: p.cause ?? "",
       responsible: p.responsible ?? "",
+      sector: p.sector ?? "",
       company_id: p.company_id ?? companyId ?? "",
-      priority: p.priority ?? "media",
       status: p.status ?? "aberto",
       due_date: p.due_date ?? "",
       gravity: p.gravity ?? 3,
@@ -136,9 +143,10 @@ function PlanosPage() {
           problem: form.problem || null,
           cause: form.cause || null,
           responsible: form.responsible,
+          sector: form.sector || null,
           company_id: form.company_id || companyId || null,
           due_date: form.due_date || null,
-          priority: form.priority as any,
+          priority: priorityFromGut(form.gravity * form.urgency * form.trend) as any,
           status: form.status as any,
           gravity: form.gravity,
           urgency: form.urgency,
@@ -191,7 +199,7 @@ function PlanosPage() {
     if (filter !== "all" && p.status !== filter) return false;
     if (!query.trim()) return true;
     const q = query.toLowerCase();
-    return [p.title, p.description, p.responsible, p.companies?.name, p.origin]
+    return [p.title, p.description, p.responsible, p.sector, p.companies?.name, p.origin]
       .filter(Boolean)
       .some((v: string) => String(v).toLowerCase().includes(q));
   });
@@ -239,6 +247,7 @@ function PlanosPage() {
             <div><Label>Resultado esperado</Label><Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-2">
               <div><Label>Responsável</Label><Input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
+              <div><Label>Setor responsável</Label><Input placeholder="Comercial, Produção..." value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} /></div>
               <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
             </div>
             <div className="rounded-xl border p-3 bg-muted/30">
@@ -254,19 +263,11 @@ function PlanosPage() {
                 <div><Label className="text-xs">Tendência</Label><Input type="number" min={1} max={5} value={form.trend} onChange={(e) => setForm({ ...form, trend: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Prioridade</Label>
-                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{["baixa", "media", "alta", "critica"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <div><Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div><Label>Empresa</Label>
               <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
@@ -371,6 +372,7 @@ function PlanosPage() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {p.companies?.name && `${p.companies.name} · `}
                       {p.processes?.name && (<>Processo: <Link to="/processos/$id" params={{ id: p.process_id }} className="text-primary hover:underline">{p.processes.name}</Link> · </>)}
+                      {p.sector && `${p.sector} · `}
                       {p.responsible && `${p.responsible} · `}
                       {p.due_date && `prazo ${p.due_date}`}
                     </p>

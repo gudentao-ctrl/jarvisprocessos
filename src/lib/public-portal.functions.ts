@@ -130,7 +130,7 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
       sb
         .from("action_plans")
         .select(
-          "id, title, problem, cause, category, demand_type, responsible, priority, status, due_date, new_due_date, expected_result, observations, origin, created_at, updated_at, process_id",
+          "id, title, problem, cause, category, demand_type, sector, responsible, priority, status, gravity, urgency, trend, due_date, new_due_date, expected_result, observations, origin, created_at, updated_at, process_id",
         )
         .eq("company_id", companyId)
         .order("created_at", { ascending: false }),
@@ -192,7 +192,7 @@ export const getPublicPlanDetails = createServerFn({ method: "GET" })
     const { data: plan, error: pe } = await sb
       .from("action_plans")
       .select(
-        "id, title, problem, cause, category, demand_type, responsible, priority, status, due_date, new_due_date, expected_result, observations, evidences, origin, created_at, updated_at",
+        "id, title, problem, cause, category, demand_type, sector, responsible, priority, status, gravity, urgency, trend, due_date, new_due_date, expected_result, observations, evidences, origin, created_at, updated_at",
       )
       .eq("id", data.plan_id)
       .eq("company_id", company.id)

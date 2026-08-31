@@ -88,6 +88,7 @@ export type Database = {
           related_process_ids: string[] | null
           responsible: string | null
           root_cause_id: string | null
+          sector: string | null
           status: Database["public"]["Enums"]["action_status"]
           title: string
           trend: number | null
@@ -126,6 +127,7 @@ export type Database = {
           related_process_ids?: string[] | null
           responsible?: string | null
           root_cause_id?: string | null
+          sector?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title: string
           trend?: number | null
@@ -164,6 +166,7 @@ export type Database = {
           related_process_ids?: string[] | null
           responsible?: string | null
           root_cause_id?: string | null
+          sector?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title?: string
           trend?: number | null
