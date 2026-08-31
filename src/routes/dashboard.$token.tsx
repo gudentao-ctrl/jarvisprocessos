@@ -673,6 +673,11 @@ function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
             <Badge variant="outline" className={meta.color}>
               <meta.icon className="mr-1 h-3 w-3" /> {meta.label}
             </Badge>
+            {plan.demand_type && (
+              <Badge variant="secondary" className="font-medium">
+                {plan.demand_type === "negocio" ? "Negócio" : plan.demand_type === "pessoas" ? "Pessoas" : "Processo"}
+              </Badge>
+            )}
             {plan.priority && <span>Prioridade: {plan.priority}</span>}
             {plan.responsible && <span>· {plan.responsible}</span>}
             {due && <span>· prazo {new Date(due).toLocaleDateString("pt-BR")}</span>}
