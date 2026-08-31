@@ -199,7 +199,7 @@ function PlanosPage() {
     if (filter !== "all" && p.status !== filter) return false;
     if (!query.trim()) return true;
     const q = query.toLowerCase();
-    return [p.title, p.description, p.responsible, p.companies?.name, p.origin]
+    return [p.title, p.description, p.responsible, p.sector, p.companies?.name, p.origin]
       .filter(Boolean)
       .some((v: string) => String(v).toLowerCase().includes(q));
   });
@@ -372,6 +372,7 @@ function PlanosPage() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {p.companies?.name && `${p.companies.name} · `}
                       {p.processes?.name && (<>Processo: <Link to="/processos/$id" params={{ id: p.process_id }} className="text-primary hover:underline">{p.processes.name}</Link> · </>)}
+                      {p.sector && `${p.sector} · `}
                       {p.responsible && `${p.responsible} · `}
                       {p.due_date && `prazo ${p.due_date}`}
                     </p>
