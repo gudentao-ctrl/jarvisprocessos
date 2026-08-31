@@ -222,6 +222,21 @@ function PublicDashboard() {
     );
   }, [plans]);
 
+  // ----- Progress by sector (% concluded) -----
+  const sectorStats = useMemo(() => {
+    const map = new Map<string, { setor: string; total: number; concluidas: number }>();
+    for (const p of plans) {
+      const key = (p.sector || "").trim() || "Sem setor";
+      const row = map.get(key) ?? { setor: key, total: 0, concluidas: 0 };
+      row.total++;
+      if (p.status === "concluido") row.concluidas++;
+      map.set(key, row);
+    }
+    return Array.from(map.values())
+      .map((r) => ({ ...r, pct: r.total ? Math.round((r.concluidas / r.total) * 100) : 0 }))
+      .sort((a, b) => b.total - a.total);
+  }, [plans]);
+
   // ----- Executive summary counters -----
   const summary = useMemo(() => {
     let noAlvo = 0,
