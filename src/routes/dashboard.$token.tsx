@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
   ResponsiveContainer,
   LineChart,
@@ -219,6 +220,21 @@ function PublicDashboard() {
     return Array.from(map.values()).filter(
       (r) => r.nao_iniciadas + r.em_andamento + r.concluidas > 0,
     );
+  }, [plans]);
+
+  // ----- Progress by sector (% concluded) -----
+  const sectorStats = useMemo(() => {
+    const map = new Map<string, { setor: string; total: number; concluidas: number }>();
+    for (const p of plans) {
+      const key = (p.sector || "").trim() || "Sem setor";
+      const row = map.get(key) ?? { setor: key, total: 0, concluidas: 0 };
+      row.total++;
+      if (p.status === "concluido") row.concluidas++;
+      map.set(key, row);
+    }
+    return Array.from(map.values())
+      .map((r) => ({ ...r, pct: r.total ? Math.round((r.concluidas / r.total) * 100) : 0 }))
+      .sort((a, b) => b.total - a.total);
   }, [plans]);
 
   // ----- Executive summary counters -----
@@ -448,6 +464,32 @@ function PublicDashboard() {
               </ul>
             </Card>
           </div>
+
+          <Card className="p-4">
+            <p className="mb-1 text-sm font-semibold">Avanço por setor</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Percentual de ações concluídas em relação às ações abertas de cada setor
+            </p>
+            {sectorStats.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nenhuma ação para os filtros selecionados.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {sectorStats.map((s) => (
+                  <li key={s.setor}>
+                    <div className="mb-1 flex items-baseline justify-between gap-2">
+                      <span className="truncate text-sm font-medium">{s.setor}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {s.concluidas} de {s.total} concluídas · {s.pct}%
+                      </span>
+                    </div>
+                    <Progress value={s.pct} className="h-2" />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
           <Card className="p-4">
             <p className="mb-1 text-sm font-semibold">Ações por tipo de demanda</p>
@@ -716,9 +758,25 @@ function gutTier(score: number) {
 }
 
 function renderPieLabel(props: any) {
-  const { percent, name } = props;
-  if (!percent) return null;
-  return `${name}: ${(percent * 100).toFixed(0)}%`;
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+  if (!percent || percent < 0.04) return null;
+  const RAD = Math.PI / 180;
+  const r = (innerRadius + outerRadius) / 2;
+  const x = cx + r * Math.cos(-midAngle * RAD);
+  const y = cy + r * Math.sin(-midAngle * RAD);
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      fill="#fff"
+      fontSize={12}
+      fontWeight={600}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
 }
 
 function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
