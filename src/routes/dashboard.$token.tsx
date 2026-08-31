@@ -22,6 +22,8 @@ import {
   Pie,
   Cell,
   Legend,
+  BarChart,
+  Bar,
 } from "recharts";
 import {
   IndicatorSpark,
@@ -165,6 +167,35 @@ function PublicDashboard() {
       }
     }
     return { concluidos, atrasados, andamento, naoIniciados };
+  }, [d.plans]);
+
+  // ----- Plans by demand type -----
+  const demandStats = useMemo(() => {
+    const labels: Record<string, string> = {
+      processo: "Processo",
+      pessoas: "Pessoas",
+      negocio: "Negócio",
+    };
+    const base = ["processo", "pessoas", "negocio", "sem_classificacao"];
+    const map = new Map<string, { tipo: string; nao_iniciadas: number; em_andamento: number; concluidas: number }>();
+    for (const k of base) {
+      map.set(k, {
+        tipo: labels[k] ?? "Sem classificação",
+        nao_iniciadas: 0,
+        em_andamento: 0,
+        concluidas: 0,
+      });
+    }
+    for (const p of d.plans) {
+      const key = labels[p.demand_type] ? p.demand_type : "sem_classificacao";
+      const row = map.get(key)!;
+      if (p.status === "concluido") row.concluidas++;
+      else if (p.status === "aberto") row.nao_iniciadas++;
+      else row.em_andamento++;
+    }
+    return Array.from(map.values()).filter(
+      (r) => r.nao_iniciadas + r.em_andamento + r.concluidas > 0,
+    );
   }, [d.plans]);
 
   // ----- Executive summary counters -----
@@ -374,6 +405,33 @@ function PublicDashboard() {
               </ul>
             </Card>
           </div>
+
+          <Card className="p-4">
+            <p className="mb-1 text-sm font-semibold">Ações por tipo de demanda</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Processo, Pessoas e Negócio — por situação da ação
+            </p>
+            {demandStats.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nenhuma ação classificada ainda.
+              </p>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer>
+                  <BarChart data={demandStats}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="tipo" tick={{ fontSize: 12 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="nao_iniciadas" name="Não iniciadas" fill="hsl(220 9% 65%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="em_andamento" name="Em andamento" fill="hsl(217 91% 60%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="concluidas" name="Concluídas" fill="hsl(142 76% 36%)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
         </section>
 
         <footer className="pt-8 pb-4 text-center text-xs text-muted-foreground">
