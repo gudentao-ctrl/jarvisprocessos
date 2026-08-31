@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
   ResponsiveContainer,
   LineChart,
@@ -716,9 +717,25 @@ function gutTier(score: number) {
 }
 
 function renderPieLabel(props: any) {
-  const { percent, name } = props;
-  if (!percent) return null;
-  return `${name}: ${(percent * 100).toFixed(0)}%`;
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+  if (!percent || percent < 0.04) return null;
+  const RAD = Math.PI / 180;
+  const r = (innerRadius + outerRadius) / 2;
+  const x = cx + r * Math.cos(-midAngle * RAD);
+  const y = cy + r * Math.sin(-midAngle * RAD);
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      fill="#fff"
+      fontSize={12}
+      fontWeight={600}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
 }
 
 function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
