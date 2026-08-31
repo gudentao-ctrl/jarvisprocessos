@@ -145,6 +145,27 @@ function PublicDashboard() {
     return Array.from(set).sort();
   }, [d.indicators]);
 
+  // ----- Plans filters -----
+  const planSectors = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of d.plans) if (p.sector) s.add(p.sector);
+    return Array.from(s).sort();
+  }, [d.plans]);
+  const planResponsibles = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of d.plans) if (p.responsible) s.add(p.responsible);
+    return Array.from(s).sort();
+  }, [d.plans]);
+  const plans = useMemo(
+    () =>
+      d.plans.filter(
+        (p: any) =>
+          (planSector === "all" || p.sector === planSector) &&
+          (planResponsible === "all" || p.responsible === planResponsible),
+      ),
+    [d.plans, planSector, planResponsible],
+  );
+
   // ----- Plans aggregation -----
   const planStats = useMemo(() => {
     const today = new Date();
