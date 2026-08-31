@@ -174,7 +174,7 @@ function PublicDashboard() {
       atrasados = 0,
       andamento = 0,
       naoIniciados = 0;
-    for (const p of d.plans) {
+    for (const p of plans) {
       if (p.status === "concluido") concluidos++;
       else if (p.status === "aberto") naoIniciados++;
       else if (p.status === "em_andamento") {
@@ -188,7 +188,7 @@ function PublicDashboard() {
       }
     }
     return { concluidos, atrasados, andamento, naoIniciados };
-  }, [d.plans]);
+  }, [plans]);
 
   // ----- Plans by demand type -----
   const demandStats = useMemo(() => {
@@ -207,7 +207,7 @@ function PublicDashboard() {
         concluidas: 0,
       });
     }
-    for (const p of d.plans) {
+    for (const p of plans) {
       const key = labels[p.demand_type] ? p.demand_type : "sem_classificacao";
       const row = map.get(key)!;
       if (p.status === "concluido") row.concluidas++;
@@ -217,7 +217,7 @@ function PublicDashboard() {
     return Array.from(map.values()).filter(
       (r) => r.nao_iniciadas + r.em_andamento + r.concluidas > 0,
     );
-  }, [d.plans]);
+  }, [plans]);
 
   // ----- Executive summary counters -----
   const summary = useMemo(() => {
