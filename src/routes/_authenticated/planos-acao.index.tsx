@@ -32,6 +32,8 @@ export const Route = createFileRoute("/_authenticated/planos-acao/")({
 
 const STATUS_LABEL: any = { aberto: "Aberto", em_andamento: "Em andamento", concluido: "Concluído" };
 
+const DEMAND_LABEL: Record<string, string> = { processo: "Processo", pessoas: "Pessoas", negocio: "Negócio" };
+
 type Tier = { label: string; accent: "pain" | "time" | "process" | "info"; bar: string; chip: string };
 
 function gut(p: any) {
@@ -65,6 +67,7 @@ type FormState = {
   expected_result: string;
   observations: string;
   origin: string;
+  demand_type: string;
 };
 
 function emptyForm(companyId: string | null): FormState {
@@ -72,7 +75,7 @@ function emptyForm(companyId: string | null): FormState {
     title: "", description: "", problem: "", cause: "", responsible: "",
     company_id: companyId ?? "", priority: "media", status: "aberto", due_date: "",
     gravity: 3, urgency: 3, trend: 3,
-    expected_result: "", observations: "", origin: "",
+    expected_result: "", observations: "", origin: "", demand_type: "processo",
   };
 }
 
@@ -117,6 +120,7 @@ function PlanosPage() {
       expected_result: p.expected_result ?? "",
       observations: p.observations ?? "",
       origin: p.origin ?? "",
+      demand_type: p.demand_type ?? "processo",
     });
     setOpen(true);
   }
@@ -142,6 +146,7 @@ function PlanosPage() {
           expected_result: form.expected_result || null,
           observations: form.observations || null,
           origin: form.origin || null,
+          demand_type: (form.demand_type || null) as any,
         },
       });
       toast.success(form.id ? "Alterações salvas" : "Plano criado");
@@ -222,6 +227,12 @@ function PlanosPage() {
           <div className="space-y-3 max-h-[70vh] overflow-y-auto">
             <div><Label>Título *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
             <div><Label>Origem</Label><Input placeholder="Entrevista, cronoanálise, indicador..." value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
+            <div><Label>Tipo de demanda *</Label>
+              <Select value={form.demand_type} onValueChange={(v) => setForm({ ...form, demand_type: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>{Object.entries(DEMAND_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label>Problema</Label><Textarea rows={2} value={form.problem} onChange={(e) => setForm({ ...form, problem: e.target.value })} /></div>
             <div><Label>Causa</Label><Textarea rows={2} value={form.cause} onChange={(e) => setForm({ ...form, cause: e.target.value })} /></div>
             <div><Label>Descrição / Ação</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -349,6 +360,11 @@ function PlanosPage() {
                       <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase", tier.chip)}>
                         {p._gut >= 75 && <Flame className="h-3 w-3" />}{tier.label}
                       </span>
+                      {p.demand_type && (
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                          {DEMAND_LABEL[p.demand_type] ?? p.demand_type}
+                        </span>
+                      )}
                       <p className={cn("font-semibold", done && "line-through")}>{p.title}</p>
                     </div>
                     {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}

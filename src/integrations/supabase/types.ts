@@ -63,6 +63,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           cronoanalysis_id: string | null
+          demand_type: string | null
           description: string | null
           due_date: string | null
           evidences: Json | null
@@ -100,6 +101,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           cronoanalysis_id?: string | null
+          demand_type?: string | null
           description?: string | null
           due_date?: string | null
           evidences?: Json | null
@@ -137,6 +139,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           cronoanalysis_id?: string | null
+          demand_type?: string | null
           description?: string | null
           due_date?: string | null
           evidences?: Json | null
