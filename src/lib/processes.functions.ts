@@ -457,7 +457,8 @@ export const saveActionPlan = createServerFn({ method: "POST" })
       responsible: z.string().optional().default(""),
       due_date: z.string().nullable().optional(),
       status: z.enum(["aberto", "em_andamento", "concluido"]).default("aberto"),
-      priority: z.enum(["baixa", "media", "alta", "critica"]).default("media"),
+      priority: z.enum(["baixa", "media", "alta", "critica"]).optional(),
+      sector: z.string().nullable().optional(),
       // Extended fields (GUT + details)
       problem: z.string().nullable().optional(),
       cause: z.string().nullable().optional(),
