@@ -256,21 +256,21 @@ function PublicDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/40 to-background">
       {/* ================ Header ================ */}
-      <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+      <header className="sticky top-0 z-30 border-b bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {d.company.company_logo_url && (
               <img
                 src={d.company.company_logo_url}
                 alt=""
-                className="h-12 w-12 rounded-xl object-contain bg-muted p-1"
+                className="h-10 w-10 shrink-0 rounded-xl bg-muted object-contain p-1 sm:h-12 sm:w-12"
               />
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-lg font-bold tracking-tight sm:text-xl">
+              <h1 className="truncate text-base font-bold tracking-tight sm:text-xl">
                 {d.company.title}
               </h1>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
                 Atualizado{" "}
                 {formatDistanceToNow(new Date(d.company.updated_at), {
                   addSuffix: true,
@@ -282,7 +282,7 @@ function PublicDashboard() {
               <img
                 src={d.company.consultancy_logo_url}
                 alt=""
-                className="h-10 object-contain opacity-80"
+                className="h-7 max-w-[96px] shrink-0 object-contain opacity-80 sm:h-10 sm:max-w-none"
               />
             )}
           </div>
@@ -406,16 +406,16 @@ function PublicDashboard() {
                 {plans.length} de {d.plans.length} planos
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap">
               <Select value={planSector} onValueChange={setPlanSector}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="Setor" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Setor" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os setores</SelectItem>
                   {planSectors.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={planResponsible} onValueChange={setPlanResponsible}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="Responsável" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Responsável" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os responsáveis</SelectItem>
                   {planResponsibles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -427,7 +427,7 @@ function PublicDashboard() {
           <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
             <Card className="p-4">
               <p className="mb-3 text-sm font-semibold">Distribuição</p>
-              <div className="h-56">
+              <div className="h-64 sm:h-56">
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
@@ -446,7 +446,7 @@ function PublicDashboard() {
                     >
                       {[0, 1, 2, 3].map((k) => <Cell key={k} />)}
                     </Pie>
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: 12 }} iconSize={10} />
                     <Tooltip formatter={(v: any) => `${v} ação(ões)`} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -503,12 +503,12 @@ function PublicDashboard() {
             ) : (
               <div className="h-64">
                 <ResponsiveContainer>
-                  <BarChart data={demandStats}>
+                  <BarChart data={demandStats} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="tipo" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <XAxis dataKey="tipo" tick={{ fontSize: 11 }} interval={0} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} />
                     <Tooltip />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
                     <Bar dataKey="nao_iniciadas" name="Não iniciadas" fill="hsl(220 9% 65%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="em_andamento" name="Em andamento" fill="hsl(217 91% 60%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="concluidas" name="Concluídas" fill="hsl(142 76% 36%)" radius={[4, 4, 0, 0]} />
@@ -557,14 +557,14 @@ function SummaryTile({
     info: "bg-primary/10 text-primary",
   };
   return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${t[tone]}`}>
-          <Icon className="h-5 w-5" />
+    <Card className="p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${t[tone]}`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
-        <p className="text-2xl font-bold tabular-nums">{value}</p>
+        <p className="text-xl font-bold tabular-nums sm:text-2xl">{value}</p>
       </div>
-      <p className="mt-2 text-xs font-medium leading-tight text-muted-foreground">{label}</p>
+      <p className="mt-2 text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">{label}</p>
     </Card>
   );
 }
@@ -782,12 +782,18 @@ function renderPieLabel(props: any) {
 function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
   const meta = statusMeta(plan.status, plan.due_date, plan.new_due_date);
   const due = plan.new_due_date || plan.due_date;
+  const details = [
+    plan.origin ? `Origem: ${plan.origin}` : null,
+    plan.sector,
+    plan.responsible,
+    due ? `Prazo ${new Date(due).toLocaleDateString("pt-BR")}` : null,
+  ].filter(Boolean) as string[];
   return (
     <li>
-      <button onClick={onOpen} className="flex w-full items-center gap-3 p-3 text-left hover:bg-muted/50">
+      <button onClick={onOpen} className="flex w-full items-center gap-2 p-3 text-left transition-colors hover:bg-muted/50 active:bg-muted">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{plan.title}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <p className="text-sm font-medium leading-snug">{plan.title}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <Badge variant="outline" className={meta.color}>
               <meta.icon className="mr-1 h-3 w-3" /> {meta.label}
             </Badge>
@@ -799,11 +805,12 @@ function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
             <Badge variant="outline" className={gutTier(gutScore(plan)).color}>
               GUT {gutScore(plan) || "—"} · {gutTier(gutScore(plan)).label}
             </Badge>
-            {plan.origin && <span>Origem: {plan.origin}</span>}
-            {plan.sector && <span>· {plan.sector}</span>}
-            {plan.responsible && <span>· {plan.responsible}</span>}
-            {due && <span>· prazo {new Date(due).toLocaleDateString("pt-BR")}</span>}
           </div>
+          {details.length > 0 && (
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {details.join(" · ")}
+            </p>
+          )}
         </div>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
