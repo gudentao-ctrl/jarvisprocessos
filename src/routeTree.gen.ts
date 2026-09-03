@@ -9,87 +9,82 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PTokenRouteImport } from './routes/p.$token'
-import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
-import { Route as CTokenRouteImport } from './routes/c.$token'
-import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
-import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
-import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
-import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
-import { Route as AuthenticatedRelatorioAcompanhamentoIndexRouteImport } from './routes/_authenticated/relatorio-acompanhamento.index'
-import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
-import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
-import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
-import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
-import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
-import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
-import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
-import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
-import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
-import { Route as AuthenticatedDiagnosticoIndexRouteImport } from './routes/_authenticated/diagnostico.index'
-import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
-import { Route as AuthenticatedControleIndexRouteImport } from './routes/_authenticated/controle.index'
-import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
-import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
+import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
+import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
+import { Route as CTokenRouteImport } from './routes/c.$token'
+import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
-import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
-import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
-import { Route as AuthenticatedPopIdRouteImport } from './routes/_authenticated/pop.$id'
-import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
-import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
-import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
-import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticated/fase.$slug'
-import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
-import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
-import { Route as AuthenticatedDiagnosticoIdRouteImport } from './routes/_authenticated/diagnostico.$id'
-import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_authenticated/cronoanalise.nova'
-import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
+import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
+import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
 import { Route as AuthenticatedCausaRaizIdRouteImport } from './routes/_authenticated/causa-raiz.$id'
-import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
-import { Route as ApiPublicPlanosTokenRouteImport } from './routes/api/public/planos.$token'
-import { Route as ApiPublicColetasTokenRouteImport } from './routes/api/public/coletas.$token'
-import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
-import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
-import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
-import { Route as AuthenticatedProjetosIdExecucaoRouteImport } from './routes/_authenticated/projetos.$id.execucao'
-import { Route as AuthenticatedProjetosIdEncerramentoRouteImport } from './routes/_authenticated/projetos.$id.encerramento'
-import { Route as AuthenticatedProjetosIdDiagnosticoRouteImport } from './routes/_authenticated/projetos.$id.diagnostico'
-import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
+import { Route as AuthenticatedControleIndexRouteImport } from './routes/_authenticated/controle.index'
+import { Route as AuthenticatedCronoanaliseIndexRouteImport } from './routes/_authenticated/cronoanalise.index'
+import { Route as AuthenticatedCronoanaliseIdRouteImport } from './routes/_authenticated/cronoanalise.$id'
+import { Route as AuthenticatedCronoanaliseNovaRouteImport } from './routes/_authenticated/cronoanalise.nova'
+import { Route as AuthenticatedDiagnosticoIndexRouteImport } from './routes/_authenticated/diagnostico.index'
+import { Route as AuthenticatedDiagnosticoIdRouteImport } from './routes/_authenticated/diagnostico.$id'
+import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_authenticated/entrevistas.index'
+import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
+import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
+import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticated/fase.$slug'
+import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
+import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
+import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
+import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
+import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
+import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
+import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
+import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
+import { Route as AuthenticatedPopIdRouteImport } from './routes/_authenticated/pop.$id'
+import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
+import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
+import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
+import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
+import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
+import { Route as AuthenticatedRelatorioAcompanhamentoIndexRouteImport } from './routes/_authenticated/relatorio-acompanhamento.index'
+import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
+import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
+import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
 import { Route as AuthenticatedIndicadoresIdColetarRouteImport } from './routes/_authenticated/indicadores.$id.coletar'
+import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
+import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
+import { Route as AuthenticatedProjetosIdDiagnosticoRouteImport } from './routes/_authenticated/projetos.$id.diagnostico'
+import { Route as AuthenticatedProjetosIdEncerramentoRouteImport } from './routes/_authenticated/projetos.$id.encerramento'
+import { Route as AuthenticatedProjetosIdExecucaoRouteImport } from './routes/_authenticated/projetos.$id.execucao'
+import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
+import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
+import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
+import { Route as ApiPublicColetasTokenRouteImport } from './routes/api/public/coletas.$token'
+import { Route as ApiPublicPlanosTokenRouteImport } from './routes/api/public/planos.$token'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PTokenRoute = PTokenRouteImport.update({
-  id: '/p/$token',
-  path: '/p/$token',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const DashboardTokenRoute = DashboardTokenRouteImport.update({
-  id: '/dashboard/$token',
-  path: '/dashboard/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CTokenRoute = CTokenRouteImport.update({
-  id: '/c/$token',
-  path: '/c/$token',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTemplateDocumentosRoute =
   AuthenticatedTemplateDocumentosRouteImport.update({
@@ -97,113 +92,25 @@ const AuthenticatedTemplateDocumentosRoute =
     path: '/template-documentos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
-  id: '/empresas',
-  path: '/empresas',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const CTokenRoute = CTokenRouteImport.update({
+  id: '/c/$token',
+  path: '/c/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const DashboardTokenRoute = DashboardTokenRouteImport.update({
+  id: '/dashboard/$token',
+  path: '/dashboard/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTobeIndexRoute = AuthenticatedTobeIndexRouteImport.update({
-  id: '/tobe/',
-  path: '/tobe/',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoadmapIndexRoute =
-  AuthenticatedRoadmapIndexRouteImport.update({
-    id: '/roadmap/',
-    path: '/roadmap/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedRelatoriosIndexRoute =
-  AuthenticatedRelatoriosIndexRouteImport.update({
-    id: '/relatorios/',
-    path: '/relatorios/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedRelatorioAcompanhamentoIndexRoute =
-  AuthenticatedRelatorioAcompanhamentoIndexRouteImport.update({
-    id: '/relatorio-acompanhamento/',
-    path: '/relatorio-acompanhamento/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedProjetosIndexRoute =
-  AuthenticatedProjetosIndexRouteImport.update({
-    id: '/projetos/',
-    path: '/projetos/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedProcessosIndexRoute =
-  AuthenticatedProcessosIndexRouteImport.update({
-    id: '/processos/',
-    path: '/processos/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPriorizacaoIndexRoute =
-  AuthenticatedPriorizacaoIndexRouteImport.update({
-    id: '/priorizacao/',
-    path: '/priorizacao/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPopIndexRoute = AuthenticatedPopIndexRouteImport.update({
-  id: '/pop/',
-  path: '/pop/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPlanosAcaoIndexRoute =
-  AuthenticatedPlanosAcaoIndexRouteImport.update({
-    id: '/planos-acao/',
-    path: '/planos-acao/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedOportunidadesIndexRoute =
-  AuthenticatedOportunidadesIndexRouteImport.update({
-    id: '/oportunidades/',
-    path: '/oportunidades/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedIndicadoresIndexRoute =
-  AuthenticatedIndicadoresIndexRouteImport.update({
-    id: '/indicadores/',
-    path: '/indicadores/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedHorasIndexRoute = AuthenticatedHorasIndexRouteImport.update({
-  id: '/horas/',
-  path: '/horas/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedEntrevistasIndexRoute =
-  AuthenticatedEntrevistasIndexRouteImport.update({
-    id: '/entrevistas/',
-    path: '/entrevistas/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedDiagnosticoIndexRoute =
-  AuthenticatedDiagnosticoIndexRouteImport.update({
-    id: '/diagnostico/',
-    path: '/diagnostico/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCronoanaliseIndexRoute =
-  AuthenticatedCronoanaliseIndexRouteImport.update({
-    id: '/cronoanalise/',
-    path: '/cronoanalise/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedControleIndexRoute =
-  AuthenticatedControleIndexRouteImport.update({
-    id: '/controle/',
-    path: '/controle/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCausaRaizIndexRoute =
-  AuthenticatedCausaRaizIndexRouteImport.update({
-    id: '/causa-raiz/',
-    path: '/causa-raiz/',
+const AuthenticatedAnaliseCriticaIndexRoute =
+  AuthenticatedAnaliseCriticaIndexRouteImport.update({
+    id: '/analise-critica/',
+    path: '/analise-critica/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCalendarioIndexRoute =
@@ -212,78 +119,10 @@ const AuthenticatedCalendarioIndexRoute =
     path: '/calendario/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAnaliseCriticaIndexRoute =
-  AuthenticatedAnaliseCriticaIndexRouteImport.update({
-    id: '/analise-critica/',
-    path: '/analise-critica/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
-  id: '/projetos/$id',
-  path: '/projetos/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedProcessosIdRoute =
-  AuthenticatedProcessosIdRouteImport.update({
-    id: '/processos/$id',
-    path: '/processos/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPopIdRoute = AuthenticatedPopIdRouteImport.update({
-  id: '/pop/$id',
-  path: '/pop/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMapasInformacaoRoute =
-  AuthenticatedMapasInformacaoRouteImport.update({
-    id: '/mapas/informacao',
-    path: '/mapas/informacao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMapasDoresRoute = AuthenticatedMapasDoresRouteImport.update({
-  id: '/mapas/dores',
-  path: '/mapas/dores',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMapasDecisaoRoute =
-  AuthenticatedMapasDecisaoRouteImport.update({
-    id: '/mapas/decisao',
-    path: '/mapas/decisao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedFaseSlugRoute = AuthenticatedFaseSlugRouteImport.update({
-  id: '/fase/$slug',
-  path: '/fase/$slug',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedEntrevistasNovaRoute =
-  AuthenticatedEntrevistasNovaRouteImport.update({
-    id: '/entrevistas/nova',
-    path: '/entrevistas/nova',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedEntrevistasIdRoute =
-  AuthenticatedEntrevistasIdRouteImport.update({
-    id: '/entrevistas/$id',
-    path: '/entrevistas/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedDiagnosticoIdRoute =
-  AuthenticatedDiagnosticoIdRouteImport.update({
-    id: '/diagnostico/$id',
-    path: '/diagnostico/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCronoanaliseNovaRoute =
-  AuthenticatedCronoanaliseNovaRouteImport.update({
-    id: '/cronoanalise/nova',
-    path: '/cronoanalise/nova',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCronoanaliseIdRoute =
-  AuthenticatedCronoanaliseIdRouteImport.update({
-    id: '/cronoanalise/$id',
-    path: '/cronoanalise/$id',
+const AuthenticatedCausaRaizIndexRoute =
+  AuthenticatedCausaRaizIndexRouteImport.update({
+    id: '/causa-raiz/',
+    path: '/causa-raiz/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCausaRaizIdRoute =
@@ -292,50 +131,183 @@ const AuthenticatedCausaRaizIdRoute =
     path: '/causa-raiz/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedControleIndexRoute =
+  AuthenticatedControleIndexRouteImport.update({
+    id: '/controle/',
+    path: '/controle/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCronoanaliseIndexRoute =
+  AuthenticatedCronoanaliseIndexRouteImport.update({
+    id: '/cronoanalise/',
+    path: '/cronoanalise/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCronoanaliseIdRoute =
+  AuthenticatedCronoanaliseIdRouteImport.update({
+    id: '/cronoanalise/$id',
+    path: '/cronoanalise/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCronoanaliseNovaRoute =
+  AuthenticatedCronoanaliseNovaRouteImport.update({
+    id: '/cronoanalise/nova',
+    path: '/cronoanalise/nova',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDiagnosticoIndexRoute =
+  AuthenticatedDiagnosticoIndexRouteImport.update({
+    id: '/diagnostico/',
+    path: '/diagnostico/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDiagnosticoIdRoute =
+  AuthenticatedDiagnosticoIdRouteImport.update({
+    id: '/diagnostico/$id',
+    path: '/diagnostico/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEntrevistasIndexRoute =
+  AuthenticatedEntrevistasIndexRouteImport.update({
+    id: '/entrevistas/',
+    path: '/entrevistas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEntrevistasIdRoute =
+  AuthenticatedEntrevistasIdRouteImport.update({
+    id: '/entrevistas/$id',
+    path: '/entrevistas/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEntrevistasNovaRoute =
+  AuthenticatedEntrevistasNovaRouteImport.update({
+    id: '/entrevistas/nova',
+    path: '/entrevistas/nova',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFaseSlugRoute = AuthenticatedFaseSlugRouteImport.update({
+  id: '/fase/$slug',
+  path: '/fase/$slug',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHorasIndexRoute = AuthenticatedHorasIndexRouteImport.update({
+  id: '/horas/',
+  path: '/horas/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedIndicadoresIndexRoute =
+  AuthenticatedIndicadoresIndexRouteImport.update({
+    id: '/indicadores/',
+    path: '/indicadores/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMapasDecisaoRoute =
+  AuthenticatedMapasDecisaoRouteImport.update({
+    id: '/mapas/decisao',
+    path: '/mapas/decisao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMapasDoresRoute = AuthenticatedMapasDoresRouteImport.update({
+  id: '/mapas/dores',
+  path: '/mapas/dores',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMapasInformacaoRoute =
+  AuthenticatedMapasInformacaoRouteImport.update({
+    id: '/mapas/informacao',
+    path: '/mapas/informacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOportunidadesIndexRoute =
+  AuthenticatedOportunidadesIndexRouteImport.update({
+    id: '/oportunidades/',
+    path: '/oportunidades/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanosAcaoIndexRoute =
+  AuthenticatedPlanosAcaoIndexRouteImport.update({
+    id: '/planos-acao/',
+    path: '/planos-acao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPopIndexRoute = AuthenticatedPopIndexRouteImport.update({
+  id: '/pop/',
+  path: '/pop/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPopIdRoute = AuthenticatedPopIdRouteImport.update({
+  id: '/pop/$id',
+  path: '/pop/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPriorizacaoIndexRoute =
+  AuthenticatedPriorizacaoIndexRouteImport.update({
+    id: '/priorizacao/',
+    path: '/priorizacao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosIndexRoute =
+  AuthenticatedProcessosIndexRouteImport.update({
+    id: '/processos/',
+    path: '/processos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosIdRoute =
+  AuthenticatedProcessosIdRouteImport.update({
+    id: '/processos/$id',
+    path: '/processos/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProjetosIndexRoute =
+  AuthenticatedProjetosIndexRouteImport.update({
+    id: '/projetos/',
+    path: '/projetos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
+  id: '/projetos/$id',
+  path: '/projetos/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRelatorioAcompanhamentoIndexRoute =
+  AuthenticatedRelatorioAcompanhamentoIndexRouteImport.update({
+    id: '/relatorio-acompanhamento/',
+    path: '/relatorio-acompanhamento/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatoriosIndexRoute =
+  AuthenticatedRelatoriosIndexRouteImport.update({
+    id: '/relatorios/',
+    path: '/relatorios/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRoadmapIndexRoute =
+  AuthenticatedRoadmapIndexRouteImport.update({
+    id: '/roadmap/',
+    path: '/roadmap/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTobeIndexRoute = AuthenticatedTobeIndexRouteImport.update({
+  id: '/tobe/',
+  path: '/tobe/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedIndicadoresIdColetarRoute =
+  AuthenticatedIndicadoresIdColetarRouteImport.update({
+    id: '/indicadores/$id/coletar',
+    path: '/indicadores/$id/coletar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosSugerirInterviewIdRoute =
+  AuthenticatedProcessosSugerirInterviewIdRouteImport.update({
+    id: '/processos/sugerir/$interviewId',
+    path: '/processos/sugerir/$interviewId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProjetosIdIndexRoute =
   AuthenticatedProjetosIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedProjetosIdRoute,
-  } as any)
-const ApiPublicPlanosTokenRoute = ApiPublicPlanosTokenRouteImport.update({
-  id: '/api/public/planos/$token',
-  path: '/api/public/planos/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicColetasTokenRoute = ApiPublicColetasTokenRouteImport.update({
-  id: '/api/public/coletas/$token',
-  path: '/api/public/coletas/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedProjetosIdMelhoriasRoute =
-  AuthenticatedProjetosIdMelhoriasRouteImport.update({
-    id: '/melhorias',
-    path: '/melhorias',
-    getParentRoute: () => AuthenticatedProjetosIdRoute,
-  } as any)
-const AuthenticatedProjetosIdMapeamentoRoute =
-  AuthenticatedProjetosIdMapeamentoRouteImport.update({
-    id: '/mapeamento',
-    path: '/mapeamento',
-    getParentRoute: () => AuthenticatedProjetosIdRoute,
-  } as any)
-const AuthenticatedProjetosIdGestaoRoute =
-  AuthenticatedProjetosIdGestaoRouteImport.update({
-    id: '/gestao',
-    path: '/gestao',
-    getParentRoute: () => AuthenticatedProjetosIdRoute,
-  } as any)
-const AuthenticatedProjetosIdExecucaoRoute =
-  AuthenticatedProjetosIdExecucaoRouteImport.update({
-    id: '/execucao',
-    path: '/execucao',
-    getParentRoute: () => AuthenticatedProjetosIdRoute,
-  } as any)
-const AuthenticatedProjetosIdEncerramentoRoute =
-  AuthenticatedProjetosIdEncerramentoRouteImport.update({
-    id: '/encerramento',
-    path: '/encerramento',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
 const AuthenticatedProjetosIdDiagnosticoRoute =
@@ -344,18 +316,46 @@ const AuthenticatedProjetosIdDiagnosticoRoute =
     path: '/diagnostico',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
-const AuthenticatedProcessosSugerirInterviewIdRoute =
-  AuthenticatedProcessosSugerirInterviewIdRouteImport.update({
-    id: '/processos/sugerir/$interviewId',
-    path: '/processos/sugerir/$interviewId',
-    getParentRoute: () => AuthenticatedRouteRoute,
+const AuthenticatedProjetosIdEncerramentoRoute =
+  AuthenticatedProjetosIdEncerramentoRouteImport.update({
+    id: '/encerramento',
+    path: '/encerramento',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
-const AuthenticatedIndicadoresIdColetarRoute =
-  AuthenticatedIndicadoresIdColetarRouteImport.update({
-    id: '/indicadores/$id/coletar',
-    path: '/indicadores/$id/coletar',
-    getParentRoute: () => AuthenticatedRouteRoute,
+const AuthenticatedProjetosIdExecucaoRoute =
+  AuthenticatedProjetosIdExecucaoRouteImport.update({
+    id: '/execucao',
+    path: '/execucao',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
+const AuthenticatedProjetosIdGestaoRoute =
+  AuthenticatedProjetosIdGestaoRouteImport.update({
+    id: '/gestao',
+    path: '/gestao',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
+const AuthenticatedProjetosIdMapeamentoRoute =
+  AuthenticatedProjetosIdMapeamentoRouteImport.update({
+    id: '/mapeamento',
+    path: '/mapeamento',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
+const AuthenticatedProjetosIdMelhoriasRoute =
+  AuthenticatedProjetosIdMelhoriasRouteImport.update({
+    id: '/melhorias',
+    path: '/melhorias',
+    getParentRoute: () => AuthenticatedProjetosIdRoute,
+  } as any)
+const ApiPublicColetasTokenRoute = ApiPublicColetasTokenRouteImport.update({
+  id: '/api/public/coletas/$token',
+  path: '/api/public/coletas/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPlanosTokenRoute = ApiPublicPlanosTokenRouteImport.update({
+  id: '/api/public/planos/$token',
+  path: '/api/public/planos/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -692,11 +692,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -706,39 +706,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/p/$token': {
-      id: '/p/$token'
-      path: '/p/$token'
-      fullPath: '/p/$token'
-      preLoaderRoute: typeof PTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/$token': {
-      id: '/dashboard/$token'
-      path: '/dashboard/$token'
-      fullPath: '/dashboard/$token'
-      preLoaderRoute: typeof DashboardTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/c/$token': {
-      id: '/c/$token'
-      path: '/c/$token'
-      fullPath: '/c/$token'
-      preLoaderRoute: typeof CTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/template-documentos': {
-      id: '/_authenticated/template-documentos'
-      path: '/template-documentos'
-      fullPath: '/template-documentos'
-      preLoaderRoute: typeof AuthenticatedTemplateDocumentosRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/empresas': {
@@ -748,130 +727,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmpresasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/template-documentos': {
+      id: '/_authenticated/template-documentos'
+      path: '/template-documentos'
+      fullPath: '/template-documentos'
+      preLoaderRoute: typeof AuthenticatedTemplateDocumentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/tobe/': {
-      id: '/_authenticated/tobe/'
-      path: '/tobe'
-      fullPath: '/tobe/'
-      preLoaderRoute: typeof AuthenticatedTobeIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/c/$token': {
+      id: '/c/$token'
+      path: '/c/$token'
+      fullPath: '/c/$token'
+      preLoaderRoute: typeof CTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/roadmap/': {
-      id: '/_authenticated/roadmap/'
-      path: '/roadmap'
-      fullPath: '/roadmap/'
-      preLoaderRoute: typeof AuthenticatedRoadmapIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/dashboard/$token': {
+      id: '/dashboard/$token'
+      path: '/dashboard/$token'
+      fullPath: '/dashboard/$token'
+      preLoaderRoute: typeof DashboardTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/relatorios/': {
-      id: '/_authenticated/relatorios/'
-      path: '/relatorios'
-      fullPath: '/relatorios/'
-      preLoaderRoute: typeof AuthenticatedRelatoriosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/relatorio-acompanhamento/': {
-      id: '/_authenticated/relatorio-acompanhamento/'
-      path: '/relatorio-acompanhamento'
-      fullPath: '/relatorio-acompanhamento/'
-      preLoaderRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/projetos/': {
-      id: '/_authenticated/projetos/'
-      path: '/projetos'
-      fullPath: '/projetos/'
-      preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/processos/': {
-      id: '/_authenticated/processos/'
-      path: '/processos'
-      fullPath: '/processos/'
-      preLoaderRoute: typeof AuthenticatedProcessosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/priorizacao/': {
-      id: '/_authenticated/priorizacao/'
-      path: '/priorizacao'
-      fullPath: '/priorizacao/'
-      preLoaderRoute: typeof AuthenticatedPriorizacaoIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pop/': {
-      id: '/_authenticated/pop/'
-      path: '/pop'
-      fullPath: '/pop/'
-      preLoaderRoute: typeof AuthenticatedPopIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/planos-acao/': {
-      id: '/_authenticated/planos-acao/'
-      path: '/planos-acao'
-      fullPath: '/planos-acao/'
-      preLoaderRoute: typeof AuthenticatedPlanosAcaoIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/oportunidades/': {
-      id: '/_authenticated/oportunidades/'
-      path: '/oportunidades'
-      fullPath: '/oportunidades/'
-      preLoaderRoute: typeof AuthenticatedOportunidadesIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/indicadores/': {
-      id: '/_authenticated/indicadores/'
-      path: '/indicadores'
-      fullPath: '/indicadores/'
-      preLoaderRoute: typeof AuthenticatedIndicadoresIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/horas/': {
-      id: '/_authenticated/horas/'
-      path: '/horas'
-      fullPath: '/horas/'
-      preLoaderRoute: typeof AuthenticatedHorasIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/entrevistas/': {
-      id: '/_authenticated/entrevistas/'
-      path: '/entrevistas'
-      fullPath: '/entrevistas/'
-      preLoaderRoute: typeof AuthenticatedEntrevistasIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/diagnostico/': {
-      id: '/_authenticated/diagnostico/'
-      path: '/diagnostico'
-      fullPath: '/diagnostico/'
-      preLoaderRoute: typeof AuthenticatedDiagnosticoIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cronoanalise/': {
-      id: '/_authenticated/cronoanalise/'
-      path: '/cronoanalise'
-      fullPath: '/cronoanalise/'
-      preLoaderRoute: typeof AuthenticatedCronoanaliseIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/controle/': {
-      id: '/_authenticated/controle/'
-      path: '/controle'
-      fullPath: '/controle/'
-      preLoaderRoute: typeof AuthenticatedControleIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/causa-raiz/': {
-      id: '/_authenticated/causa-raiz/'
-      path: '/causa-raiz'
-      fullPath: '/causa-raiz/'
-      preLoaderRoute: typeof AuthenticatedCausaRaizIndexRouteImport
+    '/_authenticated/analise-critica/': {
+      id: '/_authenticated/analise-critica/'
+      path: '/analise-critica'
+      fullPath: '/analise-critica/'
+      preLoaderRoute: typeof AuthenticatedAnaliseCriticaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/calendario/': {
@@ -881,95 +769,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarioIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/analise-critica/': {
-      id: '/_authenticated/analise-critica/'
-      path: '/analise-critica'
-      fullPath: '/analise-critica/'
-      preLoaderRoute: typeof AuthenticatedAnaliseCriticaIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/projetos/$id': {
-      id: '/_authenticated/projetos/$id'
-      path: '/projetos/$id'
-      fullPath: '/projetos/$id'
-      preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/processos/$id': {
-      id: '/_authenticated/processos/$id'
-      path: '/processos/$id'
-      fullPath: '/processos/$id'
-      preLoaderRoute: typeof AuthenticatedProcessosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pop/$id': {
-      id: '/_authenticated/pop/$id'
-      path: '/pop/$id'
-      fullPath: '/pop/$id'
-      preLoaderRoute: typeof AuthenticatedPopIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/mapas/informacao': {
-      id: '/_authenticated/mapas/informacao'
-      path: '/mapas/informacao'
-      fullPath: '/mapas/informacao'
-      preLoaderRoute: typeof AuthenticatedMapasInformacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/mapas/dores': {
-      id: '/_authenticated/mapas/dores'
-      path: '/mapas/dores'
-      fullPath: '/mapas/dores'
-      preLoaderRoute: typeof AuthenticatedMapasDoresRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/mapas/decisao': {
-      id: '/_authenticated/mapas/decisao'
-      path: '/mapas/decisao'
-      fullPath: '/mapas/decisao'
-      preLoaderRoute: typeof AuthenticatedMapasDecisaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fase/$slug': {
-      id: '/_authenticated/fase/$slug'
-      path: '/fase/$slug'
-      fullPath: '/fase/$slug'
-      preLoaderRoute: typeof AuthenticatedFaseSlugRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/entrevistas/nova': {
-      id: '/_authenticated/entrevistas/nova'
-      path: '/entrevistas/nova'
-      fullPath: '/entrevistas/nova'
-      preLoaderRoute: typeof AuthenticatedEntrevistasNovaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/entrevistas/$id': {
-      id: '/_authenticated/entrevistas/$id'
-      path: '/entrevistas/$id'
-      fullPath: '/entrevistas/$id'
-      preLoaderRoute: typeof AuthenticatedEntrevistasIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/diagnostico/$id': {
-      id: '/_authenticated/diagnostico/$id'
-      path: '/diagnostico/$id'
-      fullPath: '/diagnostico/$id'
-      preLoaderRoute: typeof AuthenticatedDiagnosticoIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cronoanalise/nova': {
-      id: '/_authenticated/cronoanalise/nova'
-      path: '/cronoanalise/nova'
-      fullPath: '/cronoanalise/nova'
-      preLoaderRoute: typeof AuthenticatedCronoanaliseNovaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cronoanalise/$id': {
-      id: '/_authenticated/cronoanalise/$id'
-      path: '/cronoanalise/$id'
-      fullPath: '/cronoanalise/$id'
-      preLoaderRoute: typeof AuthenticatedCronoanaliseIdRouteImport
+    '/_authenticated/causa-raiz/': {
+      id: '/_authenticated/causa-raiz/'
+      path: '/causa-raiz'
+      fullPath: '/causa-raiz/'
+      preLoaderRoute: typeof AuthenticatedCausaRaizIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/causa-raiz/$id': {
@@ -979,60 +783,221 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCausaRaizIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/controle/': {
+      id: '/_authenticated/controle/'
+      path: '/controle'
+      fullPath: '/controle/'
+      preLoaderRoute: typeof AuthenticatedControleIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cronoanalise/': {
+      id: '/_authenticated/cronoanalise/'
+      path: '/cronoanalise'
+      fullPath: '/cronoanalise/'
+      preLoaderRoute: typeof AuthenticatedCronoanaliseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cronoanalise/$id': {
+      id: '/_authenticated/cronoanalise/$id'
+      path: '/cronoanalise/$id'
+      fullPath: '/cronoanalise/$id'
+      preLoaderRoute: typeof AuthenticatedCronoanaliseIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cronoanalise/nova': {
+      id: '/_authenticated/cronoanalise/nova'
+      path: '/cronoanalise/nova'
+      fullPath: '/cronoanalise/nova'
+      preLoaderRoute: typeof AuthenticatedCronoanaliseNovaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diagnostico/': {
+      id: '/_authenticated/diagnostico/'
+      path: '/diagnostico'
+      fullPath: '/diagnostico/'
+      preLoaderRoute: typeof AuthenticatedDiagnosticoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diagnostico/$id': {
+      id: '/_authenticated/diagnostico/$id'
+      path: '/diagnostico/$id'
+      fullPath: '/diagnostico/$id'
+      preLoaderRoute: typeof AuthenticatedDiagnosticoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entrevistas/': {
+      id: '/_authenticated/entrevistas/'
+      path: '/entrevistas'
+      fullPath: '/entrevistas/'
+      preLoaderRoute: typeof AuthenticatedEntrevistasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entrevistas/$id': {
+      id: '/_authenticated/entrevistas/$id'
+      path: '/entrevistas/$id'
+      fullPath: '/entrevistas/$id'
+      preLoaderRoute: typeof AuthenticatedEntrevistasIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/entrevistas/nova': {
+      id: '/_authenticated/entrevistas/nova'
+      path: '/entrevistas/nova'
+      fullPath: '/entrevistas/nova'
+      preLoaderRoute: typeof AuthenticatedEntrevistasNovaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fase/$slug': {
+      id: '/_authenticated/fase/$slug'
+      path: '/fase/$slug'
+      fullPath: '/fase/$slug'
+      preLoaderRoute: typeof AuthenticatedFaseSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/horas/': {
+      id: '/_authenticated/horas/'
+      path: '/horas'
+      fullPath: '/horas/'
+      preLoaderRoute: typeof AuthenticatedHorasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/indicadores/': {
+      id: '/_authenticated/indicadores/'
+      path: '/indicadores'
+      fullPath: '/indicadores/'
+      preLoaderRoute: typeof AuthenticatedIndicadoresIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapas/decisao': {
+      id: '/_authenticated/mapas/decisao'
+      path: '/mapas/decisao'
+      fullPath: '/mapas/decisao'
+      preLoaderRoute: typeof AuthenticatedMapasDecisaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapas/dores': {
+      id: '/_authenticated/mapas/dores'
+      path: '/mapas/dores'
+      fullPath: '/mapas/dores'
+      preLoaderRoute: typeof AuthenticatedMapasDoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapas/informacao': {
+      id: '/_authenticated/mapas/informacao'
+      path: '/mapas/informacao'
+      fullPath: '/mapas/informacao'
+      preLoaderRoute: typeof AuthenticatedMapasInformacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/oportunidades/': {
+      id: '/_authenticated/oportunidades/'
+      path: '/oportunidades'
+      fullPath: '/oportunidades/'
+      preLoaderRoute: typeof AuthenticatedOportunidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planos-acao/': {
+      id: '/_authenticated/planos-acao/'
+      path: '/planos-acao'
+      fullPath: '/planos-acao/'
+      preLoaderRoute: typeof AuthenticatedPlanosAcaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pop/': {
+      id: '/_authenticated/pop/'
+      path: '/pop'
+      fullPath: '/pop/'
+      preLoaderRoute: typeof AuthenticatedPopIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pop/$id': {
+      id: '/_authenticated/pop/$id'
+      path: '/pop/$id'
+      fullPath: '/pop/$id'
+      preLoaderRoute: typeof AuthenticatedPopIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/priorizacao/': {
+      id: '/_authenticated/priorizacao/'
+      path: '/priorizacao'
+      fullPath: '/priorizacao/'
+      preLoaderRoute: typeof AuthenticatedPriorizacaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/': {
+      id: '/_authenticated/processos/'
+      path: '/processos'
+      fullPath: '/processos/'
+      preLoaderRoute: typeof AuthenticatedProcessosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/$id': {
+      id: '/_authenticated/processos/$id'
+      path: '/processos/$id'
+      fullPath: '/processos/$id'
+      preLoaderRoute: typeof AuthenticatedProcessosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/projetos/': {
+      id: '/_authenticated/projetos/'
+      path: '/projetos'
+      fullPath: '/projetos/'
+      preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/projetos/$id': {
+      id: '/_authenticated/projetos/$id'
+      path: '/projetos/$id'
+      fullPath: '/projetos/$id'
+      preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorio-acompanhamento/': {
+      id: '/_authenticated/relatorio-acompanhamento/'
+      path: '/relatorio-acompanhamento'
+      fullPath: '/relatorio-acompanhamento/'
+      preLoaderRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios/': {
+      id: '/_authenticated/relatorios/'
+      path: '/relatorios'
+      fullPath: '/relatorios/'
+      preLoaderRoute: typeof AuthenticatedRelatoriosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/roadmap/': {
+      id: '/_authenticated/roadmap/'
+      path: '/roadmap'
+      fullPath: '/roadmap/'
+      preLoaderRoute: typeof AuthenticatedRoadmapIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tobe/': {
+      id: '/_authenticated/tobe/'
+      path: '/tobe'
+      fullPath: '/tobe/'
+      preLoaderRoute: typeof AuthenticatedTobeIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/indicadores/$id/coletar': {
+      id: '/_authenticated/indicadores/$id/coletar'
+      path: '/indicadores/$id/coletar'
+      fullPath: '/indicadores/$id/coletar'
+      preLoaderRoute: typeof AuthenticatedIndicadoresIdColetarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/sugerir/$interviewId': {
+      id: '/_authenticated/processos/sugerir/$interviewId'
+      path: '/processos/sugerir/$interviewId'
+      fullPath: '/processos/sugerir/$interviewId'
+      preLoaderRoute: typeof AuthenticatedProcessosSugerirInterviewIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projetos/$id/': {
       id: '/_authenticated/projetos/$id/'
       path: '/'
       fullPath: '/projetos/$id/'
       preLoaderRoute: typeof AuthenticatedProjetosIdIndexRouteImport
-      parentRoute: typeof AuthenticatedProjetosIdRoute
-    }
-    '/api/public/planos/$token': {
-      id: '/api/public/planos/$token'
-      path: '/api/public/planos/$token'
-      fullPath: '/api/public/planos/$token'
-      preLoaderRoute: typeof ApiPublicPlanosTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/coletas/$token': {
-      id: '/api/public/coletas/$token'
-      path: '/api/public/coletas/$token'
-      fullPath: '/api/public/coletas/$token'
-      preLoaderRoute: typeof ApiPublicColetasTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/projetos/$id/melhorias': {
-      id: '/_authenticated/projetos/$id/melhorias'
-      path: '/melhorias'
-      fullPath: '/projetos/$id/melhorias'
-      preLoaderRoute: typeof AuthenticatedProjetosIdMelhoriasRouteImport
-      parentRoute: typeof AuthenticatedProjetosIdRoute
-    }
-    '/_authenticated/projetos/$id/mapeamento': {
-      id: '/_authenticated/projetos/$id/mapeamento'
-      path: '/mapeamento'
-      fullPath: '/projetos/$id/mapeamento'
-      preLoaderRoute: typeof AuthenticatedProjetosIdMapeamentoRouteImport
-      parentRoute: typeof AuthenticatedProjetosIdRoute
-    }
-    '/_authenticated/projetos/$id/gestao': {
-      id: '/_authenticated/projetos/$id/gestao'
-      path: '/gestao'
-      fullPath: '/projetos/$id/gestao'
-      preLoaderRoute: typeof AuthenticatedProjetosIdGestaoRouteImport
-      parentRoute: typeof AuthenticatedProjetosIdRoute
-    }
-    '/_authenticated/projetos/$id/execucao': {
-      id: '/_authenticated/projetos/$id/execucao'
-      path: '/execucao'
-      fullPath: '/projetos/$id/execucao'
-      preLoaderRoute: typeof AuthenticatedProjetosIdExecucaoRouteImport
-      parentRoute: typeof AuthenticatedProjetosIdRoute
-    }
-    '/_authenticated/projetos/$id/encerramento': {
-      id: '/_authenticated/projetos/$id/encerramento'
-      path: '/encerramento'
-      fullPath: '/projetos/$id/encerramento'
-      preLoaderRoute: typeof AuthenticatedProjetosIdEncerramentoRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
     '/_authenticated/projetos/$id/diagnostico': {
@@ -1042,19 +1007,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdDiagnosticoRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
-    '/_authenticated/processos/sugerir/$interviewId': {
-      id: '/_authenticated/processos/sugerir/$interviewId'
-      path: '/processos/sugerir/$interviewId'
-      fullPath: '/processos/sugerir/$interviewId'
-      preLoaderRoute: typeof AuthenticatedProcessosSugerirInterviewIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/projetos/$id/encerramento': {
+      id: '/_authenticated/projetos/$id/encerramento'
+      path: '/encerramento'
+      fullPath: '/projetos/$id/encerramento'
+      preLoaderRoute: typeof AuthenticatedProjetosIdEncerramentoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
     }
-    '/_authenticated/indicadores/$id/coletar': {
-      id: '/_authenticated/indicadores/$id/coletar'
-      path: '/indicadores/$id/coletar'
-      fullPath: '/indicadores/$id/coletar'
-      preLoaderRoute: typeof AuthenticatedIndicadoresIdColetarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/projetos/$id/execucao': {
+      id: '/_authenticated/projetos/$id/execucao'
+      path: '/execucao'
+      fullPath: '/projetos/$id/execucao'
+      preLoaderRoute: typeof AuthenticatedProjetosIdExecucaoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/_authenticated/projetos/$id/gestao': {
+      id: '/_authenticated/projetos/$id/gestao'
+      path: '/gestao'
+      fullPath: '/projetos/$id/gestao'
+      preLoaderRoute: typeof AuthenticatedProjetosIdGestaoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/_authenticated/projetos/$id/mapeamento': {
+      id: '/_authenticated/projetos/$id/mapeamento'
+      path: '/mapeamento'
+      fullPath: '/projetos/$id/mapeamento'
+      preLoaderRoute: typeof AuthenticatedProjetosIdMapeamentoRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/_authenticated/projetos/$id/melhorias': {
+      id: '/_authenticated/projetos/$id/melhorias'
+      path: '/melhorias'
+      fullPath: '/projetos/$id/melhorias'
+      preLoaderRoute: typeof AuthenticatedProjetosIdMelhoriasRouteImport
+      parentRoute: typeof AuthenticatedProjetosIdRoute
+    }
+    '/api/public/coletas/$token': {
+      id: '/api/public/coletas/$token'
+      path: '/api/public/coletas/$token'
+      fullPath: '/api/public/coletas/$token'
+      preLoaderRoute: typeof ApiPublicColetasTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/planos/$token': {
+      id: '/api/public/planos/$token'
+      path: '/api/public/planos/$token'
+      fullPath: '/api/public/planos/$token'
+      preLoaderRoute: typeof ApiPublicPlanosTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
