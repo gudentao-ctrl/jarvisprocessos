@@ -258,9 +258,9 @@ function PlanosPage() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-xs">Gravidade</Label><Input type="number" min={1} max={5} value={form.gravity} onChange={(e) => setForm({ ...form, gravity: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
-                <div><Label className="text-xs">Urgência</Label><Input type="number" min={1} max={5} value={form.urgency} onChange={(e) => setForm({ ...form, urgency: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
-                <div><Label className="text-xs">Tendência</Label><Input type="number" min={1} max={5} value={form.trend} onChange={(e) => setForm({ ...form, trend: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
+                <GutStepper label="Gravidade" value={form.gravity} onChange={(v) => setForm({ ...form, gravity: v })} />
+                <GutStepper label="Urgência" value={form.urgency} onChange={(v) => setForm({ ...form, urgency: v })} />
+                <GutStepper label="Tendência" value={form.trend} onChange={(v) => setForm({ ...form, trend: v })} />
               </div>
             </div>
             <div><Label>Status</Label>
