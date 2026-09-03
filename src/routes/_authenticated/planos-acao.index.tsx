@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, ClipboardList, Trash2, Pencil, Flame, Search, Trophy } from "lucide-react";
+import { Plus, Minus, ClipboardList, Trash2, Pencil, Flame, Search, Trophy } from "lucide-react";
 import { listActionPlans, saveActionPlan, deleteActionPlan } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
@@ -76,6 +76,31 @@ type FormState = {
   origin: string;
   demand_type: string;
 };
+
+function GutStepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const set = (v: number) => onChange(Math.min(5, Math.max(1, v)));
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="flex items-stretch gap-1">
+        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => set(value - 1)} disabled={value <= 1} aria-label={`Diminuir ${label}`}>
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Input
+          type="number"
+          min={1}
+          max={5}
+          value={value}
+          onChange={(e) => set(Number(e.target.value) || 1)}
+          className="w-full text-center tabular-nums"
+        />
+        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => set(value + 1)} disabled={value >= 5} aria-label={`Aumentar ${label}`}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function emptyForm(companyId: string | null): FormState {
   return {
@@ -258,9 +283,9 @@ function PlanosPage() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-xs">Gravidade</Label><Input type="number" min={1} max={5} value={form.gravity} onChange={(e) => setForm({ ...form, gravity: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
-                <div><Label className="text-xs">Urgência</Label><Input type="number" min={1} max={5} value={form.urgency} onChange={(e) => setForm({ ...form, urgency: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
-                <div><Label className="text-xs">Tendência</Label><Input type="number" min={1} max={5} value={form.trend} onChange={(e) => setForm({ ...form, trend: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} /></div>
+                <GutStepper label="Gravidade" value={form.gravity} onChange={(v) => setForm({ ...form, gravity: v })} />
+                <GutStepper label="Urgência" value={form.urgency} onChange={(v) => setForm({ ...form, urgency: v })} />
+                <GutStepper label="Tendência" value={form.trend} onChange={(v) => setForm({ ...form, trend: v })} />
               </div>
             </div>
             <div><Label>Status</Label>
