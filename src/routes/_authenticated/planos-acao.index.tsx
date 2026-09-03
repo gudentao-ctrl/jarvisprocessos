@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, ClipboardList, Trash2, Pencil, Flame, Search, Trophy } from "lucide-react";
+import { Plus, Minus, ClipboardList, Trash2, Pencil, Flame, Search, Trophy } from "lucide-react";
 import { listActionPlans, saveActionPlan, deleteActionPlan } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
