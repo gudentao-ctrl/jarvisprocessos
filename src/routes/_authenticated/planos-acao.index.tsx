@@ -77,6 +77,31 @@ type FormState = {
   demand_type: string;
 };
 
+function GutStepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const set = (v: number) => onChange(Math.min(5, Math.max(1, v)));
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="flex items-stretch gap-1">
+        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => set(value - 1)} disabled={value <= 1} aria-label={`Diminuir ${label}`}>
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Input
+          type="number"
+          min={1}
+          max={5}
+          value={value}
+          onChange={(e) => set(Number(e.target.value) || 1)}
+          className="w-full text-center tabular-nums"
+        />
+        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => set(value + 1)} disabled={value >= 5} aria-label={`Aumentar ${label}`}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function emptyForm(companyId: string | null): FormState {
   return {
     title: "", description: "", problem: "", cause: "", responsible: "", sector: "",
