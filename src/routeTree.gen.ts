@@ -18,6 +18,7 @@ import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_a
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
 import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
 import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
@@ -106,6 +107,11 @@ const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAnaliseCriticaIndexRoute =
   AuthenticatedAnaliseCriticaIndexRouteImport.update({
@@ -379,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
@@ -431,6 +438,7 @@ export interface FileRoutesByTo {
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz': typeof AuthenticatedCausaRaizIndexRoute
@@ -486,6 +494,7 @@ export interface FileRoutesById {
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/_authenticated/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/_authenticated/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/pop/$id'
     | '/processos/$id'
     | '/projetos/$id'
+    | '/admin/'
     | '/analise-critica/'
     | '/calendario/'
     | '/causa-raiz/'
@@ -593,6 +603,7 @@ export interface FileRouteTypes {
     | '/mapas/informacao'
     | '/pop/$id'
     | '/processos/$id'
+    | '/admin'
     | '/analise-critica'
     | '/calendario'
     | '/causa-raiz'
@@ -647,6 +658,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
+    | '/_authenticated/admin/'
     | '/_authenticated/analise-critica/'
     | '/_authenticated/calendario/'
     | '/_authenticated/causa-raiz/'
@@ -754,6 +766,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/p/$token'
       preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analise-critica/': {
       id: '/_authenticated/analise-critica/'
@@ -1106,6 +1125,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPopIdRoute: typeof AuthenticatedPopIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRouteWithChildren
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAnaliseCriticaIndexRoute: typeof AuthenticatedAnaliseCriticaIndexRoute
   AuthenticatedCalendarioIndexRoute: typeof AuthenticatedCalendarioIndexRoute
   AuthenticatedCausaRaizIndexRoute: typeof AuthenticatedCausaRaizIndexRoute
@@ -1146,6 +1166,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPopIdRoute: AuthenticatedPopIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRouteWithChildren,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAnaliseCriticaIndexRoute: AuthenticatedAnaliseCriticaIndexRoute,
   AuthenticatedCalendarioIndexRoute: AuthenticatedCalendarioIndexRoute,
   AuthenticatedCausaRaizIndexRoute: AuthenticatedCausaRaizIndexRoute,
