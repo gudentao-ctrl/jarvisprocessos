@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          message: string
+          requested_company: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          message?: string
+          requested_company?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          message?: string
+          requested_company?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       action_plan_history: {
         Row: {
           changed_at: string
@@ -336,6 +378,39 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          company_id: string | null
+          created_at: string
+          details: Json
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          details?: Json
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          details?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           activity_type: string | null
@@ -461,6 +536,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_members: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          member_role: string
+          permissions: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          member_role?: string
+          permissions?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          member_role?: string
+          permissions?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cronoanalysis_observations: {
         Row: {
@@ -1856,6 +1969,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          is_superadmin: boolean
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          is_superadmin?: boolean
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          is_superadmin?: boolean
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           company_id: string
@@ -2293,44 +2436,184 @@ export type Database = {
         }
         Relationships: []
       }
-      work_hours: {
+      work_hour_expenses: {
         Row: {
-          activity_type: string
+          amount: number
           company_id: string | null
           created_at: string
           created_by: string | null
+          description: string
+          id: string
+          project_id: string | null
+          updated_at: string
+          work_hour_id: string
+        }
+        Insert: {
+          amount?: number
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          work_hour_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          work_hour_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_hour_expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_hour_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_hour_expenses_work_hour_id_fkey"
+            columns: ["work_hour_id"]
+            isOneToOne: false
+            referencedRelation: "work_hours"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_hour_tools: {
+        Row: {
+          amount: number
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          project_id: string | null
+          quantity: number
+          updated_at: string
+          work_hour_id: string
+        }
+        Insert: {
+          amount?: number
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          project_id?: string | null
+          quantity?: number
+          updated_at?: string
+          work_hour_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          project_id?: string | null
+          quantity?: number
+          updated_at?: string
+          work_hour_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_hour_tools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_hour_tools_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_hour_tools_work_hour_id_fkey"
+            columns: ["work_hour_id"]
+            isOneToOne: false
+            referencedRelation: "work_hours"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_hours: {
+        Row: {
+          activity_type: string
+          billing_status: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          end_time: string | null
           hours: number
           id: string
+          invoiced_at: string | null
+          invoiced_by: string | null
           notes: string
           project_id: string | null
           responsible: string
+          start_time: string | null
           updated_at: string
+          user_id: string | null
           work_date: string
         }
         Insert: {
           activity_type?: string
+          billing_status?: string
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string
+          end_time?: string | null
           hours?: number
           id?: string
+          invoiced_at?: string | null
+          invoiced_by?: string | null
           notes?: string
           project_id?: string | null
           responsible?: string
+          start_time?: string | null
           updated_at?: string
+          user_id?: string | null
           work_date?: string
         }
         Update: {
           activity_type?: string
+          billing_status?: string
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string
+          end_time?: string | null
           hours?: number
           id?: string
+          invoiced_at?: string | null
+          invoiced_by?: string | null
           notes?: string
           project_id?: string | null
           responsible?: string
+          start_time?: string | null
           updated_at?: string
+          user_id?: string | null
           work_date?: string
         }
         Relationships: [

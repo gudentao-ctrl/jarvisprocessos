@@ -1,24 +1,31 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
-  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar,
+  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { AskAiFab } from "@/components/AskAiFab";
-
-const ALLOWED_EMAIL = "g_zamboni@hotmail.com";
+import { getMe } from "@/lib/access.functions";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-    if ((data.user.email ?? "").toLowerCase() !== ALLOWED_EMAIL) {
-      await supabase.auth.signOut();
-      throw redirect({ to: "/auth" });
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status, is_superadmin")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    if (!profile || (profile.status !== "active" && !profile.is_superadmin)) {
+      throw redirect({ to: "/acesso-pendente" });
     }
     return { user: data.user };
   },
@@ -34,6 +41,7 @@ const NAV = [
 ] as const;
 
 const MOBILE_NAV = NAV;
+
 
 function AuthenticatedLayout() {
   const router = useRouter();

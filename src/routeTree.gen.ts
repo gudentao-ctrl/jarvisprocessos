@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AcessoPendenteRouteImport } from './routes/acesso-pendente'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
@@ -18,6 +19,7 @@ import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_a
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
 import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
 import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
@@ -71,6 +73,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcessoPendenteRoute = AcessoPendenteRouteImport.update({
+  id: '/acesso-pendente',
+  path: '/acesso-pendente',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -106,6 +113,11 @@ const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAnaliseCriticaIndexRoute =
   AuthenticatedAnaliseCriticaIndexRouteImport.update({
@@ -359,6 +371,7 @@ const ApiPublicPlanosTokenRoute = ApiPublicPlanosTokenRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acesso-pendente': typeof AcessoPendenteRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
@@ -379,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
@@ -412,6 +426,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acesso-pendente': typeof AcessoPendenteRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
@@ -431,6 +446,7 @@ export interface FileRoutesByTo {
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario': typeof AuthenticatedCalendarioIndexRoute
   '/causa-raiz': typeof AuthenticatedCausaRaizIndexRoute
@@ -466,6 +482,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/acesso-pendente': typeof AcessoPendenteRoute
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
@@ -486,6 +503,7 @@ export interface FileRoutesById {
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/_authenticated/calendario/': typeof AuthenticatedCalendarioIndexRoute
   '/_authenticated/causa-raiz/': typeof AuthenticatedCausaRaizIndexRoute
@@ -521,6 +539,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acesso-pendente'
     | '/auth'
     | '/dashboard'
     | '/empresas'
@@ -541,6 +560,7 @@ export interface FileRouteTypes {
     | '/pop/$id'
     | '/processos/$id'
     | '/projetos/$id'
+    | '/admin/'
     | '/analise-critica/'
     | '/calendario/'
     | '/causa-raiz/'
@@ -574,6 +594,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acesso-pendente'
     | '/auth'
     | '/dashboard'
     | '/empresas'
@@ -593,6 +614,7 @@ export interface FileRouteTypes {
     | '/mapas/informacao'
     | '/pop/$id'
     | '/processos/$id'
+    | '/admin'
     | '/analise-critica'
     | '/calendario'
     | '/causa-raiz'
@@ -627,6 +649,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/acesso-pendente'
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/empresas'
@@ -647,6 +670,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
+    | '/_authenticated/admin/'
     | '/_authenticated/analise-critica/'
     | '/_authenticated/calendario/'
     | '/_authenticated/causa-raiz/'
@@ -682,6 +706,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AcessoPendenteRoute: typeof AcessoPendenteRoute
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
   DashboardTokenRoute: typeof DashboardTokenRoute
@@ -704,6 +729,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acesso-pendente': {
+      id: '/acesso-pendente'
+      path: '/acesso-pendente'
+      fullPath: '/acesso-pendente'
+      preLoaderRoute: typeof AcessoPendenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -754,6 +786,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/p/$token'
       preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analise-critica/': {
       id: '/_authenticated/analise-critica/'
@@ -1106,6 +1145,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPopIdRoute: typeof AuthenticatedPopIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRouteWithChildren
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAnaliseCriticaIndexRoute: typeof AuthenticatedAnaliseCriticaIndexRoute
   AuthenticatedCalendarioIndexRoute: typeof AuthenticatedCalendarioIndexRoute
   AuthenticatedCausaRaizIndexRoute: typeof AuthenticatedCausaRaizIndexRoute
@@ -1146,6 +1186,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPopIdRoute: AuthenticatedPopIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRouteWithChildren,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAnaliseCriticaIndexRoute: AuthenticatedAnaliseCriticaIndexRoute,
   AuthenticatedCalendarioIndexRoute: AuthenticatedCalendarioIndexRoute,
   AuthenticatedCausaRaizIndexRoute: AuthenticatedCausaRaizIndexRoute,
@@ -1178,6 +1219,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AcessoPendenteRoute: AcessoPendenteRoute,
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
   DashboardTokenRoute: DashboardTokenRoute,
