@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Mic, ShieldAlert } from "lucide-react";
 
@@ -12,8 +13,6 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
 });
-
-const ALLOWED_EMAIL = "g_zamboni@hotmail.com";
 
 function isNetworkError(err: unknown): boolean {
   if (!err) return false;
@@ -26,6 +25,7 @@ function friendlyAuthError(err: unknown): string {
   if (isNetworkError(err)) return "Falha de conexão. Verifique sua internet.";
   if (/invalid login credentials/i.test(msg)) return "E-mail ou senha incorretos.";
   if (/email not confirmed/i.test(msg)) return "Confirme seu e-mail antes de entrar.";
+  if (/already registered|user already/i.test(msg)) return "Este e-mail já possui cadastro.";
   return msg || "Erro ao autenticar";
 }
 
@@ -33,13 +33,12 @@ export function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email?.toLowerCase() === ALLOWED_EMAIL) {
-        navigate({ to: "/empresas" });
-      }
+      if (data.user) navigate({ to: "/empresas" });
     });
   }, [navigate]);
 
@@ -57,15 +56,32 @@ export function AuthPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (email.trim().toLowerCase() !== ALLOWED_EMAIL) {
-      toast.error("Acesso restrito. Apenas o consultor autorizado pode entrar.");
-      return;
-    }
     setLoading(true);
     try {
       const { error } = await signInWithRetry();
       if (error) throw error;
       navigate({ to: "/empresas" });
+    } catch (err) {
+      toast.error(friendlyAuthError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: `${window.location.origin}/auth`,
+        },
+      });
+      if (error) throw error;
+      toast.success("Cadastro enviado! Aguarde a aprovação do administrador.");
     } catch (err) {
       toast.error(friendlyAuthError(err));
     } finally {
@@ -84,33 +100,76 @@ export function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">Consultoria Operacional</p>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email" type="email" required autoComplete="email"
-              value={email} onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 h-12"
-            />
-          </div>
-          <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password" type="password" required minLength={6}
-              autoComplete="current-password"
-              value={password} onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 h-12"
-            />
-          </div>
-          <Button type="submit" disabled={loading} className="h-12 w-full text-base font-medium">
-            {loading ? "Aguarde..." : "Entrar"}
-          </Button>
-        </form>
+        <Tabs defaultValue="entrar">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="entrar">Entrar</TabsTrigger>
+            <TabsTrigger value="cadastrar">Solicitar acesso</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="entrar">
+            <form onSubmit={onSubmit} className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email" type="email" required autoComplete="email"
+                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1.5 h-12"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password" type="password" required minLength={6}
+                  autoComplete="current-password"
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1.5 h-12"
+                />
+              </div>
+              <Button type="submit" disabled={loading} className="h-12 w-full text-base font-medium">
+                {loading ? "Aguarde..." : "Entrar"}
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="cadastrar">
+            <form onSubmit={onSignUp} className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="name">Nome completo</Label>
+                <Input
+                  id="name" required value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="mt-1.5 h-12"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email2">E-mail</Label>
+                <Input
+                  id="email2" type="email" required autoComplete="email"
+                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1.5 h-12"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password2">Senha</Label>
+                <Input
+                  id="password2" type="password" required minLength={6}
+                  autoComplete="new-password"
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1.5 h-12"
+                />
+              </div>
+              <Button type="submit" disabled={loading} className="h-12 w-full text-base font-medium">
+                {loading ? "Aguarde..." : "Solicitar acesso"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
 
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            Sistema privado. Criação de novos usuários bloqueada — apenas o consultor autorizado pode acessar.
+            O acesso é liberado somente após aprovação do administrador, que define a empresa e as
+            ferramentas permitidas.
           </span>
         </div>
       </Card>
