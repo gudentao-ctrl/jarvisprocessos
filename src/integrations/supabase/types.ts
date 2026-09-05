@@ -1274,6 +1274,142 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          expenses_amount: number
+          hours: number
+          hours_amount: number
+          id: string
+          invoice_id: string
+          tools_amount: number
+          work_hour_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string
+          expenses_amount?: number
+          hours?: number
+          hours_amount?: number
+          id?: string
+          invoice_id: string
+          tools_amount?: number
+          work_hour_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          expenses_amount?: number
+          hours?: number
+          hours_amount?: number
+          id?: string
+          invoice_id?: string
+          tools_amount?: number
+          work_hour_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_work_hour_id_fkey"
+            columns: ["work_hour_id"]
+            isOneToOne: false
+            referencedRelation: "work_hours"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          company_id: string
+          created_at: string
+          expenses_amount: number
+          hourly_rate: number
+          hours_amount: number
+          hours_total: number
+          id: string
+          invoiced_at: string
+          invoiced_by: string | null
+          notes: string
+          period_end: string | null
+          period_start: string | null
+          project_id: string | null
+          status: string
+          tools_amount: number
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          expenses_amount?: number
+          hourly_rate?: number
+          hours_amount?: number
+          hours_total?: number
+          id?: string
+          invoiced_at?: string
+          invoiced_by?: string | null
+          notes?: string
+          period_end?: string | null
+          period_start?: string | null
+          project_id?: string | null
+          status?: string
+          tools_amount?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          expenses_amount?: number
+          hourly_rate?: number
+          hours_amount?: number
+          hours_total?: number
+          id?: string
+          invoiced_at?: string
+          invoiced_by?: string | null
+          notes?: string
+          period_end?: string | null
+          period_start?: string | null
+          project_id?: string | null
+          status?: string
+          tools_amount?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pain_points: {
         Row: {
           category: Database["public"]["Enums"]["pain_category"]
@@ -1346,6 +1482,73 @@ export type Database = {
             columns: ["source_interview_id"]
             isOneToOne: false
             referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string | null
+          method: string
+          notes: string
+          paid_at: string
+          project_id: string | null
+          reference: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          notes?: string
+          paid_at?: string
+          project_id?: string | null
+          reference?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          notes?: string
+          paid_at?: string
+          project_id?: string | null
+          reference?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -2566,6 +2769,7 @@ export type Database = {
           end_time: string | null
           hours: number
           id: string
+          invoice_id: string | null
           invoiced_at: string | null
           invoiced_by: string | null
           notes: string
@@ -2586,6 +2790,7 @@ export type Database = {
           end_time?: string | null
           hours?: number
           id?: string
+          invoice_id?: string | null
           invoiced_at?: string | null
           invoiced_by?: string | null
           notes?: string
@@ -2606,6 +2811,7 @@ export type Database = {
           end_time?: string | null
           hours?: number
           id?: string
+          invoice_id?: string | null
           invoiced_at?: string | null
           invoiced_by?: string | null
           notes?: string
@@ -2622,6 +2828,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_hours_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
