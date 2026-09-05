@@ -45,6 +45,8 @@ const MOBILE_NAV = NAV;
 
 function AuthenticatedLayout() {
   const router = useRouter();
+  const me = useServerFn(getMe);
+  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -68,8 +70,12 @@ function AuthenticatedLayout() {
             {NAV.map((n) => (
               <SidebarLink key={n.to} {...n} />
             ))}
+            {profile?.isSuperadmin && (
+              <SidebarLink to="/admin" icon={ShieldCheck} label="SuperAdmin" />
+            )}
           </nav>
         </aside>
+
 
         {/* Content area */}
         <div className="flex min-w-0 flex-1 flex-col lg:ml-60">
