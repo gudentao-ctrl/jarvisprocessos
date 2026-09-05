@@ -34,6 +34,7 @@ import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
 import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
 import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticated/fase.$slug'
+import { Route as AuthenticatedFinanceiroIndexRouteImport } from './routes/_authenticated/financeiro.index'
 import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
@@ -202,6 +203,12 @@ const AuthenticatedFaseSlugRoute = AuthenticatedFaseSlugRouteImport.update({
   path: '/fase/$slug',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFinanceiroIndexRoute =
+  AuthenticatedFinanceiroIndexRouteImport.update({
+    id: '/financeiro/',
+    path: '/financeiro/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHorasIndexRoute = AuthenticatedHorasIndexRouteImport.update({
   id: '/horas/',
   path: '/horas/',
@@ -400,6 +407,7 @@ export interface FileRoutesByFullPath {
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/horas/': typeof AuthenticatedHorasIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
@@ -454,6 +462,7 @@ export interface FileRoutesByTo {
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
+  '/financeiro': typeof AuthenticatedFinanceiroIndexRoute
   '/horas': typeof AuthenticatedHorasIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
@@ -511,6 +520,7 @@ export interface FileRoutesById {
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/_authenticated/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/_authenticated/horas/': typeof AuthenticatedHorasIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/cronoanalise/'
     | '/diagnostico/'
     | '/entrevistas/'
+    | '/financeiro/'
     | '/horas/'
     | '/indicadores/'
     | '/oportunidades/'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/cronoanalise'
     | '/diagnostico'
     | '/entrevistas'
+    | '/financeiro'
     | '/horas'
     | '/indicadores'
     | '/oportunidades'
@@ -678,6 +690,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cronoanalise/'
     | '/_authenticated/diagnostico/'
     | '/_authenticated/entrevistas/'
+    | '/_authenticated/financeiro/'
     | '/_authenticated/horas/'
     | '/_authenticated/indicadores/'
     | '/_authenticated/oportunidades/'
@@ -890,6 +903,13 @@ declare module '@tanstack/react-router' {
       path: '/fase/$slug'
       fullPath: '/fase/$slug'
       preLoaderRoute: typeof AuthenticatedFaseSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro/': {
+      id: '/_authenticated/financeiro/'
+      path: '/financeiro'
+      fullPath: '/financeiro/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/horas/': {
@@ -1153,6 +1173,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedDiagnosticoIndexRoute: typeof AuthenticatedDiagnosticoIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
+  AuthenticatedFinanceiroIndexRoute: typeof AuthenticatedFinanceiroIndexRoute
   AuthenticatedHorasIndexRoute: typeof AuthenticatedHorasIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
@@ -1194,6 +1215,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedDiagnosticoIndexRoute: AuthenticatedDiagnosticoIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
+  AuthenticatedFinanceiroIndexRoute: AuthenticatedFinanceiroIndexRoute,
   AuthenticatedHorasIndexRoute: AuthenticatedHorasIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
   AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
