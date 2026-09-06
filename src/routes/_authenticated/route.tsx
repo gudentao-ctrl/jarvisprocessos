@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck,
+  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
@@ -37,10 +38,12 @@ const NAV = [
   { to: "/controle", icon: Radar, label: "Controle" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda" },
   { to: "/horas", icon: Clock, label: "Horas" },
+  { to: "/financeiro", icon: Wallet, label: "Financeiro" },
   { to: "/relatorios", icon: FileBarChart2, label: "Relatórios" },
 ] as const;
 
-const MOBILE_NAV = NAV;
+const MOBILE_NAV = NAV.filter((n) => n.to !== "/relatorios");
+
 
 
 function AuthenticatedLayout() {
