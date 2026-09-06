@@ -378,6 +378,30 @@ export type Database = {
           },
         ]
       }
+      alert_dismissals: {
+        Row: {
+          alert_key: string
+          created_at: string
+          dismissed_on: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          alert_key: string
+          created_at?: string
+          dismissed_on?: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          alert_key?: string
+          created_at?: string
+          dismissed_on?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -569,6 +593,136 @@ export type Database = {
           {
             foreignKeyName: "company_members_company_id_fkey"
             columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_activities: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          kind: string
+          lead_id: string
+          occurred_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          kind?: string
+          lead_id: string
+          occurred_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          occurred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          company_name: string
+          contact_name: string
+          contact_role: string
+          contract_total: number | null
+          contract_type: string | null
+          converted_at: string | null
+          converted_company_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          end_date: string | null
+          first_contact_date: string | null
+          hourly_rate: number | null
+          id: string
+          is_hot: boolean
+          last_contact_at: string | null
+          next_action_date: string | null
+          notes: string
+          payment_day: number | null
+          phone: string
+          responsible: string
+          source: string
+          stage: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_name?: string
+          contact_role?: string
+          contract_total?: number | null
+          contract_type?: string | null
+          converted_at?: string | null
+          converted_company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          end_date?: string | null
+          first_contact_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_hot?: boolean
+          last_contact_at?: string | null
+          next_action_date?: string | null
+          notes?: string
+          payment_day?: number | null
+          phone?: string
+          responsible?: string
+          source?: string
+          stage?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string
+          contact_role?: string
+          contract_total?: number | null
+          contract_type?: string | null
+          converted_at?: string | null
+          converted_company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          end_date?: string | null
+          first_contact_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_hot?: boolean
+          last_contact_at?: string | null
+          next_action_date?: string | null
+          notes?: string
+          payment_day?: number | null
+          phone?: string
+          responsible?: string
+          source?: string
+          stage?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_converted_company_id_fkey"
+            columns: ["converted_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
