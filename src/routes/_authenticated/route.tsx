@@ -38,10 +38,12 @@ const NAV = [
   { to: "/controle", icon: Radar, label: "Controle" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda" },
   { to: "/horas", icon: Clock, label: "Horas" },
+  { to: "/financeiro", icon: Wallet, label: "Financeiro" },
   { to: "/relatorios", icon: FileBarChart2, label: "Relatórios" },
 ] as const;
 
-const MOBILE_NAV = NAV;
+const MOBILE_NAV = NAV.filter((n) => n.to !== "/relatorios");
+
 
 
 function AuthenticatedLayout() {
