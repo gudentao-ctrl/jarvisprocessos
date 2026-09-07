@@ -40,10 +40,12 @@ const NAV = [
   { to: "/calendario", icon: CalendarDays, label: "Agenda" },
   { to: "/horas", icon: Clock, label: "Horas" },
   { to: "/financeiro", icon: Wallet, label: "Financeiro" },
+  { to: "/crm", icon: Handshake, label: "CRM" },
   { to: "/relatorios", icon: FileBarChart2, label: "Relatórios" },
 ] as const;
 
-const MOBILE_NAV = NAV.filter((n) => n.to !== "/relatorios");
+const MOBILE_NAV = NAV.filter((n) => n.to !== "/relatorios" && n.to !== "/crm");
+
 
 
 
