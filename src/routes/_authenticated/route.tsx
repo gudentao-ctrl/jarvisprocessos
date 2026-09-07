@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet,
+  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet, Handshake,
 } from "lucide-react";
+
 
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
