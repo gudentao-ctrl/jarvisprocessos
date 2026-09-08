@@ -17,7 +17,7 @@ const TimeStr = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/);
 
 const WorkHoursInput = z.object({
   id: z.string().uuid().optional(),
-  project_id: z.string().uuid(),
+  project_id: z.string().uuid().nullable().optional(),
   company_id: z.string().uuid(),
   responsible: z.string().min(1),
   activity_type: z.string().min(1),
@@ -55,6 +55,10 @@ export const listWorkHours = createServerFn({ method: "GET" })
     z.object({
       project_id: z.string().uuid().optional(),
       company_id: z.string().uuid().optional(),
+      activity_type: z.string().optional(),
+      from: z.string().optional(),
+      to: z.string().optional(),
+      mine: z.boolean().optional().default(true),
     }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -66,10 +70,17 @@ export const listWorkHours = createServerFn({ method: "GET" })
       .order("work_date", { ascending: false });
     if (data.project_id) q = q.eq("project_id", data.project_id);
     if (data.company_id) q = q.eq("company_id", data.company_id);
+    if (data.activity_type) q = q.eq("activity_type", data.activity_type);
+    if (data.from) q = q.gte("work_date", data.from);
+    if (data.to) q = q.lte("work_date", data.to);
+    if (data.mine !== false) {
+      q = q.or(`user_id.eq.${context.userId},created_by.eq.${context.userId}`);
+    }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
 
 export const saveWorkHours = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
