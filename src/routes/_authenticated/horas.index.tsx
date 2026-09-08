@@ -9,7 +9,9 @@ import {
   hoursBetween,
   ACTIVITY_TYPES,
 } from "@/lib/work-hours.functions";
-import { listProjects } from "@/lib/projects.functions";
+import { listCompanies } from "@/lib/interviews.functions";
+import { getMe } from "@/lib/access.functions";
+import { PERIOD_OPTIONS, periodRange, type PeriodValue } from "@/lib/period-range";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,15 +23,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2, Clock, Pencil, Check, Lock, Car, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/horas/")({
   component: HorasPage,
+  head: () => ({
+    meta: [
+      { title: "Registro de horas | JARVIS" },
+      {
+        name: "description",
+        content:
+          "Registro de horas de atendimento por empresa, com deslocamentos, ferramentas e filtros por período.",
+      },
+      { property: "og:title", content: "Registro de horas | JARVIS" },
+      {
+        property: "og:description",
+        content: "Apontamento de horas do consultor por empresa e período.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 type Row = {
   id?: string;
-  project_id: string | null;
   company_id: string | null;
   responsible: string;
   activity_type: string;
@@ -47,7 +64,6 @@ type Row = {
 };
 
 const empty = (): Row => ({
-  project_id: null,
   company_id: null,
   responsible: "",
   activity_type: "consultoria",
@@ -80,24 +96,43 @@ function typeLabel(v: string) {
 
 function HorasPage() {
   const qc = useQueryClient();
-  const { companyId } = useActiveCompany();
-  const [filter, setFilter] = useState<string>("__all");
+  const [companyFilter, setCompanyFilter] = useState<string>("__all");
+  const [typeFilter, setTypeFilter] = useState<string>("__all");
+  const [period, setPeriod] = useState<PeriodValue>("mes");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
 
   const list = useServerFn(listWorkHours);
-  const projs = useServerFn(listProjects);
+  const comps = useServerFn(listCompanies);
+  const meFn = useServerFn(getMe);
   const save = useServerFn(saveWorkHours);
   const del = useServerFn(deleteWorkHours);
 
-  const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: () => projs() });
+  const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => comps() });
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => meFn() });
+  const activeCompanies = useMemo(
+    () => (companies as any[]).filter((c) => c.is_active !== false),
+    [companies],
+  );
+  const myName = me?.fullName || me?.email || "";
+
+  const range = useMemo(
+    () => periodRange(period, { from: customFrom, to: customTo }),
+    [period, customFrom, customTo],
+  );
+
   const { data: rows = [] } = useQuery({
-    queryKey: ["work-hours", companyId, filter],
+    queryKey: ["work-hours", companyFilter, typeFilter, range.from, range.to],
     queryFn: () =>
       list({
         data: {
-          ...(companyId ? { company_id: companyId } : {}),
-          ...(filter !== "__all" ? { project_id: filter } : {}),
+          ...(companyFilter !== "__all" ? { company_id: companyFilter } : {}),
+          ...(typeFilter !== "__all" ? { activity_type: typeFilter } : {}),
+          ...(range.from ? { from: range.from } : {}),
+          ...(range.to ? { to: range.to } : {}),
+          mine: true,
         },
       }),
   });
@@ -119,8 +154,8 @@ function HorasPage() {
   });
 
   useEffect(() => {
-    if (!editing && open) setEditing(empty());
-  }, [open, editing]);
+    if (!editing && open) setEditing({ ...empty(), responsible: myName });
+  }, [open, editing, myName]);
 
   const duration = useMemo(() => {
     if (!editing?.start_time || !editing?.end_time) return 0;
@@ -128,7 +163,11 @@ function HorasPage() {
   }, [editing?.start_time, editing?.end_time]);
 
   function openNew() {
-    setEditing(empty());
+    setEditing({
+      ...empty(),
+      responsible: myName,
+      company_id: companyFilter !== "__all" ? companyFilter : null,
+    });
     setOpen(true);
   }
 
@@ -141,9 +180,8 @@ function HorasPage() {
     const tool = r.work_hour_tools?.[0];
     setEditing({
       id: r.id,
-      project_id: r.project_id,
       company_id: r.company_id,
-      responsible: r.responsible,
+      responsible: r.responsible || myName,
       activity_type: r.activity_type,
       work_date: r.work_date,
       start_time: (r.start_time ?? "08:00").slice(0, 5),
@@ -162,9 +200,7 @@ function HorasPage() {
 
   function submit() {
     if (!editing) return;
-    const project = projects.find((p: any) => p.id === editing.project_id);
-    if (!editing.project_id || !project) return toast.error("Selecione o cliente/projeto");
-    if (!editing.responsible.trim()) return toast.error("Informe o consultor responsável");
+    if (!editing.company_id) return toast.error("Selecione a empresa");
     if (!editing.description.trim()) return toast.error("Descreva o atendimento");
     if (duration <= 0) return toast.error("Informe entrada e saída válidas");
     if (editing.hasExpense && (!editing.expenseDescription.trim() || editing.expenseAmount <= 0))
@@ -174,9 +210,8 @@ function HorasPage() {
 
     saveMut.mutate({
       id: editing.id,
-      project_id: editing.project_id,
-      company_id: project.company_id,
-      responsible: editing.responsible,
+      company_id: editing.company_id,
+      responsible: editing.responsible || myName || "—",
       activity_type: editing.activity_type,
       work_date: editing.work_date,
       start_time: editing.start_time,
@@ -209,238 +244,290 @@ function HorasPage() {
       s + (r.work_hour_tools ?? []).reduce((x: number, e: any) => x + Number(e.amount ?? 0), 0),
     0,
   );
-  const byResp: Record<string, number> = {};
-  for (const r of rows as any[])
-    byResp[r.responsible ?? "—"] = (byResp[r.responsible ?? "—"] ?? 0) + Number(r.hours ?? 0);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold sm:text-2xl">Horas Trabalhadas</h1>
-          <p className="text-xs text-muted-foreground">Apontamento por cliente, projeto e consultor</p>
+          <p className="text-xs text-muted-foreground">
+            Seus atendimentos{myName ? ` — ${myName}` : ""}
+          </p>
         </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="h-11 min-w-0 flex-1 sm:w-52 sm:flex-none">
-              <SelectValue placeholder="Projeto" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os projetos</SelectItem>
-              {projects.map((p: any) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Dialog
-            open={open}
-            onOpenChange={(o) => {
-              setOpen(o);
-              if (!o) setEditing(null);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button onClick={openNew} className="h-11 shrink-0">
-                <Plus className="mr-1 h-4 w-4" /> Registrar
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editing?.id ? "Editar" : "Registrar"} atendimento</DialogTitle>
-              </DialogHeader>
-              {editing && (
-                <div className="space-y-3">
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (!o) setEditing(null);
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button onClick={openNew} className="h-11 shrink-0">
+              <Plus className="mr-1 h-4 w-4" /> Registrar
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editing?.id ? "Editar" : "Registrar"} atendimento</DialogTitle>
+            </DialogHeader>
+            {editing && (
+              <div className="space-y-3">
+                <div>
+                  <Label>Empresa *</Label>
+                  <Select
+                    value={editing.company_id ?? ""}
+                    onValueChange={(v) => setEditing({ ...editing, company_id: v || null })}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeCompanies.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-3 sm:col-span-1">
+                    <Label>Data</Label>
+                    <Input
+                      className="h-11"
+                      type="date"
+                      value={editing.work_date}
+                      onChange={(e) => setEditing({ ...editing, work_date: e.target.value })}
+                    />
+                  </div>
                   <div>
-                    <Label>Cliente / Projeto *</Label>
+                    <Label>Entrada</Label>
+                    <Input
+                      className="h-11"
+                      type="time"
+                      value={editing.start_time}
+                      onChange={(e) => setEditing({ ...editing, start_time: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Saída</Label>
+                    <Input
+                      className="h-11"
+                      type="time"
+                      value={editing.end_time}
+                      onChange={(e) => setEditing({ ...editing, end_time: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Total</Label>
+                    <div className="flex h-11 items-center justify-center rounded-md border bg-muted/50 font-bold tabular-nums">
+                      {fmtDuration(duration)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <Label>Consultor</Label>
+                    <Input className="h-11" value={editing.responsible} readOnly disabled />
+                  </div>
+                  <div>
+                    <Label>Tipo de evento</Label>
                     <Select
-                      value={editing.project_id ?? ""}
-                      onValueChange={(v) => setEditing({ ...editing, project_id: v || null })}
+                      value={editing.activity_type}
+                      onValueChange={(v) => setEditing({ ...editing, activity_type: v })}
                     >
                       <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Selecione" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {projects.map((p: any) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.companies?.name ? `${p.companies.name} · ` : ""}
-                            {p.name}
+                        {ACTIVITY_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-3 sm:col-span-1">
-                      <Label>Data</Label>
-                      <Input
-                        className="h-11"
-                        type="date"
-                        value={editing.work_date}
-                        onChange={(e) => setEditing({ ...editing, work_date: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Entrada</Label>
-                      <Input
-                        className="h-11"
-                        type="time"
-                        value={editing.start_time}
-                        onChange={(e) => setEditing({ ...editing, start_time: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Saída</Label>
-                      <Input
-                        className="h-11"
-                        type="time"
-                        value={editing.end_time}
-                        onChange={(e) => setEditing({ ...editing, end_time: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Total</Label>
-                      <div className="flex h-11 items-center justify-center rounded-md border bg-muted/50 font-bold tabular-nums">
-                        {fmtDuration(duration)}
-                      </div>
-                    </div>
-                  </div>
+                <div>
+                  <Label>Descrição do evento *</Label>
+                  <Textarea
+                    rows={2}
+                    placeholder="Ex.: Mapeamento do processo de compras com a equipe responsável."
+                    value={editing.description}
+                    onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                  />
+                </div>
 
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div>
-                      <Label>Consultor responsável *</Label>
-                      <Input
-                        className="h-11"
-                        value={editing.responsible}
-                        onChange={(e) => setEditing({ ...editing, responsible: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Tipo de evento</Label>
-                      <Select
-                        value={editing.activity_type}
-                        onValueChange={(v) => setEditing({ ...editing, activity_type: v })}
-                      >
-                        <SelectTrigger className="h-11">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ACTIVITY_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>Descrição do evento *</Label>
-                    <Textarea
-                      rows={2}
-                      placeholder="Ex.: Mapeamento do processo de compras com a equipe responsável."
-                      value={editing.description}
-                      onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                {editing.activity_type === "ferramenta" && (
+                  <Card className="space-y-2 border-primary/30 p-3">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold">
+                      <Wrench className="h-3.5 w-3.5" /> Ferramenta aplicada
+                    </p>
+                    <Input
+                      className="h-11"
+                      placeholder="Descrição (ex.: Análise de perfil comportamental)"
+                      value={editing.toolDescription}
+                      onChange={(e) => setEditing({ ...editing, toolDescription: e.target.value })}
                     />
-                  </div>
-
-                  {editing.activity_type === "ferramenta" && (
-                    <Card className="space-y-2 border-primary/30 p-3">
-                      <p className="flex items-center gap-1.5 text-xs font-semibold">
-                        <Wrench className="h-3.5 w-3.5" /> Ferramenta aplicada
-                      </p>
-                      <Input
-                        className="h-11"
-                        placeholder="Descrição (ex.: Análise de perfil comportamental)"
-                        value={editing.toolDescription}
-                        onChange={(e) => setEditing({ ...editing, toolDescription: e.target.value })}
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Quantidade</Label>
-                          <Input
-                            className="h-11"
-                            type="number"
-                            min="0"
-                            value={editing.toolQuantity}
-                            onChange={(e) =>
-                              setEditing({ ...editing, toolQuantity: Number(e.target.value) })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Valor total (R$)</Label>
-                          <Input
-                            className="h-11"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={editing.toolAmount}
-                            onChange={(e) =>
-                              setEditing({ ...editing, toolAmount: Number(e.target.value) })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-
-                  <Card className="space-y-2 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <Label className="flex items-center gap-1.5 text-sm">
-                        <Car className="h-4 w-4" /> Houve gasto com deslocamento?
-                      </Label>
-                      <Switch
-                        checked={editing.hasExpense}
-                        onCheckedChange={(v) => setEditing({ ...editing, hasExpense: v })}
-                      />
-                    </div>
-                    {editing.hasExpense && (
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Quantidade</Label>
                         <Input
                           className="h-11"
-                          placeholder="Descrição (ex.: Combustível Londrina → cliente)"
-                          value={editing.expenseDescription}
+                          type="number"
+                          min="0"
+                          value={editing.toolQuantity}
                           onChange={(e) =>
-                            setEditing({ ...editing, expenseDescription: e.target.value })
+                            setEditing({ ...editing, toolQuantity: Number(e.target.value) })
                           }
                         />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Valor total (R$)</Label>
                         <Input
                           className="h-11"
                           type="number"
                           step="0.01"
                           min="0"
-                          placeholder="Valor (R$)"
-                          value={editing.expenseAmount}
+                          value={editing.toolAmount}
                           onChange={(e) =>
-                            setEditing({ ...editing, expenseAmount: Number(e.target.value) })
+                            setEditing({ ...editing, toolAmount: Number(e.target.value) })
                           }
                         />
                       </div>
-                    )}
+                    </div>
                   </Card>
+                )}
 
-                  <div>
-                    <Label>Observações</Label>
-                    <Textarea
-                      rows={2}
-                      value={editing.notes}
-                      onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+                <Card className="space-y-2 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label className="flex items-center gap-1.5 text-sm">
+                      <Car className="h-4 w-4" /> Houve gasto com deslocamento?
+                    </Label>
+                    <Switch
+                      checked={editing.hasExpense}
+                      onCheckedChange={(v) => setEditing({ ...editing, hasExpense: v })}
                     />
                   </div>
+                  {editing.hasExpense && (
+                    <div className="space-y-2">
+                      <Input
+                        className="h-11"
+                        placeholder="Descrição (ex.: Combustível Londrina → cliente)"
+                        value={editing.expenseDescription}
+                        onChange={(e) =>
+                          setEditing({ ...editing, expenseDescription: e.target.value })
+                        }
+                      />
+                      <Input
+                        className="h-11"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Valor (R$)"
+                        value={editing.expenseAmount}
+                        onChange={(e) =>
+                          setEditing({ ...editing, expenseAmount: Number(e.target.value) })
+                        }
+                      />
+                    </div>
+                  )}
+                </Card>
 
-                  <Button onClick={submit} className="min-h-11 w-full" disabled={saveMut.isPending}>
-                    <Check className="mr-1 h-4 w-4" /> {saveMut.isPending ? "Salvando…" : "Salvar"}
-                  </Button>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    rows={2}
+                    value={editing.notes}
+                    onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+                  />
                 </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        </div>
+
+                <Button onClick={submit} className="min-h-11 w-full" disabled={saveMut.isPending}>
+                  <Check className="mr-1 h-4 w-4" /> {saveMut.isPending ? "Salvando…" : "Salvar"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Filtros */}
+      <Card className="grid gap-2 p-3 sm:grid-cols-3">
+        <div>
+          <Label className="text-xs">Empresa</Label>
+          <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todas as empresas ativas</SelectItem>
+              {activeCompanies.map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Período</Label>
+          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodValue)}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Tipo de evento</Label>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todos os tipos</SelectItem>
+              {ACTIVITY_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {period === "personalizado" && (
+          <>
+            <div>
+              <Label className="text-xs">De</Label>
+              <Input
+                type="date"
+                className="h-11"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Até</Label>
+              <Input
+                type="date"
+                className="h-11"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </div>
+          </>
+        )}
+      </Card>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Card className="p-3">
@@ -461,24 +548,10 @@ function HorasPage() {
         </Card>
       </div>
 
-      <Card className="p-3">
-        <p className="mb-1 text-[10px] uppercase text-muted-foreground">Por consultor</p>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.entries(byResp).map(([name, h]) => (
-            <span key={name} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-              {name}: <strong className="tabular-nums">{fmtDuration(h)}</strong>
-            </span>
-          ))}
-          {Object.keys(byResp).length === 0 && (
-            <span className="text-xs text-muted-foreground">Sem registros</span>
-          )}
-        </div>
-      </Card>
-
       {rows.length === 0 ? (
         <Card className="p-8 text-center">
           <Clock className="mx-auto mb-2 h-10 w-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Nenhum registro de horas ainda.</p>
+          <p className="text-sm text-muted-foreground">Nenhum registro no período selecionado.</p>
         </Card>
       ) : (
         <div className="grid gap-2">
@@ -491,19 +564,17 @@ function HorasPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase text-muted-foreground">
-                      {r.companies?.name ?? "Sem cliente"}
-                      {r.projects?.name ? ` · ${r.projects.name}` : ""}
+                      {r.companies?.name ?? "Sem empresa"}
                     </p>
                     <p className="font-semibold">
                       <span className="tabular-nums">{fmtDuration(Number(r.hours))}</span> ·{" "}
-                      {r.responsible || "—"}
+                      {typeLabel(r.activity_type)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(r.work_date + "T00:00:00").toLocaleDateString("pt-BR")}
                       {r.start_time && r.end_time
                         ? ` · ${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}`
-                        : ""}{" "}
-                      · {typeLabel(r.activity_type)}
+                        : ""}
                     </p>
                     {r.description && <p className="mt-1 text-sm">{r.description}</p>}
                     <div className="mt-1 flex flex-wrap gap-1.5">

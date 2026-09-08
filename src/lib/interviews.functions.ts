@@ -11,11 +11,26 @@ export const listCompanies = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("companies")
-      .select("id, name, public_enabled, sectors(id, name)")
+      .select("id, name, public_enabled, is_active, sectors(id, name)")
       .order("name");
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+export const setCompanyActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any)
+      .from("companies")
+      .update({ is_active: data.is_active })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const createCompany = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

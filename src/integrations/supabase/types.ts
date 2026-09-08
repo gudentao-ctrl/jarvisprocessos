@@ -527,6 +527,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_active: boolean
           name: string
           public_company_logo_url: string | null
           public_consultancy_logo_url: string | null
@@ -539,6 +540,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_active?: boolean
           name: string
           public_company_logo_url?: string | null
           public_consultancy_logo_url?: string | null
@@ -551,6 +553,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           public_company_logo_url?: string | null
           public_consultancy_logo_url?: string | null
