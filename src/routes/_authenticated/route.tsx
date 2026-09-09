@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -51,6 +51,9 @@ const MOBILE_NAV = NAV.filter((n) => n.to !== "/relatorios" && n.to !== "/crm");
 
 function AuthenticatedLayout() {
   const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const HIDE_COMPANY_SWITCHER = ["/admin", "/calendario", "/crm", "/horas", "/financeiro"];
+  const showSwitcher = !HIDE_COMPANY_SWITCHER.some((p) => pathname.startsWith(p));
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
 
@@ -93,9 +96,11 @@ function AuthenticatedLayout() {
               </div>
               <span className="text-base font-bold tracking-tight">JARVIS</span>
             </div>
-            <div className="ml-auto">
-              <CompanySwitcher />
-            </div>
+            {showSwitcher && (
+              <div className="ml-auto">
+                <CompanySwitcher />
+              </div>
+            )}
           </header>
 
           <main className="flex-1 overflow-y-auto">

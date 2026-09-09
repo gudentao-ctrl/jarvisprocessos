@@ -165,7 +165,7 @@ function AdminPage() {
                 <Button
                   size="sm"
                   onClick={() =>
-                    statusMut.mutate({ user_id: r.user_id, status: "active", request_id: r.id })
+                    statusMut.mutate({ user_id: r.user_id, status: "active", ...(String(r.id).startsWith("profile-") ? {} : { request_id: r.id }) })
                   }
                 >
                   <UserCheck className="mr-1 h-4 w-4" /> Aprovar
@@ -174,7 +174,7 @@ function AdminPage() {
                   size="sm"
                   variant="outline"
                   onClick={() =>
-                    statusMut.mutate({ user_id: r.user_id, status: "rejected", request_id: r.id })
+                    statusMut.mutate({ user_id: r.user_id, status: "rejected", ...(String(r.id).startsWith("profile-") ? {} : { request_id: r.id }) })
                   }
                 >
                   <UserX className="mr-1 h-4 w-4" /> Rejeitar
