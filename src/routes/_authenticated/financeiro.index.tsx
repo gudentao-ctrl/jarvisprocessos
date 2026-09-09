@@ -252,8 +252,8 @@ function FinanceiroPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{fmtDate(h.work_date)}</span>
                           <Badge variant="secondary">{fmtHours(h.hours)}</Badge>
-                          {h.projects?.name && (
-                            <span className="text-xs text-muted-foreground">{h.projects.name}</span>
+                          {h.companies?.name && (
+                            <span className="text-xs text-muted-foreground">{h.companies.name}</span>
                           )}
                         </div>
                         <p className="mt-0.5 break-words text-muted-foreground">
@@ -319,7 +319,7 @@ function FinanceiroPage() {
                   <span className="font-semibold">{brl(inv.total_amount)}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {inv.projects?.name ? `${inv.projects.name} · ` : ""}
+                  {inv.companies?.name ? `${inv.companies.name} · ` : ""}
                   {fmtHours(inv.hours_total)} a {brl(inv.hourly_rate)}/h · despesas {brl(inv.expenses_amount)} ·
                   ferramentas {brl(inv.tools_amount)}
                 </p>
@@ -346,7 +346,7 @@ function FinanceiroPage() {
                     <span className="font-semibold">{brl(p.amount)}</span>
                   </div>
                   <p className="mt-0.5 break-words text-xs text-muted-foreground">
-                    {[p.projects?.name, p.reference, p.notes].filter(Boolean).join(" · ") || "—"}
+                    {[p.companies?.name, p.reference, p.notes].filter(Boolean).join(" · ") || "—"}
                   </p>
                 </div>
                 <Button
