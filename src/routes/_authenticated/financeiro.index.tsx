@@ -10,7 +10,7 @@ import {
   PAYMENT_METHODS,
   methodLabel,
 } from "@/lib/finance.functions";
-import { listProjects } from "@/lib/projects.functions";
+import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,8 +55,7 @@ const fmtHours = (h: number) => {
 
 function FinanceiroPage() {
   const qc = useQueryClient();
-  const { companyId } = useActiveCompany();
-  const [projectFilter, setProjectFilter] = useState("__all");
+  const { companyId, setCompanyId } = useActiveCompany();
   const [selected, setSelected] = useState<string[]>([]);
   const [rate, setRate] = useState(0);
   const [invoiceNotes, setInvoiceNotes] = useState("");
@@ -68,30 +67,27 @@ function FinanceiroPage() {
     method: "pix",
     reference: "",
     notes: "",
-    project_id: "__none",
   });
 
   const overviewFn = useServerFn(getFinanceOverview);
-  const projectsFn = useServerFn(listProjects);
+  const companiesFn = useServerFn(listCompanies);
   const invoiceFn = useServerFn(createInvoice);
   const payFn = useServerFn(savePayment);
   const delPayFn = useServerFn(deletePayment);
 
-  const { data: projects } = useQuery({
-    queryKey: ["projects", companyId],
-    queryFn: () => projectsFn({ data: companyId ? { company_id: companyId } : {} } as any),
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => companiesFn(),
   });
+  const activeCompanies = useMemo(
+    () => (companies as any[]).filter((c) => c.is_active !== false),
+    [companies],
+  );
 
   const { data, isLoading } = useQuery({
-    queryKey: ["finance", companyId, projectFilter],
-    enabled: !!companyId,
+    queryKey: ["finance", companyId],
     queryFn: () =>
-      overviewFn({
-        data: {
-          ...(companyId ? { company_id: companyId } : {}),
-          ...(projectFilter !== "__all" ? { project_id: projectFilter } : {}),
-        },
-      } as any),
+      overviewFn({ data: companyId ? { company_id: companyId } : {} } as any),
   });
 
   const openHours = useMemo(
@@ -125,7 +121,7 @@ function FinanceiroPage() {
       invoiceFn({
         data: {
           company_id: companyId!,
-          project_id: projectFilter !== "__all" ? projectFilter : null,
+          project_id: null,
           work_hour_ids: selected,
           hourly_rate: rate,
           notes: invoiceNotes,
@@ -147,7 +143,7 @@ function FinanceiroPage() {
       payFn({
         data: {
           company_id: companyId!,
-          project_id: payment.project_id !== "__none" ? payment.project_id : null,
+          project_id: null,
           paid_at: payment.paid_at,
           amount: Number(payment.amount),
           method: payment.method,
@@ -164,7 +160,6 @@ function FinanceiroPage() {
         method: "pix",
         reference: "",
         notes: "",
-        project_id: "__none",
       });
       qc.invalidateQueries({ queryKey: ["finance"] });
     },
@@ -184,14 +179,6 @@ function FinanceiroPage() {
   const balance = totals?.balance ?? 0;
   const situation = balance > 0.009 ? "DEVEDOR" : balance < -0.009 ? "CRÉDITO" : "QUITADO";
 
-  if (!companyId) {
-    return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
-        Selecione uma empresa no topo para ver o financeiro.
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -202,18 +189,21 @@ function FinanceiroPage() {
           <p className="text-sm text-muted-foreground">Conta corrente, faturamento e pagamentos.</p>
         </div>
         <div className="flex gap-2">
-          <Select value={projectFilter} onValueChange={(v) => { setProjectFilter(v); setSelected([]); }}>
+          <Select
+            value={companyId ?? "__all"}
+            onValueChange={(v) => { setCompanyId(v === "__all" ? null : v); setSelected([]); }}
+          >
             <SelectTrigger className="h-10 w-full sm:w-56">
-              <SelectValue placeholder="Projeto" />
+              <SelectValue placeholder="Empresa" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all">Todos os projetos</SelectItem>
-              {(projects ?? []).map((p: any) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              <SelectItem value="__all">Todas as empresas ativas</SelectItem>
+              {activeCompanies.map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => setPayOpen(true)} className="shrink-0">
+          <Button onClick={() => setPayOpen(true)} disabled={!companyId} className="shrink-0">
             <Plus className="mr-1 h-4 w-4" /> Pagamento
           </Button>
         </div>
@@ -298,7 +288,7 @@ function FinanceiroPage() {
                   <div className="flex items-end">
                     <Button
                       className="h-11 w-full"
-                      disabled={!selected.length || rate <= 0}
+                      disabled={!selected.length || rate <= 0 || !companyId}
                       onClick={() => setConfirmOpen(true)}
                     >
                       Faturar {selected.length} lançamento{selected.length === 1 ? "" : "s"}
@@ -452,21 +442,6 @@ function FinanceiroPage() {
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => (
                       <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Projeto</Label>
-                <Select
-                  value={payment.project_id}
-                  onValueChange={(v) => setPayment({ ...payment, project_id: v })}
-                >
-                  <SelectTrigger className="h-11"><SelectValue placeholder="Opcional" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">Sem projeto</SelectItem>
-                    {(projects ?? []).map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
