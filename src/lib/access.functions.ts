@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 export const TOOLS = [
+  { key: "portal", label: "Portal do cliente" },
   { key: "gestao", label: "Gestão" },
   { key: "pop", label: "POP" },
   { key: "indicadores", label: "Indicadores" },
@@ -11,6 +12,7 @@ export const TOOLS = [
   { key: "horas", label: "Horas" },
   { key: "chamados", label: "Chamados" },
 ] as const;
+
 
 export type ToolKey = (typeof TOOLS)[number]["key"];
 export const MEMBER_ROLES = ["gestor", "consultor", "cliente"] as const;
