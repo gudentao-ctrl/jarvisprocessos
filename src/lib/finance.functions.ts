@@ -271,3 +271,58 @@ export const deletePayment = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+/* ============================================================
+ * RELATÓRIO DE FATURAMENTO POR CLIENTE
+ * ============================================================ */
+
+export const getBilledReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        company_id: z.string().uuid(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+
+    const { data: company } = await sb
+      .from("companies")
+      .select("id, name")
+      .eq("id", data.company_id)
+      .maybeSingle();
+
+    let q = sb
+      .from("work_hours")
+      .select(
+        "id, work_date, responsible, activity_type, description, hours, invoice_id, invoices(hourly_rate), work_hour_expenses(description, amount), work_hour_tools(description, quantity, amount)",
+      )
+      .eq("company_id", data.company_id)
+      .eq("billing_status", "faturado")
+      .order("work_date", { ascending: true });
+    if (data.from) q = q.gte("work_date", data.from);
+    if (data.to) q = q.lte("work_date", data.to);
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    let iq = sb
+      .from("invoices")
+      .select("*")
+      .eq("company_id", data.company_id)
+      .order("invoiced_at", { ascending: true });
+    if (data.from) iq = iq.gte("period_start", data.from);
+    if (data.to) iq = iq.lte("period_end", data.to);
+    const { data: invoices } = await iq;
+
+    return {
+      company: company ?? null,
+      period: { from: data.from ?? null, to: data.to ?? null },
+      rows: rows ?? [],
+      invoices: invoices ?? [],
+    };
+  });
