@@ -112,7 +112,20 @@ function AdminPage() {
     );
   }
 
-  const pending = (data?.requests ?? []).filter((r: any) => r.status === "pending");
+  const requestsPending = (data?.requests ?? []).filter((r: any) => r.status === "pending");
+  const requestedUserIds = new Set(requestsPending.map((r: any) => r.user_id));
+  const pendingProfiles = (data?.profiles ?? [])
+    .filter((p: any) => p.status === "pending" && !p.is_superadmin && !requestedUserIds.has(p.user_id))
+    .map((p: any) => ({
+      id: `profile-${p.user_id}`,
+      user_id: p.user_id,
+      full_name: p.full_name,
+      email: p.email,
+      requested_company: "",
+      message: "Cadastro criado na tela de login, aguardando liberação.",
+    }));
+  const pending = [...requestsPending, ...pendingProfiles];
+
 
   return (
     <div className="space-y-4">
