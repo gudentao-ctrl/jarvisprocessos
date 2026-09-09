@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 
 export function CompanySwitcher() {
   const { company, companies, setCompanyId } = useActiveCompany();
+  const visible = (companies as any[]).filter(
+    (c) => c.is_active !== false || c.id === company?.id,
+  );
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,13 +28,13 @@ export function CompanySwitcher() {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[260px] p-1">
-        {companies.length === 0 ? (
+        {visible.length === 0 ? (
           <p className="p-3 text-xs text-muted-foreground">
             Cadastre uma empresa primeiro em Empresas.
           </p>
         ) : (
           <div className="max-h-[300px] overflow-y-auto">
-            {companies.map((c) => (
+            {visible.map((c: any) => (
               <button
                 key={c.id}
                 type="button"

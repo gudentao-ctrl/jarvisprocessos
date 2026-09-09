@@ -112,7 +112,20 @@ function AdminPage() {
     );
   }
 
-  const pending = (data?.requests ?? []).filter((r: any) => r.status === "pending");
+  const requestsPending = (data?.requests ?? []).filter((r: any) => r.status === "pending");
+  const requestedUserIds = new Set(requestsPending.map((r: any) => r.user_id));
+  const pendingProfiles = (data?.profiles ?? [])
+    .filter((p: any) => p.status === "pending" && !p.is_superadmin && !requestedUserIds.has(p.user_id))
+    .map((p: any) => ({
+      id: `profile-${p.user_id}`,
+      user_id: p.user_id,
+      full_name: p.full_name,
+      email: p.email,
+      requested_company: "",
+      message: "Cadastro criado na tela de login, aguardando liberação.",
+    }));
+  const pending = [...requestsPending, ...pendingProfiles];
+
 
   return (
     <div className="space-y-4">
@@ -152,7 +165,7 @@ function AdminPage() {
                 <Button
                   size="sm"
                   onClick={() =>
-                    statusMut.mutate({ user_id: r.user_id, status: "active", request_id: r.id })
+                    statusMut.mutate({ user_id: r.user_id, status: "active", ...(String(r.id).startsWith("profile-") ? {} : { request_id: r.id }) })
                   }
                 >
                   <UserCheck className="mr-1 h-4 w-4" /> Aprovar
@@ -161,7 +174,7 @@ function AdminPage() {
                   size="sm"
                   variant="outline"
                   onClick={() =>
-                    statusMut.mutate({ user_id: r.user_id, status: "rejected", request_id: r.id })
+                    statusMut.mutate({ user_id: r.user_id, status: "rejected", ...(String(r.id).startsWith("profile-") ? {} : { request_id: r.id }) })
                   }
                 >
                   <UserX className="mr-1 h-4 w-4" /> Rejeitar

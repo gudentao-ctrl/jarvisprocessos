@@ -88,6 +88,29 @@ export const saveWorkHours = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     const { id, expense, tool, ...rest } = data;
+
+    // Trava de 48h: apenas gestor (ou SuperAdmin) lança em qualquer data
+    const [{ data: prof }, { data: memberships }] = await Promise.all([
+      sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
+      sb.from("company_members").select("member_role").eq("user_id", context.userId),
+    ]);
+    const isManager =
+      !!prof?.is_superadmin ||
+      (memberships ?? []).some((m: any) => m.member_role === "gestor");
+    if (!isManager) {
+      const today = new Date();
+      const limit = new Date(today.getTime() - 48 * 60 * 60 * 1000);
+      const workDate = new Date(`${rest.work_date}T12:00:00`);
+      if (workDate.getTime() > today.getTime() + 24 * 60 * 60 * 1000) {
+        throw new Error("Não é possível lançar horas em data futura.");
+      }
+      if (workDate.getTime() < limit.getTime()) {
+        throw new Error(
+          "Prazo encerrado: lançamentos só podem ser feitos até 48 horas após o atendimento. Solicite ao gestor.",
+        );
+      }
+    }
+
     const hours =
       rest.start_time && rest.end_time ? hoursBetween(rest.start_time, rest.end_time) : rest.hours;
     const payload = { ...rest, hours };

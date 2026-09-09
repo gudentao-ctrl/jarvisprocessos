@@ -3,13 +3,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  listCompanies, createCompany, deleteCompany, createSector, deleteSector,
+  listCompanies, createCompany, deleteCompany, createSector, deleteSector, setCompanyActive,
 } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Building2, Plus, Trash2, X, Radar, Check, Globe } from "lucide-react";
+import { Building2, Plus, Trash2, X, Radar, Check, Globe, Power, PowerOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { PortalPublicoDialog } from "@/components/company/PortalPublicoDialog";
 import { toast } from "sonner";
 
@@ -26,6 +29,8 @@ function CompaniesPage() {
   const delCo = useServerFn(deleteCompany);
   const addSec = useServerFn(createSector);
   const delSec = useServerFn(deleteSector);
+  const setActive = useServerFn(setCompanyActive);
+  const [showInactive, setShowInactive] = useState(false);
 
   const { data } = useQuery({ queryKey: ["companies"], queryFn: () => list() });
   const [newName, setNewName] = useState("");
@@ -45,6 +50,15 @@ function CompaniesPage() {
   const addSector = useMutation({
     mutationFn: (vars: { company_id: string; name: string }) => addSec({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["companies"] }),
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: (vars: { id: string; is_active: boolean }) => setActive({ data: vars }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success(v.is_active ? "Empresa reativada" : "Empresa marcada como inativa");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
@@ -88,8 +102,15 @@ function CompaniesPage() {
         </div>
       )}
 
+      <div className="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
+        <Label htmlFor="show-inactive" className="text-sm">
+          Mostrar empresas inativas
+        </Label>
+        <Switch id="show-inactive" checked={showInactive} onCheckedChange={setShowInactive} />
+      </div>
+
       <div className="space-y-3">
-        {data?.map((c: any) => (
+        {data?.filter((c: any) => showInactive || c.is_active !== false).map((c: any) => (
           <CompanyCard
             key={c.id}
             company={c}
@@ -98,6 +119,9 @@ function CompaniesPage() {
             onDelete={() => confirm(`Excluir "${c.name}" e seus setores?`) && removeCompany.mutate(c.id)}
             onAddSector={(name) => addSector.mutate({ company_id: c.id, name })}
             onDeleteSector={(id) => removeSector.mutate(id)}
+            onToggleActive={() =>
+              toggleActive.mutate({ id: c.id, is_active: c.is_active === false })
+            }
           />
         ))}
       </div>
@@ -106,20 +130,23 @@ function CompaniesPage() {
 }
 
 function CompanyCard({
-  company, active, onOpen, onDelete, onAddSector, onDeleteSector,
+  company, active, onOpen, onDelete, onAddSector, onDeleteSector, onToggleActive,
 }: {
   company: any; active: boolean; onOpen: () => void; onDelete: () => void;
   onAddSector: (name: string) => void; onDeleteSector: (id: string) => void;
+  onToggleActive: () => void;
 }) {
+  const inactive = company.is_active === false;
   const [sectorName, setSectorName] = useState("");
   const [portalOpen, setPortalOpen] = useState(false);
   return (
-    <Card className={active ? "p-4 ring-2 ring-primary" : "p-4"}>
+    <Card className={`${active ? "p-4 ring-2 ring-primary" : "p-4"} ${inactive ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <Building2 className="h-4 w-4 shrink-0 text-primary" />
           <h3 className="truncate font-semibold">{company.name}</h3>
           {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+          {inactive && <Badge variant="secondary" className="shrink-0">Inativa</Badge>}
           {company.public_enabled && (
             <span title="Portal público ativo">
               <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -131,6 +158,16 @@ function CompanyCard({
         </Button>
         <Button size="sm" variant="outline" onClick={onOpen} className="h-8 gap-1">
           <Radar className="h-3.5 w-3.5" /> Abrir
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onToggleActive}
+          className="h-8 gap-1"
+          title={inactive ? "Reativar empresa" : "Tornar inativa"}
+        >
+          {inactive ? <Power className="h-3.5 w-3.5" /> : <PowerOff className="h-3.5 w-3.5" />}
+          {inactive ? "Reativar" : "Inativar"}
         </Button>
         <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 text-muted-foreground hover:text-destructive">
           <Trash2 className="h-4 w-4" />
