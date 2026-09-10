@@ -39,7 +39,13 @@ const sum = (rows: any[] | null | undefined, key: string) =>
   (rows ?? []).reduce((s: number, r: any) => s + Number(r?.[key] ?? 0), 0);
 
 export type BilledReport = {
-  company: { id: string; name: string } | null;
+  company: {
+    id: string;
+    name: string;
+    title?: string | null;
+    company_logo?: string | null;
+    consultancy_logo?: string | null;
+  } | null;
   period: { from: string | null; to: string | null };
   rows: any[];
   invoices: any[];
@@ -47,29 +53,70 @@ export type BilledReport = {
 
 export type BilledPdfMode = "consultor" | "resumido";
 
+function imgFormat(dataUrl: string): "PNG" | "JPEG" | "WEBP" {
+  if (/^data:image\/jpe?g/i.test(dataUrl)) return "JPEG";
+  if (/^data:image\/webp/i.test(dataUrl)) return "WEBP";
+  return "PNG";
+}
+
+function drawLogo(doc: jsPDF, dataUrl: string, x: number, y: number, maxW: number, maxH: number, align: "left" | "right") {
+  try {
+    const props = doc.getImageProperties(dataUrl);
+    const ratio = props.width / props.height;
+    let h = maxH;
+    let w = h * ratio;
+    if (w > maxW) {
+      w = maxW;
+      h = w / ratio;
+    }
+    const px = align === "right" ? x - w : x;
+    doc.addImage(dataUrl, imgFormat(dataUrl), px, y + (maxH - h) / 2, w, h);
+  } catch {
+    /* logo indisponível */
+  }
+}
+
 export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const M = 16;
 
   const companyName = sanitize(data.company?.name ?? "Cliente");
+  const headerTitle = sanitize(data.company?.title || companyName);
   const periodLabel =
     data.period.from || data.period.to
       ? `${fmtDate(data.period.from)} a ${fmtDate(data.period.to)}`
       : "Todo o período";
 
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, W, 26, "F");
-  doc.setTextColor(255, 255, 255);
+  // Cabeçalho no tema do portal: fundo claro, logos nas extremidades, filete navy
+  doc.setFillColor(248, 249, 251);
+  doc.rect(0, 0, W, 30, "F");
+
+  const logoTop = 7;
+  const logoH = 16;
+  let textX = M;
+  if (data.company?.company_logo) {
+    drawLogo(doc, data.company.company_logo, M, logoTop, 26, logoH, "left");
+    textX = M + 30;
+  }
+  if (data.company?.consultancy_logo) {
+    drawLogo(doc, data.company.consultancy_logo, W - M, logoTop, 34, logoH, "right");
+  }
+
+  doc.setTextColor(...NAVY);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Relatorio de Faturamento", M, 12);
+  doc.setFontSize(13);
+  doc.text(headerTitle, textX, 14);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`${companyName}  |  ${periodLabel}`, M, 19);
+  doc.setFontSize(9.5);
+  doc.setTextColor(...GREY);
+  doc.text(`Relatorio de Faturamento  |  ${periodLabel}`, textX, 20.5);
+
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 30, W, 1.4, "F");
 
   doc.setTextColor(0, 0, 0);
-  let y = 34;
+  let y = 40;
 
   const rows = data.rows ?? [];
   const rowValue = (r: any) => {
