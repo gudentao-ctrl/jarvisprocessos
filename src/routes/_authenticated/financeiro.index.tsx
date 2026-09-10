@@ -22,7 +22,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, FileText, Receipt, Plus, Trash2, Lock } from "lucide-react";
+import { Wallet, FileText, Receipt, Plus, Trash2, Lock, FileDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { getBilledReport } from "@/lib/finance.functions";
+import { exportBilledPdf, type BilledPdfMode } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/financeiro/")({
@@ -55,7 +58,8 @@ const fmtHours = (h: number) => {
 
 function FinanceiroPage() {
   const qc = useQueryClient();
-  const { companyId, setCompanyId } = useActiveCompany();
+  const { companyId: globalCompanyId } = useActiveCompany();
+  const [companyId, setCompanyId] = useState<string | null>(globalCompanyId ?? null);
   const [selected, setSelected] = useState<string[]>([]);
   const [rate, setRate] = useState(0);
   const [invoiceNotes, setInvoiceNotes] = useState("");
@@ -74,6 +78,21 @@ function FinanceiroPage() {
   const invoiceFn = useServerFn(createInvoice);
   const payFn = useServerFn(savePayment);
   const delPayFn = useServerFn(deletePayment);
+  const billedFn = useServerFn(getBilledReport);
+
+  async function exportPdf(mode: BilledPdfMode) {
+    if (!companyId) return;
+    try {
+      const report: any = await billedFn({ data: { company_id: companyId } } as any);
+      if (!report?.rows?.length) {
+        toast.error("Nenhum lançamento faturado para esta empresa.");
+        return;
+      }
+      exportBilledPdf(report, mode);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível gerar o PDF.");
+    }
+  }
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
@@ -203,6 +222,21 @@ function FinanceiroPage() {
               ))}
             </SelectContent>
           </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={!companyId} className="shrink-0">
+                <FileDown className="mr-1 h-4 w-4" /> Relatório PDF
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportPdf("consultor")}>
+                Detalhado por consultor
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportPdf("resumido")}>
+                Compilado resumido
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => setPayOpen(true)} disabled={!companyId} className="shrink-0">
             <Plus className="mr-1 h-4 w-4" /> Pagamento
           </Button>
