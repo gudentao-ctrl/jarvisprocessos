@@ -117,6 +117,14 @@ function HorasPage() {
     [companies],
   );
   const myName = me?.fullName || me?.email || "";
+  const isManager =
+    !!me?.isSuperadmin ||
+    (me?.memberships ?? []).some((m: any) => m.member_role === "gestor");
+  const minDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    return d.toISOString().slice(0, 10);
+  }, []);
 
   const range = useMemo(
     () => periodRange(period, { from: customFrom, to: customTo }),
@@ -298,8 +306,15 @@ function HorasPage() {
                       className="h-11"
                       type="date"
                       value={editing.work_date}
+                      min={isManager ? undefined : minDate}
+                      max={isManager ? undefined : new Date().toISOString().slice(0, 10)}
                       onChange={(e) => setEditing({ ...editing, work_date: e.target.value })}
                     />
+                    {!isManager && (
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Lançamento permitido até 48h após o atendimento.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label>Entrada</Label>
