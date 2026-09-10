@@ -350,7 +350,15 @@ export const getBilledReport = createServerFn({ method: "GET" })
     const { data: invoices } = await iq;
 
     return {
-      company: company ?? null,
+      company: company
+        ? {
+            id: company.id,
+            name: company.name,
+            title: company.public_title || company.name,
+            company_logo: companyLogo,
+            consultancy_logo: consultancyLogo,
+          }
+        : null,
       period: { from: data.from ?? null, to: data.to ?? null },
       rows: rows ?? [],
       invoices: invoices ?? [],
