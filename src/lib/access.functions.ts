@@ -31,8 +31,10 @@ export type Me = {
   }>;
 };
 
-async function assertSuperadmin(sb: any) {
-  const { data } = await sb.from("profiles").select("is_superadmin").maybeSingle();
+async function assertSuperadmin(sb: any, userId?: string) {
+  let q = sb.from("profiles").select("is_superadmin");
+  if (userId) q = q.eq("user_id", userId);
+  const { data } = await q.limit(1).maybeSingle();
   if (!data?.is_superadmin) throw new Error("Acesso restrito ao SuperAdmin");
 }
 
