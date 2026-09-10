@@ -51,10 +51,23 @@ export const getMe = createServerFn({ method: "GET" })
       .select("company_id, member_role, permissions, companies(name)")
       .eq("user_id", context.userId);
 
+    const claims: any = context.claims ?? {};
+    const email: string | null = profile?.email ?? claims.email ?? null;
+    const metaName: string =
+      claims.user_metadata?.full_name || claims.user_metadata?.name || "";
+    const fullName =
+      (profile?.full_name && String(profile.full_name).trim()) ||
+      (metaName && String(metaName).trim()) ||
+      (email ? String(email).split("@")[0].replace(/[._-]+/g, " ") : "");
+
+    if (!profile?.full_name && fullName) {
+      await sb.from("profiles").update({ full_name: fullName }).eq("user_id", context.userId);
+    }
+
     return {
       userId: context.userId,
-      email: profile?.email ?? null,
-      fullName: profile?.full_name ?? "",
+      email,
+      fullName,
       isSuperadmin: !!profile?.is_superadmin,
       status: (profile?.status ?? "pending") as Me["status"],
       memberships: (members ?? []).map((m: any) => ({
