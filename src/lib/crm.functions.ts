@@ -243,14 +243,37 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
     for (const p of payments ?? []) {
       payByCompany.set(p.company_id, (payByCompany.get(p.company_id) ?? 0) + Number(p.amount ?? 0));
     }
+    // Data de pagamento contratada por empresa (vinda do CRM)
+    const dueByCompany = new Map<string, string>();
+    for (const l of leads ?? []) {
+      if (l.converted_company_id && l.payment_due_date) {
+        const cur = dueByCompany.get(l.converted_company_id);
+        if (!cur || l.payment_due_date < cur) dueByCompany.set(l.converted_company_id, l.payment_due_date);
+      }
+    }
+
     for (const [companyId, v] of invByCompany) {
       const balance = v.total - (payByCompany.get(companyId) ?? 0);
-      if (balance > 0.01) {
+      if (balance <= 0.01) continue;
+      const due = dueByCompany.get(companyId);
+      const money = balance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+      if (due) {
+        if (due > today) continue; // ainda dentro do prazo contratado
+        const late = daysBetween(due, today);
+        alerts.push({
+          key: `fin:recobranca:${companyId}:${due}:${today}`,
+          severity: "critical",
+          title: "Pagamento em atraso",
+          subtitle: `${v.name} — ${money} em aberto · ${late} dia(s) após a data contratada (${due.split("-").reverse().join("/")})`,
+          companyId,
+        });
+      } else {
         alerts.push({
           key: `fin:recobranca:${companyId}:${today}`,
-          severity: "critical",
+          severity: "warning",
           title: "Pagamento não registrado",
-          subtitle: `${v.name} — saldo devedor de ${balance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+          subtitle: `${v.name} — saldo devedor de ${money} (sem data de pagamento contratada)`,
           companyId,
         });
       }
