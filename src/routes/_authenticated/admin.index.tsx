@@ -215,6 +215,63 @@ function AdminPage() {
           ))}
         </TabsContent>
 
+        <TabsContent value="chamados" className="space-y-2 pt-3">
+          {tickets.length === 0 && (
+            <Card className="p-6 text-center text-sm text-muted-foreground">
+              Nenhum chamado registrado.
+            </Card>
+          )}
+          {tickets.map((t: any) => (
+            <Card key={t.id} className="space-y-2 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="min-w-0 flex-1 font-semibold">{t.title}</p>
+                <Badge variant="outline" className="text-[10px]">
+                  {ticketKindLabel(t.kind)}
+                </Badge>
+                <Badge variant="secondary" className="text-[10px]">
+                  {ticketPriorityLabel(t.priority)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t.author_name} · {new Date(t.created_at).toLocaleDateString("pt-BR")}
+              </p>
+              {t.description && (
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{t.description}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={t.status}
+                  onValueChange={(v) => ticketMut.mutate({ id: t.id, status: v })}
+                >
+                  <SelectTrigger className="h-9 w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TICKET_STATUS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Textarea
+                rows={2}
+                placeholder="Resposta ao usuário"
+                value={replies[t.id] ?? t.response ?? ""}
+                onChange={(e) => setReplies({ ...replies, [t.id]: e.target.value })}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => ticketMut.mutate({ id: t.id, response: replies[t.id] ?? t.response ?? "" })}
+              >
+                Salvar resposta
+              </Button>
+            </Card>
+          ))}
+        </TabsContent>
+
         <TabsContent value="acessos" className="space-y-3 pt-3">
           {companies.map((c: any) => (
             <Card key={c.id} className="p-3">
