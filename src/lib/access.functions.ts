@@ -119,7 +119,7 @@ export const adminListUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
-    await assertSuperadmin(sb);
+    await assertSuperadmin(sb, context.userId);
     const [{ data: profiles }, { data: members }, { data: requests }] = await Promise.all([
       sb.from("profiles").select("*").order("created_at", { ascending: false }),
       sb.from("company_members").select("*, companies(id, name)"),
@@ -143,7 +143,7 @@ export const adminSetUserStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertSuperadmin(sb);
+    await assertSuperadmin(sb, context.userId);
     const { error } = await sb.from("profiles").update({ status: data.status }).eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
 
@@ -180,7 +180,7 @@ export const adminSaveMember = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertSuperadmin(sb);
+    await assertSuperadmin(sb, context.userId);
     const { error } = await sb
       .from("company_members")
       .upsert(
@@ -211,7 +211,7 @@ export const adminRemoveMember = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertSuperadmin(sb);
+    await assertSuperadmin(sb, context.userId);
     const { error } = await sb
       .from("company_members")
       .delete()
@@ -232,7 +232,7 @@ export const adminListAudit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
-    await assertSuperadmin(sb);
+    await assertSuperadmin(sb, context.userId);
     const { data } = await sb
       .from("audit_log")
       .select("*")
