@@ -72,6 +72,23 @@ function AdminPage() {
     enabled: isAdmin,
   });
 
+  const listTickets = useServerFn(adminListTickets);
+  const updateTicket = useServerFn(adminUpdateTicket);
+  const { data: tickets = [] } = useQuery({
+    queryKey: ["admin-tickets"],
+    queryFn: () => listTickets(),
+    enabled: isAdmin,
+  });
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const ticketMut = useMutation({
+    mutationFn: (v: { id: string; status?: any; response?: string }) => updateTicket({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-tickets"] });
+      toast.success("Chamado atualizado");
+    },
+    onError: (e: any) => toast.error(e?.message),
+  });
+
   const [draft, setDraft] = useState<MemberDraft | null>(null);
 
   const statusMut = useMutation({
