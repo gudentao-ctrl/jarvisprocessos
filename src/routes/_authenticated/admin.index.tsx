@@ -166,6 +166,12 @@ function AdminPage() {
           <TabsTrigger value="solicitacoes">
             Solicitações{pending.length > 0 ? ` (${pending.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="chamados">
+            Chamados
+            {tickets.filter((t: any) => t.status === "aberto").length > 0
+              ? ` (${tickets.filter((t: any) => t.status === "aberto").length})`
+              : ""}
+          </TabsTrigger>
           <TabsTrigger value="acessos">Gestão de Acessos</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="auditoria">Auditoria</TabsTrigger>
