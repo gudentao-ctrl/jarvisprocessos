@@ -50,6 +50,7 @@ const leadSchema = z.object({
   converted_company_id: z.string().uuid().nullable().optional(),
   contract_type: z.enum(["conta_corrente", "fixo", "por_projeto"]).nullable().optional(),
   payment_day: z.number().int().min(1).max(31).nullable().optional(),
+  payment_due_date: z.string().nullable().optional(),
   hourly_rate: z.number().nullable().optional(),
   contract_total: z.number().nullable().optional(),
   start_date: z.string().nullable().optional(),
