@@ -23,6 +23,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldCheck, UserCheck, UserX, Trash2, Plus, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  adminListTickets,
+  adminUpdateTicket,
+  TICKET_STATUS,
+  ticketKindLabel,
+  ticketPriorityLabel,
+} from "@/lib/tickets.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminPage,
@@ -62,6 +70,23 @@ function AdminPage() {
     queryKey: ["admin-audit"],
     queryFn: () => listAudit(),
     enabled: isAdmin,
+  });
+
+  const listTickets = useServerFn(adminListTickets);
+  const updateTicket = useServerFn(adminUpdateTicket);
+  const { data: tickets = [] } = useQuery({
+    queryKey: ["admin-tickets"],
+    queryFn: () => listTickets(),
+    enabled: isAdmin,
+  });
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const ticketMut = useMutation({
+    mutationFn: (v: { id: string; status?: any; response?: string }) => updateTicket({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-tickets"] });
+      toast.success("Chamado atualizado");
+    },
+    onError: (e: any) => toast.error(e?.message),
   });
 
   const [draft, setDraft] = useState<MemberDraft | null>(null);
@@ -141,6 +166,12 @@ function AdminPage() {
           <TabsTrigger value="solicitacoes">
             Solicitações{pending.length > 0 ? ` (${pending.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="chamados">
+            Chamados
+            {tickets.filter((t: any) => t.status === "aberto").length > 0
+              ? ` (${tickets.filter((t: any) => t.status === "aberto").length})`
+              : ""}
+          </TabsTrigger>
           <TabsTrigger value="acessos">Gestão de Acessos</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="auditoria">Auditoria</TabsTrigger>
@@ -180,6 +211,63 @@ function AdminPage() {
                   <UserX className="mr-1 h-4 w-4" /> Rejeitar
                 </Button>
               </div>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="chamados" className="space-y-2 pt-3">
+          {tickets.length === 0 && (
+            <Card className="p-6 text-center text-sm text-muted-foreground">
+              Nenhum chamado registrado.
+            </Card>
+          )}
+          {tickets.map((t: any) => (
+            <Card key={t.id} className="space-y-2 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="min-w-0 flex-1 font-semibold">{t.title}</p>
+                <Badge variant="outline" className="text-[10px]">
+                  {ticketKindLabel(t.kind)}
+                </Badge>
+                <Badge variant="secondary" className="text-[10px]">
+                  {ticketPriorityLabel(t.priority)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t.author_name} · {new Date(t.created_at).toLocaleDateString("pt-BR")}
+              </p>
+              {t.description && (
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{t.description}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={t.status}
+                  onValueChange={(v) => ticketMut.mutate({ id: t.id, status: v })}
+                >
+                  <SelectTrigger className="h-9 w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TICKET_STATUS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Textarea
+                rows={2}
+                placeholder="Resposta ao usuário"
+                value={replies[t.id] ?? t.response ?? ""}
+                onChange={(e) => setReplies({ ...replies, [t.id]: e.target.value })}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => ticketMut.mutate({ id: t.id, response: replies[t.id] ?? t.response ?? "" })}
+              >
+                Salvar resposta
+              </Button>
             </Card>
           ))}
         </TabsContent>
