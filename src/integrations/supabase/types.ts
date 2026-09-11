@@ -661,6 +661,7 @@ export type Database = {
           next_action_date: string | null
           notes: string
           payment_day: number | null
+          payment_due_date: string | null
           phone: string
           responsible: string
           source: string
@@ -688,6 +689,7 @@ export type Database = {
           next_action_date?: string | null
           notes?: string
           payment_day?: number | null
+          payment_due_date?: string | null
           phone?: string
           responsible?: string
           source?: string
@@ -715,6 +717,7 @@ export type Database = {
           next_action_date?: string | null
           notes?: string
           payment_day?: number | null
+          payment_due_date?: string | null
           phone?: string
           responsible?: string
           source?: string
@@ -2648,6 +2651,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tickets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          kind: string
+          priority: string
+          resolved_at: string | null
+          response: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          kind?: string
+          priority?: string
+          resolved_at?: string | null
+          response?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          kind?: string
+          priority?: string
+          resolved_at?: string | null
+          response?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tobe_change_log: {
         Row: {
