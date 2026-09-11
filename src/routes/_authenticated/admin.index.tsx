@@ -23,6 +23,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldCheck, UserCheck, UserX, Trash2, Plus, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  adminListTickets,
+  adminUpdateTicket,
+  TICKET_STATUS,
+  ticketKindLabel,
+  ticketPriorityLabel,
+} from "@/lib/tickets.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminPage,
