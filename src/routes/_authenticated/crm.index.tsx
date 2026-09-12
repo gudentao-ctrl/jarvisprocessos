@@ -69,6 +69,7 @@ type LeadForm = {
   next_action_date: string;
   contract_type: string;
   payment_day: string;
+  payment_due_date: string;
   hourly_rate: string;
   contract_total: string;
   start_date: string;
@@ -90,6 +91,7 @@ const emptyForm = (): LeadForm => ({
   next_action_date: "",
   contract_type: "",
   payment_day: "",
+  payment_due_date: "",
   hourly_rate: "",
   contract_total: "",
   start_date: "",
@@ -137,6 +139,7 @@ function CrmPage() {
           next_action_date: form.next_action_date || null,
           contract_type: (form.contract_type || null) as any,
           payment_day: form.payment_day ? Number(form.payment_day) : null,
+          payment_due_date: form.payment_due_date || null,
           hourly_rate: form.hourly_rate ? Number(form.hourly_rate) : null,
           contract_total: form.contract_total ? Number(form.contract_total) : null,
           start_date: form.start_date || null,
@@ -203,6 +206,7 @@ function CrmPage() {
       next_action_date: l.next_action_date ?? "",
       contract_type: l.contract_type ?? "",
       payment_day: l.payment_day != null ? String(l.payment_day) : "",
+      payment_due_date: l.payment_due_date ?? "",
       hourly_rate: l.hourly_rate != null ? String(l.hourly_rate) : "",
       contract_total: l.contract_total != null ? String(l.contract_total) : "",
       start_date: l.start_date ?? "",
@@ -478,6 +482,14 @@ function CrmPage() {
                     max={31}
                     value={form.payment_day}
                     onChange={(e) => setForm({ ...form, payment_day: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Data de pagamento contratada</Label>
+                  <Input
+                    type="date"
+                    value={form.payment_due_date}
+                    onChange={(e) => setForm({ ...form, payment_due_date: e.target.value })}
                   />
                 </div>
                 <div>
