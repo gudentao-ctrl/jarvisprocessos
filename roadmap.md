@@ -7,3 +7,7 @@
 - [x] Ocultar seletor de empresa em SuperAdmin, agenda, CRM, horas e financeiro
 - [x] Trava de 48h para consultores (gestor/SuperAdmin lançam em qualquer data)
 - [x] Relatório PDF de faturamento por cliente (detalhado por consultor / compilado resumido)
+- [x] Chamados internos para melhorias e erros, com gestão pelo SuperAdmin
+- [x] SuperAdmin com acesso total para corrigir e remover dados
+- [x] CRM com data de pagamento contratada e alerta financeiro por atraso
+- [x] Menu lateral móvel com ferramentas filtradas pelas permissões do usuário

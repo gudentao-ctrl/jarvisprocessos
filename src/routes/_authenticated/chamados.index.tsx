@@ -23,6 +23,16 @@ import { LifeBuoy, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/chamados/")({
+  head: () => ({
+    meta: [
+      { title: "Chamados internos — JARVIS" },
+      { name: "description", content: "Solicitações de melhorias e registro de erros internos no JARVIS." },
+      { property: "og:title", content: "Chamados internos — JARVIS" },
+      { property: "og:description", content: "Solicitações de melhorias e registro de erros internos no JARVIS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: TicketsPage,
 });
 
