@@ -2334,6 +2334,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_date: string | null
+          cpf: string | null
           created_at: string
           email: string | null
           full_name: string
@@ -2341,8 +2343,11 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
+          birth_date?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
@@ -2350,8 +2355,11 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
+          birth_date?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
@@ -2359,6 +2367,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }

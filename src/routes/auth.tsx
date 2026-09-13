@@ -34,6 +34,9 @@ export function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -72,11 +75,15 @@ export function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      const cpfDigits = cpf.replace(/\D/g, "");
+      const whatsappDigits = whatsapp.replace(/\D/g, "");
+      if (cpfDigits.length !== 11) throw new Error("Informe um CPF válido com 11 números.");
+      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) throw new Error("Informe um WhatsApp válido.");
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: { full_name: fullName, cpf: cpfDigits, birth_date: birthDate, whatsapp: whatsappDigits },
           emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
@@ -146,6 +153,32 @@ export function AuthPage() {
                 <Input
                   id="email2" type="email" required autoComplete="email"
                   value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1.5 h-12"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input
+                    id="cpf" required inputMode="numeric" maxLength={14}
+                    value={cpf} onChange={(e) => setCpf(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="birth-date">Data de nascimento</Label>
+                  <Input
+                    id="birth-date" type="date" required
+                    value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Input
+                  id="whatsapp" required inputMode="tel" maxLength={16}
+                  value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)}
                   className="mt-1.5 h-12"
                 />
               </div>
