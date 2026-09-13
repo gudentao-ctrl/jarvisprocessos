@@ -31,6 +31,13 @@ export type Me = {
   }>;
 };
 
+const personalDataSchema = z.object({
+  full_name: z.string().trim().min(3, "Informe o nome completo").max(120),
+  cpf: z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => value.length === 11, "CPF inválido"),
+  birth_date: z.string().date("Data de nascimento inválida"),
+  whatsapp: z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => value.length >= 10 && value.length <= 13, "WhatsApp inválido"),
+});
+
 async function assertSuperadmin(sb: any, userId?: string) {
   let q = sb.from("profiles").select("is_superadmin");
   if (userId) q = q.eq("user_id", userId);
@@ -239,4 +246,142 @@ export const adminListAudit = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(100);
     return data ?? [];
+  });
+
+export const adminUpdateUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => personalDataSchema.extend({
+    user_id: z.string().uuid(),
+    email: z.string().trim().email("E-mail inválido"),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertSuperadmin(sb, context.userId);
+    const { data: current, error: currentError } = await sb
+      .from("profiles")
+      .select("email")
+      .eq("user_id", data.user_id)
+      .single();
+    if (currentError) throw new Error(currentError.message);
+
+    if (current.email !== data.email) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+        email: data.email,
+        email_confirm: true,
+        user_metadata: { full_name: data.full_name, cpf: data.cpf, birth_date: data.birth_date, whatsapp: data.whatsapp },
+      });
+      if (error) throw new Error(error.message);
+    }
+
+    const { error } = await sb.from("profiles").update({
+      email: data.email,
+      full_name: data.full_name,
+      cpf: data.cpf,
+      birth_date: data.birth_date,
+      whatsapp: data.whatsapp,
+    }).eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+
+    await sb.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "user_updated",
+      entity: "profiles",
+      entity_id: data.user_id,
+      details: { email_changed: current.email !== data.email },
+    });
+    return { ok: true };
+  });
+
+export const adminCreateUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => personalDataSchema.extend({
+    email: z.string().trim().email("E-mail inválido"),
+    password: z.string().min(8, "A senha temporária deve ter pelo menos 8 caracteres").max(72),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertSuperadmin(sb, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: data.full_name,
+        cpf: data.cpf,
+        birth_date: data.birth_date,
+        whatsapp: data.whatsapp,
+      },
+    });
+    if (error || !created.user) throw new Error(error?.message ?? "Não foi possível criar o usuário");
+    const { error: profileError } = await sb.from("profiles").update({
+      email: data.email,
+      full_name: data.full_name,
+      cpf: data.cpf,
+      birth_date: data.birth_date,
+      whatsapp: data.whatsapp,
+      status: "active",
+    }).eq("user_id", created.user.id);
+    if (profileError) throw new Error(profileError.message);
+    await sb.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "user_created",
+      entity: "profiles",
+      entity_id: created.user.id,
+      details: { email: data.email },
+    });
+    return { ok: true };
+  });
+
+export const adminSendPasswordReset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    user_id: z.string().uuid(),
+    email: z.string().email(),
+    redirect_to: z.string().url(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertSuperadmin(sb, context.userId);
+    const { data: profile } = await sb.from("profiles").select("email").eq("user_id", data.user_id).single();
+    if (!profile || profile.email !== data.email) throw new Error("Usuário ou e-mail inválido");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, { redirectTo: data.redirect_to });
+    if (error) throw new Error(error.message);
+    await sb.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "password_reset_sent",
+      entity: "profiles",
+      entity_id: data.user_id,
+      details: {},
+    });
+    return { ok: true };
+  });
+
+export const adminDeleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ user_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertSuperadmin(sb, context.userId);
+    if (data.user_id === context.userId) throw new Error("O SuperAdmin não pode excluir a própria conta");
+    const { data: target } = await sb.from("profiles").select("is_superadmin, email").eq("user_id", data.user_id).single();
+    if (!target || target.is_superadmin) throw new Error("Uma conta SuperAdmin não pode ser excluída aqui");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    await Promise.all([
+      sb.from("company_members").delete().eq("user_id", data.user_id),
+      sb.from("access_requests").delete().eq("user_id", data.user_id),
+      sb.from("profiles").delete().eq("user_id", data.user_id),
+    ]);
+    await sb.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "user_deleted",
+      entity: "profiles",
+      entity_id: data.user_id,
+      details: { email: target.email },
+    });
+    return { ok: true };
   });
