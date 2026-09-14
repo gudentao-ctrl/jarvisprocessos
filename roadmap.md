@@ -11,6 +11,6 @@
 - [x] SuperAdmin com acesso total para corrigir e remover dados
 - [x] CRM com data de pagamento contratada e alerta financeiro por atraso
 - [x] Menu lateral móvel com ferramentas filtradas pelas permissões do usuário
-- [ ] Bloquear páginas e dados sem permissão, inclusive por acesso direto
-- [ ] SuperAdmin: criar, editar, excluir usuários e enviar recuperação de senha
-- [ ] Cadastro: nome, CPF, nascimento, WhatsApp, e-mail e senha
+- [x] Bloquear páginas e dados sem permissão, inclusive por acesso direto
+- [x] SuperAdmin: criar, editar, excluir usuários e enviar recuperação de senha
+- [x] Cadastro: nome, CPF, nascimento, WhatsApp, e-mail e senha

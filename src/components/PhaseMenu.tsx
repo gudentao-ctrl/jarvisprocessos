@@ -62,8 +62,6 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
 
 // Optional inline grid variant (used inside Controle)
 export function PhaseGrid() {
-  const me = useServerFn(getMe);
-  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
       {PHASES.filter((p) => p.slug !== "controle").map((p) => (

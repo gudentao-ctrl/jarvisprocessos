@@ -299,9 +299,6 @@ export const adminCreateUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const resetUrl = new URL(data.redirect_to);
-    const isAllowedHost = resetUrl.hostname === "localhost" || resetUrl.hostname.endsWith(".lovable.app");
-    if (!isAllowedHost || resetUrl.pathname !== "/auth") throw new Error("Endereço de recuperação inválido");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -344,6 +341,9 @@ export const adminSendPasswordReset = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
+    const resetUrl = new URL(data.redirect_to);
+    const isAllowedHost = resetUrl.hostname === "localhost" || resetUrl.hostname.endsWith(".lovable.app");
+    if (!isAllowedHost || resetUrl.pathname !== "/auth") throw new Error("Endereço de recuperação inválido");
     const { data: profile } = await sb.from("profiles").select("email").eq("user_id", data.user_id).single();
     if (!profile || profile.email !== data.email) throw new Error("Usuário ou e-mail inválido");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
