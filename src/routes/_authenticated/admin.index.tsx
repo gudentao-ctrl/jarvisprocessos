@@ -11,6 +11,10 @@ import {
   getMe,
   TOOLS,
   MEMBER_ROLES,
+  adminUpdateUser,
+  adminCreateUser,
+  adminSendPasswordReset,
+  adminDeleteUser,
 } from "@/lib/access.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { Card } from "@/components/ui/card";
@@ -21,9 +25,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, UserCheck, UserX, Trash2, Plus, ShieldAlert } from "lucide-react";
+import { ShieldCheck, UserCheck, UserX, Trash2, Plus, ShieldAlert, Pencil, KeyRound, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   adminListTickets,
   adminUpdateTicket,
@@ -43,6 +48,25 @@ type MemberDraft = {
   permissions: Record<string, boolean>;
 };
 
+type UserDraft = {
+  user_id?: string;
+  full_name: string;
+  cpf: string;
+  birth_date: string;
+  whatsapp: string;
+  email: string;
+  password: string;
+};
+
+const emptyUserDraft: UserDraft = {
+  full_name: "",
+  cpf: "",
+  birth_date: "",
+  whatsapp: "",
+  email: "",
+  password: "",
+};
+
 function AdminPage() {
   const qc = useQueryClient();
   const me = useServerFn(getMe);
@@ -52,6 +76,10 @@ function AdminPage() {
   const saveMember = useServerFn(adminSaveMember);
   const removeMember = useServerFn(adminRemoveMember);
   const listAudit = useServerFn(adminListAudit);
+  const updateUser = useServerFn(adminUpdateUser);
+  const createUser = useServerFn(adminCreateUser);
+  const sendPasswordReset = useServerFn(adminSendPasswordReset);
+  const deleteUser = useServerFn(adminDeleteUser);
 
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   const isAdmin = !!profile?.isSuperadmin;
@@ -90,6 +118,7 @@ function AdminPage() {
   });
 
   const [draft, setDraft] = useState<MemberDraft | null>(null);
+  const [userDraft, setUserDraft] = useState<UserDraft | null>(null);
 
   const statusMut = useMutation({
     mutationFn: (v: { user_id: string; status: "active" | "rejected" | "pending"; request_id?: string }) =>
@@ -113,6 +142,47 @@ function AdminPage() {
     mutationFn: (v: { user_id: string; company_id: string }) => removeMember({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
     onError: (e: any) => toast.error(e?.message),
+  });
+  const userMut = useMutation({
+    mutationFn: (value: UserDraft) => value.user_id
+      ? updateUser({ data: {
+          user_id: value.user_id,
+          full_name: value.full_name,
+          cpf: value.cpf,
+          birth_date: value.birth_date,
+          whatsapp: value.whatsapp,
+          email: value.email,
+        } })
+      : createUser({ data: {
+          full_name: value.full_name,
+          cpf: value.cpf,
+          birth_date: value.birth_date,
+          whatsapp: value.whatsapp,
+          email: value.email,
+          password: value.password,
+        } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      setUserDraft(null);
+      toast.success("Usuário salvo");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar o usuário"),
+  });
+  const resetMut = useMutation({
+    mutationFn: (value: { user_id: string; email: string }) => sendPasswordReset({ data: {
+      ...value,
+      redirect_to: `${window.location.origin}/auth`,
+    } }),
+    onSuccess: () => toast.success("E-mail de recuperação enviado"),
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível enviar a recuperação"),
+  });
+  const deleteUserMut = useMutation({
+    mutationFn: (user_id: string) => deleteUser({ data: { user_id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Usuário excluído");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível excluir o usuário"),
   });
 
   const membersByCompany = useMemo(() => {
@@ -355,6 +425,11 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="usuarios" className="space-y-2 pt-3">
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => setUserDraft({ ...emptyUserDraft })}>
+              <UserPlus className="mr-1 h-4 w-4" /> Novo usuário
+            </Button>
+          </div>
           {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
           {(data?.profiles ?? []).map((p: any) => (
             <Card key={p.user_id} className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -365,7 +440,7 @@ function AdminPage() {
                 </p>
                 <p className="text-xs text-muted-foreground">{p.email}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant={
                     p.status === "active" ? "default" : p.status === "pending" ? "secondary" : "outline"
@@ -389,6 +464,48 @@ function AdminPage() {
                       <SelectItem value="rejected">Rejeitado</SelectItem>
                     </SelectContent>
                   </Select>
+                )}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  aria-label="Editar usuário"
+                  title="Editar usuário"
+                  onClick={() => setUserDraft({
+                    user_id: p.user_id,
+                    full_name: p.full_name ?? "",
+                    cpf: p.cpf ?? "",
+                    birth_date: p.birth_date ?? "",
+                    whatsapp: p.whatsapp ?? "",
+                    email: p.email ?? "",
+                    password: "",
+                  })}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                {!p.is_superadmin && p.email && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    aria-label="Enviar recuperação de senha"
+                    title="Enviar recuperação de senha"
+                    disabled={resetMut.isPending}
+                    onClick={() => resetMut.mutate({ user_id: p.user_id, email: p.email })}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                  </Button>
+                )}
+                {!p.is_superadmin && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="text-destructive"
+                    aria-label="Excluir usuário"
+                    title="Excluir usuário"
+                    disabled={deleteUserMut.isPending}
+                    onClick={() => confirm(`Excluir definitivamente ${p.full_name || p.email}?`) && deleteUserMut.mutate(p.user_id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
             </Card>
@@ -482,6 +599,51 @@ function AdminPage() {
                 onClick={() => memberMut.mutate(draft)}
               >
                 Salvar acesso
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!userDraft} onOpenChange={(open) => !open && setUserDraft(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{userDraft?.user_id ? "Editar usuário" : "Cadastrar usuário"}</DialogTitle>
+          </DialogHeader>
+          {userDraft && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label>Nome completo</Label>
+                <Input value={userDraft.full_name} onChange={(e) => setUserDraft({ ...userDraft, full_name: e.target.value })} />
+              </div>
+              <div>
+                <Label>CPF</Label>
+                <Input inputMode="numeric" value={userDraft.cpf} onChange={(e) => setUserDraft({ ...userDraft, cpf: e.target.value })} />
+              </div>
+              <div>
+                <Label>Data de nascimento</Label>
+                <Input type="date" value={userDraft.birth_date} onChange={(e) => setUserDraft({ ...userDraft, birth_date: e.target.value })} />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input inputMode="tel" value={userDraft.whatsapp} onChange={(e) => setUserDraft({ ...userDraft, whatsapp: e.target.value })} />
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input type="email" value={userDraft.email} onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })} />
+              </div>
+              {!userDraft.user_id && (
+                <div className="sm:col-span-2">
+                  <Label>Senha temporária</Label>
+                  <Input type="password" minLength={8} value={userDraft.password} onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })} />
+                </div>
+              )}
+              <Button
+                className="min-h-11 sm:col-span-2"
+                disabled={userMut.isPending || !userDraft.full_name || !userDraft.cpf || !userDraft.birth_date || !userDraft.whatsapp || !userDraft.email || (!userDraft.user_id && userDraft.password.length < 8)}
+                onClick={() => userMut.mutate(userDraft)}
+              >
+                {userMut.isPending ? "Salvando…" : "Salvar usuário"}
               </Button>
             </div>
           )}

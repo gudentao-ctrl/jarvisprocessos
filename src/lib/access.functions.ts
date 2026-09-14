@@ -264,15 +264,12 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .single();
     if (currentError) throw new Error(currentError.message);
 
-    if (current.email !== data.email) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-        email: data.email,
-        email_confirm: true,
-        user_metadata: { full_name: data.full_name, cpf: data.cpf, birth_date: data.birth_date, whatsapp: data.whatsapp },
-      });
-      if (error) throw new Error(error.message);
-    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      ...(current.email !== data.email ? { email: data.email, email_confirm: true } : {}),
+      user_metadata: { full_name: data.full_name, cpf: data.cpf, birth_date: data.birth_date, whatsapp: data.whatsapp },
+    });
+    if (authError) throw new Error(authError.message);
 
     const { error } = await sb.from("profiles").update({
       email: data.email,
@@ -344,6 +341,9 @@ export const adminSendPasswordReset = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
+    const resetUrl = new URL(data.redirect_to);
+    const isAllowedHost = resetUrl.hostname === "localhost" || resetUrl.hostname.endsWith(".lovable.app");
+    if (!isAllowedHost || resetUrl.pathname !== "/auth") throw new Error("Endereço de recuperação inválido");
     const { data: profile } = await sb.from("profiles").select("email").eq("user_id", data.user_id).single();
     if (!profile || profile.email !== data.email) throw new Error("Usuário ou e-mail inválido");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

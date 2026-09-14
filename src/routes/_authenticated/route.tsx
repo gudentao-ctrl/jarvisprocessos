@@ -14,6 +14,7 @@ import { ActiveCompanyProvider } from "@/lib/active-company";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { AskAiFab } from "@/components/AskAiFab";
 import { getMe } from "@/lib/access.functions";
+import { permissionForPath } from "@/lib/access-control";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -32,6 +33,9 @@ export const Route = createFileRoute("/_authenticated")({
     if (!profile || (profile.status !== "active" && !profile.is_superadmin)) {
       throw redirect({ to: "/acesso-pendente" });
     }
+    if (location.pathname.startsWith("/admin") && !profile.is_superadmin) {
+      throw redirect({ to: "/acesso-pendente" });
+    }
     const requiredPermission = permissionForPath(location.pathname);
     if (requiredPermission && !profile.is_superadmin) {
       const { data: memberships } = await supabase
@@ -45,18 +49,6 @@ export const Route = createFileRoute("/_authenticated")({
   },
   component: AuthenticatedLayout,
 });
-
-function permissionForPath(pathname: string): string | null {
-  if (pathname.startsWith("/admin")) return null;
-  if (pathname.startsWith("/financeiro")) return "financeiro";
-  if (pathname.startsWith("/crm")) return "crm";
-  if (pathname.startsWith("/horas")) return "horas";
-  if (pathname.startsWith("/chamados")) return "chamados";
-  if (pathname.startsWith("/pop")) return "pop";
-  if (pathname.startsWith("/indicadores")) return "indicadores";
-  if (pathname.startsWith("/empresas") || pathname.startsWith("/controle") || pathname.startsWith("/calendario") || pathname.startsWith("/relatorios") || pathname.startsWith("/fase") || pathname.startsWith("/dashboard") || pathname.startsWith("/entrevistas") || pathname.startsWith("/mapas") || pathname.startsWith("/processos") || pathname.startsWith("/cronoanalise") || pathname.startsWith("/analise-critica") || pathname.startsWith("/oportunidades") || pathname.startsWith("/causa-raiz") || pathname.startsWith("/priorizacao") || pathname.startsWith("/tobe") || pathname.startsWith("/planos-acao") || pathname.startsWith("/relatorio-acompanhamento") || pathname.startsWith("/diagnostico") || pathname.startsWith("/roadmap") || pathname.startsWith("/template-documentos") || pathname.startsWith("/projetos")) return "gestao";
-  return null;
-}
 
 const NAV = [
   { to: "/empresas", icon: Building2, label: "Empresas", permission: "gestao" },

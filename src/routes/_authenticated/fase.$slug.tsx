@@ -6,7 +6,7 @@ import {
   Clock, ListTodo, Trophy, FileBarChart2,
 } from "lucide-react";
 import { PHASES, PHASE_TOOLS, type PhaseSlug } from "@/lib/phases";
-import { PhaseMenu } from "@/components/PhaseMenu";
+import { PhaseMenu, useVisiblePhaseTools } from "@/components/PhaseMenu";
 
 const ICONS: Record<string, any> = {
   Mic, FileText, Sparkles, Map, GitBranch, Workflow, Timer,
@@ -22,7 +22,8 @@ function FasePage() {
   const { slug } = Route.useParams();
   const phase = PHASES.find((p) => p.slug === slug);
   if (!phase || slug === "controle") throw notFound();
-  const items = PHASE_TOOLS[slug as Exclude<PhaseSlug, "controle">] ?? [];
+  const phaseItems = PHASE_TOOLS[slug as Exclude<PhaseSlug, "controle">] ?? [];
+  const items = useVisiblePhaseTools(phaseItems);
 
   return (
     <div className="space-y-4">
