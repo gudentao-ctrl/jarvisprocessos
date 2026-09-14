@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PHASES, type PhaseSlug } from "@/lib/phases";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getMe } from "@/lib/access.functions";
+import { hasToolPermission, permissionForPath } from "@/lib/access-control";
 
 export function PhaseMenu({ current }: { current?: PhaseSlug }) {
   const [open, setOpen] = useState(false);
@@ -58,6 +62,8 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
 
 // Optional inline grid variant (used inside Controle)
 export function PhaseGrid() {
+  const me = useServerFn(getMe);
+  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
       {PHASES.filter((p) => p.slug !== "controle").map((p) => (
@@ -75,4 +81,10 @@ export function PhaseGrid() {
       ))}
     </div>
   );
+}
+
+export function useVisiblePhaseTools<T extends { to: string }>(items: T[]) {
+  const me = useServerFn(getMe);
+  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
+  return items.filter((item) => hasToolPermission(profile, permissionForPath(item.to)));
 }
