@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronsUpDown, LayoutGrid, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { PHASES, type PhaseSlug } from "@/lib/phases";
+import { PHASES, PHASE_TOOLS, type PhaseSlug } from "@/lib/phases";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -13,7 +13,13 @@ import { hasToolPermission, permissionForPath } from "@/lib/access-control";
 export function PhaseMenu({ current }: { current?: PhaseSlug }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const me = useServerFn(getMe);
+  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   const currentLabel = PHASES.find((p) => p.slug === current)?.label ?? "Etapas";
+  const visiblePhases = PHASES.filter((phase) => {
+    if (phase.slug === "controle") return hasToolPermission(profile, "gestao");
+    return PHASE_TOOLS[phase.slug].some((item) => hasToolPermission(profile, permissionForPath(item.to)));
+  });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -28,7 +34,7 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
         <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           Etapas da consultoria
         </div>
-        {PHASES.map((p) => {
+        {visiblePhases.map((p) => {
           const active = p.slug === current;
           const to = p.slug === "controle" ? "/controle" : "/fase/$slug";
           return (
@@ -62,9 +68,13 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
 
 // Optional inline grid variant (used inside Controle)
 export function PhaseGrid() {
+  const me = useServerFn(getMe);
+  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
+  const visiblePhases = PHASES.filter((phase) => phase.slug !== "controle" &&
+    PHASE_TOOLS[phase.slug].some((item) => hasToolPermission(profile, permissionForPath(item.to))));
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-      {PHASES.filter((p) => p.slug !== "controle").map((p) => (
+      {visiblePhases.map((p) => (
         <Link
           key={p.slug}
           to="/fase/$slug"

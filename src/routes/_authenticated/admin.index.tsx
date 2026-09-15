@@ -39,6 +39,16 @@ import {
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminPage,
+  head: () => ({
+    meta: [
+      { title: "SuperAdmin | Jarvis Processos" },
+      { name: "description", content: "Administração de usuários, acessos e chamados do Jarvis Processos." },
+      { property: "og:title", content: "SuperAdmin | Jarvis Processos" },
+      { property: "og:description", content: "Administração de usuários, acessos e chamados do Jarvis Processos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 type MemberDraft = {
@@ -439,6 +449,9 @@ function AdminPage() {
                   {p.is_superadmin && <Badge className="ml-1">SuperAdmin</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">{p.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  CPF: {p.cpf || "não informado"} · Nascimento: {p.birth_date ? new Date(`${p.birth_date}T12:00:00`).toLocaleDateString("pt-BR") : "não informado"} · WhatsApp: {p.whatsapp || "não informado"}
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
