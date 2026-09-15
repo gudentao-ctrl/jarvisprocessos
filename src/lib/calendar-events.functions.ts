@@ -8,7 +8,7 @@ const EventInput = z.object({
   project_id: z.string().uuid().nullable().optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional().default(""),
-  event_type: z.enum(["reuniao", "workshop", "visita", "entrega", "outro"]).default("reuniao"),
+  event_type: z.enum(["reuniao", "alinhamento", "workshop", "visita", "entrega", "outro"]).default("reuniao"),
   starts_at: z.string().min(1),
   ends_at: z.string().nullable().optional(),
   location: z.string().max(300).optional().default(""),
@@ -32,7 +32,22 @@ export const listEvents = createServerFn({ method: "GET" })
     if (data.project_id) q = q.eq("project_id", data.project_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const creatorIds = [...new Set((rows ?? []).map((row: any) => row.created_by).filter(Boolean))];
+    if (creatorIds.length === 0) return rows ?? [];
+    const [{ data: profiles }, { data: memberships }] = await Promise.all([
+      (context.supabase as any).from("profiles").select("user_id, is_superadmin").in("user_id", creatorIds),
+      (context.supabase as any).from("company_members").select("user_id, company_id, member_role").in("user_id", creatorIds),
+    ]);
+    const superadmins = new Set((profiles ?? []).filter((p: any) => p.is_superadmin).map((p: any) => p.user_id));
+    return (rows ?? []).map((row: any) => ({
+      ...row,
+      is_manager_alignment: row.event_type === "alinhamento" && (
+        superadmins.has(row.created_by) ||
+        (memberships ?? []).some((m: any) =>
+          m.user_id === row.created_by && m.member_role === "gestor" && m.company_id === row.company_id
+        )
+      ),
+    }));
   });
 
 export const saveEvent = createServerFn({ method: "POST" })

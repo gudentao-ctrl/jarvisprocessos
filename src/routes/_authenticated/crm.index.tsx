@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listLeads,
   saveLead,
+  convertLeadToCompany,
   deleteLead,
   addLeadActivity,
   getCrmAlerts,
@@ -24,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Handshake, Plus, Trash2, Bell, Flame, MessageSquarePlus } from "lucide-react";
+import { Handshake, Plus, Trash2, Bell, Flame, MessageSquarePlus, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
@@ -103,6 +104,7 @@ function CrmPage() {
   const load = useServerFn(listLeads);
   const loadAlerts = useServerFn(getCrmAlerts);
   const save = useServerFn(saveLead);
+  const convert = useServerFn(convertLeadToCompany);
   const remove = useServerFn(deleteLead);
   const addAct = useServerFn(addLeadActivity);
   const dismiss = useServerFn(dismissAlertToday);
@@ -163,6 +165,15 @@ function CrmPage() {
     onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
+  const convertM = useMutation({
+    mutationFn: (leadId: string) => convert({ data: { lead_id: leadId } }),
+    onSuccess: () => {
+      toast.success("Empresa ativa criada e vinculada ao lead");
+      refresh();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao criar empresa"),
+  });
+
   const actM = useMutation({
     mutationFn: () => addAct({ data: { lead_id: actLead!, ...actForm } }),
     onSuccess: () => {
@@ -181,6 +192,8 @@ function CrmPage() {
 
   const leads = data?.leads ?? [];
   const activities = data?.activities ?? [];
+  const activeCompanies = data?.companies?.filter((company: any) => company.is_active) ?? [];
+  const canViewFinance = !!data?.canViewFinance;
 
   const byStage = useMemo(() => {
     const map: Record<string, any[]> = {};
@@ -237,6 +250,7 @@ function CrmPage() {
           <TabsTrigger value="alertas">
             Alertas {alerts?.length ? `(${alerts.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="empresas">Empresas ativas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funil" className="space-y-3 pt-3">
@@ -282,10 +296,23 @@ function CrmPage() {
                         <Badge className="text-[10px]">{contractLabel(l.contract_type)}</Badge>
                       )}
                     </div>
-                    {l.stage === "fechamento" && (
+                    {l.stage === "fechamento" && canViewFinance && (
                       <p className="text-[11px] text-muted-foreground">
                         {brl(l.hourly_rate)}/h · Total {brl(l.contract_total)}
                       </p>
+                    )}
+                    {l.stage === "fechamento" && !l.converted_company_id && (
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={convertM.isPending}
+                        onClick={() => confirm(`Criar ${l.company_name} como empresa ativa?`) && convertM.mutate(l.id)}
+                      >
+                        <Building2 className="mr-1 h-3.5 w-3.5" /> Criar empresa ativa
+                      </Button>
+                    )}
+                    {l.converted_company_id && (
+                      <Badge variant="outline" className="text-[10px]">Empresa ativa vinculada</Badge>
                     )}
                     <p className="text-[11px] text-muted-foreground">
                       Último contato: {fmtDate(l.last_contact_at ?? l.first_contact_date)}
@@ -354,6 +381,22 @@ function CrmPage() {
               </Button>
             </Card>
           ))}
+        </TabsContent>
+        <TabsContent value="empresas" className="pt-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {activeCompanies.map((company: any) => (
+              <Card key={company.id} className="flex items-center gap-3 p-4">
+                <Building2 className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-semibold">{company.name}</p>
+                  <p className="text-xs text-muted-foreground">Empresa ativa</p>
+                </div>
+              </Card>
+            ))}
+            {activeCompanies.length === 0 && (
+              <Card className="p-6 text-center text-sm text-muted-foreground">Nenhuma empresa ativa.</Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -451,7 +494,7 @@ function CrmPage() {
               />
             </div>
 
-            {form.stage === "fechamento" && (
+            {form.stage === "fechamento" && canViewFinance && (
               <>
                 <div className="sm:col-span-2 border-t pt-3">
                   <p className="text-sm font-semibold">Dados do contrato</p>
