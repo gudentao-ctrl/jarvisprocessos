@@ -111,3 +111,74 @@ export const deleteCollection = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+async function requireIndicatorTokenAccess(sb: any, userId: string, token: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: indicator, error: indicatorError } = await supabaseAdmin
+    .from("indicators")
+    .select("id, company_id, name, description, unit, target, frequency, code, instructions")
+    .eq("public_token", token)
+    .maybeSingle();
+  if (indicatorError) throw new Error(indicatorError.message);
+  if (!indicator) return null;
+
+  const { data: profile, error: profileError } = await sb
+    .from("profiles")
+    .select("status, is_superadmin, full_name, email")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+  if (!profile || (profile.status !== "active" && !profile.is_superadmin)) {
+    throw new Error("Seu cadastro ainda não foi aprovado pelo SuperAdmin.");
+  }
+
+  if (!profile.is_superadmin) {
+    const { data: membership, error: membershipError } = await sb
+      .from("company_members")
+      .select("permissions")
+      .eq("user_id", userId)
+      .eq("company_id", indicator.company_id)
+      .maybeSingle();
+    if (membershipError) throw new Error(membershipError.message);
+    if (membership?.permissions?.indicadores !== true) {
+      throw new Error("Seu acesso à coleta de indicadores desta empresa não foi liberado pelo SuperAdmin.");
+    }
+  }
+
+  return { indicator, profile };
+}
+
+export const getIndicatorByAccessToken = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(8).max(64) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const result = await requireIndicatorTokenAccess(context.supabase, context.userId, data.token);
+    return result?.indicator ?? null;
+  });
+
+export const createCollectionByAccessToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(8).max(64),
+    value: z.number().finite(),
+    reference_period: z.string().max(20).optional().default(""),
+    observation: z.string().max(2000).optional().default(""),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const result = await requireIndicatorTokenAccess(context.supabase, context.userId, data.token);
+    if (!result) throw new Error("Indicador não encontrado.");
+    const submittedBy = result.profile.full_name?.trim() || result.profile.email || "Usuário autenticado";
+    const { data: row, error } = await context.supabase
+      .from("indicator_collections")
+      .insert({
+        indicator_id: result.indicator.id,
+        value: data.value,
+        reference_period: data.reference_period,
+        observation: data.observation,
+        submitted_by_name: submittedBy,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });

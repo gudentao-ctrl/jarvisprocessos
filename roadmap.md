@@ -14,3 +14,5 @@
 - [x] Bloquear páginas e dados sem permissão, inclusive por acesso direto
 - [x] SuperAdmin: criar, editar, excluir usuários e enviar recuperação de senha
 - [x] Cadastro: nome, CPF, nascimento, WhatsApp, e-mail e senha
+- [x] Exigir login e permissão Indicadores para coleta por link
+- [x] Exigir login e permissão Portal para o portal de cada cliente

@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -47,9 +47,14 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/dashboard/$token")({
   ssr: false,
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw redirect({ to: "/auth", search: { redirect: location.href } });
+  },
   loader: async ({ params }) => {
     const data = await getPublicDashboard({ data: { token: params.token } });
     if (!data) throw notFound();
@@ -65,11 +70,23 @@ export const Route = createFileRoute("/dashboard/$token")({
       </div>
     </div>
   ),
+  errorComponent: ({ error }) => (
+    <div className="grid min-h-screen place-items-center px-4">
+      <div className="max-w-md text-center">
+        <h1 className="mb-2 text-2xl font-bold">Acesso não liberado</h1>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+      </div>
+    </div>
+  ),
   head: () => ({
     meta: [
-      { title: "Dashboard executivo" },
+      { title: "Portal executivo | JARVIS" },
       { name: "robots", content: "noindex" },
       { name: "description", content: "Portal executivo de acompanhamento — JARVIS" },
+      { property: "og:title", content: "Portal executivo | JARVIS" },
+      { property: "og:description", content: "Portal executivo de acompanhamento para clientes autorizados." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: PublicDashboard,

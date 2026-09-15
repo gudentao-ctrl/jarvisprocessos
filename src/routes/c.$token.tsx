@@ -1,30 +1,19 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-
-const getPublicIndicator = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().min(8) }).parse(d))
-  .handler(async ({ data }) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: row, error } = await sb
-      .from("indicators")
-      .select("id, name, description, unit, target, frequency, code, instructions")
-      .eq("public_token", data.token)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row) return null;
-    return row;
-  });
+import { supabase } from "@/integrations/supabase/client";
+import { createCollectionByAccessToken, getIndicatorByAccessToken } from "@/lib/indicator-collections.functions";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/c/$token")({
   ssr: false,
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw redirect({ to: "/auth", search: { redirect: location.href } });
+  },
   loader: async ({ params }) => {
-    const ind = await getPublicIndicator({ data: { token: params.token } });
+    const ind = await getIndicatorByAccessToken({ data: { token: params.token } });
     if (!ind) throw notFound();
     return { indicator: ind };
   },
@@ -38,37 +27,42 @@ export const Route = createFileRoute("/c/$token")({
       </div>
     </div>
   ),
+  errorComponent: ({ error }) => (
+    <div className="grid min-h-screen place-items-center px-4">
+      <div className="max-w-md text-center">
+        <h1 className="mb-2 text-xl font-bold">Acesso não liberado</h1>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+      </div>
+    </div>
+  ),
   component: PublicCollect,
-  head: () => ({ meta: [{ title: "Coleta de indicador — JARVIS" }] }),
+  head: () => ({ meta: [
+    { title: "Coleta de indicador | JARVIS" },
+    { name: "description", content: "Coleta segura de indicadores para clientes autorizados no JARVIS." },
+    { property: "og:title", content: "Coleta de indicador | JARVIS" },
+    { property: "og:description", content: "Coleta segura de indicadores para clientes autorizados no JARVIS." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+    { name: "robots", content: "noindex" },
+  ] }),
 });
 
 function PublicCollect() {
   const { indicator } = Route.useLoaderData();
   const { token } = Route.useParams();
+  const create = useServerFn(createCollectionByAccessToken);
   const [value, setValue] = useState("");
   const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 10));
   const [observation, setObservation] = useState("");
-  const [name, setName] = useState("");
   const [done, setDone] = useState(false);
 
   const mut = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/public/coletas/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          value: Number(value),
-          reference_period: period,
-          observation,
-          submitted_by_name: name,
-        }),
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Erro ${res.status}`);
-      }
-      return res.json();
-    },
+    mutationFn: () => create({ data: {
+      token,
+      value: Number(value),
+      reference_period: period,
+      observation,
+    } }),
     onSuccess: () => setDone(true),
   });
 
@@ -81,12 +75,13 @@ function PublicCollect() {
           <p className="text-sm text-muted-foreground">
             Obrigado! Sua coleta foi registrada para <strong>{indicator.name}</strong>.
           </p>
-          <button
+          <Button
+            variant="link"
             onClick={() => { setDone(false); setValue(""); setObservation(""); }}
-            className="text-sm text-primary underline min-h-11 px-4"
+            className="min-h-11 px-4 text-sm"
           >
             Enviar outro valor
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -149,16 +144,6 @@ function PublicCollect() {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Seu nome</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-3 min-h-12"
-              placeholder="Quem está enviando?"
-            />
-          </div>
-          <div>
             <label className="text-xs font-medium text-muted-foreground">Observação</label>
             <textarea
               value={observation}
@@ -172,13 +157,13 @@ function PublicCollect() {
             <p className="text-sm text-destructive">{(mut.error as Error).message}</p>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={mut.isPending || !value}
-            className="w-full bg-primary text-primary-foreground font-semibold rounded-lg min-h-12 disabled:opacity-50"
+            className="min-h-12 w-full font-semibold"
           >
             {mut.isPending ? "Enviando…" : "Enviar coleta"}
-          </button>
+          </Button>
         </form>
 
         <p className="text-[10px] text-center text-muted-foreground pt-2 border-t">

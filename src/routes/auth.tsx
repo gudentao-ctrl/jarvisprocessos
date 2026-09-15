@@ -11,8 +11,25 @@ import { Mic, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
+  head: () => ({ meta: [
+    { title: "Entrar | JARVIS" },
+    { name: "description", content: "Acesso seguro à plataforma JARVIS." },
+    { property: "og:title", content: "Entrar | JARVIS" },
+    { property: "og:description", content: "Acesso seguro à plataforma JARVIS." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+    { name: "robots", content: "noindex" },
+  ] }),
   component: AuthPage,
 });
+
+function safeRedirect(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/empresas";
+  return value;
+}
 
 function isNetworkError(err: unknown): boolean {
   if (!err) return false;
@@ -31,6 +48,8 @@ function friendlyAuthError(err: unknown): string {
 
 export function AuthPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+  const destination = safeRedirect(redirect);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -41,9 +60,9 @@ export function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/empresas" });
+      if (data.user) navigate({ href: destination });
     });
-  }, [navigate]);
+  }, [destination, navigate]);
 
   async function signInWithRetry() {
     try {
@@ -63,7 +82,7 @@ export function AuthPage() {
     try {
       const { error } = await signInWithRetry();
       if (error) throw error;
-      navigate({ to: "/empresas" });
+      navigate({ href: destination });
     } catch (err) {
       toast.error(friendlyAuthError(err));
     } finally {
