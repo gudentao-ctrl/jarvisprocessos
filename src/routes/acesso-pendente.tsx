@@ -33,7 +33,7 @@ function PendingAccessPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) navigate({ to: "/auth" });
+      if (!data.user) navigate({ to: "/auth", search: { redirect: undefined } });
       else setEmail(data.user.email ?? null);
     });
   }, [navigate]);
@@ -64,7 +64,7 @@ function PendingAccessPage() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({ to: "/auth", search: { redirect: undefined }, replace: true });
   }
 
   return (
