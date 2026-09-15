@@ -183,7 +183,10 @@ export const deleteWorkHours = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const [{ data: current }, { data: profile }] = await Promise.all([
       sb
-      .from("work_hours").select("billing_status, company_id").eq("id", data.id).maybeSingle();
+        .from("work_hours")
+        .select("billing_status, company_id")
+        .eq("id", data.id)
+        .maybeSingle(),
       sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
     ]);
     if (current?.billing_status === "faturado" && !profile?.is_superadmin) {
