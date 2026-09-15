@@ -173,6 +173,11 @@ function CompanyCard({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <Badge variant="outline">{Number(company.total_hours ?? 0).toFixed(2).replace(".", ",")} h</Badge>
+        {company.start_date && <span>Início {company.start_date.split("-").reverse().join("/")}</span>}
+        {company.end_date && <span>Término {company.end_date.split("-").reverse().join("/")}</span>}
+      </div>
       <PortalPublicoDialog
         companyId={company.id}
         companyName={company.name}

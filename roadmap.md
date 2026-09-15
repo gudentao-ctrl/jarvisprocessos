@@ -16,7 +16,7 @@
 - [x] Cadastro: nome, CPF, nascimento, WhatsApp, e-mail e senha
 - [x] Exigir login e permissão Indicadores para coleta por link
 - [x] Exigir login e permissão Portal para o portal de cada cliente
-- [ ] SuperAdmin: editar e excluir dados nas telas existentes, inclusive desfazer faturamentos com segurança
-- [ ] CRM: confirmar conversão de lead fechado em empresa ativa e exibir empresas ativas
-- [ ] Restringir dados financeiros às áreas e usuários autorizados
-- [ ] Agenda: destacar reunião de alinhamento criada por gestor
+- [x] SuperAdmin: editar e excluir dados nas telas existentes, inclusive desfazer faturamentos com segurança
+- [x] CRM: confirmar conversão de lead fechado em empresa ativa e exibir empresas ativas
+- [x] Restringir dados financeiros às áreas e usuários autorizados
+- [x] Agenda: destacar reunião de alinhamento criada por gestor

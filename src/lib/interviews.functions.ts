@@ -9,12 +9,28 @@ import { z } from "zod";
 export const listCompanies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("companies")
-      .select("id, name, public_enabled, is_active, sectors(id, name)")
-      .order("name");
+    const [{ data, error }, { data: projects }, { data: hours }] = await Promise.all([
+      context.supabase
+        .from("companies")
+        .select("id, name, public_enabled, is_active, created_at, sectors(id, name)")
+        .order("name"),
+      context.supabase.from("projects").select("company_id, start_date, end_date"),
+      context.supabase.from("work_hours").select("company_id, hours"),
+    ]);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return (data ?? []).map((company: any) => {
+      const companyProjects = (projects ?? []).filter((project: any) => project.company_id === company.id);
+      const dates = companyProjects.flatMap((project: any) => [project.start_date, project.end_date]).filter(Boolean).sort();
+      const totalHours = (hours ?? [])
+        .filter((entry: any) => entry.company_id === company.id)
+        .reduce((sum: number, entry: any) => sum + Number(entry.hours ?? 0), 0);
+      return {
+        ...company,
+        start_date: dates[0] ?? null,
+        end_date: dates[dates.length - 1] ?? null,
+        total_hours: totalHours,
+      };
+    });
   });
 
 export const setCompanyActive = createServerFn({ method: "POST" })

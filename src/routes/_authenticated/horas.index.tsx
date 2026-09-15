@@ -180,7 +180,7 @@ function HorasPage() {
   }
 
   function openEdit(r: any) {
-    if (r.billing_status === "faturado") {
+    if (r.billing_status === "faturado" && !me?.isSuperadmin) {
       toast.error("Lançamento faturado não pode ser editado.");
       return;
     }
@@ -611,14 +611,14 @@ function HorasPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button size="icon" variant="ghost" disabled={faturado} onClick={() => openEdit(r)}>
+                    <Button size="icon" variant="ghost" disabled={faturado && !me?.isSuperadmin} onClick={() => openEdit(r)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="text-destructive"
-                      disabled={faturado}
+                      disabled={faturado && !me?.isSuperadmin}
                       onClick={() => confirm("Excluir?") && delMut.mutate(r.id)}
                     >
                       <Trash2 className="h-4 w-4" />
