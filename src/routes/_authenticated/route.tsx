@@ -42,7 +42,10 @@ export const Route = createFileRoute("/_authenticated")({
         .from("company_members")
         .select("permissions")
         .eq("user_id", data.user.id);
-      const allowed = (memberships ?? []).some((membership: any) => membership.permissions?.[requiredPermission] === true);
+      const allowed = location.pathname.startsWith("/fase/")
+        ? (memberships ?? []).some((membership: any) =>
+            ["gestao", "pop", "indicadores", "horas"].some((key) => membership.permissions?.[key] === true))
+        : (memberships ?? []).some((membership: any) => membership.permissions?.[requiredPermission] === true);
       if (!allowed) throw redirect({ to: "/acesso-pendente" });
     }
     return { user: data.user };
