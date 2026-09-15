@@ -3106,6 +3106,10 @@ export type Database = {
       }
     }
     Functions: {
+      convert_crm_lead_to_company: {
+        Args: { _lead_id: string }
+        Returns: string
+      }
       superadmin_delete_invoice: {
         Args: { _invoice_id: string }
         Returns: undefined
