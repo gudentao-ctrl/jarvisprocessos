@@ -64,7 +64,6 @@ import { Route as AuthenticatedProjetosIdExecucaoRouteImport } from './routes/_a
 import { Route as AuthenticatedProjetosIdGestaoRouteImport } from './routes/_authenticated/projetos.$id.gestao'
 import { Route as AuthenticatedProjetosIdMapeamentoRouteImport } from './routes/_authenticated/projetos.$id.mapeamento'
 import { Route as AuthenticatedProjetosIdMelhoriasRouteImport } from './routes/_authenticated/projetos.$id.melhorias'
-import { Route as ApiPublicColetasTokenRouteImport } from './routes/api/public/coletas.$token'
 import { Route as ApiPublicPlanosTokenRouteImport } from './routes/api/public/planos.$token'
 
 const IndexRoute = IndexRouteImport.update({
@@ -378,11 +377,6 @@ const AuthenticatedProjetosIdMelhoriasRoute =
     path: '/melhorias',
     getParentRoute: () => AuthenticatedProjetosIdRoute,
   } as any)
-const ApiPublicColetasTokenRoute = ApiPublicColetasTokenRouteImport.update({
-  id: '/api/public/coletas/$token',
-  path: '/api/public/coletas/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicPlanosTokenRoute = ApiPublicPlanosTokenRouteImport.update({
   id: '/api/public/planos/$token',
   path: '/api/public/planos/$token',
@@ -443,7 +437,6 @@ export interface FileRoutesByFullPath {
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
-  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
   '/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
@@ -500,7 +493,6 @@ export interface FileRoutesByTo {
   '/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
-  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdIndexRoute
 }
@@ -560,7 +552,6 @@ export interface FileRoutesById {
   '/_authenticated/projetos/$id/gestao': typeof AuthenticatedProjetosIdGestaoRoute
   '/_authenticated/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/_authenticated/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
-  '/api/public/coletas/$token': typeof ApiPublicColetasTokenRoute
   '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
   '/_authenticated/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
 }
@@ -620,7 +611,6 @@ export interface FileRouteTypes {
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
-    | '/api/public/coletas/$token'
     | '/api/public/planos/$token'
     | '/projetos/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -677,7 +667,6 @@ export interface FileRouteTypes {
     | '/projetos/$id/gestao'
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
-    | '/api/public/coletas/$token'
     | '/api/public/planos/$token'
     | '/projetos/$id'
   id:
@@ -736,7 +725,6 @@ export interface FileRouteTypes {
     | '/_authenticated/projetos/$id/gestao'
     | '/_authenticated/projetos/$id/mapeamento'
     | '/_authenticated/projetos/$id/melhorias'
-    | '/api/public/coletas/$token'
     | '/api/public/planos/$token'
     | '/_authenticated/projetos/$id/'
   fileRoutesById: FileRoutesById
@@ -749,7 +737,6 @@ export interface RootRouteChildren {
   CTokenRoute: typeof CTokenRoute
   DashboardTokenRoute: typeof DashboardTokenRoute
   PTokenRoute: typeof PTokenRoute
-  ApiPublicColetasTokenRoute: typeof ApiPublicColetasTokenRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
 }
 
@@ -1140,13 +1127,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdMelhoriasRouteImport
       parentRoute: typeof AuthenticatedProjetosIdRoute
     }
-    '/api/public/coletas/$token': {
-      id: '/api/public/coletas/$token'
-      path: '/api/public/coletas/$token'
-      fullPath: '/api/public/coletas/$token'
-      preLoaderRoute: typeof ApiPublicColetasTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/planos/$token': {
       id: '/api/public/planos/$token'
       path: '/api/public/planos/$token'
@@ -1289,7 +1269,6 @@ const rootRouteChildren: RootRouteChildren = {
   CTokenRoute: CTokenRoute,
   DashboardTokenRoute: DashboardTokenRoute,
   PTokenRoute: PTokenRoute,
-  ApiPublicColetasTokenRoute: ApiPublicColetasTokenRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
 }
 export const routeTree = rootRouteImport

@@ -83,7 +83,7 @@ export const regeneratePortalToken = createServerFn({ method: "POST" })
   });
 
 /* ============================================================
- * PÚBLICO — dashboard read-only
+ * PORTAL DO CLIENTE — dashboard read-only autenticado
  * ============================================================ */
 
 async function adminClient() {
@@ -101,10 +101,35 @@ async function resolveLogo(sb: any, value: string | null): Promise<string | null
   return data?.signedUrl ?? null;
 }
 
+async function requirePortalAccess(userSb: any, userId: string, companyId: string) {
+  const { data: profile, error: profileError } = await userSb
+    .from("profiles")
+    .select("status, is_superadmin")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+  if (!profile || (profile.status !== "active" && !profile.is_superadmin)) {
+    throw new Error("Seu cadastro ainda não foi aprovado pelo SuperAdmin.");
+  }
+  if (profile.is_superadmin) return;
+
+  const { data: membership, error: membershipError } = await userSb
+    .from("company_members")
+    .select("permissions")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (membershipError) throw new Error(membershipError.message);
+  if (membership?.permissions?.portal !== true) {
+    throw new Error("Seu acesso ao portal desta empresa não foi liberado pelo SuperAdmin.");
+  }
+}
+
 export const getPublicDashboard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ token: z.string().min(8).max(64) }).parse(d))
-  .handler(async ({ data }) => {
-    setResponseHeader("Cache-Control", "private, max-age=30");
+  .handler(async ({ data, context }) => {
+    setResponseHeader("Cache-Control", "private, no-store");
     const sb = await adminClient();
 
     const { data: company, error: ce } = await sb
@@ -118,6 +143,7 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
     if (!company || !company.public_enabled) return null;
 
     const companyId = company.id as string;
+    await requirePortalAccess(context.supabase, context.userId, companyId);
 
     const [indicators, plans, processes] = await Promise.all([
       sb
@@ -174,11 +200,12 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
   });
 
 export const getPublicPlanDetails = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z.object({ token: z.string().min(8).max(64), plan_id: z.string().uuid() }).parse(d),
   )
-  .handler(async ({ data }) => {
-    setResponseHeader("Cache-Control", "private, max-age=30");
+  .handler(async ({ data, context }) => {
+    setResponseHeader("Cache-Control", "private, no-store");
     const sb = await adminClient();
 
     const { data: company, error: ce } = await sb
@@ -188,6 +215,7 @@ export const getPublicPlanDetails = createServerFn({ method: "GET" })
       .maybeSingle();
     if (ce) throw new Error(ce.message);
     if (!company || !company.public_enabled) return null;
+    await requirePortalAccess(context.supabase, context.userId, company.id as string);
 
     const { data: plan, error: pe } = await sb
       .from("action_plans")
