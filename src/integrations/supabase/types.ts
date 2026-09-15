@@ -3106,7 +3106,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      superadmin_delete_invoice: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       action_priority: "baixa" | "media" | "alta" | "critica"
