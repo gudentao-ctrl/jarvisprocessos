@@ -21,12 +21,13 @@ export const Route = createFileRoute("/_authenticated/calendario/")({
 });
 
 const TYPE_LABEL: Record<string, string> = {
-  reuniao: "Reunião", workshop: "Workshop", visita: "Visita",
+  reuniao: "Reunião", alinhamento: "Reunião de alinhamento", workshop: "Workshop", visita: "Visita",
   entrega: "Entrega", outro: "Outro",
 };
 
 const TYPE_COLORS: Record<string, string> = {
   reuniao: "bg-primary/10 text-primary",
+  alinhamento: "bg-destructive text-destructive-foreground",
   workshop: "bg-amber-100 text-amber-700",
   visita: "bg-emerald-100 text-emerald-700",
   entrega: "bg-blue-100 text-blue-700",
@@ -90,6 +91,7 @@ function CalendarioPage() {
       type: e.event_type, location: e.location,
       subtitle: [e.companies?.name, e.projects?.name].filter(Boolean).join(" · "),
       raw: e,
+      highlighted: e.is_manager_alignment,
     })),
     ...(interviews as any[])
       .filter((i) => i.interview_date)
@@ -317,7 +319,7 @@ function EventRow({ it, onEdit, onDelete }: { it: any; onEdit: () => void; onDel
   const chipCls = isInterview ? "bg-secondary text-secondary-foreground" : TYPE_COLORS[it.type] ?? "bg-slate-100 text-slate-700";
   const chipLbl = isInterview ? "Entrevista" : TYPE_LABEL[it.type] ?? it.type;
   const body = (
-    <Card className="flex min-h-[64px] items-center gap-3 p-3">
+    <Card className={`flex min-h-[64px] items-center gap-3 p-3 ${it.highlighted ? "border-destructive bg-destructive/5" : ""}`}>
       <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
         <CalendarClock className="h-5 w-5" />
       </div>

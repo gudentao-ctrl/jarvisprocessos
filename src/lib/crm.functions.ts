@@ -61,15 +61,40 @@ export const listLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
-    const [{ data: leads, error }, { data: acts }] = await Promise.all([
+    const [{ data: leads, error }, { data: acts }, { data: profile }, { data: memberships }, { data: companies }] = await Promise.all([
       sb
         .from("crm_leads")
         .select("*, companies:converted_company_id(id, name)")
         .order("updated_at", { ascending: false }),
       sb.from("crm_activities").select("*").order("occurred_at", { ascending: false }),
+      sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
+      sb.from("company_members").select("permissions").eq("user_id", context.userId),
+      sb.from("companies").select("id, name, is_active, created_at").order("name"),
     ]);
     if (error) throw new Error(error.message);
-    return { leads: leads ?? [], activities: acts ?? [] };
+    const canViewFinance = !!profile?.is_superadmin || (memberships ?? []).some(
+      (m: any) => m.permissions?.financeiro === true,
+    );
+    const safeLeads = (leads ?? []).map((lead: any) => canViewFinance ? lead : {
+      ...lead,
+      hourly_rate: null,
+      contract_total: null,
+      payment_day: null,
+      payment_due_date: null,
+    });
+    return { leads: safeLeads, activities: acts ?? [], companies: companies ?? [], canViewFinance };
+  });
+
+export const convertLeadToCompany = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ lead_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const { data: companyId, error } = await sb.rpc("convert_crm_lead_to_company", {
+      _lead_id: data.lead_id,
+    });
+    if (error) throw new Error(error.message);
+    return { company_id: companyId };
   });
 
 export const saveLead = createServerFn({ method: "POST" })
@@ -131,6 +156,13 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
     const today = new Date().toISOString().slice(0, 10);
     const monthStart = today.slice(0, 8) + "01";
 
+    const [{ data: profile }, { data: memberships }] = await Promise.all([
+      sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
+      sb.from("company_members").select("permissions").eq("user_id", context.userId),
+    ]);
+    const canViewFinance = !!profile?.is_superadmin || (memberships ?? []).some(
+      (m: any) => m.permissions?.financeiro === true,
+    );
     const [{ data: leads }, { data: dismissed }, { data: hours }, { data: invoices }, { data: payments }] =
       await Promise.all([
         sb.from("crm_leads").select("*"),
@@ -139,8 +171,8 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
           .from("work_hours")
           .select("company_id, hours, work_date, billing_status, companies(name)")
           .neq("billing_status", "faturado"),
-        sb.from("invoices").select("company_id, total_amount, companies(name)"),
-        sb.from("payments").select("company_id, amount"),
+        canViewFinance ? sb.from("invoices").select("company_id, total_amount, companies(name)") : Promise.resolve({ data: [] }),
+        canViewFinance ? sb.from("payments").select("company_id, amount") : Promise.resolve({ data: [] }),
       ]);
 
     const alerts: CrmAlert[] = [];
@@ -221,7 +253,7 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
       cur.hours += Number(h.hours ?? 0);
       byCompany.set(h.company_id, cur);
     }
-    for (const [companyId, v] of byCompany) {
+    for (const [companyId, v] of canViewFinance ? byCompany : []) {
       if (v.hours <= 0) continue;
       alerts.push({
         key: `fin:faturar:${companyId}:${monthStart}`,

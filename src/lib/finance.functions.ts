@@ -272,6 +272,24 @@ export const deletePayment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteInvoice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const { data: profile, error: profileError } = await sb
+      .from("profiles")
+      .select("is_superadmin")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profileError) throw new Error(profileError.message);
+    if (!profile?.is_superadmin) throw new Error("Acesso restrito ao SuperAdmin");
+
+    const { error } = await sb.rpc("superadmin_delete_invoice", { _invoice_id: data.id });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /* ============================================================
  * RELATÓRIO DE FATURAMENTO POR CLIENTE
  * ============================================================ */

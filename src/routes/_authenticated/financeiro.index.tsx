@@ -7,10 +7,12 @@ import {
   createInvoice,
   savePayment,
   deletePayment,
+  deleteInvoice,
   PAYMENT_METHODS,
   methodLabel,
 } from "@/lib/finance.functions";
 import { listCompanies } from "@/lib/interviews.functions";
+import { getMe } from "@/lib/access.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,6 +80,8 @@ function FinanceiroPage() {
   const invoiceFn = useServerFn(createInvoice);
   const payFn = useServerFn(savePayment);
   const delPayFn = useServerFn(deletePayment);
+  const delInvoiceFn = useServerFn(deleteInvoice);
+  const meFn = useServerFn(getMe);
   const billedFn = useServerFn(getBilledReport);
 
   async function exportPdf(mode: BilledPdfMode) {
@@ -98,6 +102,7 @@ function FinanceiroPage() {
     queryKey: ["companies"],
     queryFn: () => companiesFn(),
   });
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => meFn() });
   const activeCompanies = useMemo(
     () => (companies as any[]).filter((c) => c.is_active !== false),
     [companies],
@@ -192,6 +197,16 @@ function FinanceiroPage() {
       qc.invalidateQueries({ queryKey: ["finance"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível remover"),
+  });
+
+  const delInvoiceMut = useMutation({
+    mutationFn: (id: string) => delInvoiceFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Fatura desfeita e horas reabertas");
+      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ queryKey: ["work-hours"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível desfazer a fatura"),
   });
 
   const totals = data?.totals;
@@ -350,7 +365,20 @@ function FinanceiroPage() {
                     <FileText className="h-4 w-4 text-primary" />
                     {fmtDate(inv.period_start)} — {fmtDate(inv.period_end)}
                   </span>
-                  <span className="font-semibold">{brl(inv.total_amount)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{brl(inv.total_amount)}</span>
+                    {me?.isSuperadmin && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Desfazer fatura"
+                        disabled={delInvoiceMut.isPending}
+                        onClick={() => confirm("Desfazer esta fatura e reabrir as horas vinculadas?") && delInvoiceMut.mutate(inv.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {inv.companies?.name ? `${inv.companies.name} · ` : ""}

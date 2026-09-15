@@ -94,8 +94,9 @@ export const saveWorkHours = createServerFn({ method: "POST" })
       sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
       sb.from("company_members").select("member_role").eq("user_id", context.userId),
     ]);
+    const isSuperadmin = !!prof?.is_superadmin;
     const isManager =
-      !!prof?.is_superadmin ||
+      isSuperadmin ||
       (memberships ?? []).some((m: any) => m.member_role === "gestor");
     if (!isManager) {
       const today = new Date();
@@ -120,7 +121,7 @@ export const saveWorkHours = createServerFn({ method: "POST" })
       const { data: current, error: curErr } = await sb
         .from("work_hours").select("billing_status").eq("id", id).maybeSingle();
       if (curErr) throw new Error(curErr.message);
-      if (current?.billing_status === "faturado") {
+      if (current?.billing_status === "faturado" && !isSuperadmin) {
         throw new Error("Lançamento já faturado não pode ser alterado.");
       }
       const { data: updated, error } = await sb
@@ -180,9 +181,15 @@ export const deleteWorkHours = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    const { data: current } = await sb
-      .from("work_hours").select("billing_status, company_id").eq("id", data.id).maybeSingle();
-    if (current?.billing_status === "faturado") {
+    const [{ data: current }, { data: profile }] = await Promise.all([
+      sb
+        .from("work_hours")
+        .select("billing_status, company_id")
+        .eq("id", data.id)
+        .maybeSingle(),
+      sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
+    ]);
+    if (current?.billing_status === "faturado" && !profile?.is_superadmin) {
       throw new Error("Lançamento já faturado não pode ser excluído.");
     }
     const { error } = await sb.from("work_hours").delete().eq("id", data.id);
