@@ -90,37 +90,11 @@ export const convertLeadToCompany = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ lead_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    const { data: lead, error: leadError } = await sb
-      .from("crm_leads")
-      .select("id, company_name, stage, converted_company_id")
-      .eq("id", data.lead_id)
-      .single();
-    if (leadError) throw new Error(leadError.message);
-    if (lead.stage !== "fechamento") throw new Error("O lead precisa estar em Fechamento.");
-    if (lead.converted_company_id) return { company_id: lead.converted_company_id, alreadyConverted: true };
-
-    const { data: existing } = await sb
-      .from("companies")
-      .select("id")
-      .ilike("name", lead.company_name.trim())
-      .maybeSingle();
-    let companyId = existing?.id as string | undefined;
-    if (!companyId) {
-      const { data: company, error: companyError } = await sb
-        .from("companies")
-        .insert({ name: lead.company_name.trim(), created_by: context.userId, is_active: true })
-        .select("id")
-        .single();
-      if (companyError) throw new Error(companyError.message);
-      companyId = company.id;
-    }
-    const { error: updateError } = await sb
-      .from("crm_leads")
-      .update({ converted_company_id: companyId, converted_at: new Date().toISOString() })
-      .eq("id", lead.id)
-      .is("converted_company_id", null);
-    if (updateError) throw new Error(updateError.message);
-    return { company_id: companyId, alreadyConverted: false };
+    const { data: companyId, error } = await sb.rpc("convert_crm_lead_to_company", {
+      _lead_id: data.lead_id,
+    });
+    if (error) throw new Error(error.message);
+    return { company_id: companyId };
   });
 
 export const saveLead = createServerFn({ method: "POST" })
