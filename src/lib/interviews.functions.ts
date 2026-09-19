@@ -6,29 +6,52 @@ import { z } from "zod";
  * COMPANIES & SECTORS
  * ============================================================ */
 
+async function assertSuperadmin(sb: any, userId: string) {
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("is_superadmin")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!profile?.is_superadmin) {
+    throw new Error("Acesso restrito ao SuperAdmin");
+  }
+}
+
 export const listCompanies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const startDate = `${year}-${month}-01`;
+    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+    const endDate = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+
     const [{ data, error }, { data: projects }, { data: hours }] = await Promise.all([
       context.supabase
         .from("companies")
         .select("id, name, public_enabled, is_active, created_at, sectors(id, name)")
         .order("name"),
       context.supabase.from("projects").select("company_id, start_date, end_date"),
-      context.supabase.from("work_hours").select("company_id, hours"),
+      context.supabase
+        .from("work_hours")
+        .select("company_id, hours")
+        .gte("work_date", startDate)
+        .lte("work_date", endDate),
     ]);
     if (error) throw new Error(error.message);
     return (data ?? []).map((company: any) => {
       const companyProjects = (projects ?? []).filter((project: any) => project.company_id === company.id);
       const dates = companyProjects.flatMap((project: any) => [project.start_date, project.end_date]).filter(Boolean).sort();
-      const totalHours = (hours ?? [])
+      const monthHours = (hours ?? [])
         .filter((entry: any) => entry.company_id === company.id)
         .reduce((sum: number, entry: any) => sum + Number(entry.hours ?? 0), 0);
       return {
         ...company,
         start_date: dates[0] ?? null,
         end_date: dates[dates.length - 1] ?? null,
-        total_hours: totalHours,
+        month_hours: monthHours,
+        total_hours: monthHours,
       };
     });
   });
@@ -47,7 +70,6 @@ export const setCompanyActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-
 export const createCompany = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ name: z.string().min(1).max(120) }).parse(d))
@@ -55,6 +77,23 @@ export const createCompany = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("companies")
       .insert({ name: data.name, created_by: context.userId })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const updateCompany = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(120) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.supabase, context.userId);
+    const { data: row, error } = await (context.supabase as any)
+      .from("companies")
+      .update({ name: data.name })
+      .eq("id", data.id)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -76,9 +115,27 @@ export const createSector = createServerFn({ method: "POST" })
     z.object({ company_id: z.string().uuid(), name: z.string().min(1).max(120) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("sectors")
       .insert({ company_id: data.company_id, name: data.name })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const updateSector = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(120) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.supabase, context.userId);
+    const { data: row, error } = await (context.supabase as any)
+      .from("sectors")
+      .update({ name: data.name })
+      .eq("id", data.id)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -89,6 +146,7 @@ export const deleteSector = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.supabase, context.userId);
     const { error } = await context.supabase.from("sectors").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
