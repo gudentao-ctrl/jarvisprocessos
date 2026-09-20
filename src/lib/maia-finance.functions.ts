@@ -15,6 +15,17 @@ async function assertManagerOrAdmin(sb: any, userId: string) {
   }
 }
 
+async function assertSuperadmin(sb: any, userId: string) {
+  const { data: prof } = await sb
+    .from("profiles")
+    .select("is_superadmin")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!prof?.is_superadmin) {
+    throw new Error("Acesso confidencial restrito exclusivamente ao SuperAdmin.");
+  }
+}
+
 // ─── 1. IMPOSTOS (maia_tax_settings) ──────────────────────────────────────────
 
 export const listMaiaTaxes = createServerFn({ method: "GET" })
@@ -95,7 +106,7 @@ export const listConsultantContracts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertSuperadmin(sb, context.userId);
 
     const [{ data: profiles, error: pErr }, { data: contracts, error: cErr }] =
       await Promise.all([
@@ -107,9 +118,16 @@ export const listConsultantContracts = createServerFn({ method: "GET" })
       ]);
 
     if (pErr) throw new Error(pErr.message);
-    if (cErr) throw new Error(cErr.message);
+    if (cErr) {
+      if (cErr.message.includes("schema cache") || cErr.code === "42P01") {
+        throw new Error(
+          "A tabela 'consultant_contracts' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+        );
+      }
+      throw new Error(cErr.message);
+    }
 
-    const contractMap = new Map((contracts ?? []).map((c: any) => [c.user_id, c]));
+    const contractMap = new Map<string, any>((contracts ?? []).map((c: any) => [c.user_id, c]));
 
     return (profiles ?? []).map((p: any) => ({
       userId: p.user_id,
@@ -146,7 +164,7 @@ export const saveConsultantContract = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertSuperadmin(sb, context.userId);
 
     const { error } = await sb
       .from("consultant_contracts")
@@ -157,7 +175,14 @@ export const saveConsultantContract = createServerFn({ method: "POST" })
         },
         { onConflict: "user_id" },
       );
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("schema cache") || error.code === "42P01") {
+        throw new Error(
+          "A tabela 'consultant_contracts' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+        );
+      }
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
 
@@ -236,7 +261,14 @@ export const updateAuditedWorkHour = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("schema cache") || error.code === "42703") {
+        throw new Error(
+          "As colunas de auditoria ('audit_status', 'adjusted_by_manager', 'manager_note') ainda não foram criadas no banco de dados. Execute o script SQL no Supabase.",
+        );
+      }
+      throw new Error(error.message);
+    }
     return updated;
   });
 
@@ -253,7 +285,14 @@ export const approveAuditBatch = createServerFn({ method: "POST" })
       .from("work_hours")
       .update({ audit_status: "aprovado", updated_at: new Date().toISOString() })
       .in("id", data.work_hour_ids);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("schema cache") || error.code === "42703") {
+        throw new Error(
+          "A coluna 'audit_status' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+        );
+      }
+      throw new Error(error.message);
+    }
     return { ok: true, count: data.work_hour_ids.length };
   });
 
@@ -272,13 +311,13 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
     const end = `${data.month_year}-31`;
 
     const [
-      { data: profiles },
-      { data: contracts },
-      { data: closings },
-      { data: hoursRows },
-      { data: bankAccounts },
+      { data: profiles, error: pErr },
+      { data: contracts, error: cErr },
+      { data: closings, error: clErr },
+      { data: hoursRows, error: hErr },
+      { data: bankAccounts, error: bErr },
     ] = await Promise.all([
-      sb.from("profiles").select("user_id, full_name, email"),
+      sb.from("profiles").select("user_id, full_name, email, whatsapp"),
       sb.from("consultant_contracts").select("*"),
       sb.from("consultant_closings").select("*").eq("month_year", data.month_year),
       sb
@@ -288,6 +327,18 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
         .lte("work_date", end),
       sb.from("consultant_current_accounts").select("*"),
     ]);
+
+    if (pErr) throw new Error(pErr.message);
+    if (clErr && (clErr.message.includes("schema cache") || clErr.code === "42P01")) {
+      throw new Error(
+        "A tabela 'consultant_closings' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+      );
+    }
+    if (cErr && (cErr.message.includes("schema cache") || cErr.code === "42P01")) {
+      throw new Error(
+        "A tabela 'consultant_contracts' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+      );
+    }
 
     const contractMap = new Map<string, any>((contracts ?? []).map((c: any) => [c.user_id, c]));
     const closingMap = new Map<string, any>((closings ?? []).map((c: any) => [c.user_id, c]));
@@ -336,6 +387,7 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
           userId: uid,
           fullName: prof.full_name || prof.email,
           email: prof.email,
+          whatsapp: prof.whatsapp || "",
           isClosed: true,
           closingId: existingClosing.id,
           regime: existingClosing.payment_regime_snapshot,
@@ -382,6 +434,7 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
         userId: uid,
         fullName: prof.full_name || prof.email,
         email: prof.email,
+        whatsapp: prof.whatsapp || "",
         isClosed: false,
         closingId: null,
         regime,
@@ -444,7 +497,14 @@ export const closeConsultantMonth = createServerFn({ method: "POST" })
       },
       { onConflict: "user_id,month_year" },
     );
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("schema cache") || error.code === "42P01") {
+        throw new Error(
+          "A tabela 'consultant_closings' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+        );
+      }
+      throw new Error(error.message);
+    }
 
     // If there was deficit in conta_corrente, accumulate in bank
     if (data.deficit_hours > 0 && data.regime === "conta_corrente") {
@@ -489,7 +549,14 @@ export const toggleNfReceived = createServerFn({ method: "POST" })
         .from("consultant_closings")
         .update({ nf_received: data.nf_received, updated_at: new Date().toISOString() })
         .eq("id", data.closing_id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message.includes("schema cache") || error.code === "42P01") {
+          throw new Error(
+            "A tabela 'consultant_closings' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+          );
+        }
+        throw new Error(error.message);
+      }
     }
     return { ok: true };
   });
@@ -617,7 +684,14 @@ export const saveMaiaDreEntry = createServerFn({ method: "POST" })
         .eq("id", data.id)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message.includes("schema cache") || error.code === "42P01") {
+          throw new Error(
+            "A tabela 'maia_dre_entries' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+          );
+        }
+        throw new Error(error.message);
+      }
       return updated;
     }
 
@@ -626,7 +700,14 @@ export const saveMaiaDreEntry = createServerFn({ method: "POST" })
       .insert({ ...payload, created_by: context.userId })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("schema cache") || error.code === "42P01") {
+        throw new Error(
+          "A tabela 'maia_dre_entries' ainda não foi criada no banco de dados. Execute o script SQL no Supabase.",
+        );
+      }
+      throw new Error(error.message);
+    }
     return inserted;
   });
 

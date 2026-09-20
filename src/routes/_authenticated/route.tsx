@@ -107,7 +107,7 @@ function AuthenticatedLayout() {
               <SidebarLink key={n.to} {...n} />
             ))}
             {isManagerOrAdmin && (
-              <SidebarLink to="/financeiro-maia" icon={Landmark} label="FINANCEIRO MAIA" />
+              <SidebarLink to="/financeiro-maia" icon={Landmark} label="Financeiro Maia" />
             )}
             {profile?.isSuperadmin && (
               <SidebarLink to="/admin" icon={ShieldCheck} label="SuperAdmin" />
@@ -160,7 +160,7 @@ function AuthenticatedLayout() {
                           activeProps={{ className: "bg-accent text-primary" }}
                         >
                           <Landmark className="h-5 w-5" />
-                          <span>FINANCEIRO MAIA</span>
+                          <span>Financeiro Maia</span>
                         </Link>
                       </SheetClose>
                     )}

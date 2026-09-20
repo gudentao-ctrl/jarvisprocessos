@@ -32,7 +32,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Landmark,
   ShieldCheck,
@@ -51,6 +51,9 @@ import {
   Copy,
   Bell,
   Lock,
+  Database,
+  Mail,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -59,7 +62,7 @@ export const Route = createFileRoute("/_authenticated/financeiro-maia/")({
   component: FinanceiroMaiaPage,
   head: () => ({
     meta: [
-      { title: "FINANCEIRO MAIA | Gestão Corporativa" },
+      { title: "Financeiro Maia | Gestão Corporativa" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -82,6 +85,136 @@ function currentMonthYear() {
   return `${y}-${m}`;
 }
 
+export const FINANCEIRO_MAIA_SQL_SCRIPT = `-- ============================================================
+-- SCRIPT DE INSTALAÇÃO / ATUALIZAÇÃO DO FINANCEIRO MAIA
+-- Cole e execute no SQL Editor do Supabase para criar as tabelas
+-- ============================================================
+
+-- 1. Impostos
+CREATE TABLE IF NOT EXISTS public.maia_tax_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  rate_percent numeric NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.maia_tax_settings TO authenticated;
+GRANT ALL ON public.maia_tax_settings TO service_role;
+ALTER TABLE public.maia_tax_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "superadmin or manager can manage maia_tax_settings" ON public.maia_tax_settings;
+CREATE POLICY "superadmin or manager can manage maia_tax_settings" ON public.maia_tax_settings
+  FOR ALL TO authenticated
+  USING (private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
+  WITH CHECK (private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
+INSERT INTO public.maia_tax_settings (name, rate_percent) VALUES ('Simples Nacional / ISS', 6.00) ON CONFLICT DO NOTHING;
+
+-- 2. Contratos (Sigiloso - SuperAdmin)
+CREATE TABLE IF NOT EXISTS public.consultant_contracts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  payment_regime text NOT NULL DEFAULT 'hora',
+  monthly_fixed_amount numeric NOT NULL DEFAULT 0,
+  hourly_rate numeric NOT NULL DEFAULT 0,
+  base_floor_amount numeric NOT NULL DEFAULT 0,
+  min_hours numeric NOT NULL DEFAULT 0,
+  extra_hour_rate numeric NOT NULL DEFAULT 0,
+  active boolean NOT NULL DEFAULT true,
+  notes text DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT consultant_contracts_user_id_key UNIQUE (user_id)
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.consultant_contracts TO authenticated;
+GRANT ALL ON public.consultant_contracts TO service_role;
+ALTER TABLE public.consultant_contracts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "superadmin only consultant_contracts" ON public.consultant_contracts;
+DROP POLICY IF EXISTS "superadmin or manager only consultant_contracts" ON public.consultant_contracts;
+CREATE POLICY "superadmin only consultant_contracts" ON public.consultant_contracts
+  FOR ALL TO authenticated
+  USING (private.is_superadmin())
+  WITH CHECK (private.is_superadmin());
+
+-- 3. Fechamentos de Equipe
+CREATE TABLE IF NOT EXISTS public.consultant_closings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  month_year text NOT NULL,
+  payment_regime_snapshot text NOT NULL,
+  contract_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+  total_hours numeric NOT NULL DEFAULT 0,
+  min_hours_snapshot numeric NOT NULL DEFAULT 0,
+  deficit_hours numeric NOT NULL DEFAULT 0,
+  base_amount numeric NOT NULL DEFAULT 0,
+  extra_amount numeric NOT NULL DEFAULT 0,
+  expense_reimbursement numeric NOT NULL DEFAULT 0,
+  total_payable numeric NOT NULL DEFAULT 0,
+  nf_received boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'aberto',
+  closed_by uuid REFERENCES auth.users(id),
+  closed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT consultant_closings_user_month_key UNIQUE (user_id, month_year)
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.consultant_closings TO authenticated;
+GRANT ALL ON public.consultant_closings TO service_role;
+ALTER TABLE public.consultant_closings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "managers can manage closings and consultants see own" ON public.consultant_closings;
+CREATE POLICY "managers can manage closings and consultants see own" ON public.consultant_closings
+  FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
+  WITH CHECK (private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
+
+-- 4. Conta Corrente
+CREATE TABLE IF NOT EXISTS public.consultant_current_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  balance_hours numeric NOT NULL DEFAULT 0,
+  debt_installments_requested boolean NOT NULL DEFAULT false,
+  debt_installments_count int NOT NULL DEFAULT 1,
+  debt_installments_status text NOT NULL DEFAULT 'none',
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.consultant_current_accounts TO authenticated;
+GRANT ALL ON public.consultant_current_accounts TO service_role;
+ALTER TABLE public.consultant_current_accounts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "current accounts access" ON public.consultant_current_accounts;
+CREATE POLICY "current accounts access" ON public.consultant_current_accounts
+  FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
+  WITH CHECK (user_id = auth.uid() OR private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
+
+-- 5. Custos do DRE
+CREATE TABLE IF NOT EXISTS public.maia_dre_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  month_year text NOT NULL,
+  entry_type text NOT NULL,
+  description text NOT NULL,
+  amount numeric NOT NULL DEFAULT 0,
+  created_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.maia_dre_entries TO authenticated;
+GRANT ALL ON public.maia_dre_entries TO service_role;
+ALTER TABLE public.maia_dre_entries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "superadmin or manager can manage dre entries" ON public.maia_dre_entries;
+CREATE POLICY "superadmin or manager can manage dre entries" ON public.maia_dre_entries
+  FOR ALL TO authenticated
+  USING (private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
+  WITH CHECK (private.is_superadmin() OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
+
+-- 6. Colunas de Auditoria
+ALTER TABLE public.work_hours
+  ADD COLUMN IF NOT EXISTS audit_status text NOT NULL DEFAULT 'pendente',
+  ADD COLUMN IF NOT EXISTS adjusted_by_manager boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS manager_note text DEFAULT '';
+
+-- 7. Recarregar cache PostgREST
+NOTIFY pgrst, 'reload schema';
+`;
+
 function FinanceiroMaiaPage() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState("auditoria");
@@ -102,7 +235,7 @@ function FinanceiroMaiaPage() {
         <ShieldCheck className="h-16 w-16 text-muted-foreground" />
         <h1 className="mt-4 text-xl font-bold">Acesso Restrito</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-md">
-          O módulo corporativo FINANCEIRO MAIA é de acesso estritamente reservado à Gerência e
+          O módulo corporativo Financeiro Maia é de acesso estritamente reservado à Gerência e
           Superadministração.
         </p>
       </div>
@@ -115,20 +248,37 @@ function FinanceiroMaiaPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
         <div>
           <h1 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-foreground">
-            <Landmark className="h-6 w-6 text-primary" /> FINANCEIRO MAIA
+            <Landmark className="h-6 w-6 text-primary" /> Financeiro Maia
           </h1>
           <p className="text-xs text-muted-foreground sm:text-sm">
             Auditoria de lançamentos, fechamento de equipe com conta corrente, DRE e impostos.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-xs font-semibold text-muted-foreground">Mês de Referência:</Label>
-          <Input
-            type="month"
-            className="h-10 w-40 text-sm font-medium"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 text-xs font-semibold gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+            title="Copiar script SQL para executar no Supabase"
+            onClick={() => {
+              navigator.clipboard.writeText(FINANCEIRO_MAIA_SQL_SCRIPT);
+              toast.success("Script SQL copiado!", {
+                description:
+                  "Abra o SQL Editor do Supabase, cole e execute para criar/atualizar as tabelas.",
+              });
+            }}
+          >
+            <Database className="h-4 w-4" /> Copiar SQL Supabase
+          </Button>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Mês:</Label>
+            <Input
+              type="month"
+              className="h-10 w-36 text-sm font-medium"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -166,7 +316,7 @@ function FinanceiroMaiaPage() {
 
         {/* ─── ABA 4: CONFIGURAÇÕES DE IMPOSTOS E CONTRATOS ───────────────────── */}
         <TabsContent value="configuracoes">
-          <ConfiguracoesSection />
+          <ConfiguracoesSection isSuperadmin={!!profile?.isSuperadmin} />
         </TabsContent>
       </Tabs>
     </div>
@@ -582,6 +732,16 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
     );
   }, [team]);
 
+  const [notifyModalConsultant, setNotifyModalConsultant] = useState<any>(null);
+  const [notifyMsg, setNotifyMsg] = useState("");
+
+  function openNfNotification(c: any) {
+    setNotifyModalConsultant(c);
+    setNotifyMsg(
+      `Olá, ${c.fullName}! Lembramos que o envio da sua Nota Fiscal referente ao fechamento da Maia do mês ${selectedMonth} (Valor a receber: ${brl(c.totalPayable)}) ainda está pendente. Por gentileza, nos envie a NF para liberação do pagamento. Obrigado!`,
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Resumo do Fechamento */}
@@ -711,11 +871,9 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-amber-600"
+                        className="h-7 w-7 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-950/30"
                         title="Disparar notificação de cobrança de NF para o consultor"
-                        onClick={() =>
-                          toast.success(`Notificação de cobrança de NF enviada para ${c.fullName}!`)
-                        }
+                        onClick={() => openNfNotification(c)}
                       >
                         <Bell className="h-3.5 w-3.5" />
                       </Button>
@@ -759,6 +917,102 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
           })
         )}
       </Card>
+
+      {/* Modal de Disparo de Notificação de NF */}
+      {notifyModalConsultant && (
+        <Dialog
+          open={!!notifyModalConsultant}
+          onOpenChange={(open) => !open && setNotifyModalConsultant(null)}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-amber-600" />
+                Notificar Consultor sobre Nota Fiscal
+              </DialogTitle>
+              <DialogDescription>
+                Dispare uma cobrança formal de Nota Fiscal diretamente por WhatsApp ou E-mail.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
+                <p>
+                  <strong className="text-foreground">Consultor:</strong> {notifyModalConsultant.fullName}
+                </p>
+                <p>
+                  <strong className="text-foreground">WhatsApp:</strong>{" "}
+                  {notifyModalConsultant.whatsapp || "Não cadastrado"}
+                </p>
+                <p>
+                  <strong className="text-foreground">E-mail:</strong> {notifyModalConsultant.email}
+                </p>
+                <p>
+                  <strong className="text-foreground">Valor a Receber:</strong>{" "}
+                  <span className="font-bold text-primary">{brl(notifyModalConsultant.totalPayable)}</span>
+                </p>
+                <p>
+                  <strong className="text-foreground">Competência:</strong> {selectedMonth}
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-xs">Mensagem de Cobrança</Label>
+                <Textarea
+                  rows={4}
+                  className="text-xs mt-1"
+                  value={notifyMsg}
+                  onChange={(e) => setNotifyMsg(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1 text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(notifyMsg);
+                  toast.success("Mensagem copiada para a área de transferência!");
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" /> Copiar Mensagem
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                onClick={() => {
+                  const subject = `Envio de NF - Fechamento Maia ${selectedMonth}`;
+                  window.open(
+                    `mailto:${notifyModalConsultant.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(notifyMsg)}`,
+                    "_blank",
+                  );
+                }}
+              >
+                <Mail className="h-3.5 w-3.5" /> Enviar por E-mail
+              </Button>
+
+              <Button
+                type="button"
+                className="gap-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => {
+                  const raw = (notifyModalConsultant.whatsapp || "").replace(/\D/g, "");
+                  const phone = raw ? (raw.startsWith("55") ? raw : "55" + raw) : "";
+                  window.open(
+                    `https://wa.me/${phone}?text=${encodeURIComponent(notifyMsg)}`,
+                    "_blank",
+                  );
+                }}
+              >
+                <MessageSquare className="h-3.5 w-3.5" /> Disparar WhatsApp
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -773,7 +1027,7 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
   const [costForm, setCostForm] = useState({
     entry_type: "custo_fixo" as "custo_fixo" | "custo_variavel",
     description: "",
-    amount: 0,
+    amountStr: "",
   });
 
   const getDreFn = useServerFn(getMaiaDreData);
@@ -787,19 +1041,23 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
   });
 
   const saveCostMut = useMutation({
-    mutationFn: () =>
-      saveCostFn({
+    mutationFn: () => {
+      const clean = (costForm.amountStr || "").replace(/[^\d.,]/g, "").replace(",", ".");
+      const amount = parseFloat(clean) || 0;
+      if (amount <= 0) throw new Error("Informe um valor válido maior que zero.");
+      return saveCostFn({
         data: {
           month_year: selectedMonth,
           entry_type: costForm.entry_type,
           description: costForm.description.trim(),
-          amount: Number(costForm.amount),
+          amount,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Custo adicionado ao DRE!");
       setCostModalOpen(false);
-      setCostForm({ entry_type: "custo_fixo", description: "", amount: 0 });
+      setCostForm({ entry_type: "custo_fixo", description: "", amountStr: "" });
       qc.invalidateQueries({ queryKey: ["maia-dre"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar custo"),
@@ -1030,12 +1288,10 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
             <div>
               <Label>Valor (R$)</Label>
               <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={costForm.amount || ""}
-                onChange={(e) => setCostForm({ ...costForm, amount: Number(e.target.value) })}
-                className="h-10"
+                placeholder="Ex.: 1500,00 ou 250.50"
+                value={costForm.amountStr}
+                onChange={(e) => setCostForm({ ...costForm, amountStr: e.target.value })}
+                className="h-10 font-medium tabular-nums"
               />
             </div>
           </div>
@@ -1044,7 +1300,11 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
               Cancelar
             </Button>
             <Button
-              disabled={!costForm.description.trim() || costForm.amount <= 0 || saveCostMut.isPending}
+              disabled={
+                !costForm.description.trim() ||
+                !costForm.amountStr.trim() ||
+                saveCostMut.isPending
+              }
               onClick={() => saveCostMut.mutate()}
             >
               Adicionar ao DRE
@@ -1060,7 +1320,7 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
 // SEÇÃO 4: CONFIGURAÇÕES DE IMPOSTOS E CONTRATOS
 // ══════════════════════════════════════════════════════════════════════════════
 
-function ConfiguracoesSection() {
+function ConfiguracoesSection({ isSuperadmin }: { isSuperadmin?: boolean }) {
   const qc = useQueryClient();
   const [taxModalOpen, setTaxModalOpen] = useState(false);
   const [editingTax, setEditingTax] = useState<any>(null);
@@ -1082,6 +1342,7 @@ function ConfiguracoesSection() {
   const { data: consultants = [] } = useQuery({
     queryKey: ["consultant-contracts"],
     queryFn: () => listContractsFn(),
+    enabled: !!isSuperadmin,
   });
 
   const saveTaxMut = useMutation({
@@ -1173,68 +1434,80 @@ function ConfiguracoesSection() {
         </CardContent>
       </Card>
 
-      {/* Painel de Contratos dos Consultores */}
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle className="text-lg">Contratos de Consultores (Sigiloso)</CardTitle>
-            <CardDescription>
-              Parâmetros de remuneração restritos exclusivamente à gestão
-            </CardDescription>
+      {/* Painel de Contratos dos Consultores (Sigiloso - SuperAdmin) */}
+      {!isSuperadmin ? (
+        <Card className="border-dashed bg-muted/20 flex flex-col items-center justify-center p-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <Lock className="h-6 w-6 text-muted-foreground" />
           </div>
-        </CardHeader>
-        <CardContent className="divide-y">
-          {consultants.length === 0 ? (
-            <p className="py-6 text-center text-xs text-muted-foreground">
-              Nenhum consultor cadastrado.
-            </p>
-          ) : (
-            consultants.map((c: any) => {
-              const contract = c.contract;
-              const regime = contract.payment_regime || "hora";
-              return (
-                <div key={c.userId} className="flex items-center justify-between py-3 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground truncate">{c.fullName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Regime:{" "}
-                      <span className="font-medium text-foreground capitalize">
-                        {regime.replace("_", " ")}
-                      </span>
-                      {regime === "fixo" && ` · ${brl(contract.monthly_fixed_amount)}/mês`}
-                      {regime === "hora" && ` · ${brl(contract.hourly_rate)}/h`}
-                      {regime === "conta_corrente" &&
-                        ` · Piso: ${brl(contract.base_floor_amount)} (${fmtHours(contract.min_hours)}) + ${brl(contract.extra_hour_rate)}/h extra`}
-                    </p>
+          <CardTitle className="mt-3 text-base font-bold">Contratos de Consultores (Sigiloso)</CardTitle>
+          <CardDescription className="mt-1 text-xs max-w-sm">
+            Os honorários, regimes e termos contratuais dos consultores são estritamente confidenciais e restritos ao <strong>SuperAdmin</strong> da Maia.
+          </CardDescription>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle className="text-lg">Contratos de Consultores (Sigiloso)</CardTitle>
+              <CardDescription>
+                Parâmetros de remuneração restritos exclusivamente ao SuperAdmin
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="divide-y">
+            {consultants.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                Nenhum consultor cadastrado.
+              </p>
+            ) : (
+              consultants.map((c: any) => {
+                const contract = c.contract;
+                const regime = contract.payment_regime || "hora";
+                return (
+                  <div key={c.userId} className="flex items-center justify-between py-3 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground truncate">{c.fullName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Regime:{" "}
+                        <span className="font-medium text-foreground capitalize">
+                          {regime.replace("_", " ")}
+                        </span>
+                        {regime === "fixo" && ` · ${brl(contract.monthly_fixed_amount)}/mês`}
+                        {regime === "hora" && ` · ${brl(contract.hourly_rate)}/h`}
+                        {regime === "conta_corrente" &&
+                          ` · Piso: ${brl(contract.base_floor_amount)} (${fmtHours(contract.min_hours)}) + ${brl(contract.extra_hour_rate)}/h extra`}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-xs ml-2"
+                      onClick={() => {
+                        setEditingContract({
+                          user_id: c.userId,
+                          fullName: c.fullName,
+                          payment_regime: contract.payment_regime || "hora",
+                          monthly_fixed_amount: contract.monthly_fixed_amount || 0,
+                          hourly_rate: contract.hourly_rate || 0,
+                          base_floor_amount: contract.base_floor_amount || 0,
+                          min_hours: contract.min_hours || 0,
+                          extra_hour_rate: contract.extra_hour_rate || 0,
+                          active: contract.active !== false,
+                          notes: contract.notes || "",
+                        });
+                        setContractModalOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Contrato
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 text-xs ml-2"
-                    onClick={() => {
-                      setEditingContract({
-                        user_id: c.userId,
-                        fullName: c.fullName,
-                        payment_regime: contract.payment_regime || "hora",
-                        monthly_fixed_amount: contract.monthly_fixed_amount || 0,
-                        hourly_rate: contract.hourly_rate || 0,
-                        base_floor_amount: contract.base_floor_amount || 0,
-                        min_hours: contract.min_hours || 0,
-                        extra_hour_rate: contract.extra_hour_rate || 0,
-                        active: contract.active !== false,
-                        notes: contract.notes || "",
-                      });
-                      setContractModalOpen(true);
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Contrato
-                  </Button>
-                </div>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal Imposto */}
       {taxModalOpen && editingTax && (

@@ -14,11 +14,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.maia_tax_settings TO authenticate
 GRANT ALL ON public.maia_tax_settings TO service_role;
 ALTER TABLE public.maia_tax_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "superadmin or manager can manage maia_tax_settings" ON public.maia_tax_settings;
 CREATE POLICY "superadmin or manager can manage maia_tax_settings" ON public.maia_tax_settings
   FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+  USING (private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+  WITH CHECK (private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
 
 -- Impostos padrão iniciais
@@ -26,7 +27,7 @@ INSERT INTO public.maia_tax_settings (name, rate_percent) VALUES
   ('Simples Nacional / ISS', 6.00)
 ON CONFLICT DO NOTHING;
 
--- 2. Tabela de Contratos de Consultores (Sigiloso - Restrito a Gestor/Superadmin)
+-- 2. Tabela de Contratos de Consultores (Sigiloso - Restrito ao SuperAdmin)
 CREATE TABLE IF NOT EXISTS public.consultant_contracts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -47,12 +48,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.consultant_contracts TO authentic
 GRANT ALL ON public.consultant_contracts TO service_role;
 ALTER TABLE public.consultant_contracts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "superadmin or manager only consultant_contracts" ON public.consultant_contracts
+DROP POLICY IF EXISTS "superadmin only consultant_contracts" ON public.consultant_contracts;
+DROP POLICY IF EXISTS "superadmin or manager only consultant_contracts" ON public.consultant_contracts;
+CREATE POLICY "superadmin only consultant_contracts" ON public.consultant_contracts
   FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
-     OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
-     OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
+  USING (private.is_superadmin())
+  WITH CHECK (private.is_superadmin());
 
 -- 3. Tabela de Fechamentos Mensais da Equipe (Snapshot Imutável)
 CREATE TABLE IF NOT EXISTS public.consultant_closings (
@@ -81,12 +82,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.consultant_closings TO authentica
 GRANT ALL ON public.consultant_closings TO service_role;
 ALTER TABLE public.consultant_closings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "managers can manage closings and consultants see own" ON public.consultant_closings;
 CREATE POLICY "managers can manage closings and consultants see own" ON public.consultant_closings
   FOR ALL TO authenticated
   USING (user_id = auth.uid()
-     OR EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+     OR private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+  WITH CHECK (private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
 
 -- 4. Tabela de Conta Corrente e Banco de Horas dos Consultores
@@ -104,13 +106,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.consultant_current_accounts TO au
 GRANT ALL ON public.consultant_current_accounts TO service_role;
 ALTER TABLE public.consultant_current_accounts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "current accounts access" ON public.consultant_current_accounts;
 CREATE POLICY "current accounts access" ON public.consultant_current_accounts
   FOR ALL TO authenticated
   USING (user_id = auth.uid()
-     OR EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+     OR private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
   WITH CHECK (user_id = auth.uid()
-     OR EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+     OR private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
 
 -- 5. Tabela de Entradas de DRE (Custos Fixos e Variáveis Corporativos da Maia)
@@ -129,11 +132,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.maia_dre_entries TO authenticated
 GRANT ALL ON public.maia_dre_entries TO service_role;
 ALTER TABLE public.maia_dre_entries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "superadmin or manager can manage dre entries" ON public.maia_dre_entries;
 CREATE POLICY "superadmin or manager can manage dre entries" ON public.maia_dre_entries
   FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+  USING (private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_superadmin = true)
+  WITH CHECK (private.is_superadmin()
      OR EXISTS (SELECT 1 FROM public.company_members WHERE user_id = auth.uid() AND member_role = 'gestor'));
 
 -- 6. Colunas de Auditoria e Ajuste da Gestão em work_hours
@@ -141,3 +145,6 @@ ALTER TABLE public.work_hours
   ADD COLUMN IF NOT EXISTS audit_status text NOT NULL DEFAULT 'pendente',
   ADD COLUMN IF NOT EXISTS adjusted_by_manager boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS manager_note text DEFAULT '';
+
+-- 7. Notificação de recarga do cache PostgREST
+NOTIFY pgrst, 'reload schema';
