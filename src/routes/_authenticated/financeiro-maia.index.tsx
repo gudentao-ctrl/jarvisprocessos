@@ -1028,10 +1028,14 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
   return (
     <div className="space-y-4">
       {/* Resumo do DRE */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="p-3">
           <p className="text-[10px] uppercase text-muted-foreground font-semibold">Faturamento Bruto</p>
           <p className="text-xl font-bold tabular-nums">{brl(dre?.grossRevenue ?? 0)}</p>
+        </Card>
+        <Card className="p-3 border-emerald-500/40 bg-emerald-500/5">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Pagamentos Recebidos</p>
+          <p className="text-xl font-bold text-emerald-600 tabular-nums">{brl(dre?.totalPaymentsReceived ?? 0)}</p>
         </Card>
         <Card className="p-3">
           <p className="text-[10px] uppercase text-muted-foreground font-semibold">
@@ -1122,6 +1126,10 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
         <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>2. Receita Operacional Líquida</span>
           <span className="tabular-nums text-foreground">{brl(dre?.netRevenue ?? 0)}</span>
+        </div>
+        <div className="flex justify-between p-3.5 pl-6 text-xs bg-emerald-500/5">
+          <span className="text-emerald-700 dark:text-emerald-400 font-medium">Pagamentos Recebidos dos Clientes (período)</span>
+          <span className="tabular-nums text-emerald-600 font-semibold">{brl(dre?.totalPaymentsReceived ?? 0)}</span>
         </div>
 
         <div className="flex justify-between p-3.5 font-bold bg-muted/40">

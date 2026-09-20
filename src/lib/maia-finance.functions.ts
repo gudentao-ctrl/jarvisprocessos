@@ -722,6 +722,7 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
 
     const [
       { data: invoices },
+      { data: clientPayments },
       store,
     ] = await Promise.all([
       sb
@@ -729,6 +730,11 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
         .select("total_amount, hours_total, period_start, period_end")
         .gte("period_start", start)
         .lte("period_end", end),
+      sb
+        .from("payments")
+        .select("amount, paid_at, method")
+        .gte("paid_at", start)
+        .lte("paid_at", end),
       getMaiaStore(sb),
     ]);
 
@@ -794,9 +800,15 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
           100,
       ) / 100;
 
+    const totalPaymentsReceived = (clientPayments ?? []).reduce(
+      (acc: number, p: any) => acc + Number(p.amount || 0),
+      0,
+    );
+
     return {
       monthYear: data.month_year,
       grossRevenue,
+      totalPaymentsReceived,
       taxes: taxes ?? [],
       totalTaxRatePercent,
       taxesDeduction,

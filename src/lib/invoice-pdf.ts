@@ -1,5 +1,5 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 
 const NAVY: [number, number, number] = [17, 39, 78];
 const GREY: [number, number, number] = [110, 116, 128];

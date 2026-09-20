@@ -1,5 +1,5 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 
 const NAVY: [number, number, number] = [17, 39, 78];
 const GREY: [number, number, number] = [110, 116, 128];
@@ -12,6 +12,7 @@ const brl = (n: number) =>
 export type MaiaDrePdfData = {
   monthYear: string;
   grossRevenue: number;
+  totalPaymentsReceived?: number;
   taxes: any[];
   totalTaxRatePercent: number;
   taxesDeduction: number;
@@ -56,6 +57,8 @@ export function exportMaiaDrePdf(data: MaiaDrePdfData) {
 
   let y = 42;
 
+  const paymentsReceived = data.totalPaymentsReceived ?? 0;
+
   // Tabela DRE Estruturada
   const dreBody: any[] = [
     ["1. FATURAMENTO BRUTO DE SERVIÇOS", "", brl(data.grossRevenue)],
@@ -65,6 +68,7 @@ export function exportMaiaDrePdf(data: MaiaDrePdfData) {
       `(-) ${brl(data.taxesDeduction)}`,
     ],
     ["2. RECEITA OPERACIONAL LÍQUIDA", "", brl(data.netRevenue)],
+    ["  Pagamentos Recebidos dos Clientes (período)", "Financeiro Cliente", brl(paymentsReceived)],
     ["", "", ""],
     ["3. CUSTOS OPERACIONAIS DA EQUIPE", "", `(-) ${brl(data.teamLaborCost + data.expenseReimbursements)}`],
     ["  (-) Honorários dos Consultores", "Fechamentos Aprovados", `(-) ${brl(data.teamLaborCost)}`],

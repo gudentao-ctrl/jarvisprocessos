@@ -64,7 +64,8 @@ function FinanceiroPage() {
   const [companyId, setCompanyId] = useState<string | null>(globalCompanyId ?? null);
   const [selected, setSelected] = useState<string[]>([]);
   const [consultantFilter, setConsultantFilter] = useState<string>("__all");
-  const [rate, setRate] = useState(0);
+  const [rateStr, setRateStr] = useState("");
+  const rate = rateStr === "" ? 0 : Number(rateStr.replace(",", ".")) || 0;
   const [invoiceNotes, setInvoiceNotes] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -409,11 +410,11 @@ function FinanceiroPage() {
                   <div>
                     <Label>Valor da hora (R$)</Label>
                     <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={rate}
-                      onChange={(e) => setRate(Number(e.target.value))}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Ex: 150 ou 150,00"
+                      value={rateStr}
+                      onChange={(e) => setRateStr(e.target.value.replace(/[^0-9.,]/g, ""))}
                       className="h-11"
                     />
                   </div>
