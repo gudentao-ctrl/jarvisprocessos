@@ -21,8 +21,25 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock, Pencil, Check, Lock, Car, Wrench } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Clock,
+  Pencil,
+  Check,
+  Lock,
+  Car,
+  Wrench,
+  UtensilsCrossed,
+  Milestone,
+  CircleParking,
+  Hotel,
+  CheckCircle2,
+  AlertCircle,
+  Receipt,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/horas/")({
   component: HorasPage,
@@ -32,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/horas/")({
       {
         name: "description",
         content:
-          "Registro de horas de atendimento por empresa, com deslocamentos, ferramentas e filtros por período.",
+          "Registro de horas de atendimento por empresa, com despesas categorizadas, ferramentas e filtros por período.",
       },
       { property: "og:title", content: "Registro de horas | JARVIS" },
       {
@@ -45,36 +62,82 @@ export const Route = createFileRoute("/_authenticated/horas/")({
   }),
 });
 
+export const EXPENSE_CATEGORIES_CONFIG = [
+  {
+    key: "alimentacao",
+    label: "Alimentação",
+    icon: UtensilsCrossed,
+    placeholder: "Ex.: Almoço durante visita ao cliente",
+  },
+  {
+    key: "pedagio",
+    label: "Pedágio",
+    icon: Milestone,
+    placeholder: "Ex.: Praça de pedágio BR-369",
+  },
+  {
+    key: "deslocamento",
+    label: "Deslocamento",
+    icon: Car,
+    placeholder: "Ex.: Combustível / Uber / Km rodado",
+  },
+  {
+    key: "estacionamento",
+    label: "Estacionamento",
+    icon: CircleParking,
+    placeholder: "Ex.: Estacionamento centro / aeroporto",
+  },
+  {
+    key: "hospedagem",
+    label: "Hospedagem",
+    icon: Hotel,
+    placeholder: "Ex.: Hotel / estadia",
+  },
+] as const;
+
+type ExpenseCategoryItem = {
+  amount: number;
+  description: string;
+};
+
 type Row = {
   id?: string;
   company_id: string | null;
   responsible: string;
   activity_type: string;
+  is_remunerated: boolean;
   work_date: string;
   start_time: string;
   end_time: string;
   description: string;
   notes: string;
   hasExpense: boolean;
-  expenseDescription: string;
-  expenseAmount: number;
+  expenses: Record<string, ExpenseCategoryItem>;
   toolDescription: string;
   toolQuantity: number;
   toolAmount: number;
 };
 
+const defaultExpenses = (): Record<string, ExpenseCategoryItem> => ({
+  alimentacao: { amount: 0, description: "" },
+  pedagio: { amount: 0, description: "" },
+  deslocamento: { amount: 0, description: "" },
+  estacionamento: { amount: 0, description: "" },
+  hospedagem: { amount: 0, description: "" },
+});
+
 const empty = (): Row => ({
   company_id: null,
   responsible: "",
   activity_type: "consultoria",
+  is_remunerated: true,
   work_date: new Date().toISOString().slice(0, 10),
   start_time: "08:00",
   end_time: "12:00",
   description: "",
   notes: "",
   hasExpense: false,
-  expenseDescription: "",
-  expenseAmount: 0,
+  expenses: defaultExpenses(),
   toolDescription: "",
   toolQuantity: 1,
   toolAmount: 0,
@@ -91,13 +154,68 @@ function fmtDuration(h: number) {
 }
 
 function typeLabel(v: string) {
-  return ACTIVITY_TYPES.find((t) => t.value === v)?.label ?? v;
+  return (ACTIVITY_TYPES as readonly { value: string; label: string }[]).find((t) => t.value === v)?.label ?? v;
+}
+
+// Componente com máscara monetária fluida e natural (R$ 0,00)
+function CurrencyInput({
+  value,
+  onChange,
+  className,
+  placeholder = "R$ 0,00",
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const formatted = useMemo(() => {
+    if (!value || isNaN(value)) return "";
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }, [value]);
+
+  const [display, setDisplay] = useState(formatted);
+
+  useEffect(() => {
+    setDisplay(formatted);
+  }, [formatted]);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawDigits = e.target.value.replace(/\D/g, "");
+    if (!rawDigits) {
+      setDisplay("");
+      onChange(0);
+      return;
+    }
+    const num = Number(rawDigits) / 100;
+    const nextFormatted = num.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    setDisplay(nextFormatted);
+    onChange(num);
+  }
+
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      placeholder={placeholder}
+      value={display}
+      onChange={handleChange}
+    />
+  );
 }
 
 function HorasPage() {
   const qc = useQueryClient();
   const [companyFilter, setCompanyFilter] = useState<string>("__all");
   const [typeFilter, setTypeFilter] = useState<string>("__all");
+  const [remunerationFilter, setRemunerationFilter] = useState<string>("__all");
   const [period, setPeriod] = useState<PeriodValue>("mes");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -145,19 +263,33 @@ function HorasPage() {
       }),
   });
 
+  const filteredRows = useMemo(() => {
+    if (remunerationFilter === "remunerada") {
+      return (rows as any[]).filter((r) => r.is_remunerated !== false);
+    }
+    if (remunerationFilter === "nao_remunerada") {
+      return (rows as any[]).filter((r) => r.is_remunerated === false);
+    }
+    return rows as any[];
+  }, [rows, remunerationFilter]);
+
   const saveMut = useMutation({
     mutationFn: (payload: any) => save({ data: payload }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["work-hours"] });
       setOpen(false);
       setEditing(null);
-      toast.success("Lançamento salvo");
+      toast.success("Lançamento salvo com sucesso!");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar lançamento"),
   });
+
   const delMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["work-hours"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["work-hours"] });
+      toast.success("Lançamento excluído");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
@@ -184,21 +316,39 @@ function HorasPage() {
       toast.error("Lançamento faturado não pode ser editado.");
       return;
     }
-    const exp = r.work_hour_expenses?.[0];
+    const expsList = r.work_hour_expenses ?? [];
+    const expensesObj = defaultExpenses();
+    const hasAnyExpense = expsList.length > 0;
+
+    for (const exp of expsList) {
+      const cat = exp.category || "deslocamento";
+      if (expensesObj[cat]) {
+        expensesObj[cat] = {
+          amount: Number(exp.amount ?? 0),
+          description: exp.description ?? "",
+        };
+      } else {
+        expensesObj["deslocamento"] = {
+          amount: Number(exp.amount ?? 0),
+          description: exp.description ?? "",
+        };
+      }
+    }
+
     const tool = r.work_hour_tools?.[0];
     setEditing({
       id: r.id,
       company_id: r.company_id,
       responsible: r.responsible || myName,
       activity_type: r.activity_type,
+      is_remunerated: r.is_remunerated !== false,
       work_date: r.work_date,
       start_time: (r.start_time ?? "08:00").slice(0, 5),
       end_time: (r.end_time ?? "12:00").slice(0, 5),
       description: r.description ?? "",
       notes: r.notes ?? "",
-      hasExpense: !!exp,
-      expenseDescription: exp?.description ?? "",
-      expenseAmount: Number(exp?.amount ?? 0),
+      hasExpense: hasAnyExpense,
+      expenses: expensesObj,
       toolDescription: tool?.description ?? "",
       toolQuantity: Number(tool?.quantity ?? 1),
       toolAmount: Number(tool?.amount ?? 0),
@@ -211,25 +361,30 @@ function HorasPage() {
     if (!editing.company_id) return toast.error("Selecione a empresa");
     if (!editing.description.trim()) return toast.error("Descreva o atendimento");
     if (duration <= 0) return toast.error("Informe entrada e saída válidas");
-    if (editing.hasExpense && (!editing.expenseDescription.trim() || editing.expenseAmount <= 0))
-      return toast.error("Preencha descrição e valor da despesa");
     if (editing.activity_type === "ferramenta" && !editing.toolDescription.trim())
       return toast.error("Descreva a ferramenta utilizada");
+
+    const expensesList = Object.entries(editing.expenses)
+      .filter(([_, item]) => item.amount > 0 || (item.description && item.description.trim()))
+      .map(([cat, item]) => ({
+        category: cat,
+        amount: item.amount,
+        description: item.description.trim(),
+      }));
 
     saveMut.mutate({
       id: editing.id,
       company_id: editing.company_id,
       responsible: editing.responsible || myName || "—",
       activity_type: editing.activity_type,
+      is_remunerated: editing.is_remunerated,
       work_date: editing.work_date,
       start_time: editing.start_time,
       end_time: editing.end_time,
       hours: duration,
       description: editing.description,
       notes: editing.notes,
-      expense: editing.hasExpense
-        ? { description: editing.expenseDescription, amount: editing.expenseAmount }
-        : null,
+      expenses: editing.hasExpense ? expensesList : [],
       tool:
         editing.activity_type === "ferramenta"
           ? {
@@ -241,32 +396,33 @@ function HorasPage() {
     });
   }
 
-  const total = rows.reduce((s: number, r: any) => s + Number(r.hours ?? 0), 0);
-  const totalExpenses = rows.reduce(
+  const total = filteredRows.reduce((s: number, r: any) => s + Number(r.hours ?? 0), 0);
+  const totalExpenses = filteredRows.reduce(
     (s: number, r: any) =>
       s + (r.work_hour_expenses ?? []).reduce((x: number, e: any) => x + Number(e.amount ?? 0), 0),
     0,
   );
-  const totalTools = rows.reduce(
+  const totalTools = filteredRows.reduce(
     (s: number, r: any) =>
-      s + (r.work_hour_tools ?? []).reduce((x: number, e: any) => x + Number(e.amount ?? 0), 0),
+      s + (r.work_hour_tools ?? []).reduce((x: number, t: any) => x + Number(t.amount ?? 0), 0),
     0,
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* Top Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">Horas Trabalhadas</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">Lançamento de Horas</h1>
           <p className="text-xs text-muted-foreground">
-            Seus atendimentos{myName ? ` — ${myName}` : ""}
+            Apontamento de horas com controle de remuneração e despesas categorizadas
           </p>
         </div>
         <Dialog
           open={open}
-          onOpenChange={(o) => {
-            setOpen(o);
-            if (!o) setEditing(null);
+          onOpenChange={(v) => {
+            setOpen(v);
+            if (!v) setEditing(null);
           }}
         >
           <DialogTrigger asChild>
@@ -274,12 +430,47 @@ function HorasPage() {
               <Plus className="mr-1 h-4 w-4" /> Registrar
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>{editing?.id ? "Editar" : "Registrar"} atendimento</DialogTitle>
             </DialogHeader>
             {editing && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* 1. Controle no topo: Hora Remunerada vs Hora Não Remunerada */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground font-semibold">
+                    Status de Remuneração:
+                  </Label>
+                  <div className="flex rounded-lg border bg-muted/40 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ ...editing, is_remunerated: true })}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-xs font-semibold transition-all",
+                        editing.is_remunerated
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Hora Remunerada
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ ...editing, is_remunerated: false })}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-xs font-semibold transition-all",
+                        !editing.is_remunerated
+                          ? "bg-amber-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      Hora Não Remunerada
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <Label>Empresa *</Label>
                   <Select
@@ -287,7 +478,7 @@ function HorasPage() {
                     onValueChange={(v) => setEditing({ ...editing, company_id: v || null })}
                   >
                     <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione a empresa" />
                     </SelectTrigger>
                     <SelectContent>
                       {activeCompanies.map((c: any) => (
@@ -348,7 +539,8 @@ function HorasPage() {
                     <Input className="h-11" value={editing.responsible} readOnly disabled />
                   </div>
                   <div>
-                    <Label>Tipo de evento</Label>
+                    {/* 2. Dropdown atualizado com os tipos exatos de hora */}
+                    <Label>Tipo de Hora</Label>
                     <Select
                       value={editing.activity_type}
                       onValueChange={(v) => setEditing({ ...editing, activity_type: v })}
@@ -368,10 +560,10 @@ function HorasPage() {
                 </div>
 
                 <div>
-                  <Label>Descrição do evento *</Label>
+                  <Label>Descrição do atendimento *</Label>
                   <Textarea
                     rows={2}
-                    placeholder="Ex.: Mapeamento do processo de compras com a equipe responsável."
+                    placeholder="Ex.: Alinhamento de processos e mentoria com a equipe de compras."
                     value={editing.description}
                     onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                   />
@@ -403,52 +595,127 @@ function HorasPage() {
                       </div>
                       <div>
                         <Label className="text-xs">Valor total (R$)</Label>
-                        <Input
+                        <CurrencyInput
                           className="h-11"
-                          type="number"
-                          step="0.01"
-                          min="0"
                           value={editing.toolAmount}
-                          onChange={(e) =>
-                            setEditing({ ...editing, toolAmount: Number(e.target.value) })
-                          }
+                          onChange={(val) => setEditing({ ...editing, toolAmount: val })}
                         />
                       </div>
                     </div>
                   </Card>
                 )}
 
-                <Card className="space-y-2 p-3">
+                {/* 3 & 4. Seção de Despesas: 5 campos categorizados e máscara de moeda fluida */}
+                <Card className="space-y-3 p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <Label className="flex items-center gap-1.5 text-sm">
-                      <Car className="h-4 w-4" /> Houve gasto com deslocamento?
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Receipt className="h-4 w-4 text-primary" />
+                      <div>
+                        <Label
+                          className="text-sm font-semibold cursor-pointer"
+                          onClick={() => setEditing({ ...editing, hasExpense: !editing.hasExpense })}
+                        >
+                          Adicionar despesas neste atendimento?
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          Alimentação, pedágio, deslocamento, estacionamento e hospedagem
+                        </p>
+                      </div>
+                    </div>
                     <Switch
                       checked={editing.hasExpense}
                       onCheckedChange={(v) => setEditing({ ...editing, hasExpense: v })}
                     />
                   </div>
+
                   {editing.hasExpense && (
-                    <div className="space-y-2">
-                      <Input
-                        className="h-11"
-                        placeholder="Descrição (ex.: Combustível Londrina → cliente)"
-                        value={editing.expenseDescription}
-                        onChange={(e) =>
-                          setEditing({ ...editing, expenseDescription: e.target.value })
-                        }
-                      />
-                      <Input
-                        className="h-11"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Valor (R$)"
-                        value={editing.expenseAmount}
-                        onChange={(e) =>
-                          setEditing({ ...editing, expenseAmount: Number(e.target.value) })
-                        }
-                      />
+                    <div className="space-y-3 pt-2 border-t">
+                      {EXPENSE_CATEGORIES_CONFIG.map((cat) => {
+                        const Icon = cat.icon;
+                        const currentExp = editing.expenses[cat.key] || {
+                          amount: 0,
+                          description: "",
+                        };
+                        return (
+                          <div
+                            key={cat.key}
+                            className="rounded-md border bg-muted/20 p-2.5 space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                <Icon className="h-3.5 w-3.5 text-primary" />
+                                {cat.label}
+                              </span>
+                              {currentExp.amount > 0 && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px] tabular-nums font-semibold"
+                                >
+                                  {brl(currentExp.amount)}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div className="sm:col-span-1">
+                                <Label className="text-[11px] text-muted-foreground">
+                                  Valor
+                                </Label>
+                                <CurrencyInput
+                                  className="h-10 text-sm font-medium"
+                                  value={currentExp.amount}
+                                  onChange={(val) => {
+                                    setEditing({
+                                      ...editing,
+                                      expenses: {
+                                        ...editing.expenses,
+                                        [cat.key]: {
+                                          ...currentExp,
+                                          amount: val,
+                                        },
+                                      },
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <div className="sm:col-span-2">
+                                <Label className="text-[11px] text-muted-foreground">
+                                  Descrição
+                                </Label>
+                                <Input
+                                  className="h-10 text-xs"
+                                  placeholder={cat.placeholder}
+                                  value={currentExp.description}
+                                  onChange={(e) => {
+                                    setEditing({
+                                      ...editing,
+                                      expenses: {
+                                        ...editing.expenses,
+                                        [cat.key]: {
+                                          ...currentExp,
+                                          description: e.target.value,
+                                        },
+                                      },
+                                    });
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Total de Despesas */}
+                      <div className="flex items-center justify-between rounded-lg bg-primary/5 p-2.5 border border-primary/20">
+                        <span className="text-xs font-semibold">Total de Despesas:</span>
+                        <span className="text-sm font-bold text-primary tabular-nums">
+                          {brl(
+                            Object.values(editing.expenses).reduce(
+                              (acc, curr) => acc + (curr.amount || 0),
+                              0,
+                            ),
+                          )}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </Card>
@@ -457,6 +724,7 @@ function HorasPage() {
                   <Label>Observações</Label>
                   <Textarea
                     rows={2}
+                    placeholder="Notas adicionais sobre o atendimento..."
                     value={editing.notes}
                     onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
                   />
@@ -472,7 +740,7 @@ function HorasPage() {
       </div>
 
       {/* Filtros */}
-      <Card className="grid gap-2 p-3 sm:grid-cols-3">
+      <Card className="grid gap-2 p-3 sm:grid-cols-4">
         <div>
           <Label className="text-xs">Empresa</Label>
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
@@ -486,6 +754,35 @@ function HorasPage() {
                   {c.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Tipo de Hora</Label>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todos os tipos</SelectItem>
+              {ACTIVITY_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Remuneração</Label>
+          <Select value={remunerationFilter} onValueChange={setRemunerationFilter}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todas as horas</SelectItem>
+              <SelectItem value="remunerada">Hora Remunerada</SelectItem>
+              <SelectItem value="nao_remunerada">Hora Não Remunerada</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -504,24 +801,9 @@ function HorasPage() {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs">Tipo de evento</Label>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os tipos</SelectItem>
-              {ACTIVITY_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value}>
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
         {period === "personalizado" && (
-          <>
+          <div className="col-span-full grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">De</Label>
               <Input
@@ -540,10 +822,11 @@ function HorasPage() {
                 onChange={(e) => setCustomTo(e.target.value)}
               />
             </div>
-          </>
+          </div>
         )}
       </Card>
 
+      {/* Cards de Resumo */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Card className="p-3">
           <p className="text-[10px] uppercase text-muted-foreground">Total de horas</p>
@@ -551,10 +834,10 @@ function HorasPage() {
         </Card>
         <Card className="p-3">
           <p className="text-[10px] uppercase text-muted-foreground">Registros</p>
-          <p className="text-2xl font-bold tabular-nums">{rows.length}</p>
+          <p className="text-2xl font-bold tabular-nums">{filteredRows.length}</p>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground">Deslocamentos</p>
+          <p className="text-[10px] uppercase text-muted-foreground">Total Despesas</p>
           <p className="text-lg font-bold tabular-nums">{brl(totalExpenses)}</p>
         </Card>
         <Card className="p-3">
@@ -563,16 +846,17 @@ function HorasPage() {
         </Card>
       </div>
 
-      {rows.length === 0 ? (
+      {/* Listagem de Horas */}
+      {filteredRows.length === 0 ? (
         <Card className="p-8 text-center">
           <Clock className="mx-auto mb-2 h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Nenhum registro no período selecionado.</p>
         </Card>
       ) : (
         <div className="grid gap-2">
-          {rows.map((r: any) => {
+          {filteredRows.map((r: any) => {
             const faturado = r.billing_status === "faturado";
-            const exp = (r.work_hour_expenses ?? [])[0];
+            const expensesList = r.work_hour_expenses ?? [];
             const tool = (r.work_hour_tools ?? [])[0];
             return (
               <Card key={r.id} className="p-3">
@@ -581,10 +865,28 @@ function HorasPage() {
                     <p className="text-[10px] uppercase text-muted-foreground">
                       {r.companies?.name ?? "Sem empresa"}
                     </p>
-                    <p className="font-semibold">
-                      <span className="tabular-nums">{fmtDuration(Number(r.hours))}</span> ·{" "}
-                      {typeLabel(r.activity_type)}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold">
+                        <span className="tabular-nums">{fmtDuration(Number(r.hours))}</span> ·{" "}
+                        {typeLabel(r.activity_type)}
+                      </p>
+                      {/* Badge Remunerada / Não Remunerada */}
+                      {r.is_remunerated === false ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20"
+                        >
+                          <AlertCircle className="h-3 w-3" /> Não Remunerada
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] gap-1 text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20"
+                        >
+                          <CheckCircle2 className="h-3 w-3" /> Remunerada
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {new Date(r.work_date + "T00:00:00").toLocaleDateString("pt-BR")}
                       {r.start_time && r.end_time
@@ -592,17 +894,25 @@ function HorasPage() {
                         : ""}
                     </p>
                     {r.description && <p className="mt-1 text-sm">{r.description}</p>}
-                    <div className="mt-1 flex flex-wrap gap-1.5">
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {faturado && (
                         <Badge variant="secondary" className="gap-1">
                           <Lock className="h-3 w-3" /> Faturado
                         </Badge>
                       )}
-                      {exp && (
-                        <Badge variant="outline" className="gap-1">
-                          <Car className="h-3 w-3" /> {brl(Number(exp.amount))}
-                        </Badge>
-                      )}
+                      {expensesList.map((exp: any, idx: number) => {
+                        const catConfig = EXPENSE_CATEGORIES_CONFIG.find(
+                          (c) => c.key === exp.category,
+                        );
+                        const CatIcon = catConfig?.icon || Receipt;
+                        const label = catConfig?.label || "Despesa";
+                        return (
+                          <Badge key={idx} variant="outline" className="gap-1 text-xs">
+                            <CatIcon className="h-3 w-3 text-primary" />
+                            {label}: {brl(Number(exp.amount))}
+                          </Badge>
+                        );
+                      })}
                       {tool && (
                         <Badge variant="outline" className="gap-1">
                           <Wrench className="h-3 w-3" /> {tool.quantity}× {brl(Number(tool.amount))}
@@ -611,7 +921,12 @@ function HorasPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button size="icon" variant="ghost" disabled={faturado && !me?.isSuperadmin} onClick={() => openEdit(r)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      disabled={faturado && !me?.isSuperadmin}
+                      onClick={() => openEdit(r)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -619,7 +934,7 @@ function HorasPage() {
                       variant="ghost"
                       className="text-destructive"
                       disabled={faturado && !me?.isSuperadmin}
-                      onClick={() => confirm("Excluir?") && delMut.mutate(r.id)}
+                      onClick={() => confirm("Excluir este lançamento?") && delMut.mutate(r.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

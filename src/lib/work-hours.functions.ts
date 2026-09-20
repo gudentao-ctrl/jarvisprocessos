@@ -3,17 +3,30 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 export const ACTIVITY_TYPES = [
+  { value: "mentoria", label: "Mentoria" },
   { value: "consultoria", label: "Consultoria" },
+  { value: "palestra", label: "Palestra" },
   { value: "reuniao", label: "Reunião" },
-  { value: "mapeamento", label: "Mapeamento" },
   { value: "treinamento", label: "Treinamento" },
-  { value: "deslocamento", label: "Deslocamento" },
-  { value: "ferramenta", label: "Ferramenta" },
-  { value: "execucao", label: "Execução" },
-  { value: "outro", label: "Outros" },
+  { value: "prospeccao", label: "Prospecção" },
+  { value: "outros", label: "Outros" },
+] as const;
+
+export const EXPENSE_CATEGORIES = [
+  { key: "alimentacao", label: "Alimentação" },
+  { key: "pedagio", label: "Pedágio" },
+  { key: "deslocamento", label: "Deslocamento" },
+  { key: "estacionamento", label: "Estacionamento" },
+  { key: "hospedagem", label: "Hospedagem" },
 ] as const;
 
 const TimeStr = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/);
+
+const ExpenseItem = z.object({
+  category: z.string().default("deslocamento"),
+  description: z.string().trim().max(300).optional().default(""),
+  amount: z.number().min(0),
+});
 
 const WorkHoursInput = z.object({
   id: z.string().uuid().optional(),
@@ -21,6 +34,7 @@ const WorkHoursInput = z.object({
   company_id: z.string().uuid(),
   responsible: z.string().min(1),
   activity_type: z.string().min(1),
+  is_remunerated: z.boolean().optional().default(true),
   work_date: z.string(),
   start_time: TimeStr.nullable().optional(),
   end_time: TimeStr.nullable().optional(),
@@ -31,6 +45,7 @@ const WorkHoursInput = z.object({
     .object({ description: z.string().trim().max(300), amount: z.number().min(0) })
     .nullable()
     .optional(),
+  expenses: z.array(ExpenseItem).optional().default([]),
   tool: z
     .object({
       description: z.string().trim().max(300),
@@ -81,13 +96,12 @@ export const listWorkHours = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
-
 export const saveWorkHours = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => WorkHoursInput.parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    const { id, expense, tool, ...rest } = data;
+    const { id, expense, expenses, tool, ...rest } = data;
 
     // Trava de 48h: apenas gestor (ou SuperAdmin) lança em qualquer data
     const [{ data: prof }, { data: memberships }] = await Promise.all([
@@ -140,17 +154,32 @@ export const saveWorkHours = createServerFn({ method: "POST" })
       row = inserted;
     }
 
-    if (expense && expense.amount > 0) {
-      const { error } = await sb.from("work_hour_expenses").insert({
+    // Coletar todas as despesas (suporta formato categorizado e formato legado)
+    const allExpenses: Array<{ category?: string; description: string; amount: number }> = [];
+    if (Array.isArray(expenses) && expenses.length > 0) {
+      for (const e of expenses) {
+        if (e.amount > 0 || (e.description && e.description.trim())) {
+          allExpenses.push(e);
+        }
+      }
+    } else if (expense && expense.amount > 0) {
+      allExpenses.push({ category: "deslocamento", description: expense.description, amount: expense.amount });
+    }
+
+    if (allExpenses.length > 0) {
+      const inserts = allExpenses.map((exp) => ({
         work_hour_id: row.id,
         company_id: row.company_id,
         project_id: row.project_id,
-        description: expense.description,
-        amount: expense.amount,
+        category: exp.category || "deslocamento",
+        description: exp.description || exp.category || "Despesa",
+        amount: exp.amount,
         created_by: context.userId,
-      });
+      }));
+      const { error } = await sb.from("work_hour_expenses").insert(inserts);
       if (error) throw new Error(error.message);
     }
+
     if (tool && (tool.amount > 0 || tool.description)) {
       const { error } = await sb.from("work_hour_tools").insert({
         work_hour_id: row.id,
@@ -219,7 +248,7 @@ export const getProjectHoursTotal = createServerFn({ method: "GET" })
     const byType: Record<string, number> = {};
     for (const r of rows ?? []) {
       const respKey = r.responsible ?? "—";
-      const typeKey = r.activity_type ?? "outro";
+      const typeKey = r.activity_type ?? "outros";
       byResp[respKey] = (byResp[respKey] ?? 0) + Number(r.hours ?? 0);
       byType[typeKey] = (byType[typeKey] ?? 0) + Number(r.hours ?? 0);
     }
