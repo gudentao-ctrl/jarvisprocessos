@@ -38,6 +38,7 @@ import { Route as AuthenticatedEntrevistasIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedEntrevistasIdRouteImport } from './routes/_authenticated/entrevistas.$id'
 import { Route as AuthenticatedEntrevistasNovaRouteImport } from './routes/_authenticated/entrevistas.nova'
 import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticated/fase.$slug'
+import { Route as AuthenticatedFinanceiroMaiaIndexRouteImport } from './routes/_authenticated/financeiro-maia.index'
 import { Route as AuthenticatedFinanceiroIndexRouteImport } from './routes/_authenticated/financeiro.index'
 import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
@@ -228,6 +229,12 @@ const AuthenticatedFaseSlugRoute = AuthenticatedFaseSlugRouteImport.update({
   path: '/fase/$slug',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFinanceiroMaiaIndexRoute =
+  AuthenticatedFinanceiroMaiaIndexRouteImport.update({
+    id: '/financeiro-maia/',
+    path: '/financeiro-maia/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinanceiroIndexRoute =
   AuthenticatedFinanceiroIndexRouteImport.update({
     id: '/financeiro/',
@@ -431,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/financeiro-maia/': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/horas/': typeof AuthenticatedHorasIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
@@ -489,6 +497,7 @@ export interface FileRoutesByTo {
   '/cronoanalise': typeof AuthenticatedCronoanaliseIndexRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoIndexRoute
   '/entrevistas': typeof AuthenticatedEntrevistasIndexRoute
+  '/financeiro-maia': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/financeiro': typeof AuthenticatedFinanceiroIndexRoute
   '/horas': typeof AuthenticatedHorasIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
@@ -550,6 +559,7 @@ export interface FileRoutesById {
   '/_authenticated/cronoanalise/': typeof AuthenticatedCronoanaliseIndexRoute
   '/_authenticated/diagnostico/': typeof AuthenticatedDiagnosticoIndexRoute
   '/_authenticated/entrevistas/': typeof AuthenticatedEntrevistasIndexRoute
+  '/_authenticated/financeiro-maia/': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/_authenticated/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/_authenticated/horas/': typeof AuthenticatedHorasIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
@@ -611,6 +621,7 @@ export interface FileRouteTypes {
     | '/cronoanalise/'
     | '/diagnostico/'
     | '/entrevistas/'
+    | '/financeiro-maia/'
     | '/financeiro/'
     | '/horas/'
     | '/indicadores/'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/cronoanalise'
     | '/diagnostico'
     | '/entrevistas'
+    | '/financeiro-maia'
     | '/financeiro'
     | '/horas'
     | '/indicadores'
@@ -729,6 +741,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cronoanalise/'
     | '/_authenticated/diagnostico/'
     | '/_authenticated/entrevistas/'
+    | '/_authenticated/financeiro-maia/'
     | '/_authenticated/financeiro/'
     | '/_authenticated/horas/'
     | '/_authenticated/indicadores/'
@@ -968,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/fase/$slug'
       fullPath: '/fase/$slug'
       preLoaderRoute: typeof AuthenticatedFaseSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro-maia/': {
+      id: '/_authenticated/financeiro-maia/'
+      path: '/financeiro-maia'
+      fullPath: '/financeiro-maia/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroMaiaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/financeiro/': {
@@ -1235,6 +1255,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCronoanaliseIndexRoute: typeof AuthenticatedCronoanaliseIndexRoute
   AuthenticatedDiagnosticoIndexRoute: typeof AuthenticatedDiagnosticoIndexRoute
   AuthenticatedEntrevistasIndexRoute: typeof AuthenticatedEntrevistasIndexRoute
+  AuthenticatedFinanceiroMaiaIndexRoute: typeof AuthenticatedFinanceiroMaiaIndexRoute
   AuthenticatedFinanceiroIndexRoute: typeof AuthenticatedFinanceiroIndexRoute
   AuthenticatedHorasIndexRoute: typeof AuthenticatedHorasIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
@@ -1281,6 +1302,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCronoanaliseIndexRoute: AuthenticatedCronoanaliseIndexRoute,
   AuthenticatedDiagnosticoIndexRoute: AuthenticatedDiagnosticoIndexRoute,
   AuthenticatedEntrevistasIndexRoute: AuthenticatedEntrevistasIndexRoute,
+  AuthenticatedFinanceiroMaiaIndexRoute: AuthenticatedFinanceiroMaiaIndexRoute,
   AuthenticatedFinanceiroIndexRoute: AuthenticatedFinanceiroIndexRoute,
   AuthenticatedHorasIndexRoute: AuthenticatedHorasIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,

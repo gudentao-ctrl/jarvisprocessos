@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 
 const NAVY: [number, number, number] = [17, 39, 78];
 const GREY: [number, number, number] = [110, 116, 128];
+const EMERALD: [number, number, number] = [16, 120, 72];
 
 const CHAR_MAP: Record<string, string> = {
   "\u2265": ">=", "\u2264": "<=", "\u2260": "!=", "\u2248": "~", "\u00b1": "+/-",
@@ -49,6 +50,11 @@ export type BilledReport = {
   period: { from: string | null; to: string | null };
   rows: any[];
   invoices: any[];
+  payments?: any[];
+  previousBalance?: number;
+  previousInvoiced?: number;
+  previousPaid?: number;
+  previousHours?: number;
 };
 
 export type BilledPdfMode = "consultor" | "resumido";
@@ -59,7 +65,15 @@ function imgFormat(dataUrl: string): "PNG" | "JPEG" | "WEBP" {
   return "PNG";
 }
 
-function drawLogo(doc: jsPDF, dataUrl: string, x: number, y: number, maxW: number, maxH: number, align: "left" | "right") {
+function drawLogo(
+  doc: jsPDF,
+  dataUrl: string,
+  x: number,
+  y: number,
+  maxW: number,
+  maxH: number,
+  align: "left" | "right",
+) {
   try {
     const props = doc.getImageProperties(dataUrl);
     const ratio = props.width / props.height;
@@ -88,7 +102,7 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
       ? `${fmtDate(data.period.from)} a ${fmtDate(data.period.to)}`
       : "Todo o período";
 
-  // Cabeçalho no tema do portal: fundo claro, logos nas extremidades, filete navy
+  // Cabeçalho institucional: fundo claro, logos nas extremidades, filete navy
   doc.setFillColor(248, 249, 251);
   doc.rect(0, 0, W, 30, "F");
 
@@ -110,7 +124,7 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(...GREY);
-  doc.text(`Relatorio de Faturamento  |  ${periodLabel}`, textX, 20.5);
+  doc.text(`Relatório de Faturamento  |  ${periodLabel}`, textX, 20.5);
 
   doc.setFillColor(...NAVY);
   doc.rect(0, 30, W, 1.4, "F");
@@ -124,7 +138,14 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
     const hoursAmount = Math.round(Number(r.hours ?? 0) * rate * 100) / 100;
     const exp = sum(r.work_hour_expenses, "amount");
     const tools = sum(r.work_hour_tools, "amount");
-    return { rate, hoursAmount, exp, tools, total: hoursAmount + exp + tools };
+
+    // Detalhamento de despesas por categoria
+    const expBreakdown = (r.work_hour_expenses ?? []).map((e: any) => {
+      const cat = e.category ? `${e.category}: ` : "";
+      return `${cat}${brl(e.amount)}`;
+    }).join(", ");
+
+    return { rate, hoursAmount, exp, tools, expBreakdown, total: hoursAmount + exp + tools };
   };
 
   const totalHours = rows.reduce((s, r) => s + Number(r.hours ?? 0), 0);
@@ -140,6 +161,15 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
   );
   const grandTotal = totals.hoursAmount + totals.exp + totals.tools;
 
+  // Totalizador de despesas por categoria
+  const expensesByCategory: Record<string, number> = {};
+  for (const r of rows) {
+    for (const e of r.work_hour_expenses ?? []) {
+      const cat = e.category || "deslocamento";
+      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + Number(e.amount || 0);
+    }
+  }
+
   if (mode === "consultor") {
     const byConsultant: Record<string, any[]> = {};
     for (const r of rows) {
@@ -153,19 +183,24 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
+      doc.setTextColor(...NAVY);
       doc.text(`${name}  -  ${fmtHours(cHours)}  -  ${brl(cTotal)}`, M, y);
       y += 3;
 
       autoTable(doc, {
         startY: y,
         margin: { left: M, right: M },
-        head: [["Data", "Tipo", "Descricao", "Horas", "Valor/h", "Desp.", "Ferr.", "Total"]],
+        head: [["Data", "Tipo", "Descrição / Despesas Detalhadas", "Horas", "Valor/h", "Desp.", "Ferr.", "Total"]],
         body: list.map((r) => {
           const v = rowValue(r);
+          let descText = sanitize(r.description) || "-";
+          if (v.expBreakdown) {
+            descText += ` [Despesas: ${v.expBreakdown}]`;
+          }
           return [
             fmtDate(r.work_date),
             sanitize(r.activity_type),
-            sanitize(r.description) || "-",
+            descText,
             fmtHours(r.hours),
             brl(v.rate),
             v.exp ? brl(v.exp) : "-",
@@ -177,21 +212,23 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
         headStyles: { fillColor: NAVY, textColor: 255, fontSize: 8 },
         columnStyles: {
           0: { cellWidth: 17 },
-          2: { cellWidth: 52 },
+          1: { cellWidth: 22 },
+          2: { cellWidth: 50 },
           3: { cellWidth: 14, halign: "right" },
-          4: { cellWidth: 20, halign: "right" },
+          4: { cellWidth: 18, halign: "right" },
           5: { cellWidth: 18, halign: "right" },
-          6: { cellWidth: 18, halign: "right" },
-          7: { cellWidth: 22, halign: "right" },
+          6: { cellWidth: 16, halign: "right" },
+          7: { cellWidth: 21, halign: "right" },
         },
       });
       y = (doc as any).lastAutoTable.finalY + 8;
-      if (y > 250) {
+      if (y > 230) {
         doc.addPage();
         y = 20;
       }
     }
   } else {
+    // Modo Resumido
     const byConsultant: Record<string, { hours: number; total: number }> = {};
     for (const r of rows) {
       const key = sanitize(r.responsible) || "Sem consultor";
@@ -204,15 +241,19 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
     autoTable(doc, {
       startY: y,
       margin: { left: M, right: M },
-      head: [["Resumo", "Valor"]],
+      head: [["Item de Faturamento", "Valor"]],
       body: [
         ["Horas totais faturadas", fmtHours(totalHours)],
         ["Valor de horas", brl(totals.hoursAmount)],
-        ["Despesas (deslocamento)", brl(totals.exp)],
+        ["Despesas detalhadas", brl(totals.exp)],
+        ...Object.entries(expensesByCategory).map(([cat, amt]) => [
+          `  └ ${cat.toUpperCase()}`,
+          brl(amt),
+        ]),
         ["Ferramentas aplicadas", brl(totals.tools)],
-        ["Total faturado", brl(grandTotal)],
+        ["Total faturado no período", brl(grandTotal)],
       ],
-      styles: { fontSize: 10, cellPadding: 2.4 },
+      styles: { fontSize: 9.5, cellPadding: 2.2 },
       headStyles: { fillColor: NAVY, textColor: 255 },
       columnStyles: { 1: { halign: "right" } },
     });
@@ -232,36 +273,87 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
       columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
     });
     y = (doc as any).lastAutoTable.finalY + 8;
-
-    if ((data.invoices ?? []).length) {
-      autoTable(doc, {
-        startY: y,
-        margin: { left: M, right: M },
-        head: [["Fatura (periodo)", "Horas", "Valor/h", "Total"]],
-        body: data.invoices.map((inv: any) => [
-          `${fmtDate(inv.period_start)} a ${fmtDate(inv.period_end)}`,
-          fmtHours(inv.hours_total),
-          brl(inv.hourly_rate),
-          brl(inv.total_amount),
-        ]),
-        styles: { fontSize: 9, cellPadding: 2 },
-        headStyles: { fillColor: NAVY, textColor: 255 },
-        columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
-      });
-      y = (doc as any).lastAutoTable.finalY + 8;
-    }
   }
 
-  if (mode === "consultor") {
+  // 4. Quadro de Resumo de Pagamentos já baixados
+  const payments = data.payments ?? [];
+  if (payments.length > 0) {
+    if (y > 210) {
+      doc.addPage();
+      y = 20;
+    }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text(
-      `TOTAL: ${fmtHours(totalHours)}  |  Horas ${brl(totals.hoursAmount)}  |  Despesas ${brl(totals.exp)}  |  Ferramentas ${brl(totals.tools)}  |  ${brl(grandTotal)}`,
-      M,
-      y,
-    );
+    doc.setTextColor(...NAVY);
+    doc.text("Pagamentos Efetuados pelo Cliente (Baixados)", M, y);
+    y += 3;
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: M, right: M },
+      head: [["Data", "Forma / Método", "Referência / Observações", "Valor Pago"]],
+      body: payments.map((p: any) => [
+        fmtDate(p.paid_at),
+        sanitize(p.method?.toUpperCase() || "PIX"),
+        sanitize(p.reference || p.notes || "-"),
+        brl(p.amount),
+      ]),
+      styles: { fontSize: 8.5, cellPadding: 2 },
+      headStyles: { fillColor: EMERALD, textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 26 },
+        1: { cellWidth: 32 },
+        2: { cellWidth: 84 },
+        3: { cellWidth: 34, halign: "right" },
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
   }
 
+  // 5. Tabela de Resumo de Saldos / Histórico (Saldo Anterior, Faturado/Pago Atual, Saldo Atual)
+  const saldoAnterior = data.previousBalance || 0;
+  const faturadoPeriodo = grandTotal;
+  const pagoPeriodo = payments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+  const saldoAtual = Math.round((saldoAnterior + faturadoPeriodo - pagoPeriodo) * 100) / 100;
+
+  if (y > 200) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...NAVY);
+  doc.text("Resumo de Saldos e Conta Corrente", M, y);
+  y += 3;
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: M, right: M },
+    head: [["Histórico / Movimentação", "Horas", "Saldo (R$)"]],
+    body: [
+      ["Saldo Anterior (mês anterior)", fmtHours(data.previousHours || 0), brl(saldoAnterior)],
+      ["Horas Faturadas (período atual)", fmtHours(totalHours), brl(faturadoPeriodo)],
+      ["Pagamentos Efetuados / Baixados (período atual)", "-", `(-) ${brl(pagoPeriodo)}`],
+      ["SALDO ATUAL CONSOLIDADO", fmtHours(totalHours), brl(saldoAtual)],
+    ],
+    styles: { fontSize: 9.5, cellPadding: 2.8 },
+    headStyles: { fillColor: NAVY, textColor: 255 },
+    columnStyles: {
+      0: { cellWidth: 105 },
+      1: { cellWidth: 32, halign: "right" },
+      2: { cellWidth: 39, halign: "right" },
+    },
+    didParseCell: (hookData) => {
+      if (hookData.section === "body" && hookData.row.index === 3) {
+        hookData.cell.styles.fillColor = [238, 242, 255];
+        hookData.cell.styles.textColor = NAVY;
+        hookData.cell.styles.fontStyle = "bold";
+      }
+    },
+  });
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // Numeração de páginas
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);

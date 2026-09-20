@@ -347,7 +347,7 @@ export const getBilledReport = createServerFn({ method: "GET" })
     let q = sb
       .from("work_hours")
       .select(
-        "id, work_date, responsible, activity_type, description, hours, invoice_id, invoices(hourly_rate), work_hour_expenses(description, amount), work_hour_tools(description, quantity, amount)",
+        "id, work_date, responsible, activity_type, description, hours, invoice_id, invoices(hourly_rate), work_hour_expenses(category, description, amount), work_hour_tools(description, quantity, amount)",
       )
       .eq("company_id", data.company_id)
       .eq("billing_status", "faturado")
@@ -367,6 +367,48 @@ export const getBilledReport = createServerFn({ method: "GET" })
     if (data.to) iq = iq.lte("period_end", data.to);
     const { data: invoices } = await iq;
 
+    // Pagamentos do cliente no período
+    let pq = sb
+      .from("payments")
+      .select("id, paid_at, amount, method, reference, notes")
+      .eq("company_id", data.company_id)
+      .order("paid_at", { ascending: true });
+    if (data.from) pq = pq.gte("paid_at", data.from);
+    if (data.to) pq = pq.lte("paid_at", data.to);
+    const { data: payments } = await pq;
+
+    // Histórico de saldo anterior (antes de data.from)
+    let previousInvoiced = 0;
+    let previousPaid = 0;
+    let previousHours = 0;
+    if (data.from) {
+      const [{ data: prevInv }, { data: prevPay }] = await Promise.all([
+        sb
+          .from("invoices")
+          .select("total_amount, hours_total")
+          .eq("company_id", data.company_id)
+          .lt("period_end", data.from),
+        sb
+          .from("payments")
+          .select("amount")
+          .eq("company_id", data.company_id)
+          .lt("paid_at", data.from),
+      ]);
+      previousInvoiced = (prevInv ?? []).reduce(
+        (acc: number, cur: any) => acc + Number(cur.total_amount ?? 0),
+        0,
+      );
+      previousHours = (prevInv ?? []).reduce(
+        (acc: number, cur: any) => acc + Number(cur.hours_total ?? 0),
+        0,
+      );
+      previousPaid = (prevPay ?? []).reduce(
+        (acc: number, cur: any) => acc + Number(cur.amount ?? 0),
+        0,
+      );
+    }
+    const previousBalance = Math.round((previousInvoiced - previousPaid) * 100) / 100;
+
     return {
       company: company
         ? {
@@ -380,5 +422,10 @@ export const getBilledReport = createServerFn({ method: "GET" })
       period: { from: data.from ?? null, to: data.to ?? null },
       rows: rows ?? [],
       invoices: invoices ?? [],
+      payments: payments ?? [],
+      previousBalance,
+      previousInvoiced,
+      previousPaid,
+      previousHours,
     };
   });

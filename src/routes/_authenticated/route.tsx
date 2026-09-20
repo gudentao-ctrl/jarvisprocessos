@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet, Handshake,
-  LifeBuoy, Menu, User,
+  LifeBuoy, Menu, User, Landmark,
 } from "lucide-react";
 
 
@@ -58,7 +58,7 @@ const NAV = [
   { to: "/controle", icon: Radar, label: "Controle", permission: "gestao" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
   { to: "/horas", icon: Clock, label: "Horas", permission: "horas" },
-  { to: "/financeiro", icon: Wallet, label: "Financeiro", permission: "financeiro" },
+  { to: "/financeiro", icon: Wallet, label: "Financeiro Cliente", permission: "financeiro" },
   { to: "/crm", icon: Handshake, label: "CRM", permission: "crm" },
   { to: "/relatorios", icon: FileBarChart2, label: "Relatórios", permission: "gestao" },
   { to: "/chamados", icon: LifeBuoy, label: "Chamados", permission: "chamados" },
@@ -70,13 +70,17 @@ const NAV = [
 function AuthenticatedLayout() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const HIDE_COMPANY_SWITCHER = ["/admin", "/calendario", "/crm", "/horas", "/financeiro", "/perfil", "/google-callback"];
+  const HIDE_COMPANY_SWITCHER = ["/admin", "/calendario", "/crm", "/horas", "/financeiro", "/financeiro-maia", "/perfil", "/google-callback"];
   const showSwitcher = !HIDE_COMPANY_SWITCHER.some((p) => pathname.startsWith(p));
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   const hasPermission = (permission: string) =>
     !!profile?.isSuperadmin ||
     !!profile?.memberships.some((membership) => membership.permissions?.[permission] === true);
+  const isManagerOrAdmin =
+    !!profile?.isSuperadmin ||
+    !!profile?.memberships.some((m: any) => m.role === "gestor" || m.permissions?.gestao === true);
+
   const visibleNav = NAV.filter((item) => hasPermission(item.permission));
   const mobileShortcuts = visibleNav.slice(0, 5);
 
@@ -102,6 +106,9 @@ function AuthenticatedLayout() {
             {visibleNav.map((n) => (
               <SidebarLink key={n.to} {...n} />
             ))}
+            {isManagerOrAdmin && (
+              <SidebarLink to="/financeiro-maia" icon={Landmark} label="FINANCEIRO MAIA" />
+            )}
             {profile?.isSuperadmin && (
               <SidebarLink to="/admin" icon={ShieldCheck} label="SuperAdmin" />
             )}
@@ -145,6 +152,18 @@ function AuthenticatedLayout() {
                         </Link>
                       </SheetClose>
                     ))}
+                    {isManagerOrAdmin && (
+                      <SheetClose asChild>
+                        <Link
+                          to="/financeiro-maia"
+                          className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          activeProps={{ className: "bg-accent text-primary" }}
+                        >
+                          <Landmark className="h-5 w-5" />
+                          <span>FINANCEIRO MAIA</span>
+                        </Link>
+                      </SheetClose>
+                    )}
                     {profile?.isSuperadmin && (
                       <SheetClose asChild>
                         <Link

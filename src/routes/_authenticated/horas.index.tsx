@@ -886,6 +886,16 @@ function HorasPage() {
                           <CheckCircle2 className="h-3 w-3" /> Remunerada
                         </Badge>
                       )}
+                      {r.adjusted_by_manager && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] gap-1 bg-destructive/10 text-destructive border-destructive/30 font-medium"
+                          title={r.manager_note || "Horas ou remuneração ajustadas pela gestão"}
+                        >
+                          <AlertCircle className="h-3 w-3" />
+                          Ajustado pela Gestão{r.manager_note ? `: ${r.manager_note}` : ""}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {new Date(r.work_date + "T00:00:00").toLocaleDateString("pt-BR")}

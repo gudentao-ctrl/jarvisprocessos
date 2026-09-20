@@ -63,6 +63,7 @@ function FinanceiroPage() {
   const { companyId: globalCompanyId } = useActiveCompany();
   const [companyId, setCompanyId] = useState<string | null>(globalCompanyId ?? null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [consultantFilter, setConsultantFilter] = useState<string>("__all");
   const [rate, setRate] = useState(0);
   const [invoiceNotes, setInvoiceNotes] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -114,10 +115,21 @@ function FinanceiroPage() {
       overviewFn({ data: companyId ? { company_id: companyId } : {} } as any),
   });
 
-  const openHours = useMemo(
-    () => (data?.hours ?? []).filter((h: any) => h.billing_status !== "faturado"),
-    [data],
-  );
+  const consultants = useMemo(() => {
+    const s = new Set<string>();
+    for (const h of data?.hours ?? []) {
+      if (h.responsible) s.add(h.responsible);
+    }
+    return Array.from(s).sort();
+  }, [data?.hours]);
+
+  const openHours = useMemo(() => {
+    let list = (data?.hours ?? []).filter((h: any) => h.billing_status !== "faturado");
+    if (consultantFilter !== "__all") {
+      list = list.filter((h: any) => h.responsible === consultantFilter);
+    }
+    return list;
+  }, [data, consultantFilter]);
 
   const selectedRows = useMemo(
     () => openHours.filter((h: any) => selected.includes(h.id)),
@@ -218,9 +230,9 @@ function FinanceiroPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-            <Wallet className="h-5 w-5 text-primary" /> Financeiro
+            <Wallet className="h-5 w-5 text-primary" /> Financeiro Cliente
           </h1>
-          <p className="text-sm text-muted-foreground">Conta corrente, faturamento e pagamentos.</p>
+          <p className="text-sm text-muted-foreground">Conta corrente, faturamento e pagamentos por cliente.</p>
         </div>
         <div className="flex gap-2">
           <Select
@@ -281,15 +293,69 @@ function FinanceiroPage() {
           {isLoading ? (
             <Card className="p-6 text-sm text-muted-foreground">Carregando…</Card>
           ) : openHours.length === 0 ? (
-            <Card className="p-6 text-sm text-muted-foreground">Nenhuma hora em aberto.</Card>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground font-semibold">Consultor:</Label>
+                <Select value={consultantFilter} onValueChange={(v) => { setConsultantFilter(v); setSelected([]); }}>
+                  <SelectTrigger className="h-9 w-48 text-xs">
+                    <SelectValue placeholder="Todos os consultores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all">Todos os consultores</SelectItem>
+                    {consultants.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Card className="p-6 text-sm text-muted-foreground">Nenhuma hora em aberto para faturamento.</Card>
+            </div>
           ) : (
             <>
+              {/* Filtro de Consultores e Ações em Lote */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground font-semibold">Consultor:</Label>
+                  <Select value={consultantFilter} onValueChange={(v) => { setConsultantFilter(v); setSelected([]); }}>
+                    <SelectTrigger className="h-9 w-48 text-xs">
+                      <SelectValue placeholder="Todos os consultores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all">Todos os consultores</SelectItem>
+                      {consultants.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setSelected(openHours.map((h: any) => h.id))}
+                  >
+                    Selecionar todos ({openHours.length})
+                  </Button>
+                  {selected.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground"
+                      onClick={() => setSelected([])}
+                    >
+                      Limpar ({selected.length})
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               <Card className="divide-y">
                 {openHours.map((h: any) => {
-                  const exp = (h.work_hour_expenses ?? []).reduce((a: number, e: any) => a + Number(e.amount ?? 0), 0);
+                  const expensesList = h.work_hour_expenses ?? [];
                   const tools = (h.work_hour_tools ?? []).reduce((a: number, e: any) => a + Number(e.amount ?? 0), 0);
                   return (
-                    <label key={h.id} className="flex cursor-pointer items-start gap-3 p-3 text-sm">
+                    <label key={h.id} className="flex cursor-pointer items-start gap-3 p-3 text-sm hover:bg-muted/30 transition-colors">
                       <Checkbox
                         checked={selected.includes(h.id)}
                         onCheckedChange={(c) =>
@@ -301,18 +367,35 @@ function FinanceiroPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{fmtDate(h.work_date)}</span>
                           <Badge variant="secondary">{fmtHours(h.hours)}</Badge>
+                          {h.responsible && (
+                            <Badge variant="outline" className="text-[11px] font-normal">{h.responsible}</Badge>
+                          )}
                           {h.companies?.name && (
                             <span className="text-xs text-muted-foreground">{h.companies.name}</span>
+                          )}
+                          {h.is_remunerated === false && (
+                            <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+                              Não Remunerada
+                            </Badge>
                           )}
                         </div>
                         <p className="mt-0.5 break-words text-muted-foreground">
                           {h.description || h.notes || "—"}
                         </p>
-                        {(exp > 0 || tools > 0) && (
+                        {/* Detalhamento de todas as despesas lançadas */}
+                        {expensesList.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {expensesList.map((e: any, idx: number) => (
+                              <Badge key={idx} variant="outline" className="text-[10px] py-0">
+                                {e.category ? `${e.category}: ` : "Desp: "}{brl(e.amount)}
+                                {e.description && ` (${e.description})`}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {tools > 0 && (
                           <p className="mt-0.5 text-xs text-muted-foreground">
-                            {exp > 0 && `Despesas ${brl(exp)}`}
-                            {exp > 0 && tools > 0 && " · "}
-                            {tools > 0 && `Ferramentas ${brl(tools)}`}
+                            Ferramentas {brl(tools)}
                           </p>
                         )}
                       </div>
