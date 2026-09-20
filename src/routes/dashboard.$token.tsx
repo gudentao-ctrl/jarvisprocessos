@@ -70,7 +70,7 @@ export const Route = createFileRoute("/dashboard/$token")({
       </div>
     </div>
   ),
-  errorComponent: ({ error }) => (
+  errorComponent: ({ error }: any) => (
     <div className="grid min-h-screen place-items-center px-4">
       <div className="max-w-md text-center">
         <h1 className="mb-2 text-2xl font-bold">Acesso não liberado</h1>

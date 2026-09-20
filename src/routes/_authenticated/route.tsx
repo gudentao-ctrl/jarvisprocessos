@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet, Handshake,
-  LifeBuoy, Menu,
+  LifeBuoy, Menu, User,
 } from "lucide-react";
 
 
@@ -70,7 +70,7 @@ const NAV = [
 function AuthenticatedLayout() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const HIDE_COMPANY_SWITCHER = ["/admin", "/calendario", "/crm", "/horas", "/financeiro"];
+  const HIDE_COMPANY_SWITCHER = ["/admin", "/calendario", "/crm", "/horas", "/financeiro", "/perfil", "/google-callback"];
   const showSwitcher = !HIDE_COMPANY_SWITCHER.some((p) => pathname.startsWith(p));
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
@@ -106,6 +106,9 @@ function AuthenticatedLayout() {
               <SidebarLink to="/admin" icon={ShieldCheck} label="SuperAdmin" />
             )}
           </nav>
+          <div className="border-t p-2">
+            <SidebarLink to="/perfil" icon={User} label="Meu Perfil" />
+          </div>
         </aside>
 
 
@@ -154,6 +157,16 @@ function AuthenticatedLayout() {
                         </Link>
                       </SheetClose>
                     )}
+                    <SheetClose asChild>
+                      <Link
+                        to="/perfil"
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        activeProps={{ className: "bg-accent text-primary" }}
+                      >
+                        <User className="h-5 w-5" />
+                        <span>Meu Perfil</span>
+                      </Link>
+                    </SheetClose>
                   </nav>
                 </SheetContent>
               </Sheet>

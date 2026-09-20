@@ -13,7 +13,47 @@ const EventInput = z.object({
   ends_at: z.string().nullable().optional(),
   location: z.string().max(300).optional().default(""),
   participants: z.array(z.string()).optional().default([]),
+  is_internal_invite: z.boolean().optional().default(false),
+  guest_emails: z.array(z.string().email()).optional().default([]),
+  sync_google: z.boolean().optional().default(false),
 });
+
+export const listCalendarLocations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb: any = context.supabase;
+    const { data, error } = await sb
+      .from("calendar_locations")
+      .select("id, name")
+      .order("name", { ascending: true });
+    if (error) {
+      // Table may not exist yet (migration pending)
+      console.warn("[calendar_locations] table not found, returning defaults");
+      return [
+        { id: "maia", name: "Maia" },
+        { id: "po-londrina", name: "PO Londrina" },
+        { id: "iluminacao", name: "Iluminação" },
+        { id: "prefeitura", name: "Prefeitura" },
+      ];
+    }
+    return data ?? [];
+  });
+
+export const createCalendarLocation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ name: z.string().trim().min(1).max(100) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const { data: row, error } = await sb
+      .from("calendar_locations")
+      .insert({ name: data.name, created_by: context.userId })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
 
 export const listEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -21,32 +61,52 @@ export const listEvents = createServerFn({ method: "GET" })
     z.object({
       company_id: z.string().uuid().nullable().optional(),
       project_id: z.string().uuid().nullable().optional(),
+      view: z.enum(["all", "company"]).optional().default("all"),
     }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    let q = context.supabase
+    const sb = context.supabase as any;
+
+    // Always load events for this user OR internal invites from managers/superadmins
+    let q = sb
       .from("calendar_events")
       .select("*, companies(name), projects(name)")
       .order("starts_at", { ascending: true });
-    if (data.company_id) q = q.eq("company_id", data.company_id);
+
+    // Filter by company only when view is "company" and company_id provided
+    if (data.view === "company" && data.company_id) {
+      q = q.eq("company_id", data.company_id);
+    } else if (data.company_id && data.view !== "all") {
+      q = q.eq("company_id", data.company_id);
+    }
     if (data.project_id) q = q.eq("project_id", data.project_id);
+
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
+
     const creatorIds = [...new Set((rows ?? []).map((row: any) => row.created_by).filter(Boolean))];
     if (creatorIds.length === 0) return rows ?? [];
+
     const [{ data: profiles }, { data: memberships }] = await Promise.all([
-      (context.supabase as any).from("profiles").select("user_id, is_superadmin").in("user_id", creatorIds),
-      (context.supabase as any).from("company_members").select("user_id, company_id, member_role").in("user_id", creatorIds),
+      sb.from("profiles").select("user_id, is_superadmin").in("user_id", creatorIds),
+      sb.from("company_members").select("user_id, company_id, member_role").in("user_id", creatorIds),
     ]);
-    const superadmins = new Set((profiles ?? []).filter((p: any) => p.is_superadmin).map((p: any) => p.user_id));
+
+    const superadmins = new Set(
+      (profiles ?? []).filter((p: any) => p.is_superadmin).map((p: any) => p.user_id),
+    );
+
     return (rows ?? []).map((row: any) => ({
       ...row,
-      is_manager_alignment: row.event_type === "alinhamento" && (
-        superadmins.has(row.created_by) ||
-        (memberships ?? []).some((m: any) =>
-          m.user_id === row.created_by && m.member_role === "gestor" && m.company_id === row.company_id
-        )
-      ),
+      is_manager_alignment:
+        (row.event_type === "alinhamento" || row.is_internal_invite) &&
+        (superadmins.has(row.created_by) ||
+          (memberships ?? []).some(
+            (m: any) =>
+              m.user_id === row.created_by &&
+              m.member_role === "gestor" &&
+              m.company_id === row.company_id,
+          )),
     }));
   });
 
@@ -54,18 +114,110 @@ export const saveEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => EventInput.parse(d))
   .handler(async ({ data, context }) => {
-    if (data.id) {
-      const { id, ...rest } = data;
-      const { data: row, error } = await context.supabase
-        .from("calendar_events").update(rest).eq("id", id).select().single();
+    const sb = context.supabase as any;
+    const { id, sync_google, ...payload } = data;
+
+    let row: any;
+    if (id) {
+      const { data: updated, error } = await sb
+        .from("calendar_events")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
-      return row;
+      row = updated;
+    } else {
+      const { data: inserted, error } = await sb
+        .from("calendar_events")
+        .insert({ ...payload, created_by: context.userId })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      row = inserted;
     }
-    const { data: row, error } = await context.supabase
-      .from("calendar_events")
-      .insert({ ...data, created_by: context.userId })
-      .select().single();
-    if (error) throw new Error(error.message);
+
+    // Optionally sync to Google Calendar if user has tokens
+    if (sync_google && (data.guest_emails?.length || data.is_internal_invite)) {
+      try {
+        const { data: tokenRow } = await sb
+          .from("user_google_calendar_tokens")
+          .select("access_token, refresh_token, expiry_date")
+          .eq("user_id", context.userId)
+          .maybeSingle();
+
+        if (tokenRow) {
+          // Inline sync using the same access token context
+          const { syncEventToGoogleCalendar } = await import("./google-calendar.functions");
+          // We call directly via fetch-style for server-side usage
+          const clientId = process.env.GOOGLE_CLIENT_ID;
+          const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+          const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+          const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
+
+          let accessToken = tokenRow.access_token;
+          const isExpired = tokenRow.expiry_date && Date.now() > tokenRow.expiry_date - 60_000;
+          if (isExpired && tokenRow.refresh_token && clientId && clientSecret) {
+            const res = await fetch(GOOGLE_TOKEN_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({
+                client_id: clientId,
+                client_secret: clientSecret,
+                refresh_token: tokenRow.refresh_token,
+                grant_type: "refresh_token",
+              }),
+            });
+            if (res.ok) {
+              const tokens: any = await res.json();
+              accessToken = tokens.access_token;
+              await sb.from("user_google_calendar_tokens").update({
+                access_token: tokens.access_token,
+                expiry_date: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null,
+              }).eq("user_id", context.userId);
+            }
+          }
+
+          if (accessToken) {
+            const attendees = (data.guest_emails ?? []).map((email) => ({ email }));
+            const startDt = new Date(data.starts_at);
+            const endDt = data.ends_at
+              ? new Date(data.ends_at)
+              : new Date(startDt.getTime() + 60 * 60_000);
+            const body = {
+              summary: data.title,
+              description: data.description,
+              location: data.location,
+              start: { dateTime: startDt.toISOString(), timeZone: "America/Sao_Paulo" },
+              end: { dateTime: endDt.toISOString(), timeZone: "America/Sao_Paulo" },
+              attendees,
+            };
+            const isUpdate = !!row.google_event_id;
+            const url = isUpdate
+              ? `${GOOGLE_CALENDAR_API}/calendars/primary/events/${row.google_event_id}?sendUpdates=all`
+              : `${GOOGLE_CALENDAR_API}/calendars/primary/events?sendUpdates=all`;
+            const gRes = await fetch(url, {
+              method: isUpdate ? "PUT" : "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(body),
+            });
+            if (gRes.ok) {
+              const gEvent: any = await gRes.json();
+              await sb.from("calendar_events").update({ google_event_id: gEvent.id }).eq("id", row.id);
+              row.google_event_id = gEvent.id;
+            } else {
+              console.error("[Google Calendar] saveEvent sync failed:", await gRes.text());
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[Google Calendar] sync error:", e);
+      }
+    }
+
     return row;
   });
 
