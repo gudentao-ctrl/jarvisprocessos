@@ -93,7 +93,36 @@ export const listWorkHours = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []).map((r: any) => {
+      const isRemun =
+        r.is_remunerated !== undefined && r.is_remunerated !== null
+          ? r.is_remunerated
+          : !r.notes?.includes("[NAO_REMUNERADA]");
+
+      const exps = (r.work_hour_expenses ?? []).map((e: any) => {
+        let cat = e.category;
+        let desc = e.description || "";
+        if (!cat) {
+          const match = desc.match(/^\[([a-z_]+)\]\s*(.*)$/i);
+          if (match) {
+            cat = match[1].toLowerCase();
+            desc = match[2];
+          } else {
+            cat = "deslocamento";
+          }
+        } else {
+          desc = desc.replace(/^\[[a-z_]+\]\s*/i, "");
+        }
+        return { ...e, category: cat, description: desc };
+      });
+
+      return {
+        ...r,
+        is_remunerated: isRemun,
+        notes: (r.notes || "").replace(/\[NAO_REMUNERADA\]/g, "").trim(),
+        work_hour_expenses: exps,
+      };
+    });
   });
 
 export const saveWorkHours = createServerFn({ method: "POST" })
@@ -128,7 +157,13 @@ export const saveWorkHours = createServerFn({ method: "POST" })
 
     const hours =
       rest.start_time && rest.end_time ? hoursBetween(rest.start_time, rest.end_time) : rest.hours;
-    const payload = { ...rest, hours };
+
+    // Preservar tag de não remunerada nas anotações como segurança contra ausência da coluna no cache do schema
+    let cleanNotes = (rest.notes || "").replace(/\[NAO_REMUNERADA\]/g, "").trim();
+    if (rest.is_remunerated === false) {
+      cleanNotes = cleanNotes ? `${cleanNotes} [NAO_REMUNERADA]` : "[NAO_REMUNERADA]";
+    }
+    const payload = { ...rest, notes: cleanNotes, hours };
 
     let row: any;
     if (id) {
@@ -138,18 +173,57 @@ export const saveWorkHours = createServerFn({ method: "POST" })
       if (current?.billing_status === "faturado" && !isSuperadmin) {
         throw new Error("Lançamento já faturado não pode ser alterado.");
       }
-      const { data: updated, error } = await sb
+
+      // 1. Tenta atualizar com is_remunerated
+      let { data: updated, error } = await sb
         .from("work_hours").update(payload).eq("id", id).select().single();
+
+      // Se falhar por causa de is_remunerated (schema cache)
+      if (error && (error.message?.includes("is_remunerated") || error.code === "PGRST204")) {
+        const { is_remunerated, ...fallbackPayload } = payload;
+        const res = await sb.from("work_hours").update(fallbackPayload).eq("id", id).select().single();
+        if (res.error) throw new Error(res.error.message);
+        updated = res.data;
+        error = null;
+      }
+
       if (error) throw new Error(error.message);
       row = updated;
       await sb.from("work_hour_expenses").delete().eq("work_hour_id", id);
       await sb.from("work_hour_tools").delete().eq("work_hour_id", id);
     } else {
-      const { data: inserted, error } = await sb
+      // Tenta inserir com user_id e is_remunerated
+      const insertData = { ...payload, created_by: context.userId, user_id: context.userId };
+      let { data: inserted, error } = await sb
         .from("work_hours")
-        .insert({ ...payload, created_by: context.userId, user_id: context.userId })
+        .insert(insertData)
         .select()
         .single();
+
+      // Se falhar por is_remunerated
+      if (error && (error.message?.includes("is_remunerated") || error.code === "PGRST204")) {
+        const { is_remunerated, ...fallbackInsert } = insertData;
+        const res = await sb.from("work_hours").insert(fallbackInsert).select().single();
+        if (res.error && (res.error.message?.includes("user_id") || res.error.code === "PGRST204")) {
+          const { user_id, ...fallbackInsertNoUid } = fallbackInsert;
+          const resNoUid = await sb.from("work_hours").insert(fallbackInsertNoUid).select().single();
+          if (resNoUid.error) throw new Error(resNoUid.error.message);
+          inserted = resNoUid.data;
+          error = null;
+        } else if (res.error) {
+          throw new Error(res.error.message);
+        } else {
+          inserted = res.data;
+          error = null;
+        }
+      } else if (error && (error.message?.includes("user_id") || error.code === "PGRST204")) {
+        const { user_id, ...fallbackInsertNoUid } = insertData;
+        const resNoUid = await sb.from("work_hours").insert(fallbackInsertNoUid).select().single();
+        if (resNoUid.error) throw new Error(resNoUid.error.message);
+        inserted = resNoUid.data;
+        error = null;
+      }
+
       if (error) throw new Error(error.message);
       row = inserted;
     }
@@ -167,17 +241,30 @@ export const saveWorkHours = createServerFn({ method: "POST" })
     }
 
     if (allExpenses.length > 0) {
-      const inserts = allExpenses.map((exp) => ({
-        work_hour_id: row.id,
-        company_id: row.company_id,
-        project_id: row.project_id,
-        category: exp.category || "deslocamento",
-        description: exp.description || exp.category || "Despesa",
-        amount: exp.amount,
-        created_by: context.userId,
-      }));
-      const { error } = await sb.from("work_hour_expenses").insert(inserts);
-      if (error) throw new Error(error.message);
+      const inserts = allExpenses.map((exp) => {
+        const cat = exp.category || "deslocamento";
+        const cleanDesc = (exp.description || "").replace(/^\[[a-z_]+\]\s*/i, "").trim();
+        const descWithTag = cleanDesc ? `[${cat}] ${cleanDesc}` : `[${cat}]`;
+        return {
+          work_hour_id: row.id,
+          company_id: row.company_id,
+          project_id: row.project_id,
+          category: cat,
+          description: descWithTag,
+          amount: exp.amount,
+          created_by: context.userId,
+        };
+      });
+
+      let { error: expError } = await sb.from("work_hour_expenses").insert(inserts);
+      if (expError && (expError.message?.includes("category") || expError.code === "PGRST204")) {
+        // Fallback se a coluna category não existir na tabela work_hour_expenses
+        const insertsNoCat = inserts.map(({ category, ...restExp }) => restExp);
+        const retryExp = await sb.from("work_hour_expenses").insert(insertsNoCat);
+        if (retryExp.error) throw new Error(retryExp.error.message);
+      } else if (expError) {
+        throw new Error(expError.message);
+      }
     }
 
     if (tool && (tool.amount > 0 || tool.description)) {

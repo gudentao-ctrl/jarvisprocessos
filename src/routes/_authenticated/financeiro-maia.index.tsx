@@ -272,10 +272,16 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
   const updateAuditFn = useServerFn(updateAuditedWorkHour);
   const approveBatchFn = useServerFn(approveAuditBatch);
   const listCompaniesFn = useServerFn(listCompanies);
+  const listContractsFn = useServerFn(listConsultantContracts);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => listCompaniesFn(),
+  });
+
+  const { data: allConsultants = [] } = useQuery({
+    queryKey: ["consultant-contracts"],
+    queryFn: () => listContractsFn(),
   });
 
   const { data: hours = [], isLoading } = useQuery({
@@ -293,11 +299,16 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
 
   const consultants = useMemo(() => {
     const map = new Map<string, string>();
+    for (const c of allConsultants) {
+      if (c.userId && c.fullName) map.set(c.userId, c.fullName);
+    }
     for (const h of hours) {
-      if (h.user_id && h.responsible) map.set(h.user_id, h.responsible);
+      const uid = h.user_id || h.created_by;
+      const name = h.responsible || h.profiles?.full_name;
+      if (uid && name) map.set(uid, name);
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [hours]);
+  }, [allConsultants, hours]);
 
   const approveBatchMut = useMutation({
     mutationFn: (ids: string[]) => approveBatchFn({ data: { work_hour_ids: ids } }),

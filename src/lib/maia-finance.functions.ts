@@ -265,6 +265,7 @@ export const listAuditWorkHours = createServerFn({ method: "GET" })
       .object({
         month_year: z.string().regex(/^\d{4}-\d{2}$/).optional(),
         user_id: z.string().uuid().optional(),
+        consultant_id: z.string().uuid().optional(),
         company_id: z.string().uuid().optional(),
         activity_type: z.string().optional(),
         has_expenses: z.boolean().optional(),
@@ -278,28 +279,74 @@ export const listAuditWorkHours = createServerFn({ method: "GET" })
 
     let q = sb
       .from("work_hours")
-      .select("*, projects(id, name), companies(id, name), work_hour_expenses(*), profiles!user_id(full_name, email)")
+      .select("*, projects(id, name), companies(id, name), work_hour_expenses(*)")
       .order("work_date", { ascending: false });
 
-    if (data.user_id) q = q.eq("user_id", data.user_id);
+    const consultantId = data.consultant_id || data.user_id;
+    if (consultantId) {
+      q = q.or(`user_id.eq.${consultantId},created_by.eq.${consultantId}`);
+    }
     if (data.company_id) q = q.eq("company_id", data.company_id);
     if (data.activity_type) q = q.eq("activity_type", data.activity_type);
     if (data.month_year) {
       q = q.gte("work_date", `${data.month_year}-01`).lte("work_date", `${data.month_year}-31`);
     }
 
-    const { data: rows } = await q;
-    const store = await getMaiaStore(sb);
+    const [{ data: rows, error: qErr }, { data: profiles }, store] = await Promise.all([
+      q,
+      sb.from("profiles").select("user_id, full_name, email"),
+      getMaiaStore(sb),
+    ]);
+
+    if (qErr) {
+      console.error("listAuditWorkHours query error:", qErr);
+    }
+
+    const profileMap = new Map<string, any>(
+      (profiles ?? []).map((p: any) => [p.user_id, p])
+    );
 
     let list = (rows ?? []).map((r: any) => {
+      const uid = r.user_id || r.created_by;
+      const prof = profileMap.get(uid);
+      const consultantName = prof?.full_name || r.responsible || "Consultor";
+
       const note = store.auditNotes[r.id];
+      const isRemun =
+        note?.adjusted_remunerated !== undefined
+          ? note.adjusted_remunerated
+          : r.is_remunerated !== undefined && r.is_remunerated !== null
+          ? r.is_remunerated
+          : !r.notes?.includes("[NAO_REMUNERADA]");
+
+      const expenses = (r.work_hour_expenses ?? []).map((e: any) => {
+        let cat = e.category;
+        let desc = e.description || "";
+        if (!cat) {
+          const match = desc.match(/^\[([a-z_]+)\]\s*(.*)$/i);
+          if (match) {
+            cat = match[1].toLowerCase();
+            desc = match[2];
+          } else {
+            cat = "deslocamento";
+          }
+        } else {
+          desc = desc.replace(/^\[[a-z_]+\]\s*/i, "");
+        }
+        return { ...e, category: cat, description: desc };
+      });
+
       return {
         ...r,
+        user_id: uid,
+        responsible: consultantName,
+        profiles: prof || { full_name: consultantName, email: prof?.email || "" },
         hours: note?.adjusted_hours !== undefined ? note.adjusted_hours : r.hours,
-        is_remunerated: note?.adjusted_remunerated !== undefined ? note.adjusted_remunerated : r.is_remunerated,
+        is_remunerated: isRemun,
         audit_status: r.audit_status || note?.audit_status || "pendente",
         adjusted_by_manager: r.adjusted_by_manager ?? note?.adjusted_by_manager ?? false,
         manager_note: r.manager_note || note?.manager_note || "",
+        work_hour_expenses: expenses,
       };
     });
 
@@ -399,9 +446,35 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
     const start = `${data.month_year}-01`;
     const end = `${data.month_year}-31`;
 
-    const [{ data: profiles }, { data: hoursRows }] = await Promise.all([
+    let hoursRows: any[] = [];
+    try {
+      const { data: qData, error: qErr } = await sb
+        .from("work_hours")
+        .select("id, user_id, created_by, hours, is_remunerated, notes, work_hour_expenses(*)")
+        .gte("work_date", start)
+        .lte("work_date", end);
+      if (!qErr && qData) {
+        hoursRows = qData;
+      } else {
+        const { data: fallbackData } = await sb
+          .from("work_hours")
+          .select("id, user_id, created_by, hours, notes, work_hour_expenses(*)")
+          .gte("work_date", start)
+          .lte("work_date", end);
+        if (fallbackData) hoursRows = fallbackData;
+      }
+    } catch {
+      const { data: fallbackData } = await sb
+        .from("work_hours")
+        .select("id, user_id, created_by, hours, notes, work_hour_expenses(*)")
+        .gte("work_date", start)
+        .lte("work_date", end);
+      if (fallbackData) hoursRows = fallbackData;
+    }
+
+    const [{ data: profiles }, store] = await Promise.all([
       sb.from("profiles").select("user_id, full_name, email, whatsapp"),
-      sb.from("work_hours").select("user_id, hours, is_remunerated, work_hour_expenses(amount)").gte("work_date", start).lte("work_date", end),
+      getMaiaStore(sb),
     ]);
 
     let dbContracts: any[] = [];
@@ -415,7 +488,6 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
       if (cl.data) dbClosings = cl.data;
     } catch {}
 
-    const store = await getMaiaStore(sb);
     const contractMap = new Map<string, any>(dbContracts.map((c: any) => [c.user_id, c]));
     const closingMap = new Map<string, any>(dbClosings.map((c: any) => [c.user_id, c]));
 
@@ -429,12 +501,22 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
     // Aggregate hours and expenses by user
     const userHoursMap = new Map<string, { totalHours: number; remuneratedHours: number; expensesTotal: number }>();
     for (const h of hoursRows ?? []) {
-      const uid = h.user_id;
+      const uid = h.user_id || h.created_by;
       if (!uid) continue;
       const cur = userHoursMap.get(uid) || { totalHours: 0, remuneratedHours: 0, expensesTotal: 0 };
-      const hrs = Number(h.hours || 0);
+
+      const note = store.auditNotes[h.id];
+      const hrs = Number(note?.adjusted_hours !== undefined ? note.adjusted_hours : (h.hours || 0));
       cur.totalHours += hrs;
-      if (h.is_remunerated !== false) {
+
+      const isRemun =
+        note?.adjusted_remunerated !== undefined
+          ? note.adjusted_remunerated
+          : h.is_remunerated !== undefined && h.is_remunerated !== null
+          ? h.is_remunerated
+          : !h.notes?.includes("[NAO_REMUNERADA]");
+
+      if (isRemun) {
         cur.remuneratedHours += hrs;
       }
       const expSum = (h.work_hour_expenses ?? []).reduce(
