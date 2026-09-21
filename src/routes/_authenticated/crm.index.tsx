@@ -12,6 +12,8 @@ import {
   dismissAlertToday,
   CRM_STAGES,
   CONTRACT_TYPES,
+  LEAD_ORIGINS,
+  LEAD_CLASSIFICATIONS,
   stageLabel,
   contractLabel,
 } from "@/lib/crm.functions";
@@ -25,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Handshake, Plus, Trash2, Bell, Flame, MessageSquarePlus, Building2 } from "lucide-react";
+import { Handshake, Plus, Trash2, Bell, Flame, Snowflake, User, MessageSquarePlus, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
@@ -62,10 +64,13 @@ type LeadForm = {
   phone: string;
   email: string;
   source: string;
+  origem: string;
+  quem_indicou: string;
   notes: string;
   first_contact_date: string;
   responsible: string;
   stage: string;
+  classification: "quente" | "medio" | "frio";
   is_hot: boolean;
   next_action_date: string;
   contract_type: string;
@@ -73,6 +78,9 @@ type LeadForm = {
   payment_due_date: string;
   hourly_rate: string;
   contract_total: string;
+  total_project_hours: string;
+  cnpj: string;
+  whatsapp: string;
   start_date: string;
   end_date: string;
 };
@@ -84,10 +92,13 @@ const emptyForm = (): LeadForm => ({
   phone: "",
   email: "",
   source: "",
+  origem: "",
+  quem_indicou: "",
   notes: "",
   first_contact_date: today(),
   responsible: "",
   stage: "nao_iniciado",
+  classification: "frio",
   is_hot: false,
   next_action_date: "",
   contract_type: "",
@@ -95,9 +106,47 @@ const emptyForm = (): LeadForm => ({
   payment_due_date: "",
   hourly_rate: "",
   contract_total: "",
+  total_project_hours: "",
+  cnpj: "",
+  whatsapp: "",
   start_date: "",
   end_date: "",
 });
+
+function LeadClassificationBadge({ classification, isHot }: { classification?: string; isHot?: boolean }) {
+  const c = classification || (isHot ? "quente" : "frio");
+  if (c === "quente") {
+    return (
+      <span
+        title="Classificação: Quente (Fogo alto)"
+        className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950/60 px-2 py-0.5 text-[11px] font-bold text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800"
+      >
+        <Flame className="h-3.5 w-3.5 fill-red-500 text-red-600 animate-pulse" />
+        <span>Quente</span>
+      </span>
+    );
+  }
+  if (c === "medio") {
+    return (
+      <span
+        title="Classificação: Médio (Fogo baixo)"
+        className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+      >
+        <Flame className="h-3 w-3 text-amber-600" />
+        <span>Médio</span>
+      </span>
+    );
+  }
+  return (
+    <span
+      title="Classificação: Frio (Gelo)"
+      className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800"
+    >
+      <Snowflake className="h-3 w-3 text-sky-600" />
+      <span>Frio</span>
+    </span>
+  );
+}
 
 function CrmPage() {
   const qc = useQueryClient();
@@ -132,11 +181,14 @@ function CrmPage() {
           contact_role: form.contact_role,
           phone: form.phone,
           email: form.email,
-          source: form.source,
+          source: form.origem || form.source,
+          origem: form.origem || form.source,
+          quem_indicou: form.quem_indicou,
           notes: form.notes,
           responsible: form.responsible,
           stage: form.stage as any,
-          is_hot: form.is_hot,
+          classification: form.classification,
+          is_hot: form.classification === "quente",
           first_contact_date: form.first_contact_date || null,
           next_action_date: form.next_action_date || null,
           contract_type: (form.contract_type || null) as any,
@@ -144,6 +196,9 @@ function CrmPage() {
           payment_due_date: form.payment_due_date || null,
           hourly_rate: form.hourly_rate ? Number(form.hourly_rate) : null,
           contract_total: form.contract_total ? Number(form.contract_total) : null,
+          total_project_hours: form.total_project_hours ? Number(form.total_project_hours) : null,
+          cnpj: form.cnpj,
+          whatsapp: form.whatsapp,
           start_date: form.start_date || null,
           end_date: form.end_date || null,
         },
@@ -203,6 +258,7 @@ function CrmPage() {
   }, [leads]);
 
   const openEdit = (l: any) => {
+    const classif = (l.classification as "quente" | "medio" | "frio") || (l.is_hot ? "quente" : "frio");
     setForm({
       id: l.id,
       company_name: l.company_name ?? "",
@@ -211,17 +267,23 @@ function CrmPage() {
       phone: l.phone ?? "",
       email: l.email ?? "",
       source: l.source ?? "",
+      origem: l.origem || l.source || "",
+      quem_indicou: l.quem_indicou ?? "",
       notes: l.notes ?? "",
       first_contact_date: l.first_contact_date ?? "",
       responsible: l.responsible ?? "",
       stage: l.stage ?? "nao_iniciado",
-      is_hot: !!l.is_hot,
+      classification: classif,
+      is_hot: classif === "quente",
       next_action_date: l.next_action_date ?? "",
       contract_type: l.contract_type ?? "",
       payment_day: l.payment_day != null ? String(l.payment_day) : "",
       payment_due_date: l.payment_due_date ?? "",
       hourly_rate: l.hourly_rate != null ? String(l.hourly_rate) : "",
       contract_total: l.contract_total != null ? String(l.contract_total) : "",
+      total_project_hours: l.total_project_hours != null ? String(l.total_project_hours) : "",
+      cnpj: l.cnpj ?? "",
+      whatsapp: l.whatsapp || l.phone || "",
       start_date: l.start_date ?? "",
       end_date: l.end_date ?? "",
     });
@@ -260,47 +322,111 @@ function CrmPage() {
               Nenhum lead cadastrado ainda.
             </Card>
           )}
-          <div className="grid gap-3 lg:grid-cols-5">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {CRM_STAGES.map((s) => (
               <div key={s.value} className="space-y-2">
-                <div className="flex items-center justify-between rounded-md bg-muted px-2 py-1.5">
-                  <span className="text-xs font-semibold">{s.label}</span>
-                  <span className="text-xs text-muted-foreground">{byStage[s.value]?.length ?? 0}</span>
+                <div className="flex items-center justify-between rounded-md bg-muted px-2.5 py-2">
+                  <span className="text-xs font-bold text-foreground">{s.label}</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                    {byStage[s.value]?.length ?? 0}
+                  </Badge>
                 </div>
                 {(byStage[s.value] ?? []).map((l: any) => (
-                  <Card key={l.id} className="space-y-2 p-3">
-                    <div className="flex items-start gap-2">
+                  <Card key={l.id} className="space-y-2.5 p-3 hover:shadow-md transition-shadow">
+                    {/* 7. Campo de estágio do lead na parte superior do card + 4. Classificação visual */}
+                    <div className="flex items-center justify-between gap-1 border-b pb-2">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-semibold uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
+                      >
+                        {stageLabel(l.stage)}
+                      </Badge>
+                      <LeadClassificationBadge classification={l.classification} isHot={l.is_hot} />
+                    </div>
+
+                    {/* Empresa */}
+                    <div className="flex items-start justify-between gap-2">
                       <button
-                        className="min-w-0 flex-1 text-left text-sm font-semibold hover:underline"
+                        className="min-w-0 flex-1 text-left text-sm font-bold text-foreground hover:text-primary hover:underline transition-colors"
                         onClick={() => openEdit(l)}
                       >
                         {l.company_name}
                       </button>
-                      {l.is_hot && <Flame className="h-4 w-4 shrink-0 text-destructive" />}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {[l.contact_name, l.contact_role].filter(Boolean).join(" · ") || "Sem contato"}
-                    </p>
+
+                    {/* 5. Nome do contato e NÃO o responsável cadastrado */}
+                    <div className="flex items-center gap-1.5 text-xs text-foreground/90 font-medium">
+                      <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">
+                        {[l.contact_name, l.contact_role].filter(Boolean).join(" · ") || "Sem contato informado"}
+                      </span>
+                    </div>
+
+                    {/* Origem e quem indicou */}
+                    {(l.origem || l.source) && (
+                      <div className="text-[11px] text-muted-foreground">
+                        <span>Origem: {l.origem || l.source}</span>
+                        {((l.origem === "Indicação" || l.source === "Indicação") && l.quem_indicou) && (
+                          <span className="font-medium text-foreground"> · Indicado por {l.quem_indicou}</span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-1">
-                      {l.responsible && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {l.responsible}
-                        </Badge>
-                      )}
                       {l.next_action_date && (
                         <Badge variant="outline" className="text-[10px]">
                           Retorno {fmtDate(l.next_action_date)}
                         </Badge>
                       )}
-                      {l.stage === "fechamento" && l.contract_type && (
-                        <Badge className="text-[10px]">{contractLabel(l.contract_type)}</Badge>
-                      )}
                     </div>
-                    {l.stage === "fechamento" && canViewFinance && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {brl(l.hourly_rate)}/h · Total {brl(l.contract_total)}
-                      </p>
+
+                    {/* 6. No card de fechamento em dados do contrato: cnpj, nome do cliente, whatsapp, email, horas total do projeto */}
+                    {l.stage === "fechamento" && (
+                      <div className="rounded-md border bg-muted/40 p-2.5 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between font-semibold text-foreground border-b pb-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Dados do Contrato</span>
+                          {l.contract_type && (
+                            <Badge variant="outline" className="text-[10px] font-normal">
+                              {contractLabel(l.contract_type)}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 gap-1 text-[11px]">
+                          <div>
+                            <span className="text-muted-foreground">Cliente: </span>
+                            <span className="font-semibold text-foreground">{l.company_name}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">CNPJ: </span>
+                            <span className="font-mono">{l.cnpj || "—"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <span className="text-muted-foreground">WhatsApp: </span>
+                              <span>{l.whatsapp || l.phone || "—"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">E-mail: </span>
+                              <span className="truncate">{l.email || "—"}</span>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Total de horas do projeto: </span>
+                            <span className="font-semibold text-primary">
+                              {l.total_project_hours != null && l.total_project_hours !== "" ? `${l.total_project_hours}h` : "—"}
+                            </span>
+                          </div>
+                          {canViewFinance && (l.hourly_rate != null || l.contract_total != null) && (
+                            <div className="text-muted-foreground pt-0.5 border-t mt-0.5">
+                              {l.hourly_rate != null && <span>{brl(l.hourly_rate)}/h</span>}
+                              {l.hourly_rate != null && l.contract_total != null && <span> · </span>}
+                              {l.contract_total != null && <span>Total {brl(l.contract_total)}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
+
                     {l.stage === "fechamento" && !l.converted_company_id && (
                       <Button
                         size="sm"
@@ -314,9 +440,11 @@ function CrmPage() {
                     {l.converted_company_id && (
                       <Badge variant="outline" className="text-[10px]">Empresa ativa vinculada</Badge>
                     )}
+
                     <p className="text-[11px] text-muted-foreground">
                       Último contato: {fmtDate(l.last_contact_at ?? l.first_contact_date)}
                     </p>
+
                     <div className="flex gap-1">
                       <Button
                         size="sm"
@@ -336,6 +464,7 @@ function CrmPage() {
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
                     </div>
+
                     {activities.filter((a: any) => a.lead_id === l.id).length > 0 && (
                       <div className="space-y-1 border-t pt-2">
                         {activities
@@ -437,8 +566,39 @@ function CrmPage() {
             </div>
             <div>
               <Label>Origem</Label>
-              <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+              <Select
+                value={form.origem || undefined}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    origem: v,
+                    source: v,
+                    quem_indicou: v === "Indicação" ? form.quem_indicou : "",
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAD_ORIGINS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            {form.origem === "Indicação" && (
+              <div>
+                <Label>Quem indicou? *</Label>
+                <Input
+                  placeholder="Nome de quem indicou"
+                  value={form.quem_indicou}
+                  onChange={(e) => setForm({ ...form, quem_indicou: e.target.value })}
+                />
+              </div>
+            )}
             <div>
               <Label>Responsável</Label>
               <Input
@@ -477,13 +637,46 @@ function CrmPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Switch
-                checked={form.is_hot}
-                onCheckedChange={(v) => setForm({ ...form, is_hot: v })}
-                id="hot"
-              />
-              <Label htmlFor="hot">Lead aquecido</Label>
+            <div className="sm:col-span-2">
+              <Label className="block mb-1.5 font-medium">Classificação do Lead</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, classification: "quente", is_hot: true })}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-semibold transition-all ${
+                    form.classification === "quente"
+                      ? "border-red-500 bg-red-50 text-red-700 shadow-sm dark:bg-red-950/50 dark:text-red-300"
+                      : "border-border hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <Flame className="h-4 w-4 text-red-600 fill-red-500 shrink-0 animate-pulse" />
+                  <span>Quente (Fogo alto)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, classification: "medio", is_hot: false })}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-semibold transition-all ${
+                    form.classification === "medio"
+                      ? "border-amber-500 bg-amber-50 text-amber-700 shadow-sm dark:bg-amber-950/50 dark:text-amber-300"
+                      : "border-border hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <Flame className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <span>Médio (Fogo baixo)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, classification: "frio", is_hot: false })}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-semibold transition-all ${
+                    form.classification === "frio"
+                      ? "border-sky-500 bg-sky-50 text-sky-700 shadow-sm dark:bg-sky-950/50 dark:text-sky-300"
+                      : "border-border hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <Snowflake className="h-4 w-4 text-sky-500 shrink-0" />
+                  <span>Frio (Gelo)</span>
+                </button>
+              </div>
             </div>
             <div className="sm:col-span-2">
               <Label>Observações</Label>
@@ -494,10 +687,52 @@ function CrmPage() {
               />
             </div>
 
-            {form.stage === "fechamento" && canViewFinance && (
+            {form.stage === "fechamento" && (
               <>
                 <div className="sm:col-span-2 border-t pt-3">
                   <p className="text-sm font-semibold">Dados do contrato</p>
+                </div>
+                <div>
+                  <Label>Nome do cliente</Label>
+                  <Input
+                    value={form.company_name}
+                    onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+                    placeholder="Nome da empresa"
+                  />
+                </div>
+                <div>
+                  <Label>CNPJ do cliente</Label>
+                  <Input
+                    value={form.cnpj}
+                    onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                    placeholder="00.000.000/0000-00"
+                  />
+                </div>
+                <div>
+                  <Label>WhatsApp</Label>
+                  <Input
+                    value={form.whatsapp}
+                    onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="contato@empresa.com"
+                  />
+                </div>
+                <div>
+                  <Label>Total de horas do projeto</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={form.total_project_hours}
+                    onChange={(e) => setForm({ ...form, total_project_hours: e.target.value })}
+                    placeholder="Ex: 80"
+                  />
                 </div>
                 <div>
                   <Label>Tipo de contrato</Label>
@@ -517,42 +752,46 @@ function CrmPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Dia de pagamento</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={form.payment_day}
-                    onChange={(e) => setForm({ ...form, payment_day: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Data de pagamento contratada</Label>
-                  <Input
-                    type="date"
-                    value={form.payment_due_date}
-                    onChange={(e) => setForm({ ...form, payment_due_date: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Valor/hora (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.hourly_rate}
-                    onChange={(e) => setForm({ ...form, hourly_rate: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Valor total do projeto (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.contract_total}
-                    onChange={(e) => setForm({ ...form, contract_total: e.target.value })}
-                  />
-                </div>
+                {canViewFinance && (
+                  <>
+                    <div>
+                      <Label>Dia de pagamento</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={form.payment_day}
+                        onChange={(e) => setForm({ ...form, payment_day: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Data de pagamento contratada</Label>
+                      <Input
+                        type="date"
+                        value={form.payment_due_date}
+                        onChange={(e) => setForm({ ...form, payment_due_date: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Valor/hora (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={form.hourly_rate}
+                        onChange={(e) => setForm({ ...form, hourly_rate: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Valor total do projeto (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={form.contract_total}
+                        onChange={(e) => setForm({ ...form, contract_total: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <Label>Data de início</Label>
                   <Input

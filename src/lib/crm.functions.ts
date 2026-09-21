@@ -7,6 +7,7 @@ export const CRM_STAGES = [
   { value: "prospectado", label: "Prospectado" },
   { value: "primeira_reuniao", label: "1ª reunião" },
   { value: "apresentacao", label: "Apresentação" },
+  { value: "orcamento", label: "Orçamento" },
   { value: "fechamento", label: "Fechamento" },
 ] as const;
 
@@ -14,6 +15,18 @@ export const CONTRACT_TYPES = [
   { value: "conta_corrente", label: "Conta corrente" },
   { value: "fixo", label: "Fixo" },
   { value: "por_projeto", label: "Por projeto" },
+] as const;
+
+export const LEAD_ORIGINS = [
+  { value: "Indicação", label: "Indicação" },
+  { value: "Internet", label: "Internet" },
+  { value: "Prospecção", label: "Prospecção" },
+] as const;
+
+export const LEAD_CLASSIFICATIONS = [
+  { value: "quente", label: "Quente" },
+  { value: "medio", label: "Médio" },
+  { value: "frio", label: "Frio" },
 ] as const;
 
 export function stageLabel(v?: string | null) {
@@ -40,10 +53,13 @@ const leadSchema = z.object({
   phone: z.string().default(""),
   email: z.string().default(""),
   source: z.string().default(""),
+  origem: z.string().default(""),
+  quem_indicou: z.string().default(""),
   notes: z.string().default(""),
   first_contact_date: z.string().nullable().optional(),
   responsible: z.string().default(""),
-  stage: z.enum(["nao_iniciado", "prospectado", "primeira_reuniao", "apresentacao", "fechamento"]),
+  stage: z.enum(["nao_iniciado", "prospectado", "primeira_reuniao", "apresentacao", "orcamento", "fechamento"]),
+  classification: z.enum(["quente", "medio", "frio"]).default("frio"),
   is_hot: z.boolean().default(false),
   last_contact_at: z.string().nullable().optional(),
   next_action_date: z.string().nullable().optional(),
@@ -53,6 +69,9 @@ const leadSchema = z.object({
   payment_due_date: z.string().nullable().optional(),
   hourly_rate: z.number().nullable().optional(),
   contract_total: z.number().nullable().optional(),
+  total_project_hours: z.number().nullable().optional(),
+  cnpj: z.string().default(""),
+  whatsapp: z.string().default(""),
   start_date: z.string().nullable().optional(),
   end_date: z.string().nullable().optional(),
 });
@@ -106,15 +125,45 @@ export const saveLead = createServerFn({ method: "POST" })
     const payload: any = { ...rest };
     if (data.stage === "fechamento") payload.converted_at = new Date().toISOString();
 
-    if (id) {
-      const { error } = await sb.from("crm_leads").update(payload).eq("id", id);
-      if (error) throw new Error(error.message);
-      return { id };
+    // Sincroniza source e origem
+    if (payload.origem && !payload.source) payload.source = payload.origem;
+    if (payload.source && !payload.origem) payload.origem = payload.source;
+
+    // Sincroniza classification e is_hot
+    if (payload.classification === "quente") {
+      payload.is_hot = true;
+    } else if (payload.is_hot && !payload.classification) {
+      payload.classification = "quente";
     }
-    payload.created_by = context.userId;
-    const { data: row, error } = await sb.from("crm_leads").insert(payload).select("id").single();
+
+    const tryDbOp = async (p: any) => {
+      if (id) {
+        return await sb.from("crm_leads").update(p).eq("id", id).select("id").maybeSingle();
+      }
+      const insertData = { ...p, created_by: context.userId };
+      return await sb.from("crm_leads").insert(insertData).select("id").single();
+    };
+
+    let { data: row, error } = await tryDbOp(payload);
+
+    // Fallback caso colunas novas ainda não estejam refletidas no cache do PostgREST
+    if (error && (error.code === "PGRST204" || error.message?.includes("column") || error.message?.includes("schema cache"))) {
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.origem;
+      delete fallbackPayload.quem_indicou;
+      delete fallbackPayload.classification;
+      delete fallbackPayload.cnpj;
+      delete fallbackPayload.whatsapp;
+      delete fallbackPayload.total_project_hours;
+
+      const retry = await tryDbOp(fallbackPayload);
+      if (retry.error) throw new Error(retry.error.message);
+      row = retry.data;
+      error = null;
+    }
+
     if (error) throw new Error(error.message);
-    return { id: row.id as string };
+    return { id: (row?.id ?? id) as string };
   });
 
 export const deleteLead = createServerFn({ method: "POST" })
@@ -210,10 +259,19 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
       }
       if (l.stage === "apresentacao" && idle !== null && idle >= 7) {
         alerts.push({
+          key: `crm:orcamento:${l.id}`,
+          severity: "warning",
+          title: "Orçamento pendente",
+          subtitle: `${l.company_name} — ${idle} dias após a apresentação`,
+          leadId: l.id,
+        });
+      }
+      if (l.stage === "orcamento" && idle !== null && idle >= 7) {
+        alerts.push({
           key: `crm:fechamento:${l.id}`,
           severity: "critical",
           title: "Fechamento pendente",
-          subtitle: `${l.company_name} — ${idle} dias após a apresentação`,
+          subtitle: `${l.company_name} — ${idle} dias após o orçamento`,
           leadId: l.id,
         });
       }
@@ -226,7 +284,8 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
           leadId: l.id,
         });
       }
-      if (l.is_hot && l.stage !== "fechamento" && idle !== null && idle >= 10) {
+      const isHot = l.classification === "quente" || l.is_hot;
+      if (isHot && l.stage !== "fechamento" && idle !== null && idle >= 10) {
         alerts.push({
           key: `crm:quente:${l.id}`,
           severity: "critical",
@@ -234,7 +293,7 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
           subtitle: `${l.company_name} — ${idle} dias sem contato`,
           leadId: l.id,
         });
-      } else if (l.is_hot && l.stage !== "fechamento" && idle !== null && idle >= 5) {
+      } else if (isHot && l.stage !== "fechamento" && idle !== null && idle >= 5) {
         alerts.push({
           key: `crm:esfriando:${l.id}`,
           severity: "warning",
