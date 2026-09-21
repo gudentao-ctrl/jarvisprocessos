@@ -56,6 +56,8 @@ export const createOpportunity = createServerFn({ method: "POST" })
     pain_point_id: z.string().uuid().nullable().optional(),
     indicator_id: z.string().uuid().nullable().optional(),
     root_cause_id: z.string().uuid().nullable().optional(),
+    sector_id: z.string().uuid().nullable().optional(),
+    sector: z.string().nullable().optional(),
     title: z.string().min(1),
     description: z.string().default(""),
     category: z.string().default("desperdicio"),
@@ -91,6 +93,8 @@ export const updateOpportunity = createServerFn({ method: "POST" })
       indicator_id: z.string().uuid().nullable().optional(),
       process_id: z.string().uuid().nullable().optional(),
       root_cause_id: z.string().uuid().nullable().optional(),
+      sector_id: z.string().uuid().nullable().optional(),
+      sector: z.string().nullable().optional(),
     }),
   }).parse(d))
   .handler(async ({ data, context }) => {
@@ -134,6 +138,8 @@ export const approveOpportunityAsPlan = createServerFn({ method: "POST" })
         indicator_id: opp.indicator_id,
         opportunity_id: opp.id,
         root_cause_id: opp.root_cause_id,
+        sector_id: opp.sector_id,
+        sector: opp.sector,
         title: opp.title,
         description: opp.description,
         expected_benefit: opp.expected_benefit,
