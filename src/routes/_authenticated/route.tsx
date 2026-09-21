@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet, Handshake,
-  LifeBuoy, Menu, User, Landmark,
+  LifeBuoy, Menu, User, Landmark, Map,
 } from "lucide-react";
 
 
@@ -55,6 +55,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 const NAV = [
   { to: "/empresas", icon: Building2, label: "Empresas", permission: "gestao" },
+  { to: "/mapa", icon: Map, label: "Mapa", permission: "gestao" },
   { to: "/controle", icon: Radar, label: "Controle", permission: "gestao" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
   { to: "/horas", icon: Clock, label: "Horas", permission: "horas" },

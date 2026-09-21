@@ -41,6 +41,7 @@ import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFinanceiroMaiaIndexRouteImport } from './routes/_authenticated/financeiro-maia.index'
 import { Route as AuthenticatedFinanceiroIndexRouteImport } from './routes/_authenticated/financeiro.index'
 import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
+import { Route as AuthenticatedMapaIndexRouteImport } from './routes/_authenticated/mapa.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
@@ -246,6 +247,11 @@ const AuthenticatedHorasIndexRoute = AuthenticatedHorasIndexRouteImport.update({
   path: '/horas/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMapaIndexRoute = AuthenticatedMapaIndexRouteImport.update({
+  id: '/mapa/',
+  path: '/mapa/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedIndicadoresIndexRoute =
   AuthenticatedIndicadoresIndexRouteImport.update({
     id: '/indicadores/',
@@ -441,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/financeiro-maia/': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/horas/': typeof AuthenticatedHorasIndexRoute
+  '/mapa/': typeof AuthenticatedMapaIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -500,6 +507,7 @@ export interface FileRoutesByTo {
   '/financeiro-maia': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/financeiro': typeof AuthenticatedFinanceiroIndexRoute
   '/horas': typeof AuthenticatedHorasIndexRoute
+  '/mapa': typeof AuthenticatedMapaIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -562,6 +570,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro-maia/': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/_authenticated/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/_authenticated/horas/': typeof AuthenticatedHorasIndexRoute
+  '/_authenticated/mapa/': typeof AuthenticatedMapaIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -624,6 +633,7 @@ export interface FileRouteTypes {
     | '/financeiro-maia/'
     | '/financeiro/'
     | '/horas/'
+    | '/mapa/'
     | '/indicadores/'
     | '/oportunidades/'
     | '/planos-acao/'
@@ -683,6 +693,7 @@ export interface FileRouteTypes {
     | '/financeiro-maia'
     | '/financeiro'
     | '/horas'
+    | '/mapa'
     | '/indicadores'
     | '/oportunidades'
     | '/planos-acao'
@@ -744,6 +755,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro-maia/'
     | '/_authenticated/financeiro/'
     | '/_authenticated/horas/'
+    | '/_authenticated/mapa/'
     | '/_authenticated/indicadores/'
     | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
@@ -1004,6 +1016,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHorasIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mapa/': {
+      id: '/_authenticated/mapa/'
+      path: '/mapa'
+      fullPath: '/mapa/'
+      preLoaderRoute: typeof AuthenticatedMapaIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/indicadores/': {
       id: '/_authenticated/indicadores/'
       path: '/indicadores'
@@ -1258,6 +1277,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroMaiaIndexRoute: typeof AuthenticatedFinanceiroMaiaIndexRoute
   AuthenticatedFinanceiroIndexRoute: typeof AuthenticatedFinanceiroIndexRoute
   AuthenticatedHorasIndexRoute: typeof AuthenticatedHorasIndexRoute
+  AuthenticatedMapaIndexRoute: typeof AuthenticatedMapaIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
@@ -1305,6 +1325,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroMaiaIndexRoute: AuthenticatedFinanceiroMaiaIndexRoute,
   AuthenticatedFinanceiroIndexRoute: AuthenticatedFinanceiroIndexRoute,
   AuthenticatedHorasIndexRoute: AuthenticatedHorasIndexRoute,
+  AuthenticatedMapaIndexRoute: AuthenticatedMapaIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
   AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,

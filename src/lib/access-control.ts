@@ -15,6 +15,7 @@ export function permissionForPath(pathname: string): ToolKey | null {
     pathname.startsWith("/fase") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/entrevistas") ||
+    pathname.startsWith("/mapa") ||
     pathname.startsWith("/mapas") ||
     pathname.startsWith("/processos") ||
     pathname.startsWith("/cronoanalise") ||

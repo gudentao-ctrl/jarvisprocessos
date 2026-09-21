@@ -473,18 +473,23 @@ export const saveActionPlan = createServerFn({ method: "POST" })
       expected_result: z.string().nullable().optional(),
       observations: z.string().nullable().optional(),
       origin: z.string().nullable().optional(),
+      parent_id: z.string().uuid().nullable().optional(),
+      item_type: z.string().nullable().optional(),
+      progress_pct: z.number().int().min(0).max(100).nullable().optional(),
+      custom_pillar: z.string().nullable().optional(),
+      order_index: z.number().int().nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
-      const { data: row, error } = await context.supabase
-        .from("action_plans").update(rest).eq("id", id).select().single();
+      const { data: row, error } = await (context.supabase.from("action_plans") as any)
+        .update(rest).eq("id", id).select().single();
       if (error) throw new Error(error.message);
       return row;
     }
-    const { data: row, error } = await context.supabase
-      .from("action_plans").insert({ ...data, created_by: context.userId }).select().single();
+    const { data: row, error } = await (context.supabase.from("action_plans") as any)
+      .insert({ ...data, created_by: context.userId }).select().single();
     if (error) throw new Error(error.message);
     return row;
   });
