@@ -131,6 +131,7 @@ export type Database = {
           responsible: string | null
           root_cause_id: string | null
           sector: string | null
+          sector_id: string | null
           status: Database["public"]["Enums"]["action_status"]
           title: string
           trend: number | null
@@ -170,6 +171,7 @@ export type Database = {
           responsible?: string | null
           root_cause_id?: string | null
           sector?: string | null
+          sector_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title: string
           trend?: number | null
@@ -209,6 +211,7 @@ export type Database = {
           responsible?: string | null
           root_cause_id?: string | null
           sector?: string | null
+          sector_id?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title?: string
           trend?: number | null
@@ -284,6 +287,13 @@ export type Database = {
             columns: ["root_cause_id"]
             isOneToOne: false
             referencedRelation: "root_cause_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_plans_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
             referencedColumns: ["id"]
           },
         ]
@@ -986,6 +996,8 @@ export type Database = {
           process_id: string | null
           project_id: string | null
           root_cause_id: string | null
+          sector: string | null
+          sector_id: string | null
           source: Database["public"]["Enums"]["opportunity_source"]
           source_interview_id: string | null
           status: Database["public"]["Enums"]["opportunity_status"]
@@ -1015,6 +1027,8 @@ export type Database = {
           process_id?: string | null
           project_id?: string | null
           root_cause_id?: string | null
+          sector?: string | null
+          sector_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
           source_interview_id?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
@@ -1044,6 +1058,8 @@ export type Database = {
           process_id?: string | null
           project_id?: string | null
           root_cause_id?: string | null
+          sector?: string | null
+          sector_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
           source_interview_id?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
@@ -1108,6 +1124,13 @@ export type Database = {
             columns: ["root_cause_id"]
             isOneToOne: false
             referencedRelation: "root_cause_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_opportunities_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
             referencedColumns: ["id"]
           },
           {
