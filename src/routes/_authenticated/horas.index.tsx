@@ -117,6 +117,8 @@ type Row = {
   toolDescription: string;
   toolQuantity: number;
   toolAmount: number;
+  adjusted_by_manager?: boolean;
+  manager_note?: string;
 };
 
 const defaultExpenses = (): Record<string, ExpenseCategoryItem> => ({
@@ -142,6 +144,8 @@ const empty = (): Row => ({
   toolDescription: "",
   toolQuantity: 1,
   toolAmount: 0,
+  adjusted_by_manager: false,
+  manager_note: "",
 });
 
 const brl = (n: number) =>
@@ -340,6 +344,17 @@ function HorasPage() {
       }
     }
 
+    let startTime = (r.start_time ?? "08:00").slice(0, 5);
+    let endTime = (r.end_time ?? "12:00").slice(0, 5);
+    if (r.adjusted_by_manager && r.hours !== undefined && r.hours !== null) {
+      const [sh, sm] = startTime.split(":").map(Number);
+      const totalMins = Math.round(Number(r.hours) * 60);
+      const endMins = ((sh || 0) * 60 + (sm || 0) + totalMins) % (24 * 60);
+      const eh = Math.floor(endMins / 60);
+      const em = endMins % 60;
+      endTime = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+    }
+
     const tool = r.work_hour_tools?.[0];
     setEditing({
       id: r.id,
@@ -348,8 +363,8 @@ function HorasPage() {
       activity_type: r.activity_type,
       is_remunerated: r.is_remunerated !== false,
       work_date: r.work_date,
-      start_time: (r.start_time ?? "08:00").slice(0, 5),
-      end_time: (r.end_time ?? "12:00").slice(0, 5),
+      start_time: startTime,
+      end_time: endTime,
       description: r.description ?? "",
       notes: r.notes ?? "",
       hasExpense: hasAnyExpense,
@@ -357,6 +372,8 @@ function HorasPage() {
       toolDescription: tool?.description ?? "",
       toolQuantity: Number(tool?.quantity ?? 1),
       toolAmount: Number(tool?.amount ?? 0),
+      adjusted_by_manager: !!r.adjusted_by_manager,
+      manager_note: r.manager_note || "",
     });
     setOpen(true);
   }
@@ -441,6 +458,18 @@ function HorasPage() {
             </DialogHeader>
             {editing && (
               <div className="space-y-4">
+                {editing.adjusted_by_manager && (
+                  <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      Aviso de Ajuste pela Gestão:
+                    </div>
+                    <p className="mt-1 text-xs text-amber-800 dark:text-amber-300 font-medium">
+                      {editing.manager_note || "Este lançamento foi auditado e ajustado pela gestão."}
+                    </p>
+                  </div>
+                )}
+
                 {/* 1. Controle no topo: Hora Remunerada vs Hora Não Remunerada */}
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground font-semibold">
@@ -942,9 +971,15 @@ function HorasPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {new Date(r.work_date + "T00:00:00").toLocaleDateString("pt-BR")}
-                      {r.start_time && r.end_time
-                        ? ` · ${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}`
-                        : ""}
+                      {r.adjusted_by_manager ? (
+                        <span className="font-semibold text-amber-700 dark:text-amber-400">
+                          {" "}· Duração ajustada pela gestão: {fmtDuration(Number(r.hours))}
+                        </span>
+                      ) : (
+                        r.start_time && r.end_time
+                          ? ` · ${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}`
+                          : ""
+                      )}
                     </p>
                     {r.description && <p className="mt-1 text-sm">{r.description}</p>}
                     <div className="mt-1.5 flex flex-wrap gap-1.5">

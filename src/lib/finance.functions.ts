@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { getMaiaStore } from "./maia-finance.functions";
 
 export const PAYMENT_METHODS = [
   { value: "pix", label: "PIX" },
@@ -63,24 +64,49 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
     if (ie) throw new Error(ie.message);
     if (pe) throw new Error(pe.message);
 
+    const store = await getMaiaStore(sb);
+
     const rawRows = hours ?? [];
     const rows = rawRows.map((r: any) => {
+      const note = store?.auditNotes?.[r.id];
+
+      const isAdjusted =
+        note?.adjusted_by_manager ??
+        r.adjusted_by_manager ??
+        (r.notes?.includes("[AJUSTADO_GESTAO:") ? true : false);
+
+      let managerNote = r.manager_note || "";
+      if (note?.manager_note) {
+        managerNote = note.manager_note;
+      } else if (!managerNote && r.notes?.includes("[AJUSTADO_GESTAO:")) {
+        const match = r.notes.match(/\[AJUSTADO_GESTAO:\s*([^\]]+)\]/);
+        if (match) managerNote = match[1];
+      }
+
+      const rowHours = note?.adjusted_hours !== undefined ? Number(note.adjusted_hours) : Number(r.hours);
+
       const isRemun =
-        r.is_remunerated !== undefined && r.is_remunerated !== null
+        note?.adjusted_remunerated !== undefined
+          ? note.adjusted_remunerated
+          : r.is_remunerated !== undefined && r.is_remunerated !== null
           ? r.is_remunerated
           : !r.notes?.includes("[NAO_REMUNERADA]");
 
-      let isAdjusted = !!r.adjusted_by_manager;
-      let managerNote = r.manager_note || "";
-      if (!isAdjusted && r.notes?.includes("[AJUSTADO_GESTAO:")) {
-        const match = r.notes.match(/\[AJUSTADO_GESTAO:\s*([^\]]+)\]/);
-        if (match) {
-          isAdjusted = true;
-          managerNote = match[1];
+      let companyId = r.company_id;
+      let companyObj = r.companies;
+      if (note?.adjusted_company_id) {
+        companyId = note.adjusted_company_id;
+        if (note.adjusted_company_name) {
+          companyObj = { id: note.adjusted_company_id, name: note.adjusted_company_name };
         }
       }
 
-      const exps = (r.work_hour_expenses ?? []).map((e: any) => {
+      let rawExps = r.work_hour_expenses ?? [];
+      if (note?.adjusted_expenses && Array.isArray(note.adjusted_expenses) && note.adjusted_expenses.length > 0) {
+        rawExps = note.adjusted_expenses;
+      }
+
+      const exps = rawExps.map((e: any) => {
         let cat = e.category;
         let desc = e.description || "";
         if (!cat) {
@@ -99,6 +125,9 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
 
       return {
         ...r,
+        hours: rowHours,
+        company_id: companyId,
+        companies: companyObj,
         is_remunerated: isRemun,
         adjusted_by_manager: isAdjusted,
         manager_note: managerNote,

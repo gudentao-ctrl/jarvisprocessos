@@ -37,7 +37,7 @@ const memoryFallback: {
   bonuses: [],
 };
 
-async function getMaiaStore(sb: any) {
+export async function getMaiaStore(sb: any) {
   try {
     const { data } = await sb
       .from("document_templates")
@@ -60,7 +60,7 @@ async function getMaiaStore(sb: any) {
   return memoryFallback;
 }
 
-async function saveMaiaStore(sb: any, store: any) {
+export async function saveMaiaStore(sb: any, store: any) {
   Object.assign(memoryFallback, store);
   try {
     const jsonStr = JSON.stringify(store);
@@ -467,12 +467,14 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
     }
 
     // Empresa / Cliente
+    let newCompanyName = current.companies?.name || "";
     if (current.company_id !== data.company_id) {
       const { data: newComp } = await sb
         .from("companies")
         .select("name")
         .eq("id", data.company_id)
         .maybeSingle();
+      if (newComp?.name) newCompanyName = newComp.name;
       const oldName = current.companies?.name || "Empresa anterior";
       const newName = newComp?.name || "Nova empresa";
       changes.push(`Cliente alterado de "${oldName}" para "${newName}"`);
@@ -501,7 +503,38 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
       ? `${changeDetails} (Obs: ${data.manager_note.trim()})`
       : changeDetails;
 
-    // 3. Atualizar work_hours
+    // 3. Atualizar store de auditoria garantindo persistência imediata mesmo com tabelas sem migração
+    const store = await getMaiaStore(sb);
+    store.auditNotes = store.auditNotes || {};
+    store.auditNotes[data.id] = {
+      ...(store.auditNotes[data.id] || {}),
+      adjusted_by_manager: true,
+      manager_note: fullManagerNote,
+      adjusted_hours: data.hours,
+      adjusted_remunerated: data.is_remunerated,
+      adjusted_company_id: data.company_id,
+      adjusted_company_name: newCompanyName,
+      adjusted_expenses: validNewExpenses,
+      updated_at: new Date().toISOString(),
+    };
+    await saveMaiaStore(sb, store);
+
+    // 4. Tentar executar via RPC com SECURITY DEFINER
+    try {
+      const { error: rpcErr } = await sb.rpc("audit_work_hour_by_manager", {
+        _work_hour_id: data.id,
+        _hours: data.hours,
+        _is_remunerated: data.is_remunerated,
+        _company_id: data.company_id,
+        _manager_note: fullManagerNote,
+        _expenses: validNewExpenses,
+      });
+      if (!rpcErr) {
+        return { ok: true, id: data.id, manager_note: fullManagerNote };
+      }
+    } catch {}
+
+    // 5. Fallback direto caso a RPC ainda não esteja instalada no Postgres
     let cleanNotes = (current.notes || "")
       .replace(/\[NAO_REMUNERADA\]/g, "")
       .replace(/\[AJUSTADO_GESTAO:[^\]]+\]/g, "")
@@ -514,61 +547,58 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
       ? `${cleanNotes} [AJUSTADO_GESTAO: ${fullManagerNote}]`
       : `[AJUSTADO_GESTAO: ${fullManagerNote}]`;
 
-    const updatePayload: any = {
+    const fullPayload: any = {
       hours: data.hours,
-      is_remunerated: data.is_remunerated,
       company_id: data.company_id,
       notes: cleanNotes,
+      is_remunerated: data.is_remunerated,
+      adjusted_by_manager: true,
+      manager_note: fullManagerNote,
       updated_at: new Date().toISOString(),
     };
 
-    try {
-      await sb
-        .from("work_hours")
-        .update({
-          ...updatePayload,
-          adjusted_by_manager: true,
-          manager_note: fullManagerNote,
-        })
-        .eq("id", data.id);
-    } catch {
-      await sb.from("work_hours").update(updatePayload).eq("id", data.id);
+    let { error: updErr } = await sb.from("work_hours").update(fullPayload).eq("id", data.id);
+    if (updErr) {
+      const fallback1 = {
+        hours: data.hours,
+        company_id: data.company_id,
+        notes: cleanNotes,
+        is_remunerated: data.is_remunerated,
+        updated_at: new Date().toISOString(),
+      };
+      let { error: fErr1 } = await sb.from("work_hours").update(fallback1).eq("id", data.id);
+      if (fErr1) {
+        const fallbackBase = {
+          hours: data.hours,
+          company_id: data.company_id,
+          notes: cleanNotes,
+          updated_at: new Date().toISOString(),
+        };
+        await sb.from("work_hours").update(fallbackBase).eq("id", data.id);
+      }
     }
 
-    // 4. Atualizar despesas
+    // Atualizar despesas no banco
     try {
       await sb.from("work_hour_expenses").delete().eq("work_hour_id", data.id);
       if (validNewExpenses.length > 0) {
         const rowsToInsert = validNewExpenses.map((exp) => ({
           work_hour_id: data.id,
+          company_id: data.company_id,
+          project_id: current.project_id,
           category: exp.category,
           amount: exp.amount,
-          description: exp.description || "",
+          description: exp.description ? `[${exp.category}] ${exp.description}` : `[${exp.category}]`,
+          created_by: context.userId,
         }));
 
-        const { error: insErr } = await sb.from("work_hour_expenses").insert(rowsToInsert);
+        let { error: insErr } = await sb.from("work_hour_expenses").insert(rowsToInsert);
         if (insErr) {
-          const fallbackRows = validNewExpenses.map((exp) => ({
-            work_hour_id: data.id,
-            amount: exp.amount,
-            description: `[${exp.category}] ${exp.description || ""}`.trim(),
-          }));
+          const fallbackRows = rowsToInsert.map(({ category, ...rest }) => rest);
           await sb.from("work_hour_expenses").insert(fallbackRows);
         }
       }
     } catch {}
-
-    // 5. Atualizar store de auditoria para persistência de fallback
-    const store = await getMaiaStore(sb);
-    store.auditNotes[data.id] = {
-      ...(store.auditNotes[data.id] || {}),
-      adjusted_by_manager: true,
-      manager_note: fullManagerNote,
-      adjusted_hours: data.hours,
-      adjusted_remunerated: data.is_remunerated,
-      updated_at: new Date().toISOString(),
-    };
-    await saveMaiaStore(sb, store);
 
     return {
       ok: true,
