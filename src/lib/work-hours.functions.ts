@@ -116,10 +116,25 @@ export const listWorkHours = createServerFn({ method: "GET" })
         return { ...e, category: cat, description: desc };
       });
 
+      let isAdjusted = !!r.adjusted_by_manager;
+      let managerNote = r.manager_note || "";
+      if (!isAdjusted && r.notes?.includes("[AJUSTADO_GESTAO:")) {
+        const match = r.notes.match(/\[AJUSTADO_GESTAO:\s*([^\]]+)\]/);
+        if (match) {
+          isAdjusted = true;
+          managerNote = match[1];
+        }
+      }
+
       return {
         ...r,
         is_remunerated: isRemun,
-        notes: (r.notes || "").replace(/\[NAO_REMUNERADA\]/g, "").trim(),
+        adjusted_by_manager: isAdjusted,
+        manager_note: managerNote,
+        notes: (r.notes || "")
+          .replace(/\[NAO_REMUNERADA\]/g, "")
+          .replace(/\[AJUSTADO_GESTAO:[^\]]+\]/g, "")
+          .trim(),
         work_hour_expenses: exps,
       };
     });

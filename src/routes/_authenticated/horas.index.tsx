@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Receipt,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -272,6 +273,10 @@ function HorasPage() {
     }
     return rows as any[];
   }, [rows, remunerationFilter]);
+
+  const adjustedItems = useMemo(() => {
+    return (rows as any[]).filter((r) => !!r.adjusted_by_manager);
+  }, [rows]);
 
   const saveMut = useMutation({
     mutationFn: (payload: any) => save({ data: payload }),
@@ -826,6 +831,44 @@ function HorasPage() {
         )}
       </Card>
 
+      {/* Notificação no Aplicativo: Ajustes Realizados pela Gestão */}
+      {adjustedItems.length > 0 && (
+        <Card className="p-4 border-amber-400/60 bg-amber-500/10 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
+              <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              Notificação da Gestão: {adjustedItems.length} lançamento{adjustedItems.length === 1 ? "" : "s"} ajustado{adjustedItems.length === 1 ? "" : "s"}
+            </div>
+            <Badge variant="outline" className="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border-amber-300 text-[10px] font-bold">
+              Auditoria da Gestão
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A gestão revisou e realizou ajustes em seus lançamentos de horas/despesas. Veja os detalhes abaixo:
+          </p>
+          <div className="space-y-1.5 pt-1">
+            {adjustedItems.slice(0, 5).map((item: any) => (
+              <div
+                key={item.id}
+                className="text-xs bg-background/90 rounded-md p-2.5 border border-amber-300/50 dark:border-amber-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5"
+              >
+                <div>
+                  <span className="font-semibold text-foreground">
+                    {item.companies?.name || "Cliente"} · {new Date(item.work_date + "T00:00:00").toLocaleDateString("pt-BR")}:
+                  </span>{" "}
+                  <span className="text-amber-800 dark:text-amber-300 font-medium">
+                    {item.manager_note || "Lançamento auditado e ajustado pela gestão."}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="text-[10px] shrink-0 font-bold self-start sm:self-auto">
+                  {fmtDuration(Number(item.hours))}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Cards de Resumo */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Card className="p-3">
@@ -889,11 +932,11 @@ function HorasPage() {
                       {r.adjusted_by_manager && (
                         <Badge
                           variant="outline"
-                          className="text-[10px] gap-1 bg-destructive/10 text-destructive border-destructive/30 font-medium"
+                          className="text-[10px] gap-1 text-amber-700 dark:text-amber-300 border-amber-400 bg-amber-100/60 dark:bg-amber-950/40 font-medium"
                           title={r.manager_note || "Horas ou remuneração ajustadas pela gestão"}
                         >
                           <AlertCircle className="h-3 w-3" />
-                          Ajustado pela Gestão{r.manager_note ? `: ${r.manager_note}` : ""}
+                          Ajustado pela Gestão
                         </Badge>
                       )}
                     </div>
@@ -929,6 +972,19 @@ function HorasPage() {
                         </Badge>
                       )}
                     </div>
+
+                    {/* Alerta de Notificação de Ajuste da Gestão */}
+                    {r.adjusted_by_manager && (
+                      <div className="mt-2.5 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-2.5 text-xs text-amber-900 dark:text-amber-200">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          Notificação de Ajuste pela Gestão:
+                        </div>
+                        <p className="mt-1 text-xs text-amber-800 dark:text-amber-300 font-medium">
+                          {r.manager_note || "Este lançamento foi auditado e ajustado pela gestão."}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <Button

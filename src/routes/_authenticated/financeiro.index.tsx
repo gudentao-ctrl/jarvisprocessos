@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,6 +15,7 @@ import { listCompanies } from "@/lib/interviews.functions";
 import { getMe } from "@/lib/access.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { saveWorkHours, ACTIVITY_TYPES } from "@/lib/work-hours.functions";
+import { auditWorkHourFromFinance } from "@/lib/maia-finance.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,14 +23,32 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Wallet, FileText, Receipt, Plus, Trash2, Lock, FileDown, Pencil } from "lucide-react";
+import {
+  Wallet,
+  FileText,
+  Receipt,
+  Plus,
+  Trash2,
+  Lock,
+  FileDown,
+  Pencil,
+  CheckCircle2,
+  AlertCircle,
+  UtensilsCrossed,
+  Milestone,
+  Car,
+  CircleParking,
+  Hotel,
+} from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getBilledReport } from "@/lib/finance.functions";
 import { exportBilledPdf, type BilledPdfMode } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/financeiro/")({
   component: FinanceiroPage,
@@ -59,6 +78,67 @@ const fmtHours = (h: number) => {
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 
+export const EXPENSE_CATEGORIES_CONFIG = [
+  { key: "alimentacao", label: "Alimentação", icon: UtensilsCrossed, placeholder: "Ex.: Almoço durante visita ao cliente" },
+  { key: "pedagio", label: "Pedágio", icon: Milestone, placeholder: "Ex.: Praça de pedágio BR-369" },
+  { key: "deslocamento", label: "Deslocamento", icon: Car, placeholder: "Ex.: Combustível / Uber / Km rodado" },
+  { key: "estacionamento", label: "Estacionamento", icon: CircleParking, placeholder: "Ex.: Estacionamento centro / aeroporto" },
+  { key: "hospedagem", label: "Hospedagem", icon: Hotel, placeholder: "Ex.: Hotel / estadia" },
+] as const;
+
+function CurrencyInput({
+  value,
+  onChange,
+  className,
+  placeholder = "R$ 0,00",
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const formatted = useMemo(() => {
+    if (!value || isNaN(value)) return "";
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }, [value]);
+
+  const [display, setDisplay] = useState(formatted);
+
+  useEffect(() => {
+    setDisplay(formatted);
+  }, [formatted]);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawDigits = e.target.value.replace(/\D/g, "");
+    if (!rawDigits) {
+      setDisplay("");
+      onChange(0);
+      return;
+    }
+    const num = Number(rawDigits) / 100;
+    const nextFormatted = num.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    setDisplay(nextFormatted);
+    onChange(num);
+  }
+
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      placeholder={placeholder}
+      value={display}
+      onChange={handleChange}
+    />
+  );
+}
+
 function FinanceiroPage() {
   const qc = useQueryClient();
   const { companyId: globalCompanyId } = useActiveCompany();
@@ -87,7 +167,7 @@ function FinanceiroPage() {
   const delInvoiceFn = useServerFn(deleteInvoice);
   const meFn = useServerFn(getMe);
   const billedFn = useServerFn(getBilledReport);
-  const saveHourFn = useServerFn(saveWorkHours);
+  const auditHourFn = useServerFn(auditWorkHourFromFinance);
 
   async function exportPdf(mode: BilledPdfMode) {
     if (!companyId) return;
@@ -226,28 +306,16 @@ function FinanceiroPage() {
   });
 
   const editHourMut = useMutation({
-    mutationFn: (h: any) =>
-      saveHourFn({
-        data: {
-          id: h.id,
-          company_id: h.company_id,
-          responsible: h.responsible,
-          activity_type: h.activity_type,
-          work_date: h.work_date,
-          hours: Number(h.hours),
-          description: h.description,
-          notes: h.notes ?? "",
-          is_remunerated: h.is_remunerated ?? true,
-          expenses: [],
-        },
-      } as any),
-    onSuccess: () => {
-      toast.success("Lançamento auditado e salvo.");
+    mutationFn: (payload: any) => auditHourFn({ data: payload }),
+    onSuccess: (res: any) => {
+      toast.success("Lançamento auditado com sucesso! Notificação registrada.");
       setEditingHour(null);
       qc.invalidateQueries({ queryKey: ["finance"] });
       qc.invalidateQueries({ queryKey: ["work-hours"] });
+      qc.invalidateQueries({ queryKey: ["audit-work-hours"] });
+      qc.invalidateQueries({ queryKey: ["maia-dre"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar"),
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar o ajuste de auditoria"),
   });
 
   const totals = data?.totals;
@@ -427,13 +495,48 @@ function FinanceiroPage() {
                             Ferramentas {brl(tools)}
                           </p>
                         )}
+
+                        {/* Alerta de Notificação de Ajuste da Gestão */}
+                        {h.adjusted_by_manager && (
+                          <div className="mt-2 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-2 text-xs text-amber-900 dark:text-amber-200">
+                            <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300 text-[11px]">
+                              <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                              Ajustado pela Gestão:
+                            </div>
+                            <p className="mt-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                              {h.manager_note || "Lançamento auditado e ajustado pela gestão."}
+                            </p>
+                          </div>
+                        )}
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 gap-1 text-xs shrink-0"
+                        className="h-8 gap-1 text-xs shrink-0 font-medium"
                         onClick={(ev) => {
                           ev.preventDefault();
+                          const expsList = h.work_hour_expenses ?? [];
+                          const expensesObj: Record<string, { amount: number; description: string }> = {
+                            alimentacao: { amount: 0, description: "" },
+                            pedagio: { amount: 0, description: "" },
+                            deslocamento: { amount: 0, description: "" },
+                            estacionamento: { amount: 0, description: "" },
+                            hospedagem: { amount: 0, description: "" },
+                          };
+                          for (const exp of expsList) {
+                            const cat = exp.category || "deslocamento";
+                            if (expensesObj[cat]) {
+                              expensesObj[cat] = {
+                                amount: Number(exp.amount ?? 0),
+                                description: exp.description ?? "",
+                              };
+                            } else {
+                              expensesObj["deslocamento"] = {
+                                amount: Number(exp.amount ?? 0),
+                                description: exp.description ?? "",
+                              };
+                            }
+                          }
                           setEditingHour({
                             id: h.id,
                             company_id: h.company_id,
@@ -444,6 +547,9 @@ function FinanceiroPage() {
                             description: h.description ?? "",
                             notes: h.notes ?? "",
                             is_remunerated: h.is_remunerated !== false,
+                            hasExpense: expsList.length > 0,
+                            expenses: expensesObj,
+                            manager_note: "",
                           });
                         }}
                       >
@@ -672,72 +778,258 @@ function FinanceiroPage() {
       {/* Modal de Auditoria do Lançamento (Financeiro Cliente) */}
       {editingHour && (
         <Dialog open={!!editingHour} onOpenChange={() => setEditingHour(null)}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>Auditar Lançamento</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-primary" /> Auditar Lançamento de Horas
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3 py-1">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Data</Label>
-                  <Input
-                    type="date"
-                    className="h-10"
-                    value={editingHour.work_date}
-                    onChange={(e) => setEditingHour({ ...editingHour, work_date: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Horas</Label>
-                  <Input
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    className="h-10"
-                    value={editingHour.hours}
-                    onChange={(e) => setEditingHour({ ...editingHour, hours: Number(e.target.value) })}
-                  />
+            <div className="space-y-4 py-1 text-sm">
+              {/* 1. Status de Remuneração: Hora Remunerada vs Não Remunerada (EDITÁVEL) */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground font-semibold">
+                  Status de Remuneração (Editável):
+                </Label>
+                <div className="flex rounded-lg border bg-muted/40 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingHour({ ...editingHour, is_remunerated: true })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-xs font-semibold transition-all",
+                      editingHour.is_remunerated
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Hora Remunerada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingHour({ ...editingHour, is_remunerated: false })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-xs font-semibold transition-all",
+                      !editingHour.is_remunerated
+                        ? "bg-amber-600 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Hora Não Remunerada
+                  </button>
                 </div>
               </div>
+
+              {/* 2. Cliente / Empresa (EDITÁVEL) */}
               <div>
-                <Label>Tipo de Atividade</Label>
+                <Label className="font-semibold">Cliente / Empresa (Editável) *</Label>
                 <Select
-                  value={editingHour.activity_type}
-                  onValueChange={(v) => setEditingHour({ ...editingHour, activity_type: v })}
+                  value={editingHour.company_id ?? ""}
+                  onValueChange={(v) => setEditingHour({ ...editingHour, company_id: v })}
                 >
-                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {ACTIVITY_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    {activeCompanies.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* 3. Quantidade de Horas (EDITÁVEL) e Data (Somente Leitura) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="font-semibold">Quantidade de Horas (Editável) *</Label>
+                  <Input
+                    type="number"
+                    step="0.25"
+                    min="0.25"
+                    className="h-10 font-bold tabular-nums"
+                    value={editingHour.hours}
+                    onChange={(e) =>
+                      setEditingHour({ ...editingHour, hours: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Data (Somente Leitura)</Label>
+                  <Input
+                    className="h-10 bg-muted/40"
+                    disabled
+                    readOnly
+                    value={fmtDate(editingHour.work_date)}
+                  />
+                </div>
+              </div>
+
+              {/* 4. Consultor e Tipo de Hora (Somente Leitura) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-muted-foreground">Consultor (Somente Leitura)</Label>
+                  <Input className="h-10 bg-muted/40" disabled readOnly value={editingHour.responsible} />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Tipo de Hora (Somente Leitura)</Label>
+                  <Input
+                    className="h-10 bg-muted/40 capitalize"
+                    disabled
+                    readOnly
+                    value={editingHour.activity_type}
+                  />
+                </div>
+              </div>
+
+              {/* 5. Descrição do Atendimento (Somente Leitura) */}
               <div>
-                <Label>Descrição</Label>
+                <Label className="text-muted-foreground">Descrição do Atendimento (Somente Leitura)</Label>
                 <Textarea
                   rows={2}
+                  disabled
+                  readOnly
+                  className="bg-muted/40 resize-none text-xs"
                   value={editingHour.description}
-                  onChange={(e) => setEditingHour({ ...editingHour, description: e.target.value })}
-                  placeholder="Descreva o atendimento…"
                 />
               </div>
+
+              {/* 6. Lançamentos de Despesa (EDITÁVEL) */}
+              <Card className="space-y-3 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-primary" />
+                    <div>
+                      <Label
+                        className="text-xs font-semibold cursor-pointer"
+                        onClick={() =>
+                          setEditingHour({
+                            ...editingHour,
+                            hasExpense: !editingHour.hasExpense,
+                          })
+                        }
+                      >
+                        Lançamentos de Despesa (Editável)
+                      </Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        Alimentação, pedágio, deslocamento, estacionamento e hospedagem
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={editingHour.hasExpense}
+                    onCheckedChange={(v) =>
+                      setEditingHour({ ...editingHour, hasExpense: v })
+                    }
+                  />
+                </div>
+
+                {editingHour.hasExpense && (
+                  <div className="space-y-2.5 pt-2 border-t">
+                    {EXPENSE_CATEGORIES_CONFIG.map((cat) => {
+                      const Icon = cat.icon;
+                      const currentExp = editingHour.expenses?.[cat.key] || {
+                        amount: 0,
+                        description: "",
+                      };
+                      return (
+                        <div
+                          key={cat.key}
+                          className="rounded-md border bg-muted/20 p-2 space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                              <Icon className="h-3.5 w-3.5 text-primary" />
+                              {cat.label}
+                            </span>
+                            {currentExp.amount > 0 && (
+                              <Badge variant="secondary" className="text-[10px] font-bold">
+                                {brl(currentExp.amount)}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="col-span-1">
+                              <CurrencyInput
+                                className="h-9 text-xs"
+                                value={currentExp.amount}
+                                onChange={(val) => {
+                                  const updated = {
+                                    ...editingHour.expenses,
+                                    [cat.key]: { ...currentExp, amount: val },
+                                  };
+                                  setEditingHour({ ...editingHour, expenses: updated });
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input
+                                className="h-9 text-xs"
+                                placeholder={cat.placeholder}
+                                value={currentExp.description}
+                                onChange={(e) => {
+                                  const updated = {
+                                    ...editingHour.expenses,
+                                    [cat.key]: {
+                                      ...currentExp,
+                                      description: e.target.value,
+                                    },
+                                  };
+                                  setEditingHour({ ...editingHour, expenses: updated });
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+
+              {/* Justificativa Adicional Opcional */}
               <div>
-                <Label>Consultor (responsável)</Label>
+                <Label className="text-xs">Observação / Justificativa da Gestão (Opcional)</Label>
                 <Input
-                  className="h-10"
-                  value={editingHour.responsible}
-                  onChange={(e) => setEditingHour({ ...editingHour, responsible: e.target.value })}
+                  className="h-9 text-xs"
+                  placeholder="Ex.: Alinhado previamente com o cliente"
+                  value={editingHour.manager_note}
+                  onChange={(e) =>
+                    setEditingHour({ ...editingHour, manager_note: e.target.value })
+                  }
                 />
               </div>
             </div>
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingHour(null)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setEditingHour(null)}>
+                Cancelar
+              </Button>
               <Button
-                disabled={editHourMut.isPending || !editingHour.description.trim()}
-                onClick={() => editHourMut.mutate(editingHour)}
+                disabled={editHourMut.isPending || !editingHour.company_id || editingHour.hours <= 0}
+                onClick={() => {
+                  const expensesList = editingHour.hasExpense
+                    ? Object.entries(editingHour.expenses || {})
+                        .filter(([_, item]: any) => item.amount > 0 || (item.description && item.description.trim()))
+                        .map(([cat, item]: any) => ({
+                          category: cat,
+                          amount: Number(item.amount || 0),
+                          description: item.description?.trim() || "",
+                        }))
+                    : [];
+
+                  editHourMut.mutate({
+                    id: editingHour.id,
+                    hours: editingHour.hours,
+                    is_remunerated: editingHour.is_remunerated,
+                    company_id: editingHour.company_id,
+                    expenses: expensesList,
+                    manager_note: editingHour.manager_note,
+                  });
+                }}
               >
-                {editHourMut.isPending ? "Salvando…" : "Salvar Auditoria"}
+                {editHourMut.isPending ? "Salvando Ajuste…" : "Salvar Ajuste da Auditoria"}
               </Button>
             </DialogFooter>
           </DialogContent>

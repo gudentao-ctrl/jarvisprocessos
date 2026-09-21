@@ -63,7 +63,49 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
     if (ie) throw new Error(ie.message);
     if (pe) throw new Error(pe.message);
 
-    const rows = hours ?? [];
+    const rawRows = hours ?? [];
+    const rows = rawRows.map((r: any) => {
+      const isRemun =
+        r.is_remunerated !== undefined && r.is_remunerated !== null
+          ? r.is_remunerated
+          : !r.notes?.includes("[NAO_REMUNERADA]");
+
+      let isAdjusted = !!r.adjusted_by_manager;
+      let managerNote = r.manager_note || "";
+      if (!isAdjusted && r.notes?.includes("[AJUSTADO_GESTAO:")) {
+        const match = r.notes.match(/\[AJUSTADO_GESTAO:\s*([^\]]+)\]/);
+        if (match) {
+          isAdjusted = true;
+          managerNote = match[1];
+        }
+      }
+
+      const exps = (r.work_hour_expenses ?? []).map((e: any) => {
+        let cat = e.category;
+        let desc = e.description || "";
+        if (!cat) {
+          const match = desc.match(/^\[([a-z_]+)\]\s*(.*)$/i);
+          if (match) {
+            cat = match[1].toLowerCase();
+            desc = match[2];
+          } else {
+            cat = "deslocamento";
+          }
+        } else {
+          desc = desc.replace(/^\[[a-z_]+\]\s*/i, "");
+        }
+        return { ...e, category: cat, description: desc };
+      });
+
+      return {
+        ...r,
+        is_remunerated: isRemun,
+        adjusted_by_manager: isAdjusted,
+        manager_note: managerNote,
+        work_hour_expenses: exps,
+      };
+    });
+
     const open = rows.filter((r: any) => r.billing_status !== "faturado");
     const billed = rows.filter((r: any) => r.billing_status === "faturado");
 

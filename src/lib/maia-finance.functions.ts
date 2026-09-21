@@ -410,6 +410,173 @@ export const updateAuditedWorkHour = createServerFn({ method: "POST" })
     return { id: data.id, ok: true };
   });
 
+export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        hours: z.number().min(0.01, "A quantidade de horas deve ser maior que zero"),
+        is_remunerated: z.boolean(),
+        company_id: z.string().uuid("Selecione a empresa"),
+        expenses: z
+          .array(
+            z.object({
+              category: z.string(),
+              amount: z.number().min(0),
+              description: z.string().default(""),
+            }),
+          )
+          .default([]),
+        manager_note: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertManagerOrAdmin(sb, context.userId);
+
+    // 1. Obter registro atual
+    const { data: current, error: curErr } = await sb
+      .from("work_hours")
+      .select("*, companies(name), work_hour_expenses(*)")
+      .eq("id", data.id)
+      .single();
+
+    if (curErr || !current) {
+      throw new Error("Lançamento de horas não encontrado.");
+    }
+
+    // 2. Detectar alterações detalhadas
+    const changes: string[] = [];
+
+    // Horas
+    const oldHours = Number(current.hours || 0);
+    const newHours = Number(data.hours);
+    if (Math.abs(oldHours - newHours) > 0.001) {
+      changes.push(`Horas alteradas de ${oldHours.toFixed(2)}h para ${newHours.toFixed(2)}h`);
+    }
+
+    // Remuneração
+    const oldRemun = current.is_remunerated !== false;
+    const newRemun = data.is_remunerated;
+    if (oldRemun !== newRemun) {
+      changes.push(
+        `Tipo alterado para ${newRemun ? "Hora Remunerada" : "Hora Não Remunerada"}`,
+      );
+    }
+
+    // Empresa / Cliente
+    if (current.company_id !== data.company_id) {
+      const { data: newComp } = await sb
+        .from("companies")
+        .select("name")
+        .eq("id", data.company_id)
+        .maybeSingle();
+      const oldName = current.companies?.name || "Empresa anterior";
+      const newName = newComp?.name || "Nova empresa";
+      changes.push(`Cliente alterado de "${oldName}" para "${newName}"`);
+    }
+
+    // Despesas
+    const oldExps = current.work_hour_expenses ?? [];
+    const oldTotalExps = oldExps.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+    const validNewExpenses = (data.expenses || []).filter(
+      (e) => e.amount > 0 || (e.description && e.description.trim()),
+    );
+    const newTotalExps = validNewExpenses.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+
+    if (Math.abs(oldTotalExps - newTotalExps) > 0.01 || oldExps.length !== validNewExpenses.length) {
+      changes.push(
+        `Despesas atualizadas de R$ ${oldTotalExps.toFixed(2)} para R$ ${newTotalExps.toFixed(2)}`,
+      );
+    }
+
+    const changeDetails =
+      changes.length > 0
+        ? changes.join(" · ")
+        : "Revisado e confirmado pela gestão";
+
+    const fullManagerNote = data.manager_note?.trim()
+      ? `${changeDetails} (Obs: ${data.manager_note.trim()})`
+      : changeDetails;
+
+    // 3. Atualizar work_hours
+    let cleanNotes = (current.notes || "")
+      .replace(/\[NAO_REMUNERADA\]/g, "")
+      .replace(/\[AJUSTADO_GESTAO:[^\]]+\]/g, "")
+      .trim();
+
+    if (!data.is_remunerated) {
+      cleanNotes = cleanNotes ? `${cleanNotes} [NAO_REMUNERADA]` : "[NAO_REMUNERADA]";
+    }
+    cleanNotes = cleanNotes
+      ? `${cleanNotes} [AJUSTADO_GESTAO: ${fullManagerNote}]`
+      : `[AJUSTADO_GESTAO: ${fullManagerNote}]`;
+
+    const updatePayload: any = {
+      hours: data.hours,
+      is_remunerated: data.is_remunerated,
+      company_id: data.company_id,
+      notes: cleanNotes,
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      await sb
+        .from("work_hours")
+        .update({
+          ...updatePayload,
+          adjusted_by_manager: true,
+          manager_note: fullManagerNote,
+        })
+        .eq("id", data.id);
+    } catch {
+      await sb.from("work_hours").update(updatePayload).eq("id", data.id);
+    }
+
+    // 4. Atualizar despesas
+    try {
+      await sb.from("work_hour_expenses").delete().eq("work_hour_id", data.id);
+      if (validNewExpenses.length > 0) {
+        const rowsToInsert = validNewExpenses.map((exp) => ({
+          work_hour_id: data.id,
+          category: exp.category,
+          amount: exp.amount,
+          description: exp.description || "",
+        }));
+
+        const { error: insErr } = await sb.from("work_hour_expenses").insert(rowsToInsert);
+        if (insErr) {
+          const fallbackRows = validNewExpenses.map((exp) => ({
+            work_hour_id: data.id,
+            amount: exp.amount,
+            description: `[${exp.category}] ${exp.description || ""}`.trim(),
+          }));
+          await sb.from("work_hour_expenses").insert(fallbackRows);
+        }
+      }
+    } catch {}
+
+    // 5. Atualizar store de auditoria para persistência de fallback
+    const store = await getMaiaStore(sb);
+    store.auditNotes[data.id] = {
+      ...(store.auditNotes[data.id] || {}),
+      adjusted_by_manager: true,
+      manager_note: fullManagerNote,
+      adjusted_hours: data.hours,
+      adjusted_remunerated: data.is_remunerated,
+      updated_at: new Date().toISOString(),
+    };
+    await saveMaiaStore(sb, store);
+
+    return {
+      ok: true,
+      id: data.id,
+      manager_note: fullManagerNote,
+    };
+  });
+
 export const approveAuditBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
