@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
-import { FileText, BarChart3, Workflow, Building2, Target, ClipboardList, Timer, GitBranch } from "lucide-react";
+import { FileText, Network, Workflow, CalendarRange, Target, ClipboardList, Timer, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/relatorios/")({
   component: RelatoriosHub,
@@ -8,9 +8,9 @@ export const Route = createFileRoute("/_authenticated/relatorios/")({
 
 const REPORTS = [
   { label: "Executivo", description: "Consolidação de diagnóstico e recomendações", icon: FileText, to: "/diagnostico" as const },
-  { label: "Operacional", description: "Processos, indicadores e planos por empresa", icon: BarChart3, to: "/dashboard" as const },
+  { label: "Conexão de Impacto", description: "Indicadores, ações e diagnósticos conectados", icon: Network, to: "/impacto" as const },
   { label: "Por Processo", description: "SIPOC, BPM, cronoanálise e dores", icon: Workflow, to: "/processos" as const },
-  { label: "Por Empresa", description: "Portfolio de projetos e status", icon: Building2, to: "/empresas" as const },
+  { label: "Executivo Mensal", description: "Entregas e evolução mensal em PDF", icon: CalendarRange, to: "/relatorio-executivo-mensal" as const },
   { label: "Indicadores", description: "Meta × real, coletas e alertas", icon: Target, to: "/indicadores" as const },
   { label: "Planos de Ação", description: "Andamento, atrasados, concluídos", icon: ClipboardList, to: "/planos-acao" as const },
   { label: "Cronoanálise", description: "Sessões e capacidade produtiva", icon: Timer, to: "/cronoanalise" as const },
@@ -39,9 +39,6 @@ function RelatoriosHub() {
           </Link>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">
-        💡 Exportações PDF/Excel/Word em breve — hoje cada tela oferece exportação individual.
-      </p>
     </div>
   );
 }

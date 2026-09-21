@@ -452,6 +452,8 @@ export const saveActionPlan = createServerFn({ method: "POST" })
       cronoanalysis_id: z.string().uuid().nullable().optional(),
       pain_point_id: z.string().uuid().nullable().optional(),
       indicator_id: z.string().uuid().nullable().optional(),
+      root_cause_id: z.string().uuid().nullable().optional(),
+      sector_id: z.string().uuid().nullable().optional(),
       title: z.string().min(1),
       description: z.string().optional().default(""),
       responsible: z.string().optional().default(""),

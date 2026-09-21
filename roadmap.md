@@ -21,5 +21,5 @@
 - [x] Restringir dados financeiros às áreas e usuários autorizados
 - [x] Agenda: destacar reunião de alinhamento criada por gestor
 - [ ] Agenda pessoal: convites individuais e convite de todos os consultores
-- [ ] Bloco 8: Conexão de Impacto e Profundidade no lugar de Relatório Operacional
-- [ ] Bloco 9: Relatório Executivo Mensal em PDF no lugar de Relatório Por Empresa
+- [x] Bloco 8: Conexão de Impacto e Profundidade no lugar de Relatório Operacional
+- [x] Bloco 9: Relatório Executivo Mensal em PDF no lugar de Relatório Por Empresa

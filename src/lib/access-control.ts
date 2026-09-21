@@ -25,6 +25,8 @@ export function permissionForPath(pathname: string): ToolKey | null {
     pathname.startsWith("/tobe") ||
     pathname.startsWith("/planos-acao") ||
     pathname.startsWith("/relatorio-acompanhamento") ||
+    pathname.startsWith("/impacto") ||
+    pathname.startsWith("/relatorio-executivo-mensal") ||
     pathname.startsWith("/diagnostico") ||
     pathname.startsWith("/roadmap") ||
     pathname.startsWith("/template-documentos") ||
