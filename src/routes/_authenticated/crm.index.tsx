@@ -118,10 +118,10 @@ function LeadClassificationBadge({ classification, isHot }: { classification?: s
   if (c === "quente") {
     return (
       <span
-        title="Classificação: Quente (Fogo alto)"
-        className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950/60 px-2 py-0.5 text-[11px] font-bold text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800"
+        title="Classificação: Quente"
+        className="inline-flex items-center gap-0.5 rounded-full bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800 shrink-0 whitespace-nowrap"
       >
-        <Flame className="h-3.5 w-3.5 fill-red-500 text-red-600 animate-pulse" />
+        <Flame className="h-3 w-3 fill-red-500 text-red-600 animate-pulse" />
         <span>Quente</span>
       </span>
     );
@@ -129,8 +129,8 @@ function LeadClassificationBadge({ classification, isHot }: { classification?: s
   if (c === "medio") {
     return (
       <span
-        title="Classificação: Médio (Fogo baixo)"
-        className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+        title="Classificação: Médio"
+        className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0 whitespace-nowrap"
       >
         <Flame className="h-3 w-3 text-amber-600" />
         <span>Médio</span>
@@ -139,8 +139,8 @@ function LeadClassificationBadge({ classification, isHot }: { classification?: s
   }
   return (
     <span
-      title="Classificação: Frio (Gelo)"
-      className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800"
+      title="Classificação: Frio"
+      className="inline-flex items-center gap-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800 shrink-0 whitespace-nowrap"
     >
       <Snowflake className="h-3 w-3 text-sky-600" />
       <span>Frio</span>
@@ -334,7 +334,7 @@ function CrmPage() {
                 {(byStage[s.value] ?? []).map((l: any) => (
                   <Card key={l.id} className="space-y-2.5 p-3 hover:shadow-md transition-shadow">
                     {/* 7. Campo de estágio do lead na parte superior do card + 4. Classificação visual */}
-                    <div className="flex items-center justify-between gap-1 border-b pb-2">
+                    <div className="flex items-center justify-between gap-1 flex-wrap min-w-0 border-b pb-2">
                       <Badge
                         variant="outline"
                         className="text-[10px] font-semibold uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
@@ -650,7 +650,7 @@ function CrmPage() {
                   }`}
                 >
                   <Flame className="h-4 w-4 text-red-600 fill-red-500 shrink-0 animate-pulse" />
-                  <span>Quente (Fogo alto)</span>
+                  <span>Quente</span>
                 </button>
                 <button
                   type="button"
@@ -662,7 +662,7 @@ function CrmPage() {
                   }`}
                 >
                   <Flame className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                  <span>Médio (Fogo baixo)</span>
+                  <span>Médio</span>
                 </button>
                 <button
                   type="button"
@@ -674,7 +674,7 @@ function CrmPage() {
                   }`}
                 >
                   <Snowflake className="h-4 w-4 text-sky-500 shrink-0" />
-                  <span>Frio (Gelo)</span>
+                  <span>Frio</span>
                 </button>
               </div>
             </div>

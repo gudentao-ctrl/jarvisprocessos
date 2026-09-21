@@ -10,7 +10,7 @@ export async function assertManagerOrAdmin(sb: any, userId: string) {
   const isAllowed =
     !!prof?.is_superadmin ||
     (mems ?? []).some(
-      (m: any) => m.member_role === "gestor" || m.permissions?.gestao === true,
+      (m: any) => m.member_role === "gestor" || m.permissions?.gestao === true || m.permissions?.financeiro === true,
     );
   if (!isAllowed) {
     throw new Error("Acesso exclusivo a Gestores e Superadmins.");

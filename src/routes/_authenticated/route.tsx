@@ -59,6 +59,7 @@ const NAV = [
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
   { to: "/horas", icon: Clock, label: "Horas", permission: "horas" },
   { to: "/financeiro", icon: Wallet, label: "Financeiro Cliente", permission: "financeiro" },
+  { to: "/financeiro-maia", icon: Landmark, label: "Financeiro Maia", permission: "financeiro" },
   { to: "/crm", icon: Handshake, label: "CRM", permission: "crm" },
   { to: "/relatorios", icon: FileBarChart2, label: "Relatórios", permission: "gestao" },
   { to: "/chamados", icon: LifeBuoy, label: "Chamados", permission: "chamados" },
@@ -106,9 +107,6 @@ function AuthenticatedLayout() {
             {visibleNav.map((n) => (
               <SidebarLink key={n.to} {...n} />
             ))}
-            {isManagerOrAdmin && (
-              <SidebarLink to="/financeiro-maia" icon={Landmark} label="Financeiro Maia" />
-            )}
             {profile?.isSuperadmin && (
               <SidebarLink to="/admin" icon={ShieldCheck} label="SuperAdmin" />
             )}
@@ -152,18 +150,6 @@ function AuthenticatedLayout() {
                         </Link>
                       </SheetClose>
                     ))}
-                    {isManagerOrAdmin && (
-                      <SheetClose asChild>
-                        <Link
-                          to="/financeiro-maia"
-                          className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                          activeProps={{ className: "bg-accent text-primary" }}
-                        >
-                          <Landmark className="h-5 w-5" />
-                          <span>Financeiro Maia</span>
-                        </Link>
-                      </SheetClose>
-                    )}
                     {profile?.isSuperadmin && (
                       <SheetClose asChild>
                         <Link
