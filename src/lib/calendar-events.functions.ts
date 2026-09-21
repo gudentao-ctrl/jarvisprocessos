@@ -147,11 +147,8 @@ export const saveEvent = createServerFn({ method: "POST" })
           .maybeSingle();
 
         if (tokenRow) {
-          // Inline sync using the same access token context
-          const { syncEventToGoogleCalendar } = await import("./google-calendar.functions");
-          // We call directly via fetch-style for server-side usage
-          const clientId = process.env.GOOGLE_CLIENT_ID;
-          const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+          const { getGoogleOAuthCredentials } = await import("./google-calendar.functions");
+          const { clientId, clientSecret } = await getGoogleOAuthCredentials(sb);
           const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
           const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 

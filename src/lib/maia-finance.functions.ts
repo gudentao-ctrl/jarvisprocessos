@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-async function assertManagerOrAdmin(sb: any, userId: string) {
+export async function assertManagerOrAdmin(sb: any, userId: string) {
   const [{ data: prof }, { data: mems }] = await Promise.all([
     sb.from("profiles").select("is_superadmin").eq("user_id", userId).maybeSingle(),
     sb.from("company_members").select("member_role, permissions").eq("user_id", userId),
@@ -28,6 +28,8 @@ const memoryFallback: {
   auditNotes: Record<string, any>;
   dreEntries: any[];
   bonuses: any[];
+  googleOAuth?: { clientId: string; clientSecret: string; updated_at?: string; updated_by?: string };
+  googleTokens?: Record<string, any>;
 } = {
   taxes: [{ id: "def-tax-1", name: "Simples Nacional / ISS", rate_percent: 6.0, is_active: true }],
   contracts: {},
@@ -35,6 +37,8 @@ const memoryFallback: {
   auditNotes: {},
   dreEntries: [],
   bonuses: [],
+  googleOAuth: undefined,
+  googleTokens: {},
 };
 
 export async function getMaiaStore(sb: any) {
@@ -54,6 +58,8 @@ export async function getMaiaStore(sb: any) {
         auditNotes: parsed.auditNotes || memoryFallback.auditNotes,
         dreEntries: Array.isArray(parsed.dreEntries) ? parsed.dreEntries : memoryFallback.dreEntries,
         bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : memoryFallback.bonuses,
+        googleOAuth: parsed.googleOAuth || memoryFallback.googleOAuth,
+        googleTokens: parsed.googleTokens || memoryFallback.googleTokens,
       };
     }
   } catch {}
