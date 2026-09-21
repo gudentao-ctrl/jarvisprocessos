@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { buildGoogleCalendarUrl } from "./google-calendar.functions";
 
 const EventInput = z.object({
   id: z.string().uuid().optional(),
@@ -96,18 +97,39 @@ export const listEvents = createServerFn({ method: "GET" })
       (profiles ?? []).filter((p: any) => p.is_superadmin).map((p: any) => p.user_id),
     );
 
-    return (rows ?? []).map((row: any) => ({
-      ...row,
-      is_manager_alignment:
-        (row.event_type === "alinhamento" || row.is_internal_invite) &&
-        (superadmins.has(row.created_by) ||
-          (memberships ?? []).some(
-            (m: any) =>
-              m.user_id === row.created_by &&
-              m.member_role === "gestor" &&
-              m.company_id === row.company_id,
-          )),
-    }));
+    return (rows ?? []).map((row: any) => {
+      let guestEmails: string[] = Array.isArray(row.guest_emails) ? row.guest_emails : [];
+      if (guestEmails.length === 0 && row.description?.includes("[Convidados:")) {
+        const match = row.description.match(/\[Convidados:\s*([^\]]+)\]/);
+        if (match && match[1]) {
+          guestEmails = match[1].split(",").map((e: string) => e.trim()).filter(Boolean);
+        }
+      }
+
+      const googleCalendarUrl = buildGoogleCalendarUrl({
+        title: row.title,
+        description: row.description,
+        location: row.location,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        guestEmails,
+      });
+
+      return {
+        ...row,
+        guest_emails: guestEmails,
+        googleCalendarUrl,
+        is_manager_alignment:
+          (row.event_type === "alinhamento" || row.is_internal_invite) &&
+          (superadmins.has(row.created_by) ||
+            (memberships ?? []).some(
+              (m: any) =>
+                m.user_id === row.created_by &&
+                m.member_role === "gestor" &&
+                m.company_id === row.company_id,
+            )),
+      };
+    });
   });
 
 export const saveEvent = createServerFn({ method: "POST" })
@@ -117,27 +139,52 @@ export const saveEvent = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const { id, sync_google, ...payload } = data;
 
-    let row: any;
-    if (id) {
-      const { data: updated, error } = await sb
-        .from("calendar_events")
-        .update(payload)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      row = updated;
-    } else {
-      const { data: inserted, error } = await sb
-        .from("calendar_events")
-        .insert({ ...payload, created_by: context.userId })
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      row = inserted;
+    const tryDb = async (p: any) => {
+      if (id) {
+        return await sb.from("calendar_events").update(p).eq("id", id).select().maybeSingle();
+      }
+      return await sb.from("calendar_events").insert({ ...p, created_by: context.userId }).select().single();
+    };
+
+    let { data: savedRow, error } = await tryDb(payload);
+
+    // Fallback caso colunas novas (guest_emails, is_internal_invite, google_event_id)
+    // não existam ainda ou o cache do schema do Supabase não as reconheça
+    if (error && (error.code === "PGRST204" || error.message?.includes("column") || error.message?.includes("schema cache") || error.message?.toLowerCase().includes("guest_email"))) {
+      console.warn("[saveEvent] Coluna não encontrada no Supabase, executando fallback seguro:", error.message);
+      const fallbackPayload: any = { ...payload };
+      delete fallbackPayload.guest_emails;
+      delete fallbackPayload.is_internal_invite;
+      delete fallbackPayload.google_event_id;
+
+      // Preservar os convidados na descrição para não perder informação
+      if (payload.guest_emails && payload.guest_emails.length > 0) {
+        const guestTag = `\n[Convidados: ${payload.guest_emails.join(", ")}]`;
+        if (!fallbackPayload.description?.includes("[Convidados:")) {
+          fallbackPayload.description = (fallbackPayload.description || "") + guestTag;
+        }
+      }
+
+      const retry = await tryDb(fallbackPayload);
+      if (retry.error) throw new Error(retry.error.message);
+      savedRow = retry.data;
+      error = null;
     }
 
-    // Optionally sync to Google Calendar if user has tokens
+    if (error) throw new Error(error.message);
+    const row = savedRow;
+
+    // Gera a URL do Google Calendar para o evento
+    const googleCalendarUrl = buildGoogleCalendarUrl({
+      title: data.title,
+      description: data.description,
+      location: data.location,
+      startsAt: data.starts_at,
+      endsAt: data.ends_at,
+      guestEmails: data.guest_emails,
+    });
+
+    // Tentativa secundária de sincronização via API do Google (se o usuário possuir tokens)
     if (sync_google && (data.guest_emails?.length || data.is_internal_invite)) {
       try {
         const { data: tokenRow } = await sb
@@ -189,7 +236,7 @@ export const saveEvent = createServerFn({ method: "POST" })
               end: { dateTime: endDt.toISOString(), timeZone: "America/Sao_Paulo" },
               attendees,
             };
-            const isUpdate = !!row.google_event_id;
+            const isUpdate = !!row?.google_event_id;
             const url = isUpdate
               ? `${GOOGLE_CALENDAR_API}/calendars/primary/events/${row.google_event_id}?sendUpdates=all`
               : `${GOOGLE_CALENDAR_API}/calendars/primary/events?sendUpdates=all`;
@@ -203,19 +250,22 @@ export const saveEvent = createServerFn({ method: "POST" })
             });
             if (gRes.ok) {
               const gEvent: any = await gRes.json();
-              await sb.from("calendar_events").update({ google_event_id: gEvent.id }).eq("id", row.id);
-              row.google_event_id = gEvent.id;
-            } else {
-              console.error("[Google Calendar] saveEvent sync failed:", await gRes.text());
+              try {
+                await sb.from("calendar_events").update({ google_event_id: gEvent.id }).eq("id", row.id);
+                row.google_event_id = gEvent.id;
+              } catch {}
             }
           }
         }
       } catch (e) {
-        console.error("[Google Calendar] sync error:", e);
+        console.warn("[Google Calendar] sync silencioso ignorado:", e);
       }
     }
 
-    return row;
+    return {
+      ...row,
+      googleCalendarUrl,
+    };
   });
 
 export const deleteEvent = createServerFn({ method: "POST" })

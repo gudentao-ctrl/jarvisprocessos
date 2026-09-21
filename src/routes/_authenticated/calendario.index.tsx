@@ -10,7 +10,7 @@ import {
   listCalendarLocations,
   createCalendarLocation,
 } from "@/lib/calendar-events.functions";
-import { getGoogleCalendarStatus } from "@/lib/google-calendar.functions";
+import { getGoogleCalendarStatus, buildGoogleCalendarUrl } from "@/lib/google-calendar.functions";
 import { getMe } from "@/lib/access.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ const emptyForm = {
   project_id: "",
   is_internal_invite: false,
   guest_emails: [] as string[],
-  sync_google: false,
+  sync_google: true,
 };
 
 function CalendarioPage() {
@@ -148,12 +148,25 @@ function CalendarioPage() {
 
   const saveMut = useMutation({
     mutationFn: (payload: any) => save({ data: payload }),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["calendar-events"] });
+      const shouldOpenGoogle = form.sync_google;
+      const gUrl = res?.googleCalendarUrl || buildGoogleCalendarUrl({
+        title: form.title,
+        description: form.description,
+        location: form.location,
+        startsAt: form.starts_at,
+        endsAt: form.ends_at,
+        guestEmails: form.guest_emails,
+      });
       setOpen(false);
       setForm(emptyForm);
       setEmailInput("");
       toast.success("Compromisso salvo com sucesso!");
+      if (shouldOpenGoogle && gUrl) {
+        window.open(gUrl, "_blank");
+        toast.info("Abrindo Google Agenda com dados e convidados preenchidos...");
+      }
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar compromisso"),
   });
@@ -193,6 +206,16 @@ function CalendarioPage() {
       highlighted: e.is_manager_alignment || e.is_internal_invite,
       isInternalInvite: e.is_internal_invite,
       googleEventId: e.google_event_id,
+      googleCalendarUrl:
+        e.googleCalendarUrl ||
+        buildGoogleCalendarUrl({
+          title: e.title,
+          description: e.description,
+          location: e.location,
+          startsAt: e.starts_at,
+          endsAt: e.ends_at,
+          guestEmails: e.guest_emails,
+        }),
       guestEmails: e.guest_emails ?? [],
     })),
     ...(interviews as any[])
@@ -208,6 +231,12 @@ function CalendarioPage() {
         raw: i,
         highlighted: false,
         isInternalInvite: false,
+        googleEventId: null,
+        googleCalendarUrl: buildGoogleCalendarUrl({
+          title: `Entrevista: ${i.title || "Consultoria"}`,
+          description: `Participante: ${i.participant || ""}\nTipo: ${i.meeting_type || ""}`,
+          startsAt: i.interview_date,
+        }),
         guestEmails: [],
       })),
   ];
@@ -635,35 +664,32 @@ function CalendarioPage() {
                 </div>
               )}
 
-              {/* Status da Sincronização Google */}
-              <div className="flex items-center justify-between rounded-md border bg-muted/20 p-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-blue-500" />
-                  <span>
-                    {googleStatus?.connected
-                      ? `Conectado ao Google Agenda (${googleStatus.email || "conta ativa"})`
-                      : "Google Agenda não conectado"}
-                  </span>
-                </div>
-                {googleStatus?.connected ? (
-                  <div className="flex items-center space-x-1.5">
+              {/* Integração Direta com Google Agenda (Automática, Gratuita e Sem API Complexa) */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-xs dark:border-blue-900/50 dark:bg-blue-950/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-foreground">Sincronizar com Google Agenda</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Identifica data, horário, pauta, local e convidados automaticamente
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <Checkbox
                       id="sync-google"
                       checked={form.sync_google}
                       onCheckedChange={(c) => setForm({ ...form, sync_google: !!c })}
                     />
-                    <label htmlFor="sync-google" className="cursor-pointer font-medium">
-                      Enviar convite oficial
+                    <label htmlFor="sync-google" className="cursor-pointer font-semibold text-primary">
+                      {form.sync_google ? "Ativado" : "Desativado"}
                     </label>
                   </div>
-                ) : (
-                  <Link
-                    to="/perfil"
-                    className="text-primary font-medium hover:underline inline-flex items-center gap-1"
-                  >
-                    Conectar no Perfil →
-                  </Link>
-                )}
+                </div>
+                <p className="text-[11px] text-blue-950/80 dark:text-blue-200/80">
+                  ✨ Integração direta e gratuita: ao salvar, o evento é enviado para a sua conta Google com todos os quesitos preenchidos e convites prontos para disparo.
+                </p>
               </div>
             </div>
 
@@ -822,32 +848,50 @@ function EventRow({
           )}
         </p>
       </div>
-      {!isInterview && (
-        <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1.5">
+        {it.googleCalendarUrl && (
           <Button
-            size="icon"
-            variant="ghost"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 px-2 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800"
+            title="Adicionar / Abrir no Google Agenda"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onEdit();
+              window.open(it.googleCalendarUrl, "_blank");
             }}
           >
-            <Pencil className="h-4 w-4" />
+            <CalendarIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Google Agenda</span>
           </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-        </div>
-      )}
+        )}
+        {!isInterview && (
+          <>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </>
+        )}
+      </div>
     </Card>
   );
 

@@ -427,3 +427,44 @@ export const syncEventToGoogleCalendar = createServerFn({ method: "POST" })
 
     return { ok: true, google_event_id: gEvent.id as string };
   });
+
+// ─── Gerador de URL Direta do Google Calendar (Sem necessidade de API complexa) ──
+
+export function buildGoogleCalendarUrl({
+  title,
+  description = "",
+  location = "",
+  startsAt,
+  endsAt,
+  guestEmails = [],
+}: {
+  title: string;
+  description?: string;
+  location?: string;
+  startsAt: string | Date;
+  endsAt?: string | Date | null;
+  guestEmails?: string[];
+}): string {
+  const start = new Date(startsAt);
+  const end = endsAt ? new Date(endsAt) : new Date(start.getTime() + 60 * 60 * 1000);
+
+  const formatIsoForGoogle = (d: Date) => {
+    return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  };
+
+  const datesParam = `${formatIsoForGoogle(start)}/${formatIsoForGoogle(end)}`;
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title || "Compromisso",
+    dates: datesParam,
+  });
+
+  if (description) params.set("details", description);
+  if (location) params.set("location", location);
+  if (guestEmails && guestEmails.length > 0) {
+    params.set("add", guestEmails.join(","));
+  }
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
