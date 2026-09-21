@@ -18,6 +18,9 @@ import {
   saveMaiaDreEntry,
   deleteMaiaDreEntry,
   cloneDreEntriesFromPreviousMonth,
+  saveConsultantBonus,
+  listConsultantBonuses,
+  deleteConsultantBonus,
 } from "@/lib/maia-finance.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { getMe } from "@/lib/access.functions";
@@ -56,6 +59,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -268,11 +272,24 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
 
+  // Bonificação
+  const [bonusModalOpen, setBonusModalOpen] = useState(false);
+  const [bonusForm, setBonusForm] = useState({
+    consultant_id: "",
+    consultant_name: "",
+    bonus_date: `${selectedMonth}-01`,
+    service_description: "",
+    amountStr: "",
+  });
+
   const listAuditFn = useServerFn(listAuditWorkHours);
   const updateAuditFn = useServerFn(updateAuditedWorkHour);
   const approveBatchFn = useServerFn(approveAuditBatch);
   const listCompaniesFn = useServerFn(listCompanies);
   const listContractsFn = useServerFn(listConsultantContracts);
+  const saveBonusFn = useServerFn(saveConsultantBonus);
+  const listBonusesFn = useServerFn(listConsultantBonuses);
+  const deleteBonusFn = useServerFn(deleteConsultantBonus);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
@@ -282,6 +299,11 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
   const { data: allConsultants = [] } = useQuery({
     queryKey: ["consultant-contracts"],
     queryFn: () => listContractsFn(),
+  });
+
+  const { data: bonuses = [] } = useQuery({
+    queryKey: ["consultant-bonuses", selectedMonth],
+    queryFn: () => listBonusesFn({ data: { month_year: selectedMonth } }),
   });
 
   const { data: hours = [], isLoading } = useQuery({
@@ -329,6 +351,50 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
       qc.invalidateQueries({ queryKey: ["work-hours"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar ajuste"),
+  });
+
+  const saveBonusMut = useMutation({
+    mutationFn: () => {
+      const amount = parseBrlNumber(bonusForm.amountStr);
+      if (amount <= 0) throw new Error("Informe um valor válido maior que zero para a bonificação.");
+      if (!bonusForm.consultant_id) throw new Error("Selecione o consultor.");
+      if (!bonusForm.service_description.trim()) throw new Error("Informe a descrição do serviço.");
+      return saveBonusFn({
+        data: {
+          consultant_id: bonusForm.consultant_id,
+          consultant_name: bonusForm.consultant_name,
+          bonus_date: bonusForm.bonus_date,
+          service_description: bonusForm.service_description.trim(),
+          amount,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Bonificação registrada com sucesso!");
+      setBonusModalOpen(false);
+      setBonusForm({
+        consultant_id: "",
+        consultant_name: "",
+        bonus_date: `${selectedMonth}-01`,
+        service_description: "",
+        amountStr: "",
+      });
+      qc.invalidateQueries({ queryKey: ["consultant-bonuses"] });
+      qc.invalidateQueries({ queryKey: ["maia-dre"] });
+      qc.invalidateQueries({ queryKey: ["team-closing"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar bonificação"),
+  });
+
+  const deleteBonusMut = useMutation({
+    mutationFn: (id: string) => deleteBonusFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Bonificação removida!");
+      qc.invalidateQueries({ queryKey: ["consultant-bonuses"] });
+      qc.invalidateQueries({ queryKey: ["maia-dre"] });
+      qc.invalidateQueries({ queryKey: ["team-closing"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao remover bonificação"),
   });
 
   return (
@@ -386,7 +452,25 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 font-semibold"
+              onClick={() => {
+                setBonusForm({
+                  consultant_id: consultants[0]?.id || "",
+                  consultant_name: consultants[0]?.name || "",
+                  bonus_date: `${selectedMonth}-01`,
+                  service_description: "",
+                  amountStr: "",
+                });
+                setBonusModalOpen(true);
+              }}
+            >
+              <Award className="h-4 w-4 text-amber-500" /> Lançar Bonificação
+            </Button>
+
             {selectedIds.length > 0 && (
               <Button
                 variant="default"
@@ -518,14 +602,12 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
                     setEditingItem({
                       id: h.id,
                       responsible: h.responsible,
-                      hours: Number(h.hours),
-                      is_remunerated: h.is_remunerated !== false,
                       audit_status: h.audit_status || "pendente",
                       manager_note: h.manager_note || "",
                     })
                   }
                 >
-                  <Pencil className="h-3.5 w-3.5" /> Auditar
+                  <Pencil className="h-3.5 w-3.5" /> Revisar
                 </Button>
               </div>
             );
@@ -533,12 +615,12 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
         )}
       </Card>
 
-      {/* Modal de Auditoria do Lançamento */}
+      {/* Modal de Revisão do Lançamento */}
       {editingItem && (
         <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Auditar Lançamento de Horas</DialogTitle>
+              <DialogTitle>Revisar Lançamento de Horas</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div>
@@ -546,58 +628,27 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
                 <Input value={editingItem.responsible} readOnly disabled className="h-10" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Quantidade de Horas</Label>
-                  <Input
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    value={editingItem.hours}
-                    onChange={(e) =>
-                      setEditingItem({ ...editingItem, hours: Number(e.target.value) })
-                    }
-                    className="h-10"
-                  />
-                </div>
-                <div>
-                  <Label>Status de Auditoria</Label>
-                  <Select
-                    value={editingItem.audit_status}
-                    onValueChange={(v) => setEditingItem({ ...editingItem, audit_status: v })}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="aprovado">Pronto / Aprovado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Toggle de Remuneração */}
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-semibold">Hora Remunerada?</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Define se este atendimento será pago ao consultor no fechamento.
-                  </p>
-                </div>
-                <Switch
-                  checked={editingItem.is_remunerated}
-                  onCheckedChange={(checked) =>
-                    setEditingItem({ ...editingItem, is_remunerated: checked })
-                  }
-                />
+              <div>
+                <Label>Status de Revisão</Label>
+                <Select
+                  value={editingItem.audit_status}
+                  onValueChange={(v) => setEditingItem({ ...editingItem, audit_status: v })}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label>Justificativa do Ajuste (Visível para o Consultor) *</Label>
+                <Label>Observação da Gestão (Visível para o Consultor)</Label>
                 <Textarea
                   rows={2}
-                  placeholder="Ex.: Ajustado conforme alinhamento com cliente ou descaracterizado como mentoria remunerada..."
+                  placeholder="Ex.: Aprovado conforme alinhamento com cliente…"
                   value={editingItem.manager_note}
                   onChange={(e) => setEditingItem({ ...editingItem, manager_note: e.target.value })}
                 />
@@ -611,20 +662,138 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
                 onClick={() =>
                   updateItemMut.mutate({
                     id: editingItem.id,
-                    hours: editingItem.hours,
-                    is_remunerated: editingItem.is_remunerated,
                     audit_status: editingItem.audit_status,
                     manager_note: editingItem.manager_note,
                   })
                 }
                 disabled={updateItemMut.isPending}
               >
-                {updateItemMut.isPending ? "Salvando..." : "Salvar Ajuste"}
+                {updateItemMut.isPending ? "Salvando..." : "Salvar Revisão"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Lista de Bonificações do Mês (se houver) */}
+      {bonuses.length > 0 && (
+        <Card className="p-3 bg-amber-500/5 border-amber-500/20">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+              <Award className="h-4 w-4" /> Bonificações Lançadas no Mês ({bonuses.length})
+            </h4>
+            <span className="text-xs font-bold text-foreground">
+              Total: {brl(bonuses.reduce((acc: number, b: any) => acc + Number(b.amount || 0), 0))}
+            </span>
+          </div>
+          <div className="divide-y divide-amber-500/10 text-xs">
+            {bonuses.map((b: any) => (
+              <div key={b.id} className="flex items-center justify-between py-1.5">
+                <div>
+                  <span className="font-semibold text-foreground">{b.consultant_name}</span>
+                  <span className="text-muted-foreground ml-2">({fmtDate(b.bonus_date)})</span>
+                  <p className="text-muted-foreground text-[11px] mt-0.5">{b.service_description}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-600">{brl(b.amount)}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-destructive"
+                    onClick={() => deleteBonusMut.mutate(b.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Modal Lançar Bonificação */}
+      <Dialog open={bonusModalOpen} onOpenChange={setBonusModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-amber-500" /> Lançar Bonificação ao Consultor
+            </DialogTitle>
+            <DialogDescription>
+              Lance uma bonificação por serviço ou mérito. O valor integrará os custos de equipe no DRE do mês.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm">
+            <div>
+              <Label>Consultor *</Label>
+              <Select
+                value={bonusForm.consultant_id}
+                onValueChange={(val) => {
+                  const c = consultants.find((x) => x.id === val);
+                  setBonusForm({
+                    ...bonusForm,
+                    consultant_id: val,
+                    consultant_name: c?.name || val,
+                  });
+                }}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Selecione o consultor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {consultants.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data do Serviço / Lançamento *</Label>
+                <Input
+                  type="date"
+                  className="h-10"
+                  value={bonusForm.bonus_date}
+                  onChange={(e) => setBonusForm({ ...bonusForm, bonus_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Valor da Bonificação (R$) *</Label>
+                <Input
+                  placeholder="Ex: 500,00"
+                  className="h-10 font-medium tabular-nums"
+                  value={bonusForm.amountStr}
+                  onChange={(e) => setBonusForm({ ...bonusForm, amountStr: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Descrição do Serviço / Justificativa *</Label>
+              <Textarea
+                rows={3}
+                placeholder="Ex.: Bonificação por entrega antecipada do módulo financeiro ou treinamento extraordinário..."
+                value={bonusForm.service_description}
+                onChange={(e) => setBonusForm({ ...bonusForm, service_description: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBonusModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              disabled={saveBonusMut.isPending || !bonusForm.consultant_id || !bonusForm.amountStr || !bonusForm.service_description.trim()}
+              onClick={() => saveBonusMut.mutate()}
+            >
+              {saveBonusMut.isPending ? "Salvando..." : "Salvar Bonificação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1028,14 +1197,16 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
   return (
     <div className="space-y-4">
       {/* Resumo do DRE */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Faturamento Bruto</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Faturamento Bruto (Indicador)</p>
           <p className="text-xl font-bold tabular-nums">{brl(dre?.grossRevenue ?? 0)}</p>
+          <span className="text-[10px] text-muted-foreground">Faturas emitidas</span>
         </Card>
         <Card className="p-3 border-emerald-500/40 bg-emerald-500/5">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Pagamentos Recebidos</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Receita Realizada (Base DRE)</p>
           <p className="text-xl font-bold text-emerald-600 tabular-nums">{brl(dre?.totalPaymentsReceived ?? 0)}</p>
+          <span className="text-[10px] text-muted-foreground">Pagamentos recebidos</span>
         </Card>
         <Card className="p-3">
           <p className="text-[10px] uppercase text-muted-foreground font-semibold">
@@ -1044,38 +1215,72 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
           <p className="text-xl font-bold text-amber-600 tabular-nums">
             (-) {brl(dre?.taxesDeduction ?? 0)}
           </p>
+          <span className="text-[10px] text-muted-foreground">Sobre pagamentos</span>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Receita Líquida</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Receita Operacional Líquida</p>
           <p className="text-xl font-bold text-foreground tabular-nums">
             {brl(dre?.netRevenue ?? 0)}
           </p>
+          <span className="text-[10px] text-muted-foreground">Pagamentos (-) Impostos</span>
         </Card>
         <Card className="p-3">
           <p className="text-[10px] uppercase text-muted-foreground font-semibold">Custo da Equipe</p>
           <p className="text-xl font-bold text-destructive tabular-nums">
-            (-) {brl((dre?.teamLaborCost ?? 0) + (dre?.expenseReimbursements ?? 0))}
+            (-) {brl((dre?.teamLaborCost ?? 0) + (dre?.expenseReimbursements ?? 0) + (dre?.consultantBonuses ?? 0))}
           </p>
+          <span className="text-[10px] text-muted-foreground">
+            Hon. {brl(dre?.teamLaborCost ?? 0)} · Bon. {brl(dre?.consultantBonuses ?? 0)}
+          </span>
         </Card>
-        <Card
-          className={cn(
-            "p-3 border-2",
-            (dre?.operatingProfit ?? 0) >= 0
-              ? "border-emerald-500/40 bg-emerald-500/5"
-              : "border-red-500/40 bg-red-500/5",
-          )}
-        >
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
-            Lucro Operacional Líquido
-          </p>
+        <Card className="p-3">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Lucro Líquido do Período</p>
           <p
             className={cn(
-              "text-xl font-black tabular-nums",
+              "text-xl font-bold tabular-nums",
               (dre?.operatingProfit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive",
             )}
           >
             {brl(dre?.operatingProfit ?? 0)}
           </p>
+          <span className="text-[10px] text-muted-foreground">Resultado do mês</span>
+        </Card>
+        <Card className="p-3 border-blue-500/30 bg-blue-500/5">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Acumulado Anterior</p>
+          <p
+            className={cn(
+              "text-xl font-bold tabular-nums",
+              (dre?.previousAccumulatedProfit ?? 0) >= 0 ? "text-blue-600" : "text-destructive",
+            )}
+          >
+            {brl(dre?.previousAccumulatedProfit ?? 0)}
+          </p>
+          <span className="text-[10px] text-muted-foreground">Saldo líquido anterior</span>
+        </Card>
+        <Card
+          className={cn(
+            "p-3 border-2",
+            (dre?.accumulatedConsolidatedProfit ?? dre?.operatingProfit ?? 0) >= 0
+              ? "border-emerald-500/50 bg-emerald-500/10"
+              : "border-red-500/50 bg-red-500/10",
+          )}
+        >
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Acumulado Consolidado
+          </p>
+          <p
+            className={cn(
+              "text-xl font-black tabular-nums",
+              (dre?.accumulatedConsolidatedProfit ?? dre?.operatingProfit ?? 0) >= 0
+                ? "text-emerald-600"
+                : "text-destructive",
+            )}
+          >
+            {brl(dre?.accumulatedConsolidatedProfit ?? dre?.operatingProfit ?? 0)}
+          </p>
+          <span className="text-[10px] font-semibold text-muted-foreground">
+            {dre?.isFutureOrOpen ? "Período futuro / em aberto" : "Resultado consolidado"}
+          </span>
         </Card>
       </div>
 
@@ -1112,30 +1317,32 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
 
       {/* Tabela do DRE Estruturado */}
       <Card className="divide-y overflow-hidden text-sm">
-        <div className="flex justify-between p-3.5 bg-muted/40 font-bold">
-          <span>1. Faturamento Bruto de Serviços</span>
-          <span className="tabular-nums">{brl(dre?.grossRevenue ?? 0)}</span>
+        <div className="flex justify-between p-3.5 bg-muted/40 font-semibold text-xs text-muted-foreground">
+          <span>INDICADOR OPERACIONAL: FATURAMENTO BRUTO (FATURAS EMITIDAS)</span>
+          <span className="tabular-nums font-bold text-foreground">{brl(dre?.grossRevenue ?? 0)}</span>
+        </div>
+
+        <div className="flex justify-between p-3.5 bg-muted/20 font-bold">
+          <span>1. Receita Realizada (Pagamentos Recebidos dos Clientes)</span>
+          <span className="tabular-nums text-emerald-600">{brl(dre?.totalPaymentsReceived ?? 0)}</span>
         </div>
         <div className="flex justify-between p-3.5 pl-6 text-xs text-muted-foreground">
           <span>
             (-) Dedução de Impostos (
-            {dre?.taxes?.map((t: any) => `${t.name}: ${t.rate_percent}%`).join(" · ") || "0%"})
+            {dre?.taxes?.map((t: any) => `${t.name}: ${t.rate_percent}%`).join(" · ") || "0%"}) — calculados sobre pagamentos recebidos
           </span>
           <span className="tabular-nums text-destructive">(-) {brl(dre?.taxesDeduction ?? 0)}</span>
         </div>
-        <div className="flex justify-between p-3.5 font-bold bg-muted/20">
-          <span>2. Receita Operacional Líquida</span>
+
+        <div className="flex justify-between p-3.5 font-bold bg-muted/30">
+          <span>2. Receita Operacional Líquida (Pagamentos (-) Impostos)</span>
           <span className="tabular-nums text-foreground">{brl(dre?.netRevenue ?? 0)}</span>
         </div>
-        <div className="flex justify-between p-3.5 pl-6 text-xs bg-emerald-500/5">
-          <span className="text-emerald-700 dark:text-emerald-400 font-medium">Pagamentos Recebidos dos Clientes (período)</span>
-          <span className="tabular-nums text-emerald-600 font-semibold">{brl(dre?.totalPaymentsReceived ?? 0)}</span>
-        </div>
 
-        <div className="flex justify-between p-3.5 font-bold bg-muted/40">
+        <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>3. Custos Operacionais de Equipe</span>
           <span className="tabular-nums text-destructive">
-            (-) {brl((dre?.teamLaborCost ?? 0) + (dre?.expenseReimbursements ?? 0))}
+            (-) {brl((dre?.teamLaborCost ?? 0) + (dre?.expenseReimbursements ?? 0) + (dre?.consultantBonuses ?? 0))}
           </span>
         </div>
         <div className="flex justify-between p-3.5 pl-6 text-xs text-muted-foreground">
@@ -1146,9 +1353,23 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
           <span>(-) Reembolsos de Despesas (Alimentação, Deslocamento, etc.)</span>
           <span className="tabular-nums">(-) {brl(dre?.expenseReimbursements ?? 0)}</span>
         </div>
+        <div className="flex justify-between p-3.5 pl-6 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/5">
+          <span className="flex items-center gap-1 font-medium">
+            <Award className="h-3.5 w-3.5" /> (-) Bonificações Pagas aos Consultores
+          </span>
+          <span className="tabular-nums font-semibold">(-) {brl(dre?.consultantBonuses ?? 0)}</span>
+        </div>
+        {(dre?.bonusesList ?? []).map((b: any) => (
+          <div key={b.id} className="flex items-center justify-between p-2 pl-10 text-[11px] text-muted-foreground bg-amber-500/5">
+            <span>
+              {b.consultant_name} ({fmtDate(b.bonus_date)}): {b.service_description}
+            </span>
+            <span className="tabular-nums">(-) {brl(b.amount)}</span>
+          </div>
+        ))}
 
         {/* Custos Fixos */}
-        <div className="flex justify-between p-3.5 font-bold bg-muted/40">
+        <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>4. Despesas Fixas Corporativas</span>
           <span className="tabular-nums text-destructive">(-) {brl(dre?.totalFixedCosts ?? 0)}</span>
         </div>
@@ -1170,7 +1391,7 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
         ))}
 
         {/* Custos Variáveis */}
-        <div className="flex justify-between p-3.5 font-bold bg-muted/40">
+        <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>5. Despesas Variáveis Corporativas</span>
           <span className="tabular-nums text-destructive">(-) {brl(dre?.totalVariableCosts ?? 0)}</span>
         </div>
@@ -1191,17 +1412,52 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
           </div>
         ))}
 
-        {/* Lucro Operacional Líquido */}
+        {/* Lucro Operacional Líquido do Mês */}
         <div
           className={cn(
-            "flex justify-between p-4 font-black text-base",
+            "flex justify-between p-3.5 font-black text-sm",
             (dre?.operatingProfit ?? 0) >= 0
               ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
               : "bg-red-500/10 text-destructive",
           )}
         >
           <span>LUCRO OPERACIONAL LÍQUIDO DO PERÍODO</span>
-          <span className="tabular-nums text-lg">{brl(dre?.operatingProfit ?? 0)}</span>
+          <span className="tabular-nums text-base">{brl(dre?.operatingProfit ?? 0)}</span>
+        </div>
+
+        {/* Acumulado Líquido do Período Anterior */}
+        <div className="flex justify-between p-3.5 font-semibold text-xs bg-muted/30">
+          <span className="text-muted-foreground">SALDO LÍQUIDO ACUMULADO DO PERÍODO ANTERIOR</span>
+          <span
+            className={cn(
+              "tabular-nums",
+              (dre?.previousAccumulatedProfit ?? 0) >= 0 ? "text-foreground" : "text-destructive",
+            )}
+          >
+            {brl(dre?.previousAccumulatedProfit ?? 0)}
+          </span>
+        </div>
+
+        {/* Resultado Consolidado */}
+        <div
+          className={cn(
+            "flex justify-between p-4 font-black text-base border-t-2",
+            (dre?.accumulatedConsolidatedProfit ?? dre?.operatingProfit ?? 0) >= 0
+              ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/40"
+              : "bg-red-500/15 text-destructive border-red-500/40",
+          )}
+        >
+          <span className="flex items-center gap-2">
+            RESULTADO LÍQUIDO ACUMULADO CONSOLIDADO
+            {dre?.isFutureOrOpen && (
+              <Badge variant="outline" className="text-[10px] font-normal">
+                Período futuro / em aberto
+              </Badge>
+            )}
+          </span>
+          <span className="tabular-nums text-lg">
+            {brl(dre?.accumulatedConsolidatedProfit ?? dre?.operatingProfit ?? 0)}
+          </span>
         </div>
       </Card>
 

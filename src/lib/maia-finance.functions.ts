@@ -27,12 +27,14 @@ const memoryFallback: {
   closings: any[];
   auditNotes: Record<string, any>;
   dreEntries: any[];
+  bonuses: any[];
 } = {
   taxes: [{ id: "def-tax-1", name: "Simples Nacional / ISS", rate_percent: 6.0, is_active: true }],
   contracts: {},
   closings: [],
   auditNotes: {},
   dreEntries: [],
+  bonuses: [],
 };
 
 async function getMaiaStore(sb: any) {
@@ -51,6 +53,7 @@ async function getMaiaStore(sb: any) {
         closings: Array.isArray(parsed.closings) ? parsed.closings : memoryFallback.closings,
         auditNotes: parsed.auditNotes || memoryFallback.auditNotes,
         dreEntries: Array.isArray(parsed.dreEntries) ? parsed.dreEntries : memoryFallback.dreEntries,
+        bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : memoryFallback.bonuses,
       };
     }
   } catch {}
@@ -723,6 +726,7 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
     const [
       { data: invoices },
       { data: clientPayments },
+      { data: prevPayments },
       store,
     ] = await Promise.all([
       sb
@@ -735,6 +739,10 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
         .select("amount, paid_at, method")
         .gte("paid_at", start)
         .lte("paid_at", end),
+      sb
+        .from("payments")
+        .select("amount, paid_at")
+        .lt("paid_at", start),
       getMaiaStore(sb),
     ]);
 
@@ -744,66 +752,126 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
       if (dbTaxes && dbTaxes.length > 0) taxes = dbTaxes;
     } catch {}
 
-    let closings = store.closings.filter((c: any) => c.month_year === data.month_year);
+    let allClosings = store.closings || [];
     try {
-      const { data: dbClosings } = await sb.from("consultant_closings").select("*").eq("month_year", data.month_year);
-      if (dbClosings && dbClosings.length > 0) closings = dbClosings;
+      const { data: dbClosings } = await sb.from("consultant_closings").select("*");
+      if (dbClosings && dbClosings.length > 0) allClosings = dbClosings;
     } catch {}
 
-    let dreEntries = store.dreEntries.filter((e: any) => e.month_year === data.month_year);
+    let allDreEntries = store.dreEntries || [];
     try {
-      const { data: dbEntries } = await sb.from("maia_dre_entries").select("*").eq("month_year", data.month_year);
-      if (dbEntries && dbEntries.length > 0) dreEntries = dbEntries;
+      const { data: dbEntries } = await sb.from("maia_dre_entries").select("*");
+      if (dbEntries && dbEntries.length > 0) allDreEntries = dbEntries;
     } catch {}
 
-    // 1. Faturamento Bruto
+    const allBonuses = store.bonuses || [];
+
+    // 1. Faturamento Bruto de Faturas emitidas (Indicador)
     const grossRevenue = (invoices ?? []).reduce(
       (acc: number, inv: any) => acc + Number(inv.total_amount || 0),
       0,
     );
 
-    // 2. Alíquota total de impostos configurados
+    // 2. Receita Realizada: Pagamentos Recebidos dos Clientes (Base da DRE)
+    const totalPaymentsReceived = (clientPayments ?? []).reduce(
+      (acc: number, p: any) => acc + Number(p.amount || 0),
+      0,
+    );
+
+    // 3. Impostos calculados sobre os Pagamentos Recebidos
     const totalTaxRatePercent = (taxes ?? []).reduce(
       (acc: number, t: any) => acc + Number(t.rate_percent || 0),
       0,
     );
-    const taxesDeduction = Math.round(((grossRevenue * totalTaxRatePercent) / 100) * 100) / 100;
+    const taxesDeduction = Math.round(((totalPaymentsReceived * totalTaxRatePercent) / 100) * 100) / 100;
 
-    // 3. Receita Líquida
-    const netRevenue = Math.round((grossRevenue - taxesDeduction) * 100) / 100;
+    // 4. Receita Operacional Líquida (Pagamentos Recebidos - Impostos)
+    const netRevenue = Math.round((totalPaymentsReceived - taxesDeduction) * 100) / 100;
 
-    // 4. Custos de Equipe (honorários) e Reembolsos de Despesas
+    // 5. Custos Operacionais de Equipe do Mês (Honorários, Reembolsos e Bonificações)
+    const currentMonthClosings = allClosings.filter((c: any) => c.month_year === data.month_year);
     let teamLaborCost = 0;
     let expenseReimbursements = 0;
-    for (const c of closings ?? []) {
+    for (const c of currentMonthClosings) {
       const exp = Number(c.expense_reimbursement || 0);
       const tot = Number(c.total_payable || 0);
       teamLaborCost += tot - exp;
       expenseReimbursements += exp;
     }
 
-    // 5. Custos Fixos e Variáveis adicionais
-    const fixedCosts = (dreEntries ?? []).filter((e: any) => e.entry_type === "custo_fixo");
-    const variableCosts = (dreEntries ?? []).filter((e: any) => e.entry_type === "custo_variavel");
+    const bonusesThisMonth = allBonuses.filter((b: any) => b.month_year === data.month_year);
+    const consultantBonuses = bonusesThisMonth.reduce(
+      (acc: number, b: any) => acc + Number(b.amount || 0),
+      0,
+    );
+
+    // 6. Custos Fixos e Variáveis do Mês
+    const currentMonthEntries = allDreEntries.filter((e: any) => e.month_year === data.month_year);
+    const fixedCosts = currentMonthEntries.filter((e: any) => e.entry_type === "custo_fixo");
+    const variableCosts = currentMonthEntries.filter((e: any) => e.entry_type === "custo_variavel");
 
     const totalFixedCosts = fixedCosts.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
     const totalVariableCosts = variableCosts.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
 
-    // 6. Lucro Operacional Líquido
+    // 7. Lucro Operacional Líquido do Período Atual
+    const totalCurrentTeamCosts = teamLaborCost + expenseReimbursements + consultantBonuses;
     const operatingProfit =
       Math.round(
         (netRevenue -
-          teamLaborCost -
-          expenseReimbursements -
+          totalCurrentTeamCosts -
           totalFixedCosts -
           totalVariableCosts) *
           100,
       ) / 100;
 
-    const totalPaymentsReceived = (clientPayments ?? []).reduce(
+    // 8. Cálculo do Acumulado Líquido do Período Anterior
+    const prevPaymentsTotal = (prevPayments ?? []).reduce(
       (acc: number, p: any) => acc + Number(p.amount || 0),
       0,
     );
+    const prevTaxesDeduction = Math.round(((prevPaymentsTotal * totalTaxRatePercent) / 100) * 100) / 100;
+    const prevNetRevenue = Math.round((prevPaymentsTotal - prevTaxesDeduction) * 100) / 100;
+
+    const prevClosings = allClosings.filter((c: any) => c.month_year < data.month_year);
+    let prevTeamLaborCost = 0;
+    let prevExpenseReimbursements = 0;
+    for (const c of prevClosings) {
+      const exp = Number(c.expense_reimbursement || 0);
+      const tot = Number(c.total_payable || 0);
+      prevTeamLaborCost += tot - exp;
+      prevExpenseReimbursements += exp;
+    }
+
+    const prevBonuses = allBonuses.filter((b: any) => b.month_year < data.month_year);
+    const prevBonusesTotal = prevBonuses.reduce(
+      (acc: number, b: any) => acc + Number(b.amount || 0),
+      0,
+    );
+
+    const prevDreEntries = allDreEntries.filter((e: any) => e.month_year < data.month_year);
+    const prevFixedCosts = prevDreEntries
+      .filter((e: any) => e.entry_type === "custo_fixo")
+      .reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+    const prevVariableCosts = prevDreEntries
+      .filter((e: any) => e.entry_type === "custo_variavel")
+      .reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+
+    const previousAccumulatedProfit = Math.round(
+      (prevNetRevenue -
+        prevTeamLaborCost -
+        prevExpenseReimbursements -
+        prevBonusesTotal -
+        prevFixedCosts -
+        prevVariableCosts) *
+        100,
+    ) / 100;
+
+    const accumulatedConsolidatedProfit = Math.round(
+      (previousAccumulatedProfit + operatingProfit) * 100,
+    ) / 100;
+
+    const currentMonthYear = new Date().toISOString().slice(0, 7);
+    const isFutureOrOpen = data.month_year >= currentMonthYear;
 
     return {
       monthYear: data.month_year,
@@ -815,11 +883,16 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
       netRevenue,
       teamLaborCost,
       expenseReimbursements,
+      consultantBonuses,
+      bonusesList: bonusesThisMonth,
       fixedCosts,
       totalFixedCosts,
       variableCosts,
       totalVariableCosts,
       operatingProfit,
+      previousAccumulatedProfit,
+      accumulatedConsolidatedProfit,
+      isFutureOrOpen,
     };
   });
 
@@ -967,4 +1040,93 @@ export const cloneDreEntriesFromPreviousMonth = createServerFn({ method: "POST" 
     await saveMaiaStore(sb, store);
 
     return { ok: true, count: cloned.length };
+  });
+
+// ─── 6. BONIFICAÇÕES DOS CONSULTORES ──────────────────────────────────────────
+
+export const listConsultantBonuses = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        month_year: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+        consultant_id: z.string().optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertManagerOrAdmin(sb, context.userId);
+
+    const store = await getMaiaStore(sb);
+    let bonuses = store.bonuses || [];
+    if (data.month_year) {
+      bonuses = bonuses.filter((b: any) => b.month_year === data.month_year);
+    }
+    if (data.consultant_id && data.consultant_id !== "__all") {
+      bonuses = bonuses.filter((b: any) => b.consultant_id === data.consultant_id);
+    }
+    return bonuses.sort((a: any, b: any) =>
+      (b.bonus_date || "").localeCompare(a.bonus_date || ""),
+    );
+  });
+
+export const saveConsultantBonus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        consultant_id: z.string().min(1, "Consultor obrigatório"),
+        consultant_name: z.string().min(1, "Nome do consultor obrigatório"),
+        bonus_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD)"),
+        service_description: z.string().min(1, "Descrição do serviço obrigatória"),
+        amount: z.number().positive("O valor da bonificação deve ser maior que zero"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertManagerOrAdmin(sb, context.userId);
+
+    const month_year = data.bonus_date.slice(0, 7);
+    const store = await getMaiaStore(sb);
+    const bonusId = data.id || crypto.randomUUID();
+
+    const newBonus = {
+      id: bonusId,
+      consultant_id: data.consultant_id,
+      consultant_name: data.consultant_name,
+      bonus_date: data.bonus_date,
+      month_year,
+      service_description: data.service_description,
+      amount: data.amount,
+      created_by: context.userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.id) {
+      store.bonuses = (store.bonuses || []).map((b: any) =>
+        b.id === data.id ? newBonus : b,
+      );
+    } else {
+      store.bonuses = [...(store.bonuses || []), newBonus];
+    }
+
+    await saveMaiaStore(sb, store);
+    return newBonus;
+  });
+
+export const deleteConsultantBonus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    await assertManagerOrAdmin(sb, context.userId);
+
+    const store = await getMaiaStore(sb);
+    store.bonuses = (store.bonuses || []).filter((b: any) => b.id !== data.id);
+    await saveMaiaStore(sb, store);
+    return { ok: true };
   });

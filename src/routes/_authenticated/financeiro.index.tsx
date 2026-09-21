@@ -14,6 +14,7 @@ import {
 import { listCompanies } from "@/lib/interviews.functions";
 import { getMe } from "@/lib/access.functions";
 import { useActiveCompany } from "@/lib/active-company";
+import { saveWorkHours, ACTIVITY_TYPES } from "@/lib/work-hours.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +24,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, FileText, Receipt, Plus, Trash2, Lock, FileDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Wallet, FileText, Receipt, Plus, Trash2, Lock, FileDown, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getBilledReport } from "@/lib/finance.functions";
 import { exportBilledPdf, type BilledPdfMode } from "@/lib/invoice-pdf";
@@ -69,6 +70,7 @@ function FinanceiroPage() {
   const [invoiceNotes, setInvoiceNotes] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [editingHour, setEditingHour] = useState<any>(null);
   const [payment, setPayment] = useState({
     paid_at: new Date().toISOString().slice(0, 10),
     amount: 0,
@@ -85,6 +87,7 @@ function FinanceiroPage() {
   const delInvoiceFn = useServerFn(deleteInvoice);
   const meFn = useServerFn(getMe);
   const billedFn = useServerFn(getBilledReport);
+  const saveHourFn = useServerFn(saveWorkHours);
 
   async function exportPdf(mode: BilledPdfMode) {
     if (!companyId) return;
@@ -222,6 +225,31 @@ function FinanceiroPage() {
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível desfazer a fatura"),
   });
 
+  const editHourMut = useMutation({
+    mutationFn: (h: any) =>
+      saveHourFn({
+        data: {
+          id: h.id,
+          company_id: h.company_id,
+          responsible: h.responsible,
+          activity_type: h.activity_type,
+          work_date: h.work_date,
+          hours: Number(h.hours),
+          description: h.description,
+          notes: h.notes ?? "",
+          is_remunerated: h.is_remunerated ?? true,
+          expenses: [],
+        },
+      } as any),
+    onSuccess: () => {
+      toast.success("Lançamento auditado e salvo.");
+      setEditingHour(null);
+      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ queryKey: ["work-hours"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar"),
+  });
+
   const totals = data?.totals;
   const balance = totals?.balance ?? 0;
   const situation = balance > 0.009 ? "DEVEDOR" : balance < -0.009 ? "CRÉDITO" : "QUITADO";
@@ -356,7 +384,7 @@ function FinanceiroPage() {
                   const expensesList = h.work_hour_expenses ?? [];
                   const tools = (h.work_hour_tools ?? []).reduce((a: number, e: any) => a + Number(e.amount ?? 0), 0);
                   return (
-                    <label key={h.id} className="flex cursor-pointer items-start gap-3 p-3 text-sm hover:bg-muted/30 transition-colors">
+                    <div key={h.id} className="flex items-start gap-3 p-3 text-sm hover:bg-muted/30 transition-colors">
                       <Checkbox
                         checked={selected.includes(h.id)}
                         onCheckedChange={(c) =>
@@ -400,7 +428,28 @@ function FinanceiroPage() {
                           </p>
                         )}
                       </div>
-                    </label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 text-xs shrink-0"
+                        onClick={(ev) => {
+                          ev.preventDefault();
+                          setEditingHour({
+                            id: h.id,
+                            company_id: h.company_id,
+                            responsible: h.responsible ?? "",
+                            activity_type: h.activity_type ?? "consultoria",
+                            work_date: h.work_date ?? "",
+                            hours: Number(h.hours),
+                            description: h.description ?? "",
+                            notes: h.notes ?? "",
+                            is_remunerated: h.is_remunerated !== false,
+                          });
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Auditar
+                      </Button>
+                    </div>
                   );
                 })}
               </Card>
@@ -619,6 +668,81 @@ function FinanceiroPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Auditoria do Lançamento (Financeiro Cliente) */}
+      {editingHour && (
+        <Dialog open={!!editingHour} onOpenChange={() => setEditingHour(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Auditar Lançamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Data</Label>
+                  <Input
+                    type="date"
+                    className="h-10"
+                    value={editingHour.work_date}
+                    onChange={(e) => setEditingHour({ ...editingHour, work_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Horas</Label>
+                  <Input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    className="h-10"
+                    value={editingHour.hours}
+                    onChange={(e) => setEditingHour({ ...editingHour, hours: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Tipo de Atividade</Label>
+                <Select
+                  value={editingHour.activity_type}
+                  onValueChange={(v) => setEditingHour({ ...editingHour, activity_type: v })}
+                >
+                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ACTIVITY_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Descrição</Label>
+                <Textarea
+                  rows={2}
+                  value={editingHour.description}
+                  onChange={(e) => setEditingHour({ ...editingHour, description: e.target.value })}
+                  placeholder="Descreva o atendimento…"
+                />
+              </div>
+              <div>
+                <Label>Consultor (responsável)</Label>
+                <Input
+                  className="h-10"
+                  value={editingHour.responsible}
+                  onChange={(e) => setEditingHour({ ...editingHour, responsible: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingHour(null)}>Cancelar</Button>
+              <Button
+                disabled={editHourMut.isPending || !editingHour.description.trim()}
+                onClick={() => editHourMut.mutate(editingHour)}
+              >
+                {editHourMut.isPending ? "Salvando…" : "Salvar Auditoria"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

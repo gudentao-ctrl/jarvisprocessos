@@ -19,11 +19,15 @@ export type MaiaDrePdfData = {
   netRevenue: number;
   teamLaborCost: number;
   expenseReimbursements: number;
+  consultantBonuses?: number;
   fixedCosts: any[];
   totalFixedCosts: number;
   variableCosts: any[];
   totalVariableCosts: number;
   operatingProfit: number;
+  previousAccumulatedProfit?: number;
+  accumulatedConsolidatedProfit?: number;
+  isFutureOrOpen?: boolean;
 };
 
 export function exportMaiaDrePdf(data: MaiaDrePdfData) {
@@ -58,21 +62,27 @@ export function exportMaiaDrePdf(data: MaiaDrePdfData) {
   let y = 42;
 
   const paymentsReceived = data.totalPaymentsReceived ?? 0;
+  const bonuses = data.consultantBonuses ?? 0;
+  const totalTeamCost = data.teamLaborCost + data.expenseReimbursements + bonuses;
+  const prevAccProfit = data.previousAccumulatedProfit ?? 0;
+  const consProfit = data.accumulatedConsolidatedProfit ?? data.operatingProfit;
 
   // Tabela DRE Estruturada
   const dreBody: any[] = [
-    ["1. FATURAMENTO BRUTO DE SERVIÇOS", "", brl(data.grossRevenue)],
+    ["INDICADOR: FATURAMENTO BRUTO (FATURAS EMITIDAS)", "Não transita na DRE", brl(data.grossRevenue)],
+    ["", "", ""],
+    ["1. RECEITA REALIZADA (PAGAMENTOS RECEBIDOS DOS CLIENTES)", "Base da DRE", brl(paymentsReceived)],
     [
       `  (-) Dedução de Impostos (${data.totalTaxRatePercent.toFixed(2)}%)`,
       data.taxes.map((t: any) => `${t.name}: ${t.rate_percent}%`).join(" · ") || "-",
       `(-) ${brl(data.taxesDeduction)}`,
     ],
-    ["2. RECEITA OPERACIONAL LÍQUIDA", "", brl(data.netRevenue)],
-    ["  Pagamentos Recebidos dos Clientes (período)", "Financeiro Cliente", brl(paymentsReceived)],
+    ["2. RECEITA OPERACIONAL LÍQUIDA", "Pagamentos (-) Impostos", brl(data.netRevenue)],
     ["", "", ""],
-    ["3. CUSTOS OPERACIONAIS DA EQUIPE", "", `(-) ${brl(data.teamLaborCost + data.expenseReimbursements)}`],
+    ["3. CUSTOS OPERACIONAIS DA EQUIPE", "", `(-) ${brl(totalTeamCost)}`],
     ["  (-) Honorários dos Consultores", "Fechamentos Aprovados", `(-) ${brl(data.teamLaborCost)}`],
     ["  (-) Reembolso de Despesas da Equipe", "Alimentação, Deslocamento, etc.", `(-) ${brl(data.expenseReimbursements)}`],
+    ["  (-) Bonificações aos Consultores", "Bonificações Pagas", `(-) ${brl(bonuses)}`],
     ["", "", ""],
     ["4. DESPESAS FIXAS CORPORATIVAS", "", `(-) ${brl(data.totalFixedCosts)}`],
     ...data.fixedCosts.map((f: any) => [
@@ -92,6 +102,16 @@ export function exportMaiaDrePdf(data: MaiaDrePdfData) {
       "LUCRO OPERACIONAL LÍQUIDO DO PERÍODO",
       data.operatingProfit >= 0 ? "RESULTADO POSITIVO" : "RESULTADO NEGATIVO",
       brl(data.operatingProfit),
+    ],
+    [
+      "SALDO LÍQUIDO ACUMULADO DO PERÍODO ANTERIOR",
+      "Histórico Acumulado",
+      brl(prevAccProfit),
+    ],
+    [
+      "RESULTADO LÍQUIDO ACUMULADO CONSOLIDADO",
+      consProfit >= 0 ? "SUPERÁVIT CONSOLIDADO" : "DÉFICIT CONSOLIDADO",
+      brl(consProfit),
     ],
   ];
 
