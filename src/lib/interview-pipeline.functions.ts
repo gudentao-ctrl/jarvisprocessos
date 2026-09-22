@@ -108,12 +108,14 @@ const ProcessSchema = z.object({
 });
 
 const PainSchema = z.object({
+  ref: str(),
   category: str("operacional"),
   description: str(),
   severity: Severity,
 });
 
 const IndicatorSchema = z.object({
+  ref: str(),
   name: str(),
   description: str(),
   unit: str(),
@@ -130,6 +132,9 @@ const OpportunitySchema = z.object({
   effort: Level,
   impact: Level,
   process_ref: str().nullable().optional(),
+  sector: str(),
+  pain_ref: str().nullable().optional(),
+  indicator_ref: str().nullable().optional(),
 });
 
 const InfoMapSchema = z.object({
@@ -170,7 +175,7 @@ REGRAS RÍGIDAS:
 - Quando faltar informação, deixe o campo vazio ("").
 - Português do Brasil. Objetivo, conciso e citável.
 - Cada processo deve ter ao menos uma atividade de tipo "start" no início e "end" no fim quando o fluxo for completo. Se for parcial, omita.
-- Use os refs "a1", "a2", ... para ligar atividades em "edges". Refs de processo: "p1", "p2", ... (use process_ref para vincular indicadores/oportunidades/mapas).
+- Use refs únicos: atividades "a1", processos "p1", dores "d1" e indicadores "i1". Use esses refs para criar os vínculos causais.
 - Severidade de dores: baixa, media, alta, critica.
 - Esforço e impacto: baixo, medio, alto.
 
@@ -178,9 +183,9 @@ ESTRUTURA OBRIGATÓRIA:
 {
   "minutes_md": "ata da reunião em markdown (## Participantes, ## Pontos discutidos, ## Decisões, ## Próximos passos, ## Citações relevantes)",
   "processes": [{ "name", "objective", "responsible", "inputs", "outputs", "activities": [{"ref","type","title","responsible","area","time_minutes","systems":[],"notes"}], "edges": [{"from","to","label"}] }],
-  "pains": [{ "category", "description", "severity" }],
-  "indicators": [{ "name", "description", "unit", "target", "frequency", "process_ref" }],
-  "opportunities": [{ "title", "description", "category", "expected_benefit", "effort", "impact", "process_ref" }],
+  "pains": [{ "ref", "category", "description", "severity" }],
+  "indicators": [{ "ref", "name", "description", "unit", "target", "frequency", "process_ref" }],
+  "opportunities": [{ "title", "description", "category", "expected_benefit", "effort", "impact", "process_ref", "sector", "pain_ref", "indicator_ref" }],
   "information_map": [{ "process_ref", "origin", "destination", "medium", "responsible", "document", "loss_risk", "notes" }],
   "decision_map": [{ "process_ref", "decider", "decision", "approval_required", "reported_delay", "notes" }]
 }
@@ -213,10 +218,10 @@ function looseJson(raw: string): any {
   }
 }
 
-async function callGeminiOnce(systemPrompt: string, userPrompt: string, model: string) {
+async function callAstra(systemPrompt: string, userPrompt: string) {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
     method: "POST",
     headers: {
       "Lovable-API-Key": apiKey,
@@ -224,13 +229,14 @@ async function callGeminiOnce(systemPrompt: string, userPrompt: string, model: s
       "X-Lovable-AIG-SDK": "fetch",
     },
     body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+      model: "openai/gpt-6-astra",
+      stream: true,
+      reasoning: { effort: "medium", summary: "auto" },
+      include: ["reasoning.encrypted_content"],
+      input: [
+        { role: "developer", content: [{ type: "input_text", text: systemPrompt }] },
+        { role: "user", content: [{ type: "input_text", text: userPrompt }] },
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 12000,
     }),
   });
   if (!res.ok) {
@@ -239,24 +245,29 @@ async function callGeminiOnce(systemPrompt: string, userPrompt: string, model: s
     if (res.status === 402) throw new Error("Créditos de IA esgotados.");
     throw new Error(`Falha IA (${res.status}): ${txt.slice(0, 300)}`);
   }
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const content = json.choices?.[0]?.message?.content ?? "";
-  if (!content.trim()) throw new Error("Resposta da IA vazia.");
-  return content;
-}
-
-async function callGemini(systemPrompt: string, userPrompt: string) {
-  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview", "google/gemini-2.5-pro"];
-  let last: any;
-  for (const m of models) {
-    try {
-      return await callGeminiOnce(systemPrompt, userPrompt, m);
-    } catch (e: any) {
-      last = e;
-      if (/Créditos/.test(e?.message ?? "")) throw e;
+  if (!res.body) throw new Error("Resposta da IA sem conteúdo.");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let content = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const payload = line.slice(6);
+      if (payload === "[DONE]") continue;
+      try {
+        const event = JSON.parse(payload);
+        if (event.type === "response.output_text.delta") content += event.delta ?? "";
+      } catch { /* aguarda evento completo */ }
     }
   }
-  throw last ?? new Error("Falha IA");
+  if (!content.trim()) throw new Error("Resposta da IA vazia.");
+  return content;
 }
 
 
@@ -296,7 +307,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
 
     let parsed: z.infer<typeof PipelineSchema>;
     try {
-      const raw = await callGemini(SYSTEM_PROMPT, `Transcrição:\n\n${condenseText(content)}`);
+      const raw = await callAstra(SYSTEM_PROMPT, `Transcrição:\n\n${condenseText(content)}`);
       parsed = PipelineSchema.parse(looseJson(raw));
     } catch (e: any) {
       await supabase
@@ -411,6 +422,9 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
       }
     }
 
+    const painIdByRef = new Map<string, string>();
+    const indicatorIdByRef = new Map<string, string>();
+
     // DORES (substitui rascunhos IA desta entrevista)
     {
       await supabase
@@ -424,20 +438,16 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         "processo","informacao","governanca","pessoas","tecnologia",
         "planejamento","qualidade","producao","compras","logistica",
       ]);
-      const rows = parsed.pains.map((p) => ({
-        company_id: interview.company_id!,
-        project_id: interview.project_id ?? null,
-        source: "interview",
-        source_id: interview.id,
-        category: allowedCat.has(norm(p.category)) ? norm(p.category) : "processo",
-        description: p.description,
-        severity: sevMap[p.severity] ?? 3,
-        generated_by_ai: true,
-        source_interview_id: interview.id,
-      }));
-      if (rows.length) {
-        const { error } = await supabase.from("pain_points").insert(rows as any);
-        if (!error) stats.pains = rows.length;
+      for (let i = 0; i < parsed.pains.length; i++) {
+        const p = parsed.pains[i];
+        const { data: created } = await supabase.from("pain_points").insert({
+          company_id: interview.company_id!, project_id: interview.project_id ?? null,
+          source: "interview", source_id: interview.id,
+          category: allowedCat.has(norm(p.category)) ? norm(p.category) : "processo",
+          description: p.description, severity: sevMap[p.severity] ?? 3,
+          generated_by_ai: true, source_interview_id: interview.id,
+        } as any).select("id").single();
+        if (created) { painIdByRef.set(p.ref || `d${i + 1}`, created.id); stats.pains++; }
       }
     }
 
@@ -449,9 +459,10 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         .eq("source_interview_id", interview.id)
         .eq("generated_by_ai", true)
         .is("validated_at", null);
-      const rows = parsed.indicators.map((ind) => {
+      for (let i = 0; i < parsed.indicators.length; i++) {
+        const ind = parsed.indicators[i];
         const t = parseFloat(ind.target);
-        return {
+        const { data: created } = await supabase.from("indicators").insert({
           company_id: interview.company_id!,
           project_id: interview.project_id ?? null,
           process_id: ind.process_ref ? processIdByRef.get(ind.process_ref) ?? null : null,
@@ -462,11 +473,8 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           frequency: ind.frequency,
           generated_by_ai: true,
           source_interview_id: interview.id,
-        };
-      });
-      if (rows.length) {
-        const { error } = await supabase.from("indicators").insert(rows as any);
-        if (!error) stats.indicators = rows.length;
+        } as any).select("id").single();
+        if (created) { indicatorIdByRef.set(ind.ref || `i${i + 1}`, created.id); stats.indicators++; }
       }
     }
 
@@ -480,6 +488,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         .is("validated_at", null);
       const impactMap: Record<string, number> = { baixo: 1, medio: 2, alto: 3 };
       const effortMap: Record<string, number> = { baixo: 3, medio: 2, alto: 1 };
+      const { data: companySectors } = await supabase.from("sectors").select("id, name").eq("company_id", interview.company_id!);
       const rows = parsed.opportunities.map((o) => {
         const score = impactMap[o.impact] * 3 + effortMap[o.effort] * 2;
         let priority: "baixa" | "media" | "alta" | "critica" = "media";
@@ -490,6 +499,10 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           company_id: interview.company_id!,
           project_id: interview.project_id ?? null,
           process_id: o.process_ref ? processIdByRef.get(o.process_ref) ?? null : null,
+          pain_point_id: o.pain_ref ? painIdByRef.get(o.pain_ref) ?? null : null,
+          indicator_id: o.indicator_ref ? indicatorIdByRef.get(o.indicator_ref) ?? null : null,
+          sector: o.sector || null,
+          sector_id: o.sector ? (companySectors ?? []).find((s: any) => norm(s.name) === norm(o.sector))?.id ?? null : null,
           title: o.title,
           description: o.description,
           category: o.category,

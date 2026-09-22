@@ -183,13 +183,13 @@ function FinanceiroMaiaPage() {
   // Queries de autorização
   const getMeFn = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => getMeFn() });
-  const hasFinancialAccess =
+  const isManagerOrAdmin =
     !!profile?.isSuperadmin ||
     (profile?.memberships ?? []).some(
-      (m: any) => m.permissions?.financeiro === true || m.role === "gestor" || m.permissions?.gestao === true,
+      (m: any) => m.role === "gestor" || m.permissions?.gestao === true,
     );
 
-  if (!hasFinancialAccess && profile) {
+  if (!isManagerOrAdmin && profile) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center p-4 text-center">
         <ShieldCheck className="h-16 w-16 text-muted-foreground" />

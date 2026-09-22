@@ -7,7 +7,7 @@ export const TOOLS = [
   { key: "gestao", label: "Gestão" },
   { key: "pop", label: "POP" },
   { key: "indicadores", label: "Indicadores" },
-  { key: "financeiro", label: "Financeiro (Cliente e Maia)" },
+  { key: "financeiro", label: "Financeiro" },
   { key: "crm", label: "CRM" },
   { key: "horas", label: "Horas" },
   { key: "chamados", label: "Chamados" },
