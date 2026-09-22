@@ -24,6 +24,7 @@ import {
   Map,
   Building2,
   Plus,
+  Minus,
   Trash2,
   Pencil,
   Search,
@@ -64,8 +65,13 @@ type ItemModalMode = "diretriz" | "desdobramento" | "edit";
 type ItemFormState = {
   id?: string;
   title: string;
+  problem: string;
+  cause: string;
+  expected_result: string;
   responsible: string;
-  status: "aberto" | "em_andamento" | "concluido";
+  sector: string;
+  origin: string;
+  status: "aberto" | "em_andamento" | "concluido" | "nao_sera_feito";
   demand_type: string;
   parent_id: string | null;
   item_type: "diretriz" | "acao" | "desdobramento";
@@ -73,11 +79,19 @@ type ItemFormState = {
   due_date: string;
   observations: string;
   custom_pillar: string;
+  gravity: number;
+  urgency: number;
+  trend: number;
 };
 
 const INITIAL_FORM: ItemFormState = {
   title: "",
+  problem: "",
+  cause: "",
+  expected_result: "",
   responsible: "",
+  sector: "",
+  origin: "",
   status: "aberto",
   demand_type: "processo",
   parent_id: null,
@@ -86,6 +100,9 @@ const INITIAL_FORM: ItemFormState = {
   due_date: "",
   observations: "",
   custom_pillar: "",
+  gravity: 3,
+  urgency: 3,
+  trend: 3,
 };
 
 function statusInfo(status: string) {
@@ -105,12 +122,52 @@ function statusInfo(status: string) {
       dotClass: "bg-blue-500",
     };
   }
+  if (status === "nao_sera_feito") {
+    return {
+      label: "Não será feito",
+      badgeClass: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+      icon: AlertCircle,
+      dotClass: "bg-rose-500",
+    };
+  }
   return {
     label: "A iniciar",
     badgeClass: "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-slate-200 dark:border-slate-700",
     icon: Circle,
     dotClass: "bg-slate-400",
   };
+}
+
+function tierOf(score: number) {
+  if (score >= 75) return { label: "Crítico", chip: "bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400" };
+  if (score >= 40) return { label: "Alto", chip: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400" };
+  if (score >= 15) return { label: "Médio", chip: "bg-blue-500/10 text-blue-600 border-blue-500/30 dark:text-blue-400" };
+  return { label: "Baixo", chip: "bg-muted text-muted-foreground border-border" };
+}
+
+function GutStepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const set = (v: number) => onChange(Math.min(5, Math.max(1, v)));
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="flex items-stretch gap-1 mt-1">
+        <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => set(value - 1)} disabled={value <= 1} aria-label={`Diminuir ${label}`}>
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+        <Input
+          type="number"
+          min={1}
+          max={5}
+          value={value}
+          onChange={(e) => set(Number(e.target.value) || 1)}
+          className="w-full text-center tabular-nums h-8 text-xs font-semibold"
+        />
+        <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => set(value + 1)} disabled={value >= 5} aria-label={`Aumentar ${label}`}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function MapaPage() {
@@ -246,6 +303,8 @@ function MapaPage() {
       parent_id: parent.id,
       item_type: "desdobramento",
       custom_pillar: parent.custom_pillar || "",
+      sector: parent.sector || "",
+      responsible: parent.responsible || "",
     });
     setItemModalOpen(true);
   }
@@ -256,7 +315,12 @@ function MapaPage() {
     setItemForm({
       id: item.id,
       title: item.title,
+      problem: item.problem || "",
+      cause: item.cause || "",
+      expected_result: item.expected_result || "",
       responsible: item.responsible || "",
+      sector: item.sector || "",
+      origin: item.origin || "",
       status: item.status,
       demand_type: item.demand_type,
       parent_id: item.parent_id || null,
@@ -265,6 +329,9 @@ function MapaPage() {
       due_date: item.due_date || "",
       observations: item.observations || "",
       custom_pillar: item.custom_pillar || "",
+      gravity: item.gravity ?? 3,
+      urgency: item.urgency ?? 3,
+      trend: item.trend ?? 3,
     });
     setItemModalOpen(true);
   }
@@ -288,7 +355,12 @@ function MapaPage() {
       id: itemForm.id,
       company_id: companyId,
       title: itemForm.title.trim(),
+      problem: itemForm.problem.trim() || null,
+      cause: itemForm.cause.trim() || null,
+      expected_result: itemForm.expected_result.trim() || null,
       responsible: itemForm.responsible.trim() || null,
+      sector: itemForm.sector.trim() || null,
+      origin: itemForm.origin.trim() || null,
       status: itemForm.status,
       demand_type: itemForm.demand_type,
       parent_id: itemForm.parent_id,
@@ -297,6 +369,9 @@ function MapaPage() {
       due_date: itemForm.due_date || null,
       observations: itemForm.observations.trim() || null,
       custom_pillar: itemForm.custom_pillar.trim() || null,
+      gravity: itemForm.gravity,
+      urgency: itemForm.urgency,
+      trend: itemForm.trend,
     });
   }
 
@@ -540,30 +615,38 @@ function MapaPage() {
                     </div>
                   </div>
 
-                  {/* Métricas Detalhadas: Concluídas, Em Andamento, A Iniciar */}
-                  <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 text-center">
-                    <div className="rounded-md bg-emerald-50/60 dark:bg-emerald-950/20 p-1.5 border border-emerald-200/50 dark:border-emerald-800/40">
+                  {/* Métricas Detalhadas: Concluídas, Em Andamento, A Iniciar, Não será feito */}
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-1.5 border-t pt-3 text-center">
+                    <div className="rounded-md bg-emerald-50/60 dark:bg-emerald-950/20 p-1 border border-emerald-200/50 dark:border-emerald-800/40">
                       <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <CheckCircle2 className="h-3 w-3" />
                         <span className="tabular-nums">{p.concluidas}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-medium">Concluídas</span>
+                      <span className="text-[9px] text-muted-foreground font-medium">Concluídas</span>
                     </div>
 
-                    <div className="rounded-md bg-blue-50/60 dark:bg-blue-950/20 p-1.5 border border-blue-200/50 dark:border-blue-800/40">
+                    <div className="rounded-md bg-blue-50/60 dark:bg-blue-950/20 p-1 border border-blue-200/50 dark:border-blue-800/40">
                       <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-400">
-                        <Clock className="h-3.5 w-3.5" />
+                        <Clock className="h-3 w-3" />
                         <span className="tabular-nums">{p.em_andamento}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-medium">Em curso</span>
+                      <span className="text-[9px] text-muted-foreground font-medium">Em curso</span>
                     </div>
 
-                    <div className="rounded-md bg-slate-50/60 dark:bg-slate-900/30 p-1.5 border border-slate-200/50 dark:border-slate-700/40">
+                    <div className="rounded-md bg-slate-50/60 dark:bg-slate-900/30 p-1 border border-slate-200/50 dark:border-slate-700/40">
                       <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                        <Circle className="h-3.5 w-3.5" />
+                        <Circle className="h-3 w-3" />
                         <span className="tabular-nums">{p.a_iniciar}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-medium">A iniciar</span>
+                      <span className="text-[9px] text-muted-foreground font-medium">A iniciar</span>
+                    </div>
+
+                    <div className="rounded-md bg-rose-50/60 dark:bg-rose-950/20 p-1 border border-rose-200/50 dark:border-rose-800/40">
+                      <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-rose-700 dark:text-rose-400">
+                        <AlertCircle className="h-3 w-3" />
+                        <span className="tabular-nums">{p.nao_sera_feito}</span>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground font-medium">Não fará</span>
                     </div>
                   </div>
 
@@ -607,6 +690,7 @@ function MapaPage() {
                     <SelectItem value="aberto">A iniciar</SelectItem>
                     <SelectItem value="em_andamento">Em andamento</SelectItem>
                     <SelectItem value="concluido">Concluídos</SelectItem>
+                    <SelectItem value="nao_sera_feito">Não será feito</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -672,8 +756,8 @@ function MapaPage() {
                         <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider", pilar.badge)}>
                           {pilar.name}
                         </span>
-                        <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-                          ({roots.length} {roots.length === 1 ? "diretriz" : "diretrizes"})
+                        <span className="text-xs text-muted-foreground font-medium">
+                          ({pilar.total_diretrizes} {pilar.total_diretrizes === 1 ? "diretriz" : "diretrizes"}, {pilar.total_desdobramentos} {pilar.total_desdobramentos === 1 ? "ação" : "ações"})
                         </span>
                       </div>
                     </div>
@@ -758,9 +842,13 @@ function MapaPage() {
                                         <dirStatus.icon className="h-2.5 w-2.5" />
                                         {dirStatus.label}
                                       </Badge>
-                                      {children.length > 0 && (
+                                      {children.length > 0 ? (
                                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4.5 font-bold tabular-nums">
-                                          {completedChildren}/{children.length} concluídas
+                                          {completedChildren}/{children.length} {children.length === 1 ? "ação" : "ações"}
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 text-muted-foreground">
+                                          0 ações
                                         </Badge>
                                       )}
                                     </div>
@@ -882,12 +970,24 @@ function MapaPage() {
                                                   {sub.responsible}
                                                 </span>
                                               )}
+                                              {sub.sector && (
+                                                <span className="inline-flex items-center gap-1 text-foreground/70">
+                                                  <FolderTree className="h-3 w-3 text-muted-foreground" />
+                                                  {sub.sector}
+                                                </span>
+                                              )}
                                               {sub.due_date && (
                                                 <span className="inline-flex items-center gap-1">
                                                   <Calendar className="h-3 w-3 text-muted-foreground" />
                                                   {new Date(sub.due_date).toLocaleDateString("pt-BR")}
                                                 </span>
                                               )}
+                                              {sub.gut_score ? (
+                                                <span className={cn("inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold border", tierOf(sub.gut_score).chip)}>
+                                                  {sub.gut_score >= 75 && <Flame className="h-2.5 w-2.5" />}
+                                                  GUT {sub.gut_score}
+                                                </span>
+                                              ) : null}
                                               {sub.observations && (
                                                 <span className="italic text-muted-foreground truncate max-w-xs">
                                                   "{sub.observations}"
@@ -953,7 +1053,7 @@ function MapaPage() {
 
       {/* Modal de Item (Diretriz ou Desdobramento) */}
       <Dialog open={itemModalOpen} onOpenChange={setItemModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               {itemModalMode === "diretriz" && <Plus className="h-4 w-4 text-primary" />}
@@ -961,33 +1061,33 @@ function MapaPage() {
               {itemModalMode === "edit" && <Pencil className="h-4 w-4 text-primary" />}
               {itemModalMode === "diretriz" && "Nova Diretriz Estratégica"}
               {itemModalMode === "desdobramento" && `Novo Desdobramento (${parentItemForSub?.title})`}
-              {itemModalMode === "edit" && "Editar Item do Mapa"}
+              {itemModalMode === "edit" && (itemForm.item_type === "diretriz" ? "Editar Diretriz" : "Editar Desdobramento")}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-3.5 py-1">
             {/* Título */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                {itemForm.item_type === "diretriz" ? "Título da Diretriz (Ação Mãe)" : "Ação Prática / Desdobramento"} *
+                {itemForm.item_type === "diretriz" ? "Título da Diretriz (Ação Mãe)" : "Título da Ação / Desdobramento"} *
               </Label>
               <Input
-                placeholder="Ex: Fortalecer a governança institucional e comitês de gestão"
+                placeholder={itemForm.item_type === "diretriz" ? "Ex: Fortalecer a governança institucional e comitês de gestão" : "Ex: Implementar reunião semanal de alinhamento com ata"}
                 value={itemForm.title}
                 onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
                 className="text-sm"
               />
             </div>
 
-            {/* Pilar & Tipo */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+            {/* Pilar & Tipo na Hierarquia */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-semibold">Pilar Estratégico</Label>
                 <Select
                   value={itemForm.demand_type}
                   onValueChange={(val) => setItemForm({ ...itemForm, demand_type: val })}
                 >
-                  <SelectTrigger className="text-xs">
+                  <SelectTrigger className="text-xs h-9">
                     <SelectValue placeholder="Selecione o pilar" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1000,52 +1100,154 @@ function MapaPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-semibold">Tipo na Hierarquia</Label>
                 <Select
                   value={itemForm.item_type}
                   onValueChange={(val: any) => setItemForm({ ...itemForm, item_type: val })}
                 >
-                  <SelectTrigger className="text-xs">
+                  <SelectTrigger className="text-xs h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="diretriz" className="text-xs">Diretriz (Nível 2)</SelectItem>
-                    <SelectItem value="desdobramento" className="text-xs">Desdobramento (Nível 3)</SelectItem>
+                    <SelectItem value="diretriz" className="text-xs">Diretriz (Nível 2 - Mãe)</SelectItem>
+                    <SelectItem value="desdobramento" className="text-xs">Desdobramento (Nível 3 - Ação)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
+            {/* Origem & Setor Responsável */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Origem</Label>
+                <Input
+                  placeholder="Ex: Entrevista, cronoanálise, consultoria..."
+                  value={itemForm.origin}
+                  onChange={(e) => setItemForm({ ...itemForm, origin: e.target.value })}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Setor Responsável</Label>
+                <Input
+                  placeholder="Ex: Comercial, Operações, RH, Financeiro..."
+                  value={itemForm.sector}
+                  onChange={(e) => setItemForm({ ...itemForm, sector: e.target.value })}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
             {/* Responsável & Prazo */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Responsável</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Responsável pela Execução</Label>
                 <Input
                   placeholder="Nome do responsável"
                   value={itemForm.responsible}
                   onChange={(e) => setItemForm({ ...itemForm, responsible: e.target.value })}
-                  className="text-xs"
+                  className="text-xs h-9"
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-semibold">Prazo de Conclusão</Label>
                 <Input
                   type="date"
                   value={itemForm.due_date}
                   onChange={(e) => setItemForm({ ...itemForm, due_date: e.target.value })}
-                  className="text-xs"
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
+            {/* Problema & Causa */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Problema Detectado</Label>
+                <Textarea
+                  rows={2}
+                  placeholder="Qual gargalo ou desafio motivou esta ação?"
+                  value={itemForm.problem}
+                  onChange={(e) => setItemForm({ ...itemForm, problem: e.target.value })}
+                  className="text-xs resize-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Causa Raiz</Label>
+                <Textarea
+                  rows={2}
+                  placeholder="Por que o problema ocorre?"
+                  value={itemForm.cause}
+                  onChange={(e) => setItemForm({ ...itemForm, cause: e.target.value })}
+                  className="text-xs resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Resultado Esperado */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Resultado Esperado</Label>
+              <Textarea
+                rows={2}
+                placeholder="Qual o impacto quantitativo ou qualitativo esperado?"
+                value={itemForm.expected_result}
+                onChange={(e) => setItemForm({ ...itemForm, expected_result: e.target.value })}
+                className="text-xs resize-none"
+              />
+            </div>
+
+            {/* Matriz GUT (Gravidade, Urgência, Tendência 1–5) */}
+            <div className="rounded-xl border p-3 bg-muted/20 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Matriz GUT (Priorização 1–5)
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">
+                    Gravidade × Urgência × Tendência (Score 1 a 125)
+                  </p>
+                </div>
+                {(() => {
+                  const score = (itemForm.gravity || 3) * (itemForm.urgency || 3) * (itemForm.trend || 3);
+                  const tier = tierOf(score);
+                  return (
+                    <span className={cn("rounded-full border px-2 py-0.5 text-xs font-black tabular-nums inline-flex items-center gap-1", tier.chip)}>
+                      {score >= 75 && <Flame className="h-3 w-3" />}
+                      {score} · {tier.label}
+                    </span>
+                  );
+                })()}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <GutStepper
+                  label="Gravidade"
+                  value={itemForm.gravity}
+                  onChange={(v) => setItemForm({ ...itemForm, gravity: v })}
+                />
+                <GutStepper
+                  label="Urgência"
+                  value={itemForm.urgency}
+                  onChange={(v) => setItemForm({ ...itemForm, urgency: v })}
+                />
+                <GutStepper
+                  label="Tendência"
+                  value={itemForm.trend}
+                  onChange={(v) => setItemForm({ ...itemForm, trend: v })}
                 />
               </div>
             </div>
 
             {/* Status & Progresso Percentual Interligados */}
             <div className="space-y-3 rounded-lg border p-3 bg-muted/20">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <Label className="text-xs font-semibold">Status de Execução</Label>
-                <div className="flex items-center gap-1.5">
-                  {(["aberto", "em_andamento", "concluido"] as const).map((st) => {
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(["aberto", "em_andamento", "concluido", "nao_sera_feito"] as const).map((st) => {
                     const stMeta = statusInfo(st);
                     const isActive = itemForm.status === st;
                     return (
@@ -1055,7 +1257,7 @@ function MapaPage() {
                         onClick={() => {
                           let nextPct = itemForm.progress_pct;
                           if (st === "concluido") nextPct = 100;
-                          else if (st === "aberto") nextPct = 0;
+                          else if (st === "aberto" || st === "nao_sera_feito") nextPct = 0;
                           else if (st === "em_andamento" && (nextPct === 0 || nextPct === 100)) nextPct = 50;
                           setItemForm({ ...itemForm, status: st, progress_pct: nextPct });
                         }}
@@ -1086,20 +1288,27 @@ function MapaPage() {
                   onValueChange={([val]) => {
                     let st = itemForm.status;
                     if (val === 100) st = "concluido";
-                    else if (val === 0) st = "aberto";
+                    else if (val === 0) st = itemForm.status === "nao_sera_feito" ? "nao_sera_feito" : "aberto";
                     else st = "em_andamento";
                     setItemForm({ ...itemForm, progress_pct: val, status: st });
                   }}
+                  disabled={itemForm.status === "nao_sera_feito"}
                 />
               </div>
+
+              {itemForm.item_type === "diretriz" && itemModalMode === "edit" && (
+                <p className="text-[10px] text-muted-foreground italic">
+                  * Caso a diretriz possua desdobramentos, seu avanço e status finais serão consolidados automaticamente pela média de suas ações.
+                </p>
+              )}
             </div>
 
             {/* Observações */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Observações / Como executar</Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Observações / Detalhes de Execução</Label>
               <Textarea
                 rows={2}
-                placeholder="Detalhes operacionais, metas esperadas ou notas..."
+                placeholder="Instruções práticas, rotinas ou anotações complementares..."
                 value={itemForm.observations}
                 onChange={(e) => setItemForm({ ...itemForm, observations: e.target.value })}
                 className="text-xs resize-none"
@@ -1107,7 +1316,7 @@ function MapaPage() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
             <Button
               type="button"
               variant="outline"

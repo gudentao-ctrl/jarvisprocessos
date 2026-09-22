@@ -44,11 +44,14 @@ export type PillarMeta = {
   border: string;
   badge: string;
   progressColor: string;
-  total: number;
+  total: number; // Apenas desdobramentos
   concluidas: number;
   em_andamento: number;
   a_iniciar: number;
+  nao_sera_feito: number;
   progress_pct: number;
+  total_diretrizes: number;
+  total_desdobramentos: number;
 };
 
 export type MapaItem = {
@@ -56,8 +59,13 @@ export type MapaItem = {
   company_id: string;
   title: string;
   description?: string | null;
+  problem?: string | null;
+  cause?: string | null;
+  expected_result?: string | null;
   responsible?: string | null;
-  status: "aberto" | "em_andamento" | "concluido";
+  sector?: string | null;
+  origin?: string | null;
+  status: "aberto" | "em_andamento" | "concluido" | "nao_sera_feito";
   demand_type: string; // pillar key
   due_date?: string | null;
   observations?: string | null;
@@ -98,6 +106,15 @@ function buildMetaTag(data: {
   item_type?: string;
   progress_pct?: number;
   custom_pillar?: string | null;
+  status?: string;
+  sector?: string | null;
+  origin?: string | null;
+  problem?: string | null;
+  cause?: string | null;
+  expected_result?: string | null;
+  gravity?: number | null;
+  urgency?: number | null;
+  trend?: number | null;
 }) {
   return `[MAPA_META:${JSON.stringify(data)}]`;
 }
@@ -119,33 +136,51 @@ export const getMapaData = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
 
     // Map rows and extract metadata
-    const items: MapaItem[] = (rows ?? []).map((r: any) => {
+    const rawItems: MapaItem[] = (rows ?? []).map((r: any) => {
       const meta = extractMeta(r.observations);
       const parent_id = r.parent_id !== undefined && r.parent_id !== null ? r.parent_id : meta?.parent_id ?? null;
       const item_type = r.item_type || meta?.item_type || (parent_id ? "desdobramento" : "diretriz");
       
+      const rawStatus = (meta?.status || r.status || "aberto") as any;
+      const status: "aberto" | "em_andamento" | "concluido" | "nao_sera_feito" =
+        ["aberto", "em_andamento", "concluido", "nao_sera_feito"].includes(rawStatus)
+          ? rawStatus
+          : "aberto";
+
       let progress_pct = 0;
       if (r.progress_pct !== undefined && r.progress_pct !== null) {
         progress_pct = Number(r.progress_pct);
       } else if (meta?.progress_pct !== undefined && meta?.progress_pct !== null) {
         progress_pct = Number(meta.progress_pct);
-      } else if (r.status === "concluido") {
+      } else if (status === "concluido") {
         progress_pct = 100;
-      } else if (r.status === "em_andamento") {
+      } else if (status === "em_andamento") {
         progress_pct = 50;
+      } else {
+        progress_pct = 0;
       }
 
       const custom_pillar = r.custom_pillar || meta?.custom_pillar || null;
       const rawDemand = (r.demand_type || "processo").toLowerCase();
       const demand_type = custom_pillar ? custom_pillar.toLowerCase() : rawDemand;
 
+      const gravity = Number(r.gravity ?? meta?.gravity ?? 3);
+      const urgency = Number(r.urgency ?? meta?.urgency ?? 3);
+      const trend = Number(r.trend ?? meta?.trend ?? 3);
+      const gut_score = Number(r.gut_score ?? gravity * urgency * trend);
+
       return {
         id: r.id,
         company_id: r.company_id,
         title: r.title,
         description: r.description || null,
+        problem: r.problem ?? meta?.problem ?? null,
+        cause: r.cause ?? meta?.cause ?? null,
+        expected_result: r.expected_result ?? meta?.expected_result ?? null,
         responsible: r.responsible || null,
-        status: (r.status as any) || "aberto",
+        sector: r.sector ?? meta?.sector ?? null,
+        origin: r.origin ?? meta?.origin ?? null,
+        status,
         demand_type,
         due_date: r.due_date || r.new_due_date || null,
         observations: cleanObservations(r.observations),
@@ -154,10 +189,10 @@ export const getMapaData = createServerFn({ method: "GET" })
         progress_pct,
         order_index: r.order_index ?? 0,
         custom_pillar,
-        gravity: r.gravity ?? 3,
-        urgency: r.urgency ?? 3,
-        trend: r.trend ?? 3,
-        gut_score: r.gut_score ?? (r.gravity ?? 3) * (r.urgency ?? 3) * (r.trend ?? 3),
+        gravity,
+        urgency,
+        trend,
+        gut_score,
         created_at: r.created_at,
         updated_at: r.updated_at,
       };
@@ -165,21 +200,81 @@ export const getMapaData = createServerFn({ method: "GET" })
 
     // Detect distinct pillars
     const standardKeys = new Set(["pessoas", "processo", "negocio"]);
-    const foundKeys = new Set(items.map((i) => i.demand_type.toLowerCase()));
+    const foundKeys = new Set(rawItems.map((i) => i.demand_type.toLowerCase()));
     
+    // First, build hierarchical tree by pillar to compute derived progress and status for diretrizes
+    const treeByPillar: Record<string, MapaItem[]> = {};
+    const processedItems: MapaItem[] = [];
+
+    const allPillarKeys = Array.from(new Set([...standardKeys, ...foundKeys]));
+
+    for (const pKey of allPillarKeys) {
+      const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === pKey);
+      const rootItems = pItems.filter((i) => !i.parent_id);
+
+      const builtRoots: MapaItem[] = rootItems.map((root) => {
+        const children = pItems.filter((c) => c.parent_id === root.id);
+
+        let dirProgress = root.progress_pct;
+        let dirStatus = root.status;
+
+        // Regra 1: O percentual de avanço de uma diretriz deve ser igual à média de avanço das ações de desdobramento
+        if (children.length > 0) {
+          const activeChildren = children.filter((c) => c.status !== "nao_sera_feito");
+          if (activeChildren.length > 0) {
+            dirProgress = Math.round(
+              activeChildren.reduce((acc, c) => acc + (c.progress_pct || 0), 0) / activeChildren.length,
+            );
+            if (activeChildren.every((c) => c.status === "concluido")) {
+              dirStatus = "concluido";
+            } else if (activeChildren.some((c) => c.status === "em_andamento" || (c.progress_pct || 0) > 0)) {
+              dirStatus = "em_andamento";
+            } else {
+              dirStatus = "aberto";
+            }
+          } else {
+            dirProgress = 0;
+            dirStatus = "nao_sera_feito";
+          }
+        }
+
+        const updatedRoot: MapaItem = {
+          ...root,
+          progress_pct: dirProgress,
+          status: dirStatus,
+          children,
+        };
+
+        processedItems.push(updatedRoot, ...children);
+        return updatedRoot;
+      });
+
+      // Capture any orphan children
+      const rootIds = new Set(rootItems.map((r) => r.id));
+      const orphans = pItems.filter((i) => i.parent_id && !rootIds.has(i.parent_id));
+      processedItems.push(...orphans);
+
+      treeByPillar[pKey] = [...builtRoots, ...orphans];
+    }
+
     // Build pillars list with metrics
+    // Regra 2: No dashboard deve ter a contagem APENAS de desdobramentos, não pode considerar diretrizes
     const pillars: PillarMeta[] = [];
 
-    // 1. Standard pillars always available
     for (const def of DEFAULT_PILLARS) {
-      const pItems = items.filter((i) => i.demand_type.toLowerCase() === def.key);
-      const total = pItems.length;
-      const concluidas = pItems.filter((i) => i.status === "concluido").length;
-      const em_andamento = pItems.filter((i) => i.status === "em_andamento").length;
-      const a_iniciar = pItems.filter((i) => i.status === "aberto").length;
-      
-      const sumProgress = pItems.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
-      const progress_pct = total > 0 ? Math.round(sumProgress / total) : 0;
+      const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === def.key);
+      const pRoots = pItems.filter((i) => !i.parent_id);
+      const pDesdobramentos = pItems.filter((i) => !!i.parent_id || i.item_type === "desdobramento" || i.item_type === "acao");
+
+      const total = pDesdobramentos.length;
+      const concluidas = pDesdobramentos.filter((i) => i.status === "concluido").length;
+      const em_andamento = pDesdobramentos.filter((i) => i.status === "em_andamento").length;
+      const a_iniciar = pDesdobramentos.filter((i) => i.status === "aberto").length;
+      const nao_sera_feito = pDesdobramentos.filter((i) => i.status === "nao_sera_feito").length;
+
+      const activeDesdobramentos = pDesdobramentos.filter((i) => i.status !== "nao_sera_feito");
+      const sumProgress = activeDesdobramentos.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
+      const progress_pct = activeDesdobramentos.length > 0 ? Math.round(sumProgress / activeDesdobramentos.length) : 0;
 
       pillars.push({
         ...def,
@@ -187,20 +282,29 @@ export const getMapaData = createServerFn({ method: "GET" })
         concluidas,
         em_andamento,
         a_iniciar,
+        nao_sera_feito,
         progress_pct,
+        total_diretrizes: pRoots.length,
+        total_desdobramentos: pDesdobramentos.length,
       });
     }
 
-    // 2. Custom pillars found in items
+    // Custom pillars found in items
     for (const key of foundKeys) {
       if (!standardKeys.has(key)) {
-        const pItems = items.filter((i) => i.demand_type.toLowerCase() === key);
-        const total = pItems.length;
-        const concluidas = pItems.filter((i) => i.status === "concluido").length;
-        const em_andamento = pItems.filter((i) => i.status === "em_andamento").length;
-        const a_iniciar = pItems.filter((i) => i.status === "aberto").length;
-        const sumProgress = pItems.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
-        const progress_pct = total > 0 ? Math.round(sumProgress / total) : 0;
+        const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === key);
+        const pRoots = pItems.filter((i) => !i.parent_id);
+        const pDesdobramentos = pItems.filter((i) => !!i.parent_id || i.item_type === "desdobramento" || i.item_type === "acao");
+
+        const total = pDesdobramentos.length;
+        const concluidas = pDesdobramentos.filter((i) => i.status === "concluido").length;
+        const em_andamento = pDesdobramentos.filter((i) => i.status === "em_andamento").length;
+        const a_iniciar = pDesdobramentos.filter((i) => i.status === "aberto").length;
+        const nao_sera_feito = pDesdobramentos.filter((i) => i.status === "nao_sera_feito").length;
+
+        const activeDesdobramentos = pDesdobramentos.filter((i) => i.status !== "nao_sera_feito");
+        const sumProgress = activeDesdobramentos.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
+        const progress_pct = activeDesdobramentos.length > 0 ? Math.round(sumProgress / activeDesdobramentos.length) : 0;
 
         pillars.push({
           key,
@@ -215,37 +319,17 @@ export const getMapaData = createServerFn({ method: "GET" })
           concluidas,
           em_andamento,
           a_iniciar,
+          nao_sera_feito,
           progress_pct,
+          total_diretrizes: pRoots.length,
+          total_desdobramentos: pDesdobramentos.length,
         });
       }
     }
 
-    // Build hierarchical tree by pillar
-    // Root level: items with parent_id === null or item_type === 'diretriz'
-    const treeByPillar: Record<string, MapaItem[]> = {};
-
-    for (const p of pillars) {
-      const pItems = items.filter((i) => i.demand_type.toLowerCase() === p.key);
-      const rootItems = pItems.filter((i) => !i.parent_id);
-      
-      const builtRoots = rootItems.map((root) => {
-        const children = pItems.filter((c) => c.parent_id === root.id);
-        return {
-          ...root,
-          children,
-        };
-      });
-
-      // Also capture any orphan children whose parent is not found in rootItems
-      const rootIds = new Set(rootItems.map((r) => r.id));
-      const orphans = pItems.filter((i) => i.parent_id && !rootIds.has(i.parent_id));
-      
-      treeByPillar[p.key] = [...builtRoots, ...orphans];
-    }
-
     return {
       pillars,
-      items,
+      items: rawItems,
       treeByPillar,
     };
   });
@@ -259,8 +343,13 @@ export const saveMapaItem = createServerFn({ method: "POST" })
         company_id: z.string().uuid(),
         title: z.string().min(1, "O título é obrigatório"),
         description: z.string().optional().nullable(),
+        problem: z.string().optional().nullable(),
+        cause: z.string().optional().nullable(),
+        expected_result: z.string().optional().nullable(),
         responsible: z.string().optional().nullable(),
-        status: z.enum(["aberto", "em_andamento", "concluido"]).default("aberto"),
+        sector: z.string().optional().nullable(),
+        origin: z.string().optional().nullable(),
+        status: z.enum(["aberto", "em_andamento", "concluido", "nao_sera_feito"]).default("aberto"),
         demand_type: z.string().min(1).default("processo"),
         parent_id: z.string().uuid().optional().nullable(),
         item_type: z.enum(["diretriz", "acao", "desdobramento"]).default("diretriz"),
@@ -269,6 +358,9 @@ export const saveMapaItem = createServerFn({ method: "POST" })
         observations: z.string().optional().nullable(),
         custom_pillar: z.string().optional().nullable(),
         order_index: z.number().int().optional().default(0),
+        gravity: z.number().int().min(1).max(5).optional().default(3),
+        urgency: z.number().int().min(1).max(5).optional().default(3),
+        trend: z.number().int().min(1).max(5).optional().default(3),
       })
       .parse(d),
   )
@@ -281,10 +373,12 @@ export const saveMapaItem = createServerFn({ method: "POST" })
 
     if (adjustedStatus === "concluido" && adjustedProgress < 100) {
       adjustedProgress = 100;
-    } else if (adjustedProgress === 100 && adjustedStatus !== "concluido") {
+    } else if (adjustedProgress === 100 && adjustedStatus !== "concluido" && adjustedStatus !== "nao_sera_feito") {
       adjustedStatus = "concluido";
     } else if (adjustedProgress > 0 && adjustedProgress < 100 && adjustedStatus === "aberto") {
       adjustedStatus = "em_andamento";
+    } else if (adjustedStatus === "nao_sera_feito") {
+      adjustedProgress = 0;
     }
 
     const cleanObs = cleanObservations(data.observations);
@@ -293,22 +387,47 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       item_type: data.item_type,
       progress_pct: adjustedProgress,
       custom_pillar: data.custom_pillar || null,
+      status: adjustedStatus,
+      sector: data.sector || null,
+      origin: data.origin || null,
+      problem: data.problem || null,
+      cause: data.cause || null,
+      expected_result: data.expected_result || null,
+      gravity: data.gravity,
+      urgency: data.urgency,
+      trend: data.trend,
     });
     const finalObservations = [cleanObs, metaTag].filter(Boolean).join(" ");
 
     // Standard demand_type mapping for compatibility with planos-acao
     let standardDemand = data.demand_type.toLowerCase();
     if (!["pessoas", "processo", "negocio"].includes(standardDemand)) {
-      // It's a custom pillar, default to processo in demand_type and record custom_pillar
       standardDemand = "processo";
     }
+
+    const gutScore = (data.gravity ?? 3) * (data.urgency ?? 3) * (data.trend ?? 3);
+    const priority =
+      gutScore >= 75 ? "critica" : gutScore >= 40 ? "alta" : gutScore >= 15 ? "media" : "baixa";
+
+    // Safe DB status: if enum does not accept nao_sera_feito yet, use aberto in column and store in meta
+    const dbStatus = adjustedStatus === "nao_sera_feito" ? "aberto" : adjustedStatus;
 
     const basePayload: any = {
       company_id: data.company_id,
       title: data.title,
       description: data.description || "",
+      problem: data.problem || null,
+      cause: data.cause || null,
+      expected_result: data.expected_result || null,
       responsible: data.responsible || "",
-      status: adjustedStatus,
+      sector: data.sector || null,
+      origin: data.origin || null,
+      status: dbStatus,
+      priority,
+      gravity: data.gravity ?? 3,
+      urgency: data.urgency ?? 3,
+      trend: data.trend ?? 3,
+      gut_score: gutScore,
       demand_type: standardDemand,
       due_date: data.due_date || null,
       observations: finalObservations,
@@ -323,40 +442,66 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       custom_pillar: data.custom_pillar || null,
     };
 
+    // Try with actual status first (in case enum was migrated)
+    const tryExtendedWithActualStatus = {
+      ...extendedPayload,
+      status: adjustedStatus,
+    };
+
     if (data.id) {
-      // Try update with extended columns
-      let { data: row, error } = await (sb.from("action_plans") as any)
-        .update(extendedPayload)
+      // 1. Try update with actual status and extended payload
+      let res = await (sb.from("action_plans") as any)
+        .update(tryExtendedWithActualStatus)
         .eq("id", data.id)
         .select()
         .maybeSingle();
 
+      // If failed due to enum value nao_sera_feito, retry with dbStatus
+      if (res.error && res.error.message?.includes("action_status")) {
+        res = await (sb.from("action_plans") as any)
+          .update(extendedPayload)
+          .eq("id", data.id)
+          .select()
+          .maybeSingle();
+      }
+
       // If schema error because columns don't exist yet, fallback to basePayload
-      if (error && (error.message?.includes("column") || error.code === "PGRST204")) {
+      if (res.error && (res.error.message?.includes("column") || res.error.code === "PGRST204")) {
         const fallbackRes = await (sb.from("action_plans") as any)
           .update(basePayload)
           .eq("id", data.id)
           .select()
           .single();
         if (fallbackRes.error) throw new Error(fallbackRes.error.message);
-        row = fallbackRes.data;
-      } else if (error) {
-        throw new Error(error.message);
+        return fallbackRes.data;
+      } else if (res.error) {
+        throw new Error(res.error.message);
       }
 
-      return row;
+      return res.data;
     } else {
       // Insert new
-      let { data: row, error } = await (sb.from("action_plans") as any)
+      let res = await (sb.from("action_plans") as any)
         .insert({
-          ...extendedPayload,
+          ...tryExtendedWithActualStatus,
           created_by: context.userId,
         })
         .select()
         .maybeSingle();
 
+      // If failed due to enum value nao_sera_feito, retry with dbStatus
+      if (res.error && res.error.message?.includes("action_status")) {
+        res = await (sb.from("action_plans") as any)
+          .insert({
+            ...extendedPayload,
+            created_by: context.userId,
+          })
+          .select()
+          .maybeSingle();
+      }
+
       // If schema error because columns don't exist yet, fallback to basePayload
-      if (error && (error.message?.includes("column") || error.code === "PGRST204")) {
+      if (res.error && (res.error.message?.includes("column") || res.error.code === "PGRST204")) {
         const fallbackRes = await (sb.from("action_plans") as any)
           .insert({
             ...basePayload,
@@ -365,12 +510,12 @@ export const saveMapaItem = createServerFn({ method: "POST" })
           .select()
           .single();
         if (fallbackRes.error) throw new Error(fallbackRes.error.message);
-        row = fallbackRes.data;
-      } else if (error) {
-        throw new Error(error.message);
+        return fallbackRes.data;
+      } else if (res.error) {
+        throw new Error(res.error.message);
       }
 
-      return row;
+      return res.data;
     }
   });
 
