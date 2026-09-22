@@ -286,9 +286,12 @@ function MapaPage() {
   function handleOpenNewDiretriz(pillarKey?: string) {
     setItemModalMode("diretriz");
     setParentItemForSub(null);
+    const standardKeys = ["pessoas", "processo", "negocio"];
+    const isCustom = pillarKey && !standardKeys.includes(pillarKey.toLowerCase());
     setItemForm({
       ...INITIAL_FORM,
       demand_type: pillarKey || "processo",
+      custom_pillar: isCustom ? pillarKey.toUpperCase() : "",
       item_type: "diretriz",
     });
     setItemModalOpen(true);
@@ -297,12 +300,14 @@ function MapaPage() {
   function handleOpenNewSubAction(parent: MapaItem) {
     setItemModalMode("desdobramento");
     setParentItemForSub(parent);
+    const standardKeys = ["pessoas", "processo", "negocio"];
+    const isCustom = parent.demand_type && !standardKeys.includes(parent.demand_type.toLowerCase());
     setItemForm({
       ...INITIAL_FORM,
       demand_type: parent.demand_type,
       parent_id: parent.id,
       item_type: "desdobramento",
-      custom_pillar: parent.custom_pillar || "",
+      custom_pillar: parent.custom_pillar || (isCustom ? parent.demand_type.toUpperCase() : ""),
       sector: parent.sector || "",
       responsible: parent.responsible || "",
     });
@@ -312,6 +317,8 @@ function MapaPage() {
   function handleOpenEdit(item: MapaItem) {
     setItemModalMode("edit");
     setParentItemForSub(null);
+    const standardKeys = ["pessoas", "processo", "negocio"];
+    const isCustom = item.demand_type && !standardKeys.includes(item.demand_type.toLowerCase());
     setItemForm({
       id: item.id,
       title: item.title,
@@ -328,7 +335,7 @@ function MapaPage() {
       progress_pct: item.progress_pct,
       due_date: item.due_date || "",
       observations: item.observations || "",
-      custom_pillar: item.custom_pillar || "",
+      custom_pillar: item.custom_pillar || (isCustom ? item.demand_type.toUpperCase() : ""),
       gravity: item.gravity ?? 3,
       urgency: item.urgency ?? 3,
       trend: item.trend ?? 3,
@@ -447,6 +454,16 @@ function MapaPage() {
 
     return filtered;
   }, [mapaData, searchQuery, statusFilter]);
+
+  const totalAcoes = useMemo(() => {
+    if (!mapaData?.items) return 0;
+    return mapaData.items.filter((i) => i.item_type !== "diretriz").length;
+  }, [mapaData]);
+
+  const totalDiretrizes = useMemo(() => {
+    if (!mapaData?.items) return 0;
+    return mapaData.items.filter((i) => i.item_type === "diretriz").length;
+  }, [mapaData]);
 
   const currentCompany = companies.find((c: any) => c.id === companyId);
 
@@ -568,7 +585,8 @@ function MapaPage() {
                 <Layers className="h-4 w-4 text-primary" /> Pilares Estratégicos — {currentCompany?.name}
               </h2>
               <span className="text-xs text-muted-foreground">
-                {mapaData?.items.length ?? 0} ações registradas
+                {totalAcoes} {totalAcoes === 1 ? "ação de desdobramento" : "ações de desdobramento"}
+                {totalDiretrizes > 0 && ` em ${totalDiretrizes} ${totalDiretrizes === 1 ? "diretriz" : "diretrizes"}`}
               </span>
             </div>
 
@@ -1083,7 +1101,15 @@ function MapaPage() {
               <Label className="text-xs font-semibold">Pilar Estratégico</Label>
               <Select
                 value={itemForm.demand_type}
-                onValueChange={(val) => setItemForm({ ...itemForm, demand_type: val })}
+                onValueChange={(val) => {
+                  const standardKeys = ["pessoas", "processo", "negocio"];
+                  const isCustom = val && !standardKeys.includes(val.toLowerCase());
+                  setItemForm({
+                    ...itemForm,
+                    demand_type: val,
+                    custom_pillar: isCustom ? val.toUpperCase() : "",
+                  });
+                }}
               >
                 <SelectTrigger className="text-xs h-9">
                   <SelectValue placeholder="Selecione o pilar" />
@@ -1184,20 +1210,30 @@ function MapaPage() {
               </div>
             </div>
 
-            {/* Tipo de Demanda */}
+            {/* Pilar / Tipo de Demanda */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Tipo de Demanda</Label>
+              <Label className="text-xs font-semibold">Pilar Estratégico</Label>
               <Select
                 value={itemForm.demand_type}
-                onValueChange={(val) => setItemForm({ ...itemForm, demand_type: val })}
+                onValueChange={(val) => {
+                  const standardKeys = ["pessoas", "processo", "negocio"];
+                  const isCustom = val && !standardKeys.includes(val.toLowerCase());
+                  setItemForm({
+                    ...itemForm,
+                    demand_type: val,
+                    custom_pillar: isCustom ? val.toUpperCase() : "",
+                  });
+                }}
               >
                 <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Selecione o pilar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pessoas" className="text-xs">Pessoas</SelectItem>
-                  <SelectItem value="processo" className="text-xs">Processos</SelectItem>
-                  <SelectItem value="negocio" className="text-xs">Negócios</SelectItem>
+                  {filteredPillars.map((p) => (
+                    <SelectItem key={p.key} value={p.key} className="text-xs">
+                      {p.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

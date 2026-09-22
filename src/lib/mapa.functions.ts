@@ -160,8 +160,10 @@ export const getMapaData = createServerFn({ method: "GET" })
         progress_pct = 0;
       }
 
-      const custom_pillar = r.custom_pillar || meta?.custom_pillar || null;
       const rawDemand = (r.demand_type || "processo").toLowerCase();
+      const standardKeysList = ["pessoas", "processo", "negocio"];
+      const inferredCustom = !standardKeysList.includes(rawDemand) ? (r.demand_type || "").toUpperCase() : null;
+      const custom_pillar = r.custom_pillar || meta?.custom_pillar || inferredCustom || null;
       const demand_type = custom_pillar ? custom_pillar.toLowerCase() : rawDemand;
 
       const gravity = Number(r.gravity ?? meta?.gravity ?? 3);
@@ -258,26 +260,25 @@ export const getMapaData = createServerFn({ method: "GET" })
     }
 
     // Build pillars list with metrics
-    // Regra 2: No dashboard deve ter a contagem APENAS de desdobramentos, não pode considerar diretrizes
-    const pillars: PillarMeta[] = [];
-
-    for (const def of DEFAULT_PILLARS) {
-      const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === def.key);
+    // Regra: Contagem de status no dashboard considera APENAS ações (desdobramentos), nunca diretrizes.
+    // Aplica-se rigorosamente tanto aos pilares padrão quanto a novos pilares criados.
+    function buildPillarMeta(key: string, basePillar: any, pItems: MapaItem[]): PillarMeta {
       const pRoots = pItems.filter((i) => !i.parent_id);
-      const pDesdobramentos = pItems.filter((i) => !!i.parent_id || i.item_type === "desdobramento" || i.item_type === "acao");
+      // Ações = itens com item_type !== "diretriz"
+      const pAcoes = pItems.filter((i) => i.item_type !== "diretriz");
 
-      const total = pDesdobramentos.length;
-      const concluidas = pDesdobramentos.filter((i) => i.status === "concluido").length;
-      const em_andamento = pDesdobramentos.filter((i) => i.status === "em_andamento").length;
-      const a_iniciar = pDesdobramentos.filter((i) => i.status === "aberto").length;
-      const nao_sera_feito = pDesdobramentos.filter((i) => i.status === "nao_sera_feito").length;
+      const total = pAcoes.length;
+      const concluidas = pAcoes.filter((i) => i.status === "concluido").length;
+      const em_andamento = pAcoes.filter((i) => i.status === "em_andamento").length;
+      const a_iniciar = pAcoes.filter((i) => i.status === "aberto").length;
+      const nao_sera_feito = pAcoes.filter((i) => i.status === "nao_sera_feito").length;
 
-      const activeDesdobramentos = pDesdobramentos.filter((i) => i.status !== "nao_sera_feito");
-      const sumProgress = activeDesdobramentos.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
-      const progress_pct = activeDesdobramentos.length > 0 ? Math.round(sumProgress / activeDesdobramentos.length) : 0;
+      const activeAcoes = pAcoes.filter((i) => i.status !== "nao_sera_feito");
+      const sumProgress = activeAcoes.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
+      const progress_pct = activeAcoes.length > 0 ? Math.round(sumProgress / activeAcoes.length) : 0;
 
-      pillars.push({
-        ...def,
+      return {
+        ...basePillar,
         total,
         concluidas,
         em_andamento,
@@ -285,45 +286,38 @@ export const getMapaData = createServerFn({ method: "GET" })
         nao_sera_feito,
         progress_pct,
         total_diretrizes: pRoots.length,
-        total_desdobramentos: pDesdobramentos.length,
-      });
+        total_desdobramentos: pAcoes.length,
+      };
+    }
+
+    const pillars: PillarMeta[] = [];
+
+    for (const def of DEFAULT_PILLARS) {
+      const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === def.key);
+      pillars.push(buildPillarMeta(def.key, def, pItems));
     }
 
     // Custom pillars found in items
     for (const key of foundKeys) {
       if (!standardKeys.has(key)) {
         const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === key);
-        const pRoots = pItems.filter((i) => !i.parent_id);
-        const pDesdobramentos = pItems.filter((i) => !!i.parent_id || i.item_type === "desdobramento" || i.item_type === "acao");
-
-        const total = pDesdobramentos.length;
-        const concluidas = pDesdobramentos.filter((i) => i.status === "concluido").length;
-        const em_andamento = pDesdobramentos.filter((i) => i.status === "em_andamento").length;
-        const a_iniciar = pDesdobramentos.filter((i) => i.status === "aberto").length;
-        const nao_sera_feito = pDesdobramentos.filter((i) => i.status === "nao_sera_feito").length;
-
-        const activeDesdobramentos = pDesdobramentos.filter((i) => i.status !== "nao_sera_feito");
-        const sumProgress = activeDesdobramentos.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
-        const progress_pct = activeDesdobramentos.length > 0 ? Math.round(sumProgress / activeDesdobramentos.length) : 0;
-
-        pillars.push({
-          key,
-          name: key.toUpperCase(),
-          description: `Pilar customizado: ${key.toUpperCase()}`,
-          gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
-          accent: "text-amber-600 dark:text-amber-400",
-          border: "border-amber-300/60 dark:border-amber-700/50",
-          badge: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-          progressColor: "bg-amber-600 dark:bg-amber-500",
-          total,
-          concluidas,
-          em_andamento,
-          a_iniciar,
-          nao_sera_feito,
-          progress_pct,
-          total_diretrizes: pRoots.length,
-          total_desdobramentos: pDesdobramentos.length,
-        });
+        const pillarName = pItems.find((i) => i.custom_pillar)?.custom_pillar || key.toUpperCase();
+        pillars.push(
+          buildPillarMeta(
+            key,
+            {
+              key,
+              name: pillarName,
+              description: `Pilar customizado: ${pillarName}`,
+              gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
+              accent: "text-amber-600 dark:text-amber-400",
+              border: "border-amber-300/60 dark:border-amber-700/50",
+              badge: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+              progressColor: "bg-amber-600 dark:bg-amber-500",
+            },
+            pItems,
+          ),
+        );
       }
     }
 
@@ -382,11 +376,20 @@ export const saveMapaItem = createServerFn({ method: "POST" })
     }
 
     const cleanObs = cleanObservations(data.observations);
+    // Standard demand_type mapping for compatibility with planos-acao
+    let standardDemand = data.demand_type.toLowerCase();
+    const isCustomPillar = !["pessoas", "processo", "negocio"].includes(standardDemand) || !!data.custom_pillar;
+    const resolvedCustomPillar = data.custom_pillar?.trim() || (isCustomPillar ? data.demand_type.toUpperCase() : null);
+
+    if (!["pessoas", "processo", "negocio"].includes(standardDemand)) {
+      standardDemand = "processo";
+    }
+
     const metaTag = buildMetaTag({
       parent_id: data.parent_id,
       item_type: data.item_type,
       progress_pct: adjustedProgress,
-      custom_pillar: data.custom_pillar || null,
+      custom_pillar: resolvedCustomPillar,
       status: adjustedStatus,
       sector: data.sector || null,
       origin: data.origin || null,
@@ -398,12 +401,6 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       trend: data.trend,
     });
     const finalObservations = [cleanObs, metaTag].filter(Boolean).join(" ");
-
-    // Standard demand_type mapping for compatibility with planos-acao
-    let standardDemand = data.demand_type.toLowerCase();
-    if (!["pessoas", "processo", "negocio"].includes(standardDemand)) {
-      standardDemand = "processo";
-    }
 
     // gut_score is a GENERATED ALWAYS column in DB — never insert/update it directly
     const gutScore = (data.gravity ?? 3) * (data.urgency ?? 3) * (data.trend ?? 3);
@@ -448,7 +445,7 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       item_type: data.item_type,
       progress_pct: adjustedProgress,
       order_index: data.order_index ?? 0,
-      custom_pillar: data.custom_pillar || null,
+      custom_pillar: resolvedCustomPillar,
     };
 
     // Try with actual status first (in case enum was migrated)
