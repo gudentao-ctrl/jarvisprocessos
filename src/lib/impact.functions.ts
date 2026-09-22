@@ -63,6 +63,20 @@ export const getImpactNetwork = createServerFn({ method: "GET" })
     };
   });
 
+export const getActionPlanLinkOptions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ company_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requireCompanyPermission(context.supabase, context.userId, data.company_id, "gestao");
+    const [sectors, causes, indicators] = await Promise.all([
+      context.supabase.from("sectors").select("id, name").eq("company_id", data.company_id).order("name"),
+      context.supabase.from("root_cause_analyses").select("id, problem").eq("company_id", data.company_id).order("created_at", { ascending: false }),
+      context.supabase.from("indicators").select("id, name, code").eq("company_id", data.company_id).order("name"),
+    ]);
+    for (const result of [sectors, causes, indicators]) if (result.error) throw new Error(result.error.message);
+    return { sectors: sectors.data ?? [], causes: causes.data ?? [], indicators: indicators.data ?? [] };
+  });
+
 export const getMonthlyExecutiveData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ company_id: z.string().uuid(), month: z.string().regex(/^\d{4}-\d{2}$/) }).parse(input))
