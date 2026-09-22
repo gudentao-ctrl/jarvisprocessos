@@ -405,6 +405,7 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       standardDemand = "processo";
     }
 
+    // gut_score is a GENERATED ALWAYS column in DB — never insert/update it directly
     const gutScore = (data.gravity ?? 3) * (data.urgency ?? 3) * (data.trend ?? 3);
     const priority =
       gutScore >= 75 ? "critica" : gutScore >= 40 ? "alta" : gutScore >= 15 ? "media" : "baixa";
@@ -412,25 +413,33 @@ export const saveMapaItem = createServerFn({ method: "POST" })
     // Safe DB status: if enum does not accept nao_sera_feito yet, use aberto in column and store in meta
     const dbStatus = adjustedStatus === "nao_sera_feito" ? "aberto" : adjustedStatus;
 
+    const isDiretriz = data.item_type === "diretriz";
+
+    // Diretriz: only structural/labeling fields — no GUT, no action fields
+    // Desdobramento/acao: all action fields included
     const basePayload: any = {
       company_id: data.company_id,
       title: data.title,
       description: data.description || "",
-      problem: data.problem || null,
-      cause: data.cause || null,
-      expected_result: data.expected_result || null,
-      responsible: data.responsible || "",
-      sector: data.sector || null,
-      origin: data.origin || null,
+      responsible: isDiretriz ? (data.responsible || "") : (data.responsible || ""),
       status: dbStatus,
-      priority,
-      gravity: data.gravity ?? 3,
-      urgency: data.urgency ?? 3,
-      trend: data.trend ?? 3,
-      gut_score: gutScore,
       demand_type: standardDemand,
-      due_date: data.due_date || null,
       observations: finalObservations,
+      // Action-specific fields only for non-diretriz
+      ...(isDiretriz
+        ? {}
+        : {
+            problem: data.problem || null,
+            cause: data.cause || null,
+            expected_result: data.expected_result || null,
+            sector: data.sector || null,
+            origin: data.origin || null,
+            priority,
+            gravity: data.gravity ?? 3,
+            urgency: data.urgency ?? 3,
+            trend: data.trend ?? 3,
+            due_date: data.due_date || null,
+          }),
     };
 
     const extendedPayload = {

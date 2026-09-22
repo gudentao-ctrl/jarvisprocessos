@@ -1049,90 +1049,134 @@ function MapaPage() {
         </>
       )}
 
-      {/* 4. MODAIS DE CRUD */}
-
-      {/* Modal de Item (Diretriz ou Desdobramento) */}
-      <Dialog open={itemModalOpen} onOpenChange={setItemModalOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      {/* Modal de Diretriz (simplificado) */}
+      <Dialog
+        open={itemModalOpen && (itemModalMode === "diretriz" || (itemModalMode === "edit" && itemForm.item_type === "diretriz"))}
+        onOpenChange={setItemModalOpen}
+      >
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              {itemModalMode === "diretriz" && <Plus className="h-4 w-4 text-primary" />}
-              {itemModalMode === "desdobramento" && <CornerDownRight className="h-4 w-4 text-primary" />}
-              {itemModalMode === "edit" && <Pencil className="h-4 w-4 text-primary" />}
-              {itemModalMode === "diretriz" && "Nova Diretriz Estratégica"}
-              {itemModalMode === "desdobramento" && `Novo Desdobramento (${parentItemForSub?.title})`}
-              {itemModalMode === "edit" && (itemForm.item_type === "diretriz" ? "Editar Diretriz" : "Editar Desdobramento")}
+              {itemModalMode === "diretriz" ? (
+                <Plus className="h-4 w-4 text-primary" />
+              ) : (
+                <Pencil className="h-4 w-4 text-primary" />
+              )}
+              {itemModalMode === "diretriz" ? "Nova Diretriz Estratégica" : "Editar Diretriz"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3.5 py-1">
             {/* Título */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">
-                {itemForm.item_type === "diretriz" ? "Título da Diretriz (Ação Mãe)" : "Título da Ação / Desdobramento"} *
-              </Label>
+              <Label className="text-xs font-semibold">Título da Diretriz (Ação Mãe) *</Label>
               <Input
-                placeholder={itemForm.item_type === "diretriz" ? "Ex: Fortalecer a governança institucional e comitês de gestão" : "Ex: Implementar reunião semanal de alinhamento com ata"}
+                placeholder="Ex: Fortalecer a governança institucional e comitês de gestão"
                 value={itemForm.title}
                 onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
                 className="text-sm"
               />
             </div>
 
-            {/* Pilar & Tipo na Hierarquia */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Pilar Estratégico</Label>
-                <Select
-                  value={itemForm.demand_type}
-                  onValueChange={(val) => setItemForm({ ...itemForm, demand_type: val })}
-                >
-                  <SelectTrigger className="text-xs h-9">
-                    <SelectValue placeholder="Selecione o pilar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredPillars.map((p) => (
-                      <SelectItem key={p.key} value={p.key} className="text-xs">
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Tipo na Hierarquia</Label>
-                <Select
-                  value={itemForm.item_type}
-                  onValueChange={(val: any) => setItemForm({ ...itemForm, item_type: val })}
-                >
-                  <SelectTrigger className="text-xs h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="diretriz" className="text-xs">Diretriz (Nível 2 - Mãe)</SelectItem>
-                    <SelectItem value="desdobramento" className="text-xs">Desdobramento (Nível 3 - Ação)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Pilar Estratégico */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Pilar Estratégico</Label>
+              <Select
+                value={itemForm.demand_type}
+                onValueChange={(val) => setItemForm({ ...itemForm, demand_type: val })}
+              >
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Selecione o pilar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredPillars.map((p) => (
+                    <SelectItem key={p.key} value={p.key} className="text-xs">
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Origem & Setor Responsável */}
+            {/* Descrição Breve */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Descrição Breve</Label>
+              <Textarea
+                rows={3}
+                placeholder="Descreva brevemente o objetivo desta diretriz..."
+                value={itemForm.observations}
+                onChange={(e) => setItemForm({ ...itemForm, observations: e.target.value })}
+                className="text-xs resize-none"
+              />
+            </div>
+
+            <p className="text-[10px] text-muted-foreground italic">
+              A diretriz é classificada automaticamente como Nível 2 (Mãe). Os desdobramentos (ações executáveis) serão adicionados dentro dela.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+            <Button type="button" variant="outline" size="sm" onClick={() => setItemModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveItem}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? "Salvando..." : "Salvar Diretriz"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Desdobramento (completo = igual Plano de Ação) */}
+      <Dialog
+        open={itemModalOpen && (itemModalMode === "desdobramento" || (itemModalMode === "edit" && itemForm.item_type !== "diretriz"))}
+        onOpenChange={setItemModalOpen}
+      >
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              {itemModalMode === "desdobramento" ? (
+                <CornerDownRight className="h-4 w-4 text-primary" />
+              ) : (
+                <Pencil className="h-4 w-4 text-primary" />
+              )}
+              {itemModalMode === "desdobramento"
+                ? `Novo Desdobramento${parentItemForSub ? ` · ${parentItemForSub.title}` : ""}`
+                : "Editar Desdobramento"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-1">
+            {/* Título da Ação */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Ação / Desdobramento *</Label>
+              <Input
+                placeholder="Ex: Implementar reunião semanal de alinhamento com ata"
+                value={itemForm.title}
+                onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
+                className="text-sm"
+              />
+            </div>
+
+            {/* Origem & Setor */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Origem</Label>
                 <Input
-                  placeholder="Ex: Entrevista, cronoanálise, consultoria..."
+                  placeholder="Ex: Entrevista, cronoanálise..."
                   value={itemForm.origin}
                   onChange={(e) => setItemForm({ ...itemForm, origin: e.target.value })}
                   className="text-xs h-9"
                 />
               </div>
-
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Setor Responsável</Label>
                 <Input
-                  placeholder="Ex: Comercial, Operações, RH, Financeiro..."
+                  placeholder="Ex: Comercial, Operações, RH..."
                   value={itemForm.sector}
                   onChange={(e) => setItemForm({ ...itemForm, sector: e.target.value })}
                   className="text-xs h-9"
@@ -1140,27 +1184,22 @@ function MapaPage() {
               </div>
             </div>
 
-            {/* Responsável & Prazo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Responsável pela Execução</Label>
-                <Input
-                  placeholder="Nome do responsável"
-                  value={itemForm.responsible}
-                  onChange={(e) => setItemForm({ ...itemForm, responsible: e.target.value })}
-                  className="text-xs h-9"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Prazo de Conclusão</Label>
-                <Input
-                  type="date"
-                  value={itemForm.due_date}
-                  onChange={(e) => setItemForm({ ...itemForm, due_date: e.target.value })}
-                  className="text-xs h-9"
-                />
-              </div>
+            {/* Tipo de Demanda */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Tipo de Demanda</Label>
+              <Select
+                value={itemForm.demand_type}
+                onValueChange={(val) => setItemForm({ ...itemForm, demand_type: val })}
+              >
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pessoas" className="text-xs">Pessoas</SelectItem>
+                  <SelectItem value="processo" className="text-xs">Processos</SelectItem>
+                  <SelectItem value="negocio" className="text-xs">Negócios</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Problema & Causa */}
@@ -1175,7 +1214,6 @@ function MapaPage() {
                   className="text-xs resize-none"
                 />
               </div>
-
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Causa Raiz</Label>
                 <Textarea
@@ -1186,6 +1224,18 @@ function MapaPage() {
                   className="text-xs resize-none"
                 />
               </div>
+            </div>
+
+            {/* Descrição */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Descrição / Ação</Label>
+              <Textarea
+                rows={2}
+                placeholder="O que será feito de forma detalhada?"
+                value={itemForm.observations}
+                onChange={(e) => setItemForm({ ...itemForm, observations: e.target.value })}
+                className="text-xs resize-none"
+              />
             </div>
 
             {/* Resultado Esperado */}
@@ -1200,7 +1250,29 @@ function MapaPage() {
               />
             </div>
 
-            {/* Matriz GUT (Gravidade, Urgência, Tendência 1–5) */}
+            {/* Responsável & Prazo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Responsável pela Execução</Label>
+                <Input
+                  placeholder="Nome do responsável"
+                  value={itemForm.responsible}
+                  onChange={(e) => setItemForm({ ...itemForm, responsible: e.target.value })}
+                  className="text-xs h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Prazo de Conclusão</Label>
+                <Input
+                  type="date"
+                  value={itemForm.due_date}
+                  onChange={(e) => setItemForm({ ...itemForm, due_date: e.target.value })}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
+            {/* Matriz GUT */}
             <div className="rounded-xl border p-3 bg-muted/20 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div>
@@ -1222,27 +1294,14 @@ function MapaPage() {
                   );
                 })()}
               </div>
-
               <div className="grid grid-cols-3 gap-2">
-                <GutStepper
-                  label="Gravidade"
-                  value={itemForm.gravity}
-                  onChange={(v) => setItemForm({ ...itemForm, gravity: v })}
-                />
-                <GutStepper
-                  label="Urgência"
-                  value={itemForm.urgency}
-                  onChange={(v) => setItemForm({ ...itemForm, urgency: v })}
-                />
-                <GutStepper
-                  label="Tendência"
-                  value={itemForm.trend}
-                  onChange={(v) => setItemForm({ ...itemForm, trend: v })}
-                />
+                <GutStepper label="Gravidade" value={itemForm.gravity} onChange={(v) => setItemForm({ ...itemForm, gravity: v })} />
+                <GutStepper label="Urgência" value={itemForm.urgency} onChange={(v) => setItemForm({ ...itemForm, urgency: v })} />
+                <GutStepper label="Tendência" value={itemForm.trend} onChange={(v) => setItemForm({ ...itemForm, trend: v })} />
               </div>
             </div>
 
-            {/* Status & Progresso Percentual Interligados */}
+            {/* Status & Progresso */}
             <div className="space-y-3 rounded-lg border p-3 bg-muted/20">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <Label className="text-xs font-semibold">Status de Execução</Label>
@@ -1295,34 +1354,11 @@ function MapaPage() {
                   disabled={itemForm.status === "nao_sera_feito"}
                 />
               </div>
-
-              {itemForm.item_type === "diretriz" && itemModalMode === "edit" && (
-                <p className="text-[10px] text-muted-foreground italic">
-                  * Caso a diretriz possua desdobramentos, seu avanço e status finais serão consolidados automaticamente pela média de suas ações.
-                </p>
-              )}
-            </div>
-
-            {/* Observações */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Observações / Detalhes de Execução</Label>
-              <Textarea
-                rows={2}
-                placeholder="Instruções práticas, rotinas ou anotações complementares..."
-                value={itemForm.observations}
-                onChange={(e) => setItemForm({ ...itemForm, observations: e.target.value })}
-                className="text-xs resize-none"
-              />
             </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setItemModalOpen(false)}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={() => setItemModalOpen(false)}>
               Cancelar
             </Button>
             <Button
@@ -1331,7 +1367,7 @@ function MapaPage() {
               onClick={handleSaveItem}
               disabled={saveMutation.isPending}
             >
-              {saveMutation.isPending ? "Salvando..." : "Salvar no Mapa"}
+              {saveMutation.isPending ? "Salvando..." : "Salvar Desdobramento"}
             </Button>
           </DialogFooter>
         </DialogContent>
