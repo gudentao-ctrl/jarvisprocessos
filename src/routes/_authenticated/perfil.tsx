@@ -293,7 +293,7 @@ function PerfilPage() {
               <div>
                 <CardTitle className="text-lg">Google Agenda</CardTitle>
                 <CardDescription>
-                  Sincronização direta e envio automático de compromissos com convidados
+                  Conecte sua conta do Google para sincronizar reuniões e enviar convites oficiais
                 </CardDescription>
               </div>
             </div>
@@ -310,21 +310,42 @@ function PerfilPage() {
                 }}
               >
                 <Settings className="h-3.5 w-3.5" />
-                Configuração de API (Opcional)
+                Configurar API Google
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-4 space-y-1.5">
-            <div className="flex items-center gap-2 font-semibold text-sm text-blue-900 dark:text-blue-200">
-              <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              Sincronização com Google Agenda Ativa (100% Gratuita e Sem API Complexa)
+          {/* Alerta de credenciais não configuradas */}
+          {oauthConfig && !oauthConfig.configured && (
+            <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  Credenciais do Google Cloud pendentes de configuração
+                </div>
+                {isManagerOrAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-amber-400 bg-amber-100/80 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-900 dark:text-amber-100"
+                    onClick={() => {
+                      setConfigClientId(oauthConfig?.rawClientId || "");
+                      setConfigClientSecret("");
+                      setConfigModalOpen(true);
+                    }}
+                  >
+                    <Key className="mr-1 h-3.5 w-3.5" /> Configurar Agora
+                  </Button>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-300/90">
+                {isManagerOrAdmin
+                  ? "Para permitir que os consultores sincronizem o Google Agenda, cadastre o Client ID e Client Secret do projeto Google Cloud."
+                  : "A integração com o Google Agenda precisa ser configurada pelo administrador do sistema (Google Client ID)."}
+              </p>
             </div>
-            <p className="text-xs text-blue-900/80 dark:text-blue-200/80 leading-relaxed">
-              Ao criar ou gerenciar reuniões na aba <strong>Agenda</strong>, o sistema identifica automaticamente data, horário, pauta, local e a lista de convidados para adicionar à sua conta Google e disparar os convites com 1 clique, sem precisar de configurações no Google Cloud.
-            </p>
-          </div>
+          )}
 
           <div className="rounded-lg border p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

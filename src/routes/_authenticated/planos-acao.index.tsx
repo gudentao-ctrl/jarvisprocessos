@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Minus, ClipboardList, Trash2, Pencil, Flame, Search, Trophy } from "lucide-react";
 import { listActionPlans, saveActionPlan, deleteActionPlan } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
+import { getActionPlanLinkOptions } from "@/lib/impact.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -65,6 +66,9 @@ type FormState = {
   cause: string;
   responsible: string;
   sector: string;
+  sector_id: string;
+  root_cause_id: string;
+  indicator_id: string;
   company_id: string;
   status: string;
   due_date: string;
@@ -104,7 +108,7 @@ function GutStepper({ label, value, onChange }: { label: string; value: number; 
 
 function emptyForm(companyId: string | null): FormState {
   return {
-    title: "", description: "", problem: "", cause: "", responsible: "", sector: "",
+    title: "", description: "", problem: "", cause: "", responsible: "", sector: "", sector_id: "", root_cause_id: "", indicator_id: "",
     company_id: companyId ?? "", status: "aberto", due_date: "",
     gravity: 3, urgency: 3, trend: 3,
     expected_result: "", observations: "", origin: "", demand_type: "processo",
@@ -115,6 +119,7 @@ function PlanosPage() {
   const { companyId } = useActiveCompany();
   const [list, setList] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [linkOptions, setLinkOptions] = useState<{ sectors: any[]; causes: any[]; indicators: any[] }>({ sectors: [], causes: [], indicators: [] });
   const [filter, setFilter] = useState<"all" | "aberto" | "em_andamento" | "concluido">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -129,6 +134,11 @@ function PlanosPage() {
   useEffect(() => {
     if (companyId) setForm((f) => ({ ...f, company_id: f.company_id || companyId }));
   }, [companyId]);
+  useEffect(() => {
+    const selectedCompany = form.company_id || companyId;
+    if (!selectedCompany) return setLinkOptions({ sectors: [], causes: [], indicators: [] });
+    getActionPlanLinkOptions({ data: { company_id: selectedCompany } }).then(setLinkOptions).catch(() => setLinkOptions({ sectors: [], causes: [], indicators: [] }));
+  }, [form.company_id, companyId]);
 
   function openNew() {
     setForm(emptyForm(companyId));
@@ -143,6 +153,9 @@ function PlanosPage() {
       cause: p.cause ?? "",
       responsible: p.responsible ?? "",
       sector: p.sector ?? "",
+      sector_id: p.sector_id ?? "",
+      root_cause_id: p.root_cause_id ?? "",
+      indicator_id: p.indicator_id ?? "",
       company_id: p.company_id ?? companyId ?? "",
       status: p.status ?? "aberto",
       due_date: p.due_date ?? "",
@@ -169,6 +182,9 @@ function PlanosPage() {
           cause: form.cause || null,
           responsible: form.responsible,
           sector: form.sector || null,
+          sector_id: form.sector_id || null,
+          root_cause_id: form.root_cause_id || null,
+          indicator_id: form.indicator_id || null,
           company_id: form.company_id || companyId || null,
           due_date: form.due_date || null,
           priority: priorityFromGut(form.gravity * form.urgency * form.trend) as any,
@@ -258,7 +274,31 @@ function PlanosPage() {
             <DialogTitle>{isEdit ? "Editar plano de ação" : "Novo plano de ação"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 max-h-[70vh] overflow-y-auto">
-            <div><Label>Título *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+            <div><Label>Empresa *</Label>
+              <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v, sector: "", sector_id: "", root_cause_id: "", indicator_id: "" })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{companies.filter((c) => c.is_active !== false).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>1. Setor responsável *</Label>
+              <Select value={form.sector_id} onValueChange={(v) => { const sector = linkOptions.sectors.find((item) => item.id === v); setForm({ ...form, sector_id: v, sector: sector?.name ?? "" }); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione a frente" /></SelectTrigger>
+                <SelectContent>{linkOptions.sectors.map((sector) => <SelectItem key={sector.id} value={sector.id}>{sector.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>2. Ação *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="O que será feito?" /></div>
+            <div><Label>3. Vínculo com problema raiz</Label>
+              <Select value={form.root_cause_id || "none"} onValueChange={(v) => setForm({ ...form, root_cause_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent><SelectItem value="none">Sem vínculo</SelectItem>{linkOptions.causes.map((cause) => <SelectItem key={cause.id} value={cause.id}>{cause.problem}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Indicador relacionado</Label>
+              <Select value={form.indicator_id || "none"} onValueChange={(v) => setForm({ ...form, indicator_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent><SelectItem value="none">Sem vínculo</SelectItem>{linkOptions.indicators.map((indicator) => <SelectItem key={indicator.id} value={indicator.id}>{indicator.code ? `${indicator.code} · ` : ""}{indicator.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label>Origem</Label><Input placeholder="Entrevista, cronoanálise, indicador..." value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
             <div><Label>Tipo de demanda *</Label>
               <Select value={form.demand_type} onValueChange={(v) => setForm({ ...form, demand_type: v })}>
@@ -272,7 +312,6 @@ function PlanosPage() {
             <div><Label>Resultado esperado</Label><Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-2">
               <div><Label>Responsável</Label><Input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
-              <div><Label>Setor responsável</Label><Input placeholder="Comercial, Produção..." value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} /></div>
               <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
             </div>
             <div className="rounded-xl border p-3 bg-muted/30">
@@ -292,12 +331,6 @@ function PlanosPage() {
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Empresa</Label>
-              <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Observações</Label><Textarea rows={2} value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} /></div>
