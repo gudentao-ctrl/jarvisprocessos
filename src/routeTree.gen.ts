@@ -41,6 +41,7 @@ import { Route as AuthenticatedFaseSlugRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFinanceiroMaiaIndexRouteImport } from './routes/_authenticated/financeiro-maia.index'
 import { Route as AuthenticatedFinanceiroIndexRouteImport } from './routes/_authenticated/financeiro.index'
 import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
+import { Route as AuthenticatedImpactoIndexRouteImport } from './routes/_authenticated/impacto.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
@@ -55,6 +56,7 @@ import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
 import { Route as AuthenticatedRelatorioAcompanhamentoIndexRouteImport } from './routes/_authenticated/relatorio-acompanhamento.index'
+import { Route as AuthenticatedRelatorioExecutivoMensalIndexRouteImport } from './routes/_authenticated/relatorio-executivo-mensal.index'
 import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
@@ -246,6 +248,12 @@ const AuthenticatedHorasIndexRoute = AuthenticatedHorasIndexRouteImport.update({
   path: '/horas/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImpactoIndexRoute =
+  AuthenticatedImpactoIndexRouteImport.update({
+    id: '/impacto/',
+    path: '/impacto/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedIndicadoresIndexRoute =
   AuthenticatedIndicadoresIndexRouteImport.update({
     id: '/indicadores/',
@@ -324,6 +332,12 @@ const AuthenticatedRelatorioAcompanhamentoIndexRoute =
   AuthenticatedRelatorioAcompanhamentoIndexRouteImport.update({
     id: '/relatorio-acompanhamento/',
     path: '/relatorio-acompanhamento/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatorioExecutivoMensalIndexRoute =
+  AuthenticatedRelatorioExecutivoMensalIndexRouteImport.update({
+    id: '/relatorio-executivo-mensal/',
+    path: '/relatorio-executivo-mensal/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRelatoriosIndexRoute =
@@ -441,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/financeiro-maia/': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/horas/': typeof AuthenticatedHorasIndexRoute
+  '/impacto/': typeof AuthenticatedImpactoIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -449,6 +464,7 @@ export interface FileRoutesByFullPath {
   '/processos/': typeof AuthenticatedProcessosIndexRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/relatorio-acompanhamento/': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
+  '/relatorio-executivo-mensal/': typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   '/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/tobe/': typeof AuthenticatedTobeIndexRoute
@@ -500,6 +516,7 @@ export interface FileRoutesByTo {
   '/financeiro-maia': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/financeiro': typeof AuthenticatedFinanceiroIndexRoute
   '/horas': typeof AuthenticatedHorasIndexRoute
+  '/impacto': typeof AuthenticatedImpactoIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -508,6 +525,7 @@ export interface FileRoutesByTo {
   '/processos': typeof AuthenticatedProcessosIndexRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
   '/relatorio-acompanhamento': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
+  '/relatorio-executivo-mensal': typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   '/relatorios': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap': typeof AuthenticatedRoadmapIndexRoute
   '/tobe': typeof AuthenticatedTobeIndexRoute
@@ -562,6 +580,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro-maia/': typeof AuthenticatedFinanceiroMaiaIndexRoute
   '/_authenticated/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/_authenticated/horas/': typeof AuthenticatedHorasIndexRoute
+  '/_authenticated/impacto/': typeof AuthenticatedImpactoIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
@@ -570,6 +589,7 @@ export interface FileRoutesById {
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/_authenticated/relatorio-acompanhamento/': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
+  '/_authenticated/relatorio-executivo-mensal/': typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   '/_authenticated/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
@@ -624,6 +644,7 @@ export interface FileRouteTypes {
     | '/financeiro-maia/'
     | '/financeiro/'
     | '/horas/'
+    | '/impacto/'
     | '/indicadores/'
     | '/oportunidades/'
     | '/planos-acao/'
@@ -632,6 +653,7 @@ export interface FileRouteTypes {
     | '/processos/'
     | '/projetos/'
     | '/relatorio-acompanhamento/'
+    | '/relatorio-executivo-mensal/'
     | '/relatorios/'
     | '/roadmap/'
     | '/tobe/'
@@ -683,6 +705,7 @@ export interface FileRouteTypes {
     | '/financeiro-maia'
     | '/financeiro'
     | '/horas'
+    | '/impacto'
     | '/indicadores'
     | '/oportunidades'
     | '/planos-acao'
@@ -691,6 +714,7 @@ export interface FileRouteTypes {
     | '/processos'
     | '/projetos'
     | '/relatorio-acompanhamento'
+    | '/relatorio-executivo-mensal'
     | '/relatorios'
     | '/roadmap'
     | '/tobe'
@@ -744,6 +768,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro-maia/'
     | '/_authenticated/financeiro/'
     | '/_authenticated/horas/'
+    | '/_authenticated/impacto/'
     | '/_authenticated/indicadores/'
     | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
@@ -752,6 +777,7 @@ export interface FileRouteTypes {
     | '/_authenticated/processos/'
     | '/_authenticated/projetos/'
     | '/_authenticated/relatorio-acompanhamento/'
+    | '/_authenticated/relatorio-executivo-mensal/'
     | '/_authenticated/relatorios/'
     | '/_authenticated/roadmap/'
     | '/_authenticated/tobe/'
@@ -1004,6 +1030,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHorasIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/impacto/': {
+      id: '/_authenticated/impacto/'
+      path: '/impacto'
+      fullPath: '/impacto/'
+      preLoaderRoute: typeof AuthenticatedImpactoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/indicadores/': {
       id: '/_authenticated/indicadores/'
       path: '/indicadores'
@@ -1100,6 +1133,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorio-acompanhamento'
       fullPath: '/relatorio-acompanhamento/'
       preLoaderRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorio-executivo-mensal/': {
+      id: '/_authenticated/relatorio-executivo-mensal/'
+      path: '/relatorio-executivo-mensal'
+      fullPath: '/relatorio-executivo-mensal/'
+      preLoaderRoute: typeof AuthenticatedRelatorioExecutivoMensalIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/relatorios/': {
@@ -1258,6 +1298,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroMaiaIndexRoute: typeof AuthenticatedFinanceiroMaiaIndexRoute
   AuthenticatedFinanceiroIndexRoute: typeof AuthenticatedFinanceiroIndexRoute
   AuthenticatedHorasIndexRoute: typeof AuthenticatedHorasIndexRoute
+  AuthenticatedImpactoIndexRoute: typeof AuthenticatedImpactoIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
@@ -1266,6 +1307,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
   AuthenticatedRelatorioAcompanhamentoIndexRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
+  AuthenticatedRelatorioExecutivoMensalIndexRoute: typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   AuthenticatedRelatoriosIndexRoute: typeof AuthenticatedRelatoriosIndexRoute
   AuthenticatedRoadmapIndexRoute: typeof AuthenticatedRoadmapIndexRoute
   AuthenticatedTobeIndexRoute: typeof AuthenticatedTobeIndexRoute
@@ -1305,6 +1347,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroMaiaIndexRoute: AuthenticatedFinanceiroMaiaIndexRoute,
   AuthenticatedFinanceiroIndexRoute: AuthenticatedFinanceiroIndexRoute,
   AuthenticatedHorasIndexRoute: AuthenticatedHorasIndexRoute,
+  AuthenticatedImpactoIndexRoute: AuthenticatedImpactoIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
   AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
@@ -1314,6 +1357,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
   AuthenticatedRelatorioAcompanhamentoIndexRoute:
     AuthenticatedRelatorioAcompanhamentoIndexRoute,
+  AuthenticatedRelatorioExecutivoMensalIndexRoute:
+    AuthenticatedRelatorioExecutivoMensalIndexRoute,
   AuthenticatedRelatoriosIndexRoute: AuthenticatedRelatoriosIndexRoute,
   AuthenticatedRoadmapIndexRoute: AuthenticatedRoadmapIndexRoute,
   AuthenticatedTobeIndexRoute: AuthenticatedTobeIndexRoute,
