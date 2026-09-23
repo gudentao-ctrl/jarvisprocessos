@@ -44,7 +44,10 @@ import {
   AlertTriangle,
   Circle,
   ChevronRight,
+  Network,
+  ChevronDown,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -334,6 +337,8 @@ function PublicDashboard() {
             tone="critical"
           />
         </section>
+
+        <ImpactNetworkPortal data={d} />
 
         {/* ================ Section 1 — Indicators ================ */}
         <section className="space-y-4">
