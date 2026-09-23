@@ -42,8 +42,8 @@ import { Route as AuthenticatedFinanceiroMaiaIndexRouteImport } from './routes/_
 import { Route as AuthenticatedFinanceiroIndexRouteImport } from './routes/_authenticated/financeiro.index'
 import { Route as AuthenticatedHorasIndexRouteImport } from './routes/_authenticated/horas.index'
 import { Route as AuthenticatedImpactoIndexRouteImport } from './routes/_authenticated/impacto.index'
-import { Route as AuthenticatedMapaIndexRouteImport } from './routes/_authenticated/mapa.index'
 import { Route as AuthenticatedIndicadoresIndexRouteImport } from './routes/_authenticated/indicadores.index'
+import { Route as AuthenticatedMapaIndexRouteImport } from './routes/_authenticated/mapa.index'
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
@@ -255,17 +255,17 @@ const AuthenticatedImpactoIndexRoute =
     path: '/impacto/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedMapaIndexRoute = AuthenticatedMapaIndexRouteImport.update({
-  id: '/mapa/',
-  path: '/mapa/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedIndicadoresIndexRoute =
   AuthenticatedIndicadoresIndexRouteImport.update({
     id: '/indicadores/',
     path: '/indicadores/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMapaIndexRoute = AuthenticatedMapaIndexRouteImport.update({
+  id: '/mapa/',
+  path: '/mapa/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMapasDecisaoRoute =
   AuthenticatedMapasDecisaoRouteImport.update({
     id: '/mapas/decisao',
@@ -462,8 +462,8 @@ export interface FileRoutesByFullPath {
   '/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/horas/': typeof AuthenticatedHorasIndexRoute
   '/impacto/': typeof AuthenticatedImpactoIndexRoute
-  '/mapa/': typeof AuthenticatedMapaIndexRoute
   '/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/mapa/': typeof AuthenticatedMapaIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
   '/pop/': typeof AuthenticatedPopIndexRoute
@@ -524,8 +524,8 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroIndexRoute
   '/horas': typeof AuthenticatedHorasIndexRoute
   '/impacto': typeof AuthenticatedImpactoIndexRoute
-  '/mapa': typeof AuthenticatedMapaIndexRoute
   '/indicadores': typeof AuthenticatedIndicadoresIndexRoute
+  '/mapa': typeof AuthenticatedMapaIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/planos-acao': typeof AuthenticatedPlanosAcaoIndexRoute
   '/pop': typeof AuthenticatedPopIndexRoute
@@ -589,8 +589,8 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
   '/_authenticated/horas/': typeof AuthenticatedHorasIndexRoute
   '/_authenticated/impacto/': typeof AuthenticatedImpactoIndexRoute
-  '/_authenticated/mapa/': typeof AuthenticatedMapaIndexRoute
   '/_authenticated/indicadores/': typeof AuthenticatedIndicadoresIndexRoute
+  '/_authenticated/mapa/': typeof AuthenticatedMapaIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/planos-acao/': typeof AuthenticatedPlanosAcaoIndexRoute
   '/_authenticated/pop/': typeof AuthenticatedPopIndexRoute
@@ -654,8 +654,8 @@ export interface FileRouteTypes {
     | '/financeiro/'
     | '/horas/'
     | '/impacto/'
-    | '/mapa/'
     | '/indicadores/'
+    | '/mapa/'
     | '/oportunidades/'
     | '/planos-acao/'
     | '/pop/'
@@ -716,8 +716,8 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/horas'
     | '/impacto'
-    | '/mapa'
     | '/indicadores'
+    | '/mapa'
     | '/oportunidades'
     | '/planos-acao'
     | '/pop'
@@ -780,8 +780,8 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/'
     | '/_authenticated/horas/'
     | '/_authenticated/impacto/'
-    | '/_authenticated/mapa/'
     | '/_authenticated/indicadores/'
+    | '/_authenticated/mapa/'
     | '/_authenticated/oportunidades/'
     | '/_authenticated/planos-acao/'
     | '/_authenticated/pop/'
@@ -1049,18 +1049,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImpactoIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/mapa/': {
-      id: '/_authenticated/mapa/'
-      path: '/mapa'
-      fullPath: '/mapa/'
-      preLoaderRoute: typeof AuthenticatedMapaIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/indicadores/': {
       id: '/_authenticated/indicadores/'
       path: '/indicadores'
       fullPath: '/indicadores/'
       preLoaderRoute: typeof AuthenticatedIndicadoresIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mapa/': {
+      id: '/_authenticated/mapa/'
+      path: '/mapa'
+      fullPath: '/mapa/'
+      preLoaderRoute: typeof AuthenticatedMapaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mapas/decisao': {
@@ -1318,8 +1318,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroIndexRoute: typeof AuthenticatedFinanceiroIndexRoute
   AuthenticatedHorasIndexRoute: typeof AuthenticatedHorasIndexRoute
   AuthenticatedImpactoIndexRoute: typeof AuthenticatedImpactoIndexRoute
-  AuthenticatedMapaIndexRoute: typeof AuthenticatedMapaIndexRoute
   AuthenticatedIndicadoresIndexRoute: typeof AuthenticatedIndicadoresIndexRoute
+  AuthenticatedMapaIndexRoute: typeof AuthenticatedMapaIndexRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
   AuthenticatedPlanosAcaoIndexRoute: typeof AuthenticatedPlanosAcaoIndexRoute
   AuthenticatedPopIndexRoute: typeof AuthenticatedPopIndexRoute
@@ -1368,8 +1368,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroIndexRoute: AuthenticatedFinanceiroIndexRoute,
   AuthenticatedHorasIndexRoute: AuthenticatedHorasIndexRoute,
   AuthenticatedImpactoIndexRoute: AuthenticatedImpactoIndexRoute,
-  AuthenticatedMapaIndexRoute: AuthenticatedMapaIndexRoute,
   AuthenticatedIndicadoresIndexRoute: AuthenticatedIndicadoresIndexRoute,
+  AuthenticatedMapaIndexRoute: AuthenticatedMapaIndexRoute,
   AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
   AuthenticatedPlanosAcaoIndexRoute: AuthenticatedPlanosAcaoIndexRoute,
   AuthenticatedPopIndexRoute: AuthenticatedPopIndexRoute,

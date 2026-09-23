@@ -145,7 +145,7 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
     const companyId = company.id as string;
     await requirePortalAccess(context.supabase, context.userId, companyId);
 
-    const [indicators, plans, processes] = await Promise.all([
+    const [indicators, plans, processes, causes, pains, interviews, sectors] = await Promise.all([
       sb
         .from("indicators")
         .select(
@@ -156,15 +156,23 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
       sb
         .from("action_plans")
         .select(
-          "id, title, problem, cause, category, demand_type, sector, responsible, priority, status, gravity, urgency, trend, due_date, new_due_date, expected_result, observations, origin, created_at, updated_at, process_id",
+          "id, title, problem, cause, category, demand_type, sector, sector_id, responsible, priority, status, gravity, urgency, trend, due_date, new_due_date, expected_result, observations, origin, created_at, updated_at, process_id, indicator_id, root_cause_id, pain_point_id, interview_id",
         )
         .eq("company_id", companyId)
         .order("created_at", { ascending: false }),
       sb.from("processes").select("id, name").eq("company_id", companyId),
+      sb.from("root_cause_analyses").select("id, problem, conclusion, pain_point_id").eq("company_id", companyId),
+      sb.from("pain_points").select("id, description, source_interview_id").eq("company_id", companyId),
+      sb.from("interviews").select("id, title, interview_date").eq("company_id", companyId),
+      sb.from("sectors").select("id, name").eq("company_id", companyId).order("name"),
     ]);
     if (indicators.error) throw new Error(indicators.error.message);
     if (plans.error) throw new Error(plans.error.message);
     if (processes.error) throw new Error(processes.error.message);
+    if (causes.error) throw new Error(causes.error.message);
+    if (pains.error) throw new Error(pains.error.message);
+    if (interviews.error) throw new Error(interviews.error.message);
+    if (sectors.error) throw new Error(sectors.error.message);
 
     const indIds = (indicators.data ?? []).map((i) => i.id);
     let collections: any[] = [];
@@ -196,6 +204,10 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
       collections,
       plans: plans.data ?? [],
       processes: processes.data ?? [],
+      causes: causes.data ?? [],
+      pains: pains.data ?? [],
+      interviews: interviews.data ?? [],
+      sectors: sectors.data ?? [],
     };
   });
 

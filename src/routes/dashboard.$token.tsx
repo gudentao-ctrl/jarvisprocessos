@@ -44,7 +44,10 @@ import {
   AlertTriangle,
   Circle,
   ChevronRight,
+  Network,
+  ChevronDown,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -335,6 +338,8 @@ function PublicDashboard() {
           />
         </section>
 
+        <ImpactNetworkPortal data={d} />
+
         {/* ================ Section 1 — Indicators ================ */}
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-2">
@@ -555,6 +560,35 @@ function PublicDashboard() {
 /* ================================================================
  * Sub-components
  * ================================================================ */
+
+function ImpactNetworkPortal({ data }: { data: any }) {
+  const [indicatorId, setIndicatorId] = useState("all");
+  const sectorNames = new Map<string, string>((data.sectors ?? []).map((sector: any) => [sector.id, sector.name]));
+  const causes = new Map<string, any>((data.causes ?? []).map((row: any) => [row.id, row]));
+  const pains = new Map<string, any>((data.pains ?? []).map((row: any) => [row.id, row]));
+  const interviews = new Map<string, any>((data.interviews ?? []).map((row: any) => [row.id, row]));
+  const plans = (data.plans ?? []).filter((plan: any) => indicatorId === "all" || plan.indicator_id === indicatorId);
+  const groups = new Map<string, any[]>();
+  for (const plan of plans) {
+    const sector = sectorNames.get(plan.sector_id) || plan.sector || "Sem setor definido";
+    groups.set(sector, [...(groups.get(sector) ?? []), plan]);
+  }
+  const completed = plans.filter((plan: any) => plan.status === "concluido").length;
+  const bottlenecks = new Set(plans.flatMap((plan: any) => [plan.root_cause_id, plan.pain_point_id]).filter(Boolean)).size;
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div><h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl"><Network className="h-5 w-5 text-primary" />Efeito Dominó</h2><p className="text-xs text-muted-foreground">Veja o trabalho conectado aos resultados da empresa.</p></div>
+        <Select value={indicatorId} onValueChange={setIndicatorId}><SelectTrigger className="w-full sm:w-72"><SelectValue placeholder="Indicador" /></SelectTrigger><SelectContent><SelectItem value="all">Todos os indicadores</SelectItem>{data.indicators.map((indicator: any) => <SelectItem key={indicator.id} value={indicator.id}>{indicator.name}</SelectItem>)}</SelectContent></Select>
+      </div>
+      <div className="grid grid-cols-3 gap-2"><MiniImpact label="Frentes" value={groups.size} /><MiniImpact label="Gargalos" value={bottlenecks} /><MiniImpact label="Concluídas" value={completed} /></div>
+      {[...groups.entries()].map(([sector, sectorPlans]) => <Collapsible key={sector} defaultOpen><Card><CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left"><span><span className="block font-semibold">{sector}</span><span className="text-xs text-muted-foreground">{sectorPlans.length} ações conectadas</span></span><ChevronDown className="h-4 w-4" /></CollapsibleTrigger><CollapsibleContent><div className="space-y-3 border-t p-4">{sectorPlans.map((plan: any) => { const cause = causes.get(plan.root_cause_id); const pain = pains.get(plan.pain_point_id); const interview = interviews.get(plan.interview_id || pain?.source_interview_id); return <div key={plan.id} className="border-l-2 border-primary pl-3"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{plan.title}</p><Badge variant="outline">{statusMeta(plan.status).label}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{cause?.problem || pain?.description || "Ação operacional"}{interview?.title ? ` · Origem: ${interview.title}` : ""}</p></div>; })}</div></CollapsibleContent></Card></Collapsible>)}
+      {!groups.size && <Card className="p-6 text-center text-sm text-muted-foreground">Nenhuma ação conectada a este indicador.</Card>}
+    </section>
+  );
+}
+
+function MiniImpact({ label, value }: { label: string; value: number }) { return <Card className="p-3 text-center"><p className="text-xl font-bold text-primary">{value}</p><p className="text-[10px] uppercase text-muted-foreground">{label}</p></Card>; }
 
 function SummaryTile({
   icon: Icon,
