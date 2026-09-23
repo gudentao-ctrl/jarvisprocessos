@@ -119,6 +119,33 @@ function buildMetaTag(data: {
   return `[MAPA_META:${JSON.stringify(data)}]`;
 }
 
+async function logoDataUrl(sb: any, value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    let url = value;
+    if (!/^https?:\/\//i.test(value)) {
+      const { data } = await sb.storage.from("portal-logos").createSignedUrl(value, 600);
+      if (!data?.signedUrl) return null;
+      url = data.signedUrl;
+    }
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return `data:${response.headers.get("content-type") || "image/png"};base64,${btoa(binary)}`;
+  } catch {
+    return null;
+  }
+}
+
+export type MapaCompanyInfo = {
+  id: string;
+  name: string;
+  company_logo: string | null;
+  consultancy_logo: string | null;
+};
+
 export const getMapaData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -127,13 +154,34 @@ export const getMapaData = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
 
-    const { data: rows, error } = await sb
-      .from("action_plans")
-      .select("*")
-      .eq("company_id", data.company_id)
-      .order("created_at", { ascending: true });
+    const [actionPlansRes, companyRes] = await Promise.all([
+      sb
+        .from("action_plans")
+        .select("*")
+        .eq("company_id", data.company_id)
+        .order("created_at", { ascending: true }),
+      sb
+        .from("companies")
+        .select("id, name, public_company_logo_url, public_consultancy_logo_url")
+        .eq("id", data.company_id)
+        .maybeSingle(),
+    ]);
 
-    if (error) throw new Error(error.message);
+    if (actionPlansRes.error) throw new Error(actionPlansRes.error.message);
+    const rows = actionPlansRes.data;
+    const companyRow = companyRes.data;
+
+    const [companyLogo, consultancyLogo] = await Promise.all([
+      logoDataUrl(sb, companyRow?.public_company_logo_url),
+      logoDataUrl(sb, companyRow?.public_consultancy_logo_url),
+    ]);
+
+    const companyInfo: MapaCompanyInfo = {
+      id: data.company_id,
+      name: companyRow?.name || "Empresa",
+      company_logo: companyLogo,
+      consultancy_logo: consultancyLogo,
+    };
 
     // Map rows and extract metadata
     const rawItems: MapaItem[] = (rows ?? []).map((r: any) => {
@@ -322,6 +370,7 @@ export const getMapaData = createServerFn({ method: "GET" })
     }
 
     return {
+      company: companyInfo,
       pillars,
       items: rawItems,
       treeByPillar,

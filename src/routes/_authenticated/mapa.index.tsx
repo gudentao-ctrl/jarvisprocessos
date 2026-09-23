@@ -8,7 +8,10 @@ import {
   deleteMapaItem,
   type PillarMeta,
   type MapaItem,
+  type MapaCompanyInfo,
 } from "@/lib/mapa.functions";
+import { exportMapaPdf } from "@/lib/mapa-pdf";
+import { exportMapaExcel } from "@/lib/mapa-excel";
 import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Card } from "@/components/ui/card";
@@ -43,6 +46,10 @@ import {
   Flame,
   AlertCircle,
   FolderTree,
+  Download,
+  FileSpreadsheet,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -216,6 +223,52 @@ function MapaPage() {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<MapaItem | null>(null);
+
+  // Detail expansion for action rows
+  const [expandedActionDetails, setExpandedActionDetails] = useState<Record<string, boolean>>({});
+  function toggleActionDetail(id: string) {
+    setExpandedActionDetails((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  // Export state
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+
+  async function handleExportPdf() {
+    if (!mapaData?.company || !mapaData.pillars) return;
+    setExportingPdf(true);
+    try {
+      await exportMapaPdf({
+        company: mapaData.company,
+        pillars: mapaData.pillars,
+        treeByPillar: mapaData.treeByPillar,
+        items: mapaData.items,
+      });
+      toast.success("PDF exportado com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao exportar PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
+  function handleExportExcel() {
+    if (!mapaData?.company || !mapaData.pillars) return;
+    setExportingExcel(true);
+    try {
+      exportMapaExcel({
+        company: mapaData.company,
+        pillars: mapaData.pillars,
+        treeByPillar: mapaData.treeByPillar,
+        items: mapaData.items,
+      });
+      toast.success("Excel exportado com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao exportar Excel");
+    } finally {
+      setExportingExcel(false);
+    }
+  }
 
   // Auto-expand all directives on first load
   useEffect(() => {
@@ -732,6 +785,29 @@ function MapaPage() {
                   <ChevronRight className="h-3.5 w-3.5" />
                   Recolher tudo
                 </Button>
+
+                <div className="w-px h-6 bg-border mx-1" />
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs gap-1.5"
+                  onClick={handleExportPdf}
+                  disabled={exportingPdf || !mapaData}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {exportingPdf ? "Gerando..." : "PDF"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs gap-1.5"
+                  onClick={handleExportExcel}
+                  disabled={exportingExcel || !mapaData}
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  {exportingExcel ? "Gerando..." : "Excel"}
+                </Button>
               </div>
             </div>
           </Card>
@@ -1048,7 +1124,62 @@ function MapaPage() {
                                           >
                                             <Trash2 className="h-3 w-3" />
                                           </Button>
+
+                                          {(sub.description || sub.problem || sub.cause || sub.expected_result || sub.observations) && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className={cn(
+                                                "h-6 w-6 text-muted-foreground hover:text-primary",
+                                                expandedActionDetails[sub.id] && "text-primary"
+                                              )}
+                                              onClick={() => toggleActionDetail(sub.id)}
+                                              title={expandedActionDetails[sub.id] ? "Ocultar detalhes" : "Ver detalhes"}
+                                            >
+                                              {expandedActionDetails[sub.id] ? (
+                                                <EyeOff className="h-3 w-3" />
+                                              ) : (
+                                                <Eye className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                          )}
                                         </div>
+
+                                        {/* Painel de detalhes expandível */}
+                                        {expandedActionDetails[sub.id] && (
+                                          <div className="mt-2 p-3 rounded-lg border border-border/40 bg-muted/20 space-y-2 text-xs">
+                                            {sub.problem && (
+                                              <div>
+                                                <span className="font-semibold text-foreground">Problema: </span>
+                                                <span className="text-muted-foreground">{sub.problem}</span>
+                                              </div>
+                                            )}
+                                            {sub.cause && (
+                                              <div>
+                                                <span className="font-semibold text-foreground">Causa: </span>
+                                                <span className="text-muted-foreground">{sub.cause}</span>
+                                              </div>
+                                            )}
+                                            {(sub.description || sub.observations) && (
+                                              <div>
+                                                <span className="font-semibold text-foreground">Descrição: </span>
+                                                <span className="text-muted-foreground">{sub.description || sub.observations}</span>
+                                              </div>
+                                            )}
+                                            {sub.expected_result && (
+                                              <div>
+                                                <span className="font-semibold text-foreground">Resultado Esperado: </span>
+                                                <span className="text-muted-foreground">{sub.expected_result}</span>
+                                              </div>
+                                            )}
+                                            {sub.origin && (
+                                              <div>
+                                                <span className="font-semibold text-foreground">Origem: </span>
+                                                <span className="text-muted-foreground">{sub.origin}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
