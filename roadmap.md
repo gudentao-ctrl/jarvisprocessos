@@ -23,3 +23,7 @@
 - [ ] Agenda pessoal: convites individuais e convite de todos os consultores
 - [x] Bloco 8: Conexão de Impacto e Profundidade no lugar de Relatório Operacional
 - [x] Bloco 9: Relatório Executivo Mensal em PDF no lugar de Relatório Por Empresa
+- [ ] Relatório Executivo Mensal: corrigir geração e permitir selecionar/editar o conteúdo do PDF
+- [ ] Relatório Executivo: cruzar diagnósticos das entrevistas por empresa, estruturar por 9 pilares e permitir edição do PDF
+- [ ] Relatório Executivo: incluir logos do cliente e da consultoria, pontos positivos, problemas e propostas de intervenção por pilar
+- [ ] Mapa Estratégico: ajustar o relatório ao PDF de referência sem agrupar diretrizes ou ações e preservar todas as descrições
