@@ -189,10 +189,10 @@ export async function exportMapaPdf(opts: {
     pdf.setFontSize(7);
     pdf.setTextColor(MUTED);
     const counts = [
-      `✓ ${p.concluidas} Concl.`,
-      `▸ ${p.em_andamento} Andamento`,
-      `○ ${p.a_iniciar} Iniciar`,
-      `✗ ${p.nao_sera_feito} N/Fará`,
+      `${p.concluidas} Concluídas`,
+      `${p.em_andamento} Em andamento`,
+      `${p.a_iniciar} A iniciar`,
+      `${p.nao_sera_feito} Não fará`,
     ];
     counts.forEach((txt, ci) => {
       pdf.text(txt, x + 4, y + 22 + ci * 4);
@@ -236,16 +236,18 @@ export async function exportMapaPdf(opts: {
       const diretriz = roots[dIdx];
       const children = diretriz.children || [];
 
-      cursorY = ensureSpace(cursorY, 20);
+      const titleLines = pdf.splitTextToSize(`${dIdx + 1}. ${diretriz.title}`, pageW - 2 * marginX - 70) as string[];
+      const directiveHeight = Math.max(14, titleLines.length * 4.5 + 7);
+      cursorY = ensureSpace(cursorY, directiveHeight + 8);
 
       // Diretriz block
       pdf.setFillColor(GRAY_BG);
-      pdf.roundedRect(marginX, cursorY - 3, pageW - 2 * marginX, 14, 1.5, 1.5, "F");
+      pdf.roundedRect(marginX, cursorY - 3, pageW - 2 * marginX, directiveHeight, 1.5, 1.5, "F");
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
       pdf.setTextColor(PRIMARY);
-      pdf.text(`${dIdx + 1}. ${diretriz.title}`, marginX + 4, cursorY + 4);
+      pdf.text(titleLines, marginX + 4, cursorY + 4);
 
       // Status + progress
       pdf.setFont("helvetica", "normal");
@@ -254,7 +256,7 @@ export async function exportMapaPdf(opts: {
       const dirInfo = `${statusLabel(diretriz.status)} · ${diretriz.progress_pct}% · ${children.length} ${children.length === 1 ? "ação" : "ações"}`;
       pdf.text(dirInfo, pageW - marginX - 4, cursorY + 4, { align: "right" });
 
-      cursorY += 14;
+      cursorY += directiveHeight;
 
       // Description (if any)
       if (diretriz.observations) {
@@ -263,8 +265,12 @@ export async function exportMapaPdf(opts: {
         pdf.setFontSize(7);
         pdf.setTextColor("#475569");
         const descLines = pdf.splitTextToSize(diretriz.observations, pageW - 2 * marginX - 12) as string[];
-        pdf.text(descLines.slice(0, 3), marginX + 6, cursorY);
-        cursorY += Math.min(descLines.length, 3) * 3.5 + 2;
+        for (const line of descLines) {
+          cursorY = ensureSpace(cursorY, 5);
+          pdf.text(line, marginX + 6, cursorY);
+          cursorY += 3.5;
+        }
+        cursorY += 2;
       }
 
       // Children table
@@ -338,7 +344,9 @@ export async function exportMapaPdf(opts: {
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(7);
             pdf.setTextColor(PRIMARY);
-            pdf.text(`▸ ${child.title}`, marginX + 8, cursorY);
+            const childTitleLines = pdf.splitTextToSize(`Ação: ${child.title}`, pageW - 2 * marginX - 18) as string[];
+            pdf.text(childTitleLines, marginX + 8, cursorY);
+            cursorY += Math.max(0, childTitleLines.length - 1) * 3.5;
             cursorY += 3.5;
 
             pdf.setFont("helvetica", "normal");
@@ -359,8 +367,12 @@ export async function exportMapaPdf(opts: {
                 `${label}: ${value}`,
                 pageW - 2 * marginX - 22,
               ) as string[];
-              pdf.text(lines.slice(0, 4), marginX + 12, cursorY);
-              cursorY += Math.min(lines.length, 4) * 3 + 1;
+              for (const line of lines) {
+                cursorY = ensureSpace(cursorY, 4.5);
+                pdf.text(line, marginX + 12, cursorY);
+                cursorY += 3;
+              }
+              cursorY += 1;
             }
 
             cursorY += 2;
@@ -373,6 +385,15 @@ export async function exportMapaPdf(opts: {
   }
 
   /* ── salvar ── */
+  const totalPages = pdf.getNumberOfPages();
+  for (let index = 1; index <= totalPages; index++) {
+    pdf.setPage(index);
+    if (index > 1) {
+      pdf.setFontSize(7);
+      pdf.setTextColor(MUTED);
+      pdf.text(`Pág ${index} de ${totalPages}`, pageW - marginX, pageH - 8, { align: "right" });
+    }
+  }
   const safeName = company.name.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").replace(/\s+/g, "_");
   pdf.save(`Mapa_Estrategico_${safeName}_${now.toISOString().slice(0, 10)}.pdf`);
 }
