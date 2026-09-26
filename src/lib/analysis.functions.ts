@@ -556,9 +556,31 @@ export const getDiagnostic = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase.from("executive_diagnostics")
-      .select("*, companies(id,name)").eq("id", data.id).single();
+      .select("*, companies(id,name,public_company_logo_url,public_consultancy_logo_url)").eq("id", data.id).single();
     if (error) throw new Error(error.message);
-    return row;
+    const company = row.companies as { public_company_logo_url?: string | null; public_consultancy_logo_url?: string | null } | null;
+    async function resolveLogo(value?: string | null) {
+      if (!value) return null;
+      try {
+        let url = value;
+        if (!/^https?:\/\//i.test(value)) {
+          const { data: signed } = await context.supabase.storage.from("portal-logos").createSignedUrl(value, 600);
+          if (!signed?.signedUrl) return null;
+          url = signed.signedUrl;
+        }
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        return `data:${response.headers.get("content-type") || "image/png"};base64,${btoa(binary)}`;
+      } catch { return null; }
+    }
+    const [companyLogo, consultancyLogo] = await Promise.all([
+      resolveLogo(company?.public_company_logo_url),
+      resolveLogo(company?.public_consultancy_logo_url),
+    ]);
+    return { ...row, report_logos: { company: companyLogo, consultancy: consultancyLogo } };
   });
 
 export const updateDiagnostic = createServerFn({ method: "POST" })
