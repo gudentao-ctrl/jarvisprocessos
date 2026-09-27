@@ -25,8 +25,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Wallet,
   FileText,
@@ -44,7 +56,12 @@ import {
   CircleParking,
   Hotel,
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getBilledReport } from "@/lib/finance.functions";
 import { exportBilledPdf, type BilledPdfMode } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
@@ -71,7 +88,8 @@ export const Route = createFileRoute("/_authenticated/financeiro/")({
   }),
 });
 
-const brl = (n: number) => Number(n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brl = (n: number) =>
+  Number(n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d?: string | null) => (d ? d.split("-").reverse().join("/") : "—");
 const fmtHours = (h: number) => {
   const t = Math.round(Number(h ?? 0) * 60);
@@ -79,10 +97,30 @@ const fmtHours = (h: number) => {
 };
 
 export const EXPENSE_CATEGORIES_CONFIG = [
-  { key: "alimentacao", label: "Alimentação", icon: UtensilsCrossed, placeholder: "Ex.: Almoço durante visita ao cliente" },
-  { key: "pedagio", label: "Pedágio", icon: Milestone, placeholder: "Ex.: Praça de pedágio BR-369" },
-  { key: "deslocamento", label: "Deslocamento", icon: Car, placeholder: "Ex.: Combustível / Uber / Km rodado" },
-  { key: "estacionamento", label: "Estacionamento", icon: CircleParking, placeholder: "Ex.: Estacionamento centro / aeroporto" },
+  {
+    key: "alimentacao",
+    label: "Alimentação",
+    icon: UtensilsCrossed,
+    placeholder: "Ex.: Almoço durante visita ao cliente",
+  },
+  {
+    key: "pedagio",
+    label: "Pedágio",
+    icon: Milestone,
+    placeholder: "Ex.: Praça de pedágio BR-369",
+  },
+  {
+    key: "deslocamento",
+    label: "Deslocamento",
+    icon: Car,
+    placeholder: "Ex.: Combustível / Uber / Km rodado",
+  },
+  {
+    key: "estacionamento",
+    label: "Estacionamento",
+    icon: CircleParking,
+    placeholder: "Ex.: Estacionamento centro / aeroporto",
+  },
   { key: "hospedagem", label: "Hospedagem", icon: Hotel, placeholder: "Ex.: Hotel / estadia" },
 ] as const;
 
@@ -195,8 +233,7 @@ function FinanceiroPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["finance", companyId],
-    queryFn: () =>
-      overviewFn({ data: companyId ? { company_id: companyId } : {} } as any),
+    queryFn: () => overviewFn({ data: companyId ? { company_id: companyId } : {} } as any),
   });
 
   const consultants = useMemo(() => {
@@ -224,7 +261,8 @@ function FinanceiroPage() {
     const hours = selectedRows.reduce((s: number, r: any) => s + Number(r.hours ?? 0), 0);
     const expenses = selectedRows.reduce(
       (s: number, r: any) =>
-        s + (r.work_hour_expenses ?? []).reduce((a: number, e: any) => a + Number(e.amount ?? 0), 0),
+        s +
+        (r.work_hour_expenses ?? []).reduce((a: number, e: any) => a + Number(e.amount ?? 0), 0),
       0,
     );
     const tools = selectedRows.reduce(
@@ -329,12 +367,17 @@ function FinanceiroPage() {
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
             <Wallet className="h-5 w-5 text-primary" /> Financeiro Cliente
           </h1>
-          <p className="text-sm text-muted-foreground">Conta corrente, faturamento e pagamentos por cliente.</p>
+          <p className="text-sm text-muted-foreground">
+            Conta corrente, faturamento e pagamentos por cliente.
+          </p>
         </div>
         <div className="flex gap-2">
           <Select
             value={companyId ?? "__all"}
-            onValueChange={(v) => { setCompanyId(v === "__all" ? null : v); setSelected([]); }}
+            onValueChange={(v) => {
+              setCompanyId(v === "__all" ? null : v);
+              setSelected([]);
+            }}
           >
             <SelectTrigger className="h-10 w-full sm:w-56">
               <SelectValue placeholder="Empresa" />
@@ -342,7 +385,9 @@ function FinanceiroPage() {
             <SelectContent>
               <SelectItem value="__all">Todas as empresas ativas</SelectItem>
               {activeCompanies.map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -393,19 +438,29 @@ function FinanceiroPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Label className="text-xs text-muted-foreground font-semibold">Consultor:</Label>
-                <Select value={consultantFilter} onValueChange={(v) => { setConsultantFilter(v); setSelected([]); }}>
+                <Select
+                  value={consultantFilter}
+                  onValueChange={(v) => {
+                    setConsultantFilter(v);
+                    setSelected([]);
+                  }}
+                >
                   <SelectTrigger className="h-9 w-48 text-xs">
                     <SelectValue placeholder="Todos os consultores" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all">Todos os consultores</SelectItem>
                     {consultants.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Card className="p-6 text-sm text-muted-foreground">Nenhuma hora em aberto para faturamento.</Card>
+              <Card className="p-6 text-sm text-muted-foreground">
+                Nenhuma hora em aberto para faturamento.
+              </Card>
             </div>
           ) : (
             <>
@@ -413,14 +468,22 @@ function FinanceiroPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Label className="text-xs text-muted-foreground font-semibold">Consultor:</Label>
-                  <Select value={consultantFilter} onValueChange={(v) => { setConsultantFilter(v); setSelected([]); }}>
+                  <Select
+                    value={consultantFilter}
+                    onValueChange={(v) => {
+                      setConsultantFilter(v);
+                      setSelected([]);
+                    }}
+                  >
                     <SelectTrigger className="h-9 w-48 text-xs">
                       <SelectValue placeholder="Todos os consultores" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__all">Todos os consultores</SelectItem>
                       {consultants.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -450,9 +513,15 @@ function FinanceiroPage() {
               <Card className="divide-y">
                 {openHours.map((h: any) => {
                   const expensesList = h.work_hour_expenses ?? [];
-                  const tools = (h.work_hour_tools ?? []).reduce((a: number, e: any) => a + Number(e.amount ?? 0), 0);
+                  const tools = (h.work_hour_tools ?? []).reduce(
+                    (a: number, e: any) => a + Number(e.amount ?? 0),
+                    0,
+                  );
                   return (
-                    <div key={h.id} className="flex items-start gap-3 p-3 text-sm hover:bg-muted/30 transition-colors">
+                    <div
+                      key={h.id}
+                      className="flex items-start gap-3 p-3 text-sm hover:bg-muted/30 transition-colors"
+                    >
                       <Checkbox
                         checked={selected.includes(h.id)}
                         onCheckedChange={(c) =>
@@ -465,13 +534,20 @@ function FinanceiroPage() {
                           <span className="font-medium">{fmtDate(h.work_date)}</span>
                           <Badge variant="secondary">{fmtHours(h.hours)}</Badge>
                           {h.responsible && (
-                            <Badge variant="outline" className="text-[11px] font-normal">{h.responsible}</Badge>
+                            <Badge variant="outline" className="text-[11px] font-normal">
+                              {h.responsible}
+                            </Badge>
                           )}
                           {h.companies?.name && (
-                            <span className="text-xs text-muted-foreground">{h.companies.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {h.companies.name}
+                            </span>
                           )}
                           {h.is_remunerated === false && (
-                            <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20"
+                            >
                               Não Remunerada
                             </Badge>
                           )}
@@ -484,7 +560,8 @@ function FinanceiroPage() {
                           <div className="mt-1 flex flex-wrap gap-1">
                             {expensesList.map((e: any, idx: number) => (
                               <Badge key={idx} variant="outline" className="text-[10px] py-0">
-                                {e.category ? `${e.category}: ` : "Desp: "}{brl(e.amount)}
+                                {e.category ? `${e.category}: ` : "Desp: "}
+                                {brl(e.amount)}
                                 {e.description && ` (${e.description})`}
                               </Badge>
                             ))}
@@ -516,7 +593,10 @@ function FinanceiroPage() {
                         onClick={(ev) => {
                           ev.preventDefault();
                           const expsList = h.work_hour_expenses ?? [];
-                          const expensesObj: Record<string, { amount: number; description: string }> = {
+                          const expensesObj: Record<
+                            string,
+                            { amount: number; description: string }
+                          > = {
                             alimentacao: { amount: 0, description: "" },
                             pedagio: { amount: 0, description: "" },
                             deslocamento: { amount: 0, description: "" },
@@ -584,8 +664,8 @@ function FinanceiroPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Selecionado: {fmtHours(preview.hours)} · Horas {brl(preview.hoursAmount)} · Despesas{" "}
-                  {brl(preview.expenses)} · Ferramentas {brl(preview.tools)} ·{" "}
+                  Selecionado: {fmtHours(preview.hours)} · Horas {brl(preview.hoursAmount)} ·
+                  Despesas {brl(preview.expenses)} · Ferramentas {brl(preview.tools)} ·{" "}
                   <strong className="text-foreground">Total {brl(preview.total)}</strong>
                 </p>
               </Card>
@@ -612,7 +692,10 @@ function FinanceiroPage() {
                         variant="ghost"
                         aria-label="Desfazer fatura"
                         disabled={delInvoiceMut.isPending}
-                        onClick={() => confirm("Desfazer esta fatura e reabrir as horas vinculadas?") && delInvoiceMut.mutate(inv.id)}
+                        onClick={() =>
+                          confirm("Desfazer esta fatura e reabrir as horas vinculadas?") &&
+                          delInvoiceMut.mutate(inv.id)
+                        }
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -621,11 +704,12 @@ function FinanceiroPage() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {inv.companies?.name ? `${inv.companies.name} · ` : ""}
-                  {fmtHours(inv.hours_total)} a {brl(inv.hourly_rate)}/h · despesas {brl(inv.expenses_amount)} ·
-                  ferramentas {brl(inv.tools_amount)}
+                  {fmtHours(inv.hours_total)} a {brl(inv.hourly_rate)}/h · despesas{" "}
+                  {brl(inv.expenses_amount)} · ferramentas {brl(inv.tools_amount)}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="h-3 w-3" /> Faturado em {new Date(inv.invoiced_at).toLocaleDateString("pt-BR")}
+                  <Lock className="h-3 w-3" /> Faturado em{" "}
+                  {new Date(inv.invoiced_at).toLocaleDateString("pt-BR")}
                 </p>
                 {inv.notes && <p className="mt-1 text-xs text-muted-foreground">{inv.notes}</p>}
               </Card>
@@ -739,10 +823,14 @@ function FinanceiroPage() {
                   value={payment.method}
                   onValueChange={(v) => setPayment({ ...payment, method: v })}
                 >
-                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -870,7 +958,12 @@ function FinanceiroPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-muted-foreground">Consultor (Somente Leitura)</Label>
-                  <Input className="h-10 bg-muted/40" disabled readOnly value={editingHour.responsible} />
+                  <Input
+                    className="h-10 bg-muted/40"
+                    disabled
+                    readOnly
+                    value={editingHour.responsible}
+                  />
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Tipo de Hora (Somente Leitura)</Label>
@@ -885,7 +978,9 @@ function FinanceiroPage() {
 
               {/* 5. Descrição do Atendimento (Somente Leitura) */}
               <div>
-                <Label className="text-muted-foreground">Descrição do Atendimento (Somente Leitura)</Label>
+                <Label className="text-muted-foreground">
+                  Descrição do Atendimento (Somente Leitura)
+                </Label>
                 <Textarea
                   rows={2}
                   disabled
@@ -919,9 +1014,7 @@ function FinanceiroPage() {
                   </div>
                   <Switch
                     checked={editingHour.hasExpense}
-                    onCheckedChange={(v) =>
-                      setEditingHour({ ...editingHour, hasExpense: v })
-                    }
+                    onCheckedChange={(v) => setEditingHour({ ...editingHour, hasExpense: v })}
                   />
                 </div>
 
@@ -995,9 +1088,7 @@ function FinanceiroPage() {
                   className="h-9 text-xs"
                   placeholder="Ex.: Alinhado previamente com o cliente"
                   value={editingHour.manager_note}
-                  onChange={(e) =>
-                    setEditingHour({ ...editingHour, manager_note: e.target.value })
-                  }
+                  onChange={(e) => setEditingHour({ ...editingHour, manager_note: e.target.value })}
                 />
               </div>
             </div>
@@ -1007,11 +1098,16 @@ function FinanceiroPage() {
                 Cancelar
               </Button>
               <Button
-                disabled={editHourMut.isPending || !editingHour.company_id || editingHour.hours <= 0}
+                disabled={
+                  editHourMut.isPending || !editingHour.company_id || editingHour.hours <= 0
+                }
                 onClick={() => {
                   const expensesList = editingHour.hasExpense
                     ? Object.entries(editingHour.expenses || {})
-                        .filter(([_, item]: any) => item.amount > 0 || (item.description && item.description.trim()))
+                        .filter(
+                          ([_, item]: any) =>
+                            item.amount > 0 || (item.description && item.description.trim()),
+                        )
                         .map(([cat, item]: any) => ({
                           category: cat,
                           amount: Number(item.amount || 0),
@@ -1064,10 +1160,7 @@ function Stat({
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-lg font-bold tracking-tight">{value}</p>
       {hint && (
-        <Badge
-          variant={tone === "warn" ? "destructive" : "secondary"}
-          className="mt-1 text-[10px]"
-        >
+        <Badge variant={tone === "warn" ? "destructive" : "secondary"} className="mt-1 text-[10px]">
           {hint}
         </Badge>
       )}

@@ -20,22 +20,30 @@ export function computePeriod(preset: PeriodPreset, from?: string, to?: string):
   const iso = (d: Date) => format(d, "yyyy-MM-dd");
   const now = new Date();
   switch (preset) {
-    case "today":      return { preset, from: iso(now), to: iso(now) };
-    case "last7":      return { preset, from: iso(subDays(now, 6)), to: iso(now) };
-    case "last15":     return { preset, from: iso(subDays(now, 14)), to: iso(now) };
-    case "last30":     return { preset, from: iso(subDays(now, 29)), to: iso(now) };
-    case "this_month": return { preset, from: iso(startOfMonth(now)), to: iso(endOfMonth(now)) };
+    case "today":
+      return { preset, from: iso(now), to: iso(now) };
+    case "last7":
+      return { preset, from: iso(subDays(now, 6)), to: iso(now) };
+    case "last15":
+      return { preset, from: iso(subDays(now, 14)), to: iso(now) };
+    case "last30":
+      return { preset, from: iso(subDays(now, 29)), to: iso(now) };
+    case "this_month":
+      return { preset, from: iso(startOfMonth(now)), to: iso(endOfMonth(now)) };
     case "last_month": {
       const prev = new Date(now.getFullYear(), now.getMonth() - 1, 15);
       return { preset, from: iso(startOfMonth(prev)), to: iso(endOfMonth(prev)) };
     }
-    case "quarter":    return { preset, from: iso(startOfQuarter(now)), to: iso(endOfQuarter(now)) };
-    case "custom":     return { preset, from: from ?? iso(subDays(now, 29)), to: to ?? iso(now) };
+    case "quarter":
+      return { preset, from: iso(startOfQuarter(now)), to: iso(endOfQuarter(now)) };
+    case "custom":
+      return { preset, from: from ?? iso(subDays(now, 29)), to: to ?? iso(now) };
   }
 }
 
 export function PeriodFilter({
-  value, onChange,
+  value,
+  onChange,
 }: {
   value: ReportPeriod;
   onChange: (p: ReportPeriod) => void;
@@ -67,7 +75,9 @@ export function PeriodFilter({
             <Label>Até</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
-          <Button size="sm" onClick={() => onChange({ preset: "custom", from, to })}>Aplicar</Button>
+          <Button size="sm" onClick={() => onChange({ preset: "custom", from, to })}>
+            Aplicar
+          </Button>
         </div>
       )}
       <p className="text-xs text-muted-foreground">

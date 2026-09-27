@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
   ResponsiveContainer,
@@ -87,7 +93,10 @@ export const Route = createFileRoute("/dashboard/$token")({
       { name: "robots", content: "noindex" },
       { name: "description", content: "Portal executivo de acompanhamento — JARVIS" },
       { property: "og:title", content: "Portal executivo | JARVIS" },
-      { property: "og:description", content: "Portal executivo de acompanhamento para clientes autorizados." },
+      {
+        property: "og:description",
+        content: "Portal executivo de acompanhamento para clientes autorizados.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -146,7 +155,8 @@ function PublicDashboard() {
     return d.indicators.filter((i: any) => {
       if (processFilter !== "all" && i.process_id !== processFilter) return false;
       if (indicatorFilter !== "all" && i.id !== indicatorFilter) return false;
-      if (responsibleFilter !== "all" && (i.responsible_name || "—") !== responsibleFilter) return false;
+      if (responsibleFilter !== "all" && (i.responsible_name || "—") !== responsibleFilter)
+        return false;
       return true;
     });
   }, [d.indicators, processFilter, indicatorFilter, responsibleFilter]);
@@ -221,7 +231,10 @@ function PublicDashboard() {
       negocio: "Negócio",
     };
     const base = ["processo", "pessoas", "negocio", "sem_classificacao"];
-    const map = new Map<string, { tipo: string; nao_iniciadas: number; em_andamento: number; concluidas: number }>();
+    const map = new Map<
+      string,
+      { tipo: string; nao_iniciadas: number; em_andamento: number; concluidas: number }
+    >();
     for (const k of base) {
       map.set(k, {
         tipo: labels[k] ?? "Sem classificação",
@@ -355,7 +368,9 @@ function PublicDashboard() {
           <Card className="p-3 sm:p-4">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-                <SelectTrigger><SelectValue placeholder="Período" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="week">Última semana</SelectItem>
                   <SelectItem value="month">Último mês</SelectItem>
@@ -366,34 +381,54 @@ function PublicDashboard() {
               </Select>
               {period === "custom" && (
                 <div className="flex gap-2 sm:col-span-2">
-                  <Input type="date" value={custom.from} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} />
-                  <Input type="date" value={custom.to} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} />
+                  <Input
+                    type="date"
+                    value={custom.from}
+                    onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
+                  />
+                  <Input
+                    type="date"
+                    value={custom.to}
+                    onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
+                  />
                 </div>
               )}
               <Select value={processFilter} onValueChange={setProcessFilter}>
-                <SelectTrigger><SelectValue placeholder="Processo" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Processo" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos processos</SelectItem>
                   {d.processes.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={indicatorFilter} onValueChange={setIndicatorFilter}>
-                <SelectTrigger><SelectValue placeholder="Indicador" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Indicador" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos indicadores</SelectItem>
                   {d.indicators.map((i: any) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-                <SelectTrigger><SelectValue placeholder="Responsável" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos responsáveis</SelectItem>
                   {responsibles.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -430,17 +465,29 @@ function PublicDashboard() {
             </div>
             <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap">
               <Select value={planSector} onValueChange={setPlanSector}>
-                <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Setor" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue placeholder="Setor" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os setores</SelectItem>
-                  {planSectors.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {planSectors.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={planResponsible} onValueChange={setPlanResponsible}>
-                <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Responsável" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os responsáveis</SelectItem>
-                  {planResponsibles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  {planResponsibles.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -454,10 +501,22 @@ function PublicDashboard() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Concluídos", value: planStats.concluidos, fill: "hsl(142 76% 36%)" },
-                        { name: "Em andamento", value: planStats.andamento, fill: "hsl(217 91% 60%)" },
+                        {
+                          name: "Concluídos",
+                          value: planStats.concluidos,
+                          fill: "hsl(142 76% 36%)",
+                        },
+                        {
+                          name: "Em andamento",
+                          value: planStats.andamento,
+                          fill: "hsl(217 91% 60%)",
+                        },
                         { name: "Atrasados", value: planStats.atrasados, fill: "hsl(0 84% 60%)" },
-                        { name: "Não iniciados", value: planStats.naoIniciados, fill: "hsl(220 9% 65%)" },
+                        {
+                          name: "Não iniciados",
+                          value: planStats.naoIniciados,
+                          fill: "hsl(220 9% 65%)",
+                        },
                       ]}
                       dataKey="value"
                       nameKey="name"
@@ -466,7 +525,9 @@ function PublicDashboard() {
                       label={renderPieLabel}
                       labelLine={false}
                     >
-                      {[0, 1, 2, 3].map((k) => <Cell key={k} />)}
+                      {[0, 1, 2, 3].map((k) => (
+                        <Cell key={k} />
+                      ))}
                     </Pie>
                     <Legend wrapperStyle={{ fontSize: 12 }} iconSize={10} />
                     <Tooltip formatter={(v: any) => `${v} ação(ões)`} />
@@ -481,7 +542,9 @@ function PublicDashboard() {
                   <PlanRow key={p.id} plan={p} onOpen={() => setOpenPlan(p)} />
                 ))}
                 {plans.length === 0 && (
-                  <li className="p-6 text-center text-sm text-muted-foreground">Nenhum plano para os filtros selecionados.</li>
+                  <li className="p-6 text-center text-sm text-muted-foreground">
+                    Nenhum plano para os filtros selecionados.
+                  </li>
                 )}
               </ul>
             </Card>
@@ -531,9 +594,24 @@ function PublicDashboard() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} />
                     <Tooltip />
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
-                    <Bar dataKey="nao_iniciadas" name="Não iniciadas" fill="hsl(220 9% 65%)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="em_andamento" name="Em andamento" fill="hsl(217 91% 60%)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="concluidas" name="Concluídas" fill="hsl(142 76% 36%)" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="nao_iniciadas"
+                      name="Não iniciadas"
+                      fill="hsl(220 9% 65%)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="em_andamento"
+                      name="Em andamento"
+                      fill="hsl(217 91% 60%)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="concluidas"
+                      name="Concluídas"
+                      fill="hsl(142 76% 36%)"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -549,7 +627,7 @@ function PublicDashboard() {
       {/* ================ Dialogs ================ */}
       <IndicatorDialog
         indicator={openIndicator}
-        collections={openIndicator ? collectionsByIndicator.get(openIndicator.id) ?? [] : []}
+        collections={openIndicator ? (collectionsByIndicator.get(openIndicator.id) ?? []) : []}
         onClose={() => setOpenIndicator(null)}
       />
       <PlanDialog plan={openPlan} token={token} onClose={() => setOpenPlan(null)} />
@@ -563,32 +641,108 @@ function PublicDashboard() {
 
 function ImpactNetworkPortal({ data }: { data: any }) {
   const [indicatorId, setIndicatorId] = useState("all");
-  const sectorNames = new Map<string, string>((data.sectors ?? []).map((sector: any) => [sector.id, sector.name]));
+  const sectorNames = new Map<string, string>(
+    (data.sectors ?? []).map((sector: any) => [sector.id, sector.name]),
+  );
   const causes = new Map<string, any>((data.causes ?? []).map((row: any) => [row.id, row]));
   const pains = new Map<string, any>((data.pains ?? []).map((row: any) => [row.id, row]));
   const interviews = new Map<string, any>((data.interviews ?? []).map((row: any) => [row.id, row]));
-  const plans = (data.plans ?? []).filter((plan: any) => indicatorId === "all" || plan.indicator_id === indicatorId);
+  const plans = (data.plans ?? []).filter(
+    (plan: any) => indicatorId === "all" || plan.indicator_id === indicatorId,
+  );
   const groups = new Map<string, any[]>();
   for (const plan of plans) {
     const sector = sectorNames.get(plan.sector_id) || plan.sector || "Sem setor definido";
     groups.set(sector, [...(groups.get(sector) ?? []), plan]);
   }
   const completed = plans.filter((plan: any) => plan.status === "concluido").length;
-  const bottlenecks = new Set(plans.flatMap((plan: any) => [plan.root_cause_id, plan.pain_point_id]).filter(Boolean)).size;
+  const bottlenecks = new Set(
+    plans.flatMap((plan: any) => [plan.root_cause_id, plan.pain_point_id]).filter(Boolean),
+  ).size;
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div><h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl"><Network className="h-5 w-5 text-primary" />Efeito Dominó</h2><p className="text-xs text-muted-foreground">Veja o trabalho conectado aos resultados da empresa.</p></div>
-        <Select value={indicatorId} onValueChange={setIndicatorId}><SelectTrigger className="w-full sm:w-72"><SelectValue placeholder="Indicador" /></SelectTrigger><SelectContent><SelectItem value="all">Todos os indicadores</SelectItem>{data.indicators.map((indicator: any) => <SelectItem key={indicator.id} value={indicator.id}>{indicator.name}</SelectItem>)}</SelectContent></Select>
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl">
+            <Network className="h-5 w-5 text-primary" />
+            Efeito Dominó
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Veja o trabalho conectado aos resultados da empresa.
+          </p>
+        </div>
+        <Select value={indicatorId} onValueChange={setIndicatorId}>
+          <SelectTrigger className="w-full sm:w-72">
+            <SelectValue placeholder="Indicador" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os indicadores</SelectItem>
+            {data.indicators.map((indicator: any) => (
+              <SelectItem key={indicator.id} value={indicator.id}>
+                {indicator.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="grid grid-cols-3 gap-2"><MiniImpact label="Frentes" value={groups.size} /><MiniImpact label="Gargalos" value={bottlenecks} /><MiniImpact label="Concluídas" value={completed} /></div>
-      {[...groups.entries()].map(([sector, sectorPlans]) => <Collapsible key={sector} defaultOpen><Card><CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left"><span><span className="block font-semibold">{sector}</span><span className="text-xs text-muted-foreground">{sectorPlans.length} ações conectadas</span></span><ChevronDown className="h-4 w-4" /></CollapsibleTrigger><CollapsibleContent><div className="space-y-3 border-t p-4">{sectorPlans.map((plan: any) => { const cause = causes.get(plan.root_cause_id); const pain = pains.get(plan.pain_point_id); const interview = interviews.get(plan.interview_id || pain?.source_interview_id); return <div key={plan.id} className="border-l-2 border-primary pl-3"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{plan.title}</p><Badge variant="outline">{statusMeta(plan.status).label}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{cause?.problem || pain?.description || "Ação operacional"}{interview?.title ? ` · Origem: ${interview.title}` : ""}</p></div>; })}</div></CollapsibleContent></Card></Collapsible>)}
-      {!groups.size && <Card className="p-6 text-center text-sm text-muted-foreground">Nenhuma ação conectada a este indicador.</Card>}
+      <div className="grid grid-cols-3 gap-2">
+        <MiniImpact label="Frentes" value={groups.size} />
+        <MiniImpact label="Gargalos" value={bottlenecks} />
+        <MiniImpact label="Concluídas" value={completed} />
+      </div>
+      {[...groups.entries()].map(([sector, sectorPlans]) => (
+        <Collapsible key={sector} defaultOpen>
+          <Card>
+            <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left">
+              <span>
+                <span className="block font-semibold">{sector}</span>
+                <span className="text-xs text-muted-foreground">
+                  {sectorPlans.length} ações conectadas
+                </span>
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-3 border-t p-4">
+                {sectorPlans.map((plan: any) => {
+                  const cause = causes.get(plan.root_cause_id);
+                  const pain = pains.get(plan.pain_point_id);
+                  const interview = interviews.get(plan.interview_id || pain?.source_interview_id);
+                  return (
+                    <div key={plan.id} className="border-l-2 border-primary pl-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{plan.title}</p>
+                        <Badge variant="outline">{statusMeta(plan.status).label}</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {cause?.problem || pain?.description || "Ação operacional"}
+                        {interview?.title ? ` · Origem: ${interview.title}` : ""}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      ))}
+      {!groups.size && (
+        <Card className="p-6 text-center text-sm text-muted-foreground">
+          Nenhuma ação conectada a este indicador.
+        </Card>
+      )}
     </section>
   );
 }
 
-function MiniImpact({ label, value }: { label: string; value: number }) { return <Card className="p-3 text-center"><p className="text-xl font-bold text-primary">{value}</p><p className="text-[10px] uppercase text-muted-foreground">{label}</p></Card>; }
+function MiniImpact({ label, value }: { label: string; value: number }) {
+  return (
+    <Card className="p-3 text-center">
+      <p className="text-xl font-bold text-primary">{value}</p>
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+    </Card>
+  );
+}
 
 function SummaryTile({
   icon: Icon,
@@ -610,12 +764,16 @@ function SummaryTile({
   return (
     <Card className="p-3 sm:p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${t[tone]}`}>
+        <div
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${t[tone]}`}
+        >
           <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
         <p className="text-xl font-bold tabular-nums sm:text-2xl">{value}</p>
       </div>
-      <p className="mt-2 text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">{label}</p>
+      <p className="mt-2 text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">
+        {label}
+      </p>
     </Card>
   );
 }
@@ -633,8 +791,7 @@ function IndicatorCard({
 }) {
   const last = collections[collections.length - 1];
   const prev = collections[collections.length - 2];
-  const trend =
-    !last || !prev ? 0 : last.value > prev.value ? 1 : last.value < prev.value ? -1 : 0;
+  const trend = !last || !prev ? 0 : last.value > prev.value ? 1 : last.value < prev.value ? -1 : 0;
 
   const currentValue = last?.value;
   const pct =
@@ -646,8 +803,8 @@ function IndicatorCard({
     last?.evaluation === "critico"
       ? "text-destructive"
       : last?.evaluation === "abaixo_meta"
-      ? "text-amber-600 dark:text-amber-400"
-      : "text-emerald-600 dark:text-emerald-400";
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-emerald-600 dark:text-emerald-400";
 
   const kind = pickChartKind(indicator, collections.length);
 
@@ -670,18 +827,25 @@ function IndicatorCard({
           </p>
           {trend !== 0 && (
             <span className={`ml-auto pb-1 ${trend > 0 ? "text-emerald-600" : "text-destructive"}`}>
-              {trend > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              {trend > 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
             </span>
           )}
           {trend === 0 && last && (
-            <span className="ml-auto pb-1 text-muted-foreground"><Minus className="h-4 w-4" /></span>
+            <span className="ml-auto pb-1 text-muted-foreground">
+              <Minus className="h-4 w-4" />
+            </span>
           )}
         </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           {indicator.target != null && (
             <span className="inline-flex items-center gap-1">
-              <Target className="h-3 w-3" /> Meta {formatValue(Number(indicator.target), indicator.unit)}
+              <Target className="h-3 w-3" /> Meta{" "}
+              {formatValue(Number(indicator.target), indicator.unit)}
             </span>
           )}
           {pct != null && <span className="tabular-nums">· {pct}% atingido</span>}
@@ -693,7 +857,6 @@ function IndicatorCard({
         <div className="mt-3">
           <IndicatorSpark indicator={indicator} collections={collections} height={64} />
         </div>
-
 
         <p className="mt-2 text-[10px] text-muted-foreground">
           {last
@@ -740,7 +903,11 @@ function IndicatorDialog({
             />
             <MiniStat
               label="Meta"
-              value={indicator.target != null ? formatValue(Number(indicator.target), indicator.unit) : "—"}
+              value={
+                indicator.target != null
+                  ? formatValue(Number(indicator.target), indicator.unit)
+                  : "—"
+              }
             />
             <MiniStat label="Atingimento" value={pct != null ? `${pct}%` : "—"} />
             <MiniStat label="Coletas" value={String(collections.length)} />
@@ -764,7 +931,9 @@ function IndicatorDialog({
                   <tr key={c.id} className="border-t">
                     <td className="p-2">{new Date(c.submitted_at).toLocaleDateString("pt-BR")}</td>
                     <td className="p-2 text-muted-foreground">{c.reference_period || "—"}</td>
-                    <td className="p-2 text-right font-medium tabular-nums">{Number(c.value).toLocaleString("pt-BR")}</td>
+                    <td className="p-2 text-right font-medium tabular-nums">
+                      {Number(c.value).toLocaleString("pt-BR")}
+                    </td>
                     <td className="p-2 text-xs">{c.evaluation || "—"}</td>
                   </tr>
                 ))}
@@ -791,9 +960,20 @@ function statusMeta(status: string, due?: string | null, newDue?: string | null)
   today.setHours(0, 0, 0, 0);
   const d = newDue || due;
   const overdue = d ? new Date(d) < today && status !== "concluido" : false;
-  if (status === "concluido") return { label: "Concluído", color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400", icon: CheckCircle2 };
-  if (overdue) return { label: "Atrasado", color: "bg-destructive/15 text-destructive", icon: AlertTriangle };
-  if (status === "em_andamento") return { label: "Em andamento", color: "bg-blue-500/15 text-blue-700 dark:text-blue-400", icon: Clock };
+  if (status === "concluido")
+    return {
+      label: "Concluído",
+      color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+      icon: CheckCircle2,
+    };
+  if (overdue)
+    return { label: "Atrasado", color: "bg-destructive/15 text-destructive", icon: AlertTriangle };
+  if (status === "em_andamento")
+    return {
+      label: "Em andamento",
+      color: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+      icon: Clock,
+    };
   return { label: "Não iniciado", color: "bg-muted text-muted-foreground", icon: Circle };
 }
 
@@ -803,8 +983,10 @@ function gutScore(p: any) {
 
 function gutTier(score: number) {
   if (score >= 75) return { label: "Crítica", color: "bg-destructive/15 text-destructive" };
-  if (score >= 40) return { label: "Alta", color: "bg-orange-500/15 text-orange-700 dark:text-orange-400" };
-  if (score >= 15) return { label: "Média", color: "bg-amber-500/15 text-amber-700 dark:text-amber-400" };
+  if (score >= 40)
+    return { label: "Alta", color: "bg-orange-500/15 text-orange-700 dark:text-orange-400" };
+  if (score >= 15)
+    return { label: "Média", color: "bg-amber-500/15 text-amber-700 dark:text-amber-400" };
   return { label: "Baixa", color: "bg-muted text-muted-foreground" };
 }
 
@@ -841,7 +1023,10 @@ function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
   ].filter(Boolean) as string[];
   return (
     <li>
-      <button onClick={onOpen} className="flex w-full items-center gap-2 p-3 text-left transition-colors hover:bg-muted/50 active:bg-muted">
+      <button
+        onClick={onOpen}
+        className="flex w-full items-center gap-2 p-3 text-left transition-colors hover:bg-muted/50 active:bg-muted"
+      >
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium leading-snug">{plan.title}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -850,7 +1035,11 @@ function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
             </Badge>
             {plan.demand_type && (
               <Badge variant="secondary" className="font-medium">
-                {plan.demand_type === "negocio" ? "Negócio" : plan.demand_type === "pessoas" ? "Pessoas" : "Processo"}
+                {plan.demand_type === "negocio"
+                  ? "Negócio"
+                  : plan.demand_type === "pessoas"
+                    ? "Pessoas"
+                    : "Processo"}
               </Badge>
             )}
             <Badge variant="outline" className={gutTier(gutScore(plan)).color}>
@@ -869,15 +1058,7 @@ function PlanRow({ plan, onOpen }: { plan: any; onOpen: () => void }) {
   );
 }
 
-function PlanDialog({
-  plan,
-  token,
-  onClose,
-}: {
-  plan: any;
-  token: string;
-  onClose: () => void;
-}) {
+function PlanDialog({ plan, token, onClose }: { plan: any; token: string; onClose: () => void }) {
   const fetcher = useServerFn(getPublicPlanDetails);
   const { data } = useQuery({
     queryKey: ["public-plan", token, plan?.id],
@@ -895,12 +1076,17 @@ function PlanDialog({
           <div className="grid gap-2 sm:grid-cols-2">
             {plan.problem && <Field label="Problema" value={plan.problem} />}
             {plan.cause && <Field label="Causa" value={plan.cause} />}
-            {plan.expected_result && <Field label="Resultado esperado" value={plan.expected_result} />}
+            {plan.expected_result && (
+              <Field label="Resultado esperado" value={plan.expected_result} />
+            )}
             {plan.observations && <Field label="Observações" value={plan.observations} />}
             {plan.responsible && <Field label="Responsável" value={plan.responsible} />}
             {plan.category && <Field label="Categoria" value={plan.category} />}
             {plan.priority && <Field label="Prioridade" value={plan.priority} />}
-            <Field label="Status" value={statusMeta(plan.status, plan.due_date, plan.new_due_date).label} />
+            <Field
+              label="Status"
+              value={statusMeta(plan.status, plan.due_date, plan.new_due_date).label}
+            />
             {(plan.due_date || plan.new_due_date) && (
               <Field
                 label="Prazo"
@@ -911,14 +1097,28 @@ function PlanDialog({
 
           {Array.isArray(plan.evidences) && plan.evidences.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Evidências</p>
+              <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                Evidências
+              </p>
               <ul className="space-y-1">
                 {plan.evidences.map((e: any, k: number) => (
                   <li key={k} className="text-xs">
                     {typeof e === "string" ? (
-                      <a href={e} target="_blank" rel="noreferrer" className="text-primary underline">{e}</a>
+                      <a
+                        href={e}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline"
+                      >
+                        {e}
+                      </a>
                     ) : e?.url ? (
-                      <a href={e.url} target="_blank" rel="noreferrer" className="text-primary underline">
+                      <a
+                        href={e.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline"
+                      >
                         {e.name || e.url}
                       </a>
                     ) : (
@@ -949,7 +1149,9 @@ function PlanDialog({
                     ) : (
                       <p className="text-sm">
                         <span className="font-medium">{h.field}:</span>{" "}
-                        <span className="text-muted-foreground line-through">{h.old_value ?? "—"}</span>{" "}
+                        <span className="text-muted-foreground line-through">
+                          {h.old_value ?? "—"}
+                        </span>{" "}
                         → <span>{h.new_value ?? "—"}</span>
                       </p>
                     )}
@@ -967,7 +1169,9 @@ function PlanDialog({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
       <p className="text-sm">{value}</p>
     </div>
   );

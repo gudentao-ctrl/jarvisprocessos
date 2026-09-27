@@ -51,7 +51,10 @@ function condense(text: string, max: number): string {
 }
 
 function extractJson(raw: string): any {
-  const s = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const s = raw
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
   try {
     return JSON.parse(s);
   } catch {
@@ -86,7 +89,6 @@ async function callAi(user: string): Promise<string> {
   throw lastErr ?? new Error("Falha IA");
 }
 
-
 export const optimizeProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ process_id: z.string().uuid() }).parse(d))
@@ -94,46 +96,84 @@ export const optimizeProcess = createServerFn({ method: "POST" })
     const sb = context.supabase;
     const pid = data.process_id;
 
-    const [{ data: proc }, { data: acts }, { data: conns }, { data: decs }, { data: inds }, { data: cronos }] = await Promise.all([
-      sb.from("processes").select("id, name, objective, description, responsible, inputs, outputs").eq("id", pid).single(),
+    const [
+      { data: proc },
+      { data: acts },
+      { data: conns },
+      { data: decs },
+      { data: inds },
+      { data: cronos },
+    ] = await Promise.all([
+      sb
+        .from("processes")
+        .select("id, name, objective, description, responsible, inputs, outputs")
+        .eq("id", pid)
+        .single(),
       sb.from("process_activities").select("*").eq("process_id", pid).order("ordering"),
       sb.from("activity_connections").select("*").eq("process_id", pid).order("order_index"),
       sb.from("process_decisions").select("*"),
       sb.from("indicators").select("name, unit, target, direction").eq("process_id", pid).limit(30),
-      sb.from("cronoanalysis_sessions").select("production_line, product, cycle_time_seconds, observation_date").eq("process_id", pid).limit(20),
+      sb
+        .from("cronoanalysis_sessions")
+        .select("production_line, product, cycle_time_seconds, observation_date")
+        .eq("process_id", pid)
+        .limit(20),
     ]);
 
     if (!proc) throw new Error("Processo não encontrado");
     const activities = acts ?? [];
     const idToTitle = new Map<string, string>(activities.map((a: any) => [a.id, a.title]));
 
-    const flowText = activities.map((a: any, i: number) => {
-      const outs = (conns ?? []).filter((c) => c.from_activity_id === a.id).map((c) =>
-        `→ ${idToTitle.get(c.to_activity_id) ?? "?"}${c.label ? ` [${c.label}]` : ""}${c.type !== "sequential" ? ` (${c.type})` : ""}`,
-      ).join("  ");
-      const dq = (decs ?? []).find((d) => d.activity_id === a.id)?.question;
-      const meta = [
-        a.responsible && `resp:${a.responsible}`,
-        a.time_minutes && `${a.time_minutes}min`,
-        a.problems && `problemas:${a.problems}`,
-      ].filter(Boolean).join(" · ");
-      return `${i + 1}. [${a.type}] ${a.title}${dq ? ` ?${dq}` : ""}${meta ? ` — ${meta}` : ""}${outs ? `\n   ${outs}` : ""}`;
-    }).join("\n");
+    const flowText = activities
+      .map((a: any, i: number) => {
+        const outs = (conns ?? [])
+          .filter((c) => c.from_activity_id === a.id)
+          .map(
+            (c) =>
+              `→ ${idToTitle.get(c.to_activity_id) ?? "?"}${c.label ? ` [${c.label}]` : ""}${c.type !== "sequential" ? ` (${c.type})` : ""}`,
+          )
+          .join("  ");
+        const dq = (decs ?? []).find((d) => d.activity_id === a.id)?.question;
+        const meta = [
+          a.responsible && `resp:${a.responsible}`,
+          a.time_minutes && `${a.time_minutes}min`,
+          a.problems && `problemas:${a.problems}`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        return `${i + 1}. [${a.type}] ${a.title}${dq ? ` ?${dq}` : ""}${meta ? ` — ${meta}` : ""}${outs ? `\n   ${outs}` : ""}`;
+      })
+      .join("\n");
 
-    const indsText = (inds ?? []).map((i: any) => `- ${i.name}${i.unit ? ` (${i.unit})` : ""}${i.target != null ? ` meta:${i.target}` : ""}`).join("\n");
-    const cronoText = (cronos ?? []).map((c: any) => `- ${c.production_line ?? ""} ${c.product ?? ""} tc:${c.cycle_time_seconds ?? "-"}s`).join("\n");
+    const indsText = (inds ?? [])
+      .map(
+        (i: any) =>
+          `- ${i.name}${i.unit ? ` (${i.unit})` : ""}${i.target != null ? ` meta:${i.target}` : ""}`,
+      )
+      .join("\n");
+    const cronoText = (cronos ?? [])
+      .map(
+        (c: any) =>
+          `- ${c.production_line ?? ""} ${c.product ?? ""} tc:${c.cycle_time_seconds ?? "-"}s`,
+      )
+      .join("\n");
 
-    const userMsg = condense([
-      `PROCESSO: ${proc.name}`,
-      proc.objective ? `Objetivo: ${condense(proc.objective, 1000)}` : "",
-      proc.description ? `Descrição: ${condense(proc.description, 1500)}` : "",
-      "",
-      "ATIVIDADES E FLUXO:",
-      condense(flowText, 12000) || "(nenhuma)",
-      indsText ? `\nINDICADORES:\n${condense(indsText, 1500)}` : "",
-      cronoText ? `\nCRONOANÁLISE:\n${condense(cronoText, 1500)}` : "",
-      "\nRetorne no máximo 12 achados, os mais relevantes.",
-    ].filter(Boolean).join("\n"), 18000);
+    const userMsg = condense(
+      [
+        `PROCESSO: ${proc.name}`,
+        proc.objective ? `Objetivo: ${condense(proc.objective, 1000)}` : "",
+        proc.description ? `Descrição: ${condense(proc.description, 1500)}` : "",
+        "",
+        "ATIVIDADES E FLUXO:",
+        condense(flowText, 12000) || "(nenhuma)",
+        indsText ? `\nINDICADORES:\n${condense(indsText, 1500)}` : "",
+        cronoText ? `\nCRONOANÁLISE:\n${condense(cronoText, 1500)}` : "",
+        "\nRetorne no máximo 12 achados, os mais relevantes.",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      18000,
+    );
 
     const raw = await callAi(userMsg);
     let parsed: z.infer<typeof OptimizeResult>;
@@ -151,11 +191,15 @@ export const optimizeProcess = createServerFn({ method: "POST" })
  * depois no próprio TO BE. */
 export const createToBeVersionFromFindings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    process_id: z.string().uuid(),
-    label: z.string().default("TO BE — Otimização IA"),
-    notes: z.string().default(""),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        process_id: z.string().uuid(),
+        label: z.string().default("TO BE — Otimização IA"),
+        notes: z.string().default(""),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const [{ data: proc }, { data: acts }, { data: conns }, { data: decs }] = await Promise.all([
@@ -165,22 +209,28 @@ export const createToBeVersionFromFindings = createServerFn({ method: "POST" })
       sb.from("process_decisions").select("*"),
     ]);
     const { count } = await sb
-      .from("process_versions").select("*", { count: "exact", head: true }).eq("process_id", data.process_id);
+      .from("process_versions")
+      .select("*", { count: "exact", head: true })
+      .eq("process_id", data.process_id);
     const version_no = (count ?? 0) + 1;
-    const { data: row, error } = await sb.from("process_versions").insert({
-      process_id: data.process_id,
-      version_no,
-      kind: "to_be",
-      label: data.label,
-      notes: data.notes,
-      snapshot: {
-        process: proc,
-        activities: acts ?? [],
-        connections: conns ?? [],
-        decisions: decs ?? [],
-      },
-      created_by: context.userId,
-    }).select().single();
+    const { data: row, error } = await sb
+      .from("process_versions")
+      .insert({
+        process_id: data.process_id,
+        version_no,
+        kind: "to_be",
+        label: data.label,
+        notes: data.notes,
+        snapshot: {
+          process: proc,
+          activities: acts ?? [],
+          connections: conns ?? [],
+          decisions: decs ?? [],
+        },
+        created_by: context.userId,
+      })
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });

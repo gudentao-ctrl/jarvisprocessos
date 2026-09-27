@@ -5,10 +5,12 @@ import { z } from "zod";
 export const listIndicatorStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      project_id: z.string().uuid().optional(),
-      company_id: z.string().uuid().optional(),
-    }).parse(d ?? {}),
+    z
+      .object({
+        project_id: z.string().uuid().optional(),
+        company_id: z.string().uuid().optional(),
+      })
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     let q = context.supabase.from("v_indicator_status").select("*").order("name");
@@ -21,9 +23,7 @@ export const listIndicatorStatus = createServerFn({ method: "GET" })
 
 export const listCollections = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ indicator_id: z.string().uuid() }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ indicator_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("indicator_collections")
@@ -38,24 +38,30 @@ export const listCollections = createServerFn({ method: "GET" })
 export const updateIndicatorPublicSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid(),
-      target: z.number().nullable().optional(),
-      critical_min: z.number().nullable().optional(),
-      critical_max: z.number().nullable().optional(),
-      direction: z.enum(["higher_better", "lower_better"]).optional(),
-      frequency: z.string().optional(),
-      unit: z.string().optional(),
-      responsible_name: z.string().optional(),
-      responsible_email: z.string().optional(),
-      instructions: z.string().optional(),
-      description: z.string().optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid(),
+        target: z.number().nullable().optional(),
+        critical_min: z.number().nullable().optional(),
+        critical_max: z.number().nullable().optional(),
+        direction: z.enum(["higher_better", "lower_better"]).optional(),
+        frequency: z.string().optional(),
+        unit: z.string().optional(),
+        responsible_name: z.string().optional(),
+        responsible_email: z.string().optional(),
+        instructions: z.string().optional(),
+        description: z.string().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { id, ...patch } = data;
     const { data: row, error } = await context.supabase
-      .from("indicators").update(patch).eq("id", id).select().single();
+      .from("indicators")
+      .update(patch)
+      .eq("id", id)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -68,9 +74,15 @@ export const regenerateIndicatorToken = createServerFn({ method: "POST" })
     const bytes = new Uint8Array(12);
     crypto.getRandomValues(bytes);
     const b64 = btoa(String.fromCharCode(...bytes))
-      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
     const { data: row, error } = await context.supabase
-      .from("indicators").update({ public_token: b64 }).eq("id", data.id).select("id, public_token").single();
+      .from("indicators")
+      .update({ public_token: b64 })
+      .eq("id", data.id)
+      .select("id, public_token")
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -82,23 +94,31 @@ export const getIndicator = createServerFn({ method: "GET" })
     const { data: row, error } = await context.supabase
       .from("indicators")
       .select("*, companies(name), processes(name)")
-      .eq("id", data.id).single();
+      .eq("id", data.id)
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
 
 export const createCollection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    indicator_id: z.string().uuid(),
-    value: z.number(),
-    reference_period: z.string().optional().default(""),
-    observation: z.string().optional().default(""),
-    submitted_by_name: z.string().optional().default(""),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        indicator_id: z.string().uuid(),
+        value: z.number(),
+        reference_period: z.string().optional().default(""),
+        observation: z.string().optional().default(""),
+        submitted_by_name: z.string().optional().default(""),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
-      .from("indicator_collections").insert(data).select().single();
+      .from("indicator_collections")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -107,7 +127,10 @@ export const deleteCollection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("indicator_collections").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("indicator_collections")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -141,7 +164,9 @@ async function requireIndicatorTokenAccess(sb: any, userId: string, token: strin
       .maybeSingle();
     if (membershipError) throw new Error(membershipError.message);
     if (membership?.permissions?.indicadores !== true) {
-      throw new Error("Seu acesso à coleta de indicadores desta empresa não foi liberado pelo SuperAdmin.");
+      throw new Error(
+        "Seu acesso à coleta de indicadores desta empresa não foi liberado pelo SuperAdmin.",
+      );
     }
   }
 
@@ -158,16 +183,21 @@ export const getIndicatorByAccessToken = createServerFn({ method: "GET" })
 
 export const createCollectionByAccessToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    token: z.string().min(8).max(64),
-    value: z.number().finite(),
-    reference_period: z.string().max(20).optional().default(""),
-    observation: z.string().max(2000).optional().default(""),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        token: z.string().min(8).max(64),
+        value: z.number().finite(),
+        reference_period: z.string().max(20).optional().default(""),
+        observation: z.string().max(2000).optional().default(""),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const result = await requireIndicatorTokenAccess(context.supabase, context.userId, data.token);
     if (!result) throw new Error("Indicador não encontrado.");
-    const submittedBy = result.profile.full_name?.trim() || result.profile.email || "Usuário autenticado";
+    const submittedBy =
+      result.profile.full_name?.trim() || result.profile.email || "Usuário autenticado";
     const { data: row, error } = await context.supabase
       .from("indicator_collections")
       .insert({

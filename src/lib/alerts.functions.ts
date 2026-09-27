@@ -40,21 +40,26 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
 
     const [indStatus, plans, intvs, upcoming] = await Promise.all([
       scope(
-        sb.from("v_indicator_status").select("id, name, code, status, last_value, target, unit, company_id, project_id"),
+        sb
+          .from("v_indicator_status")
+          .select("id, name, code, status, last_value, target, unit, company_id, project_id"),
       ) as any,
       scope(
-        sb.from("action_plans")
+        sb
+          .from("action_plans")
           .select("id, title, due_date, status, responsible, company_id, project_id")
           .neq("status", "concluido")
           .not("due_date", "is", null),
       ) as any,
       scope(
-        sb.from("interviews")
+        sb
+          .from("interviews")
           .select("id, title, generation_status, status, interview_date, company_id, project_id")
           .in("generation_status", ["pending", "processing", "failed"]),
       ) as any,
       scope(
-        sb.from("interviews")
+        sb
+          .from("interviews")
           .select("id, title, interview_date, participant, status, company_id, project_id")
           .gte("interview_date", todayISO)
           .order("interview_date", { ascending: true })
@@ -125,7 +130,6 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
       }
     }
 
-
     for (const iv of intvs.data ?? []) {
       alerts.push({
         id: `intv-${iv.id}`,
@@ -163,7 +167,9 @@ export const getProjectAlerts = createServerFn({ method: "GET" })
 
     const highlights = {
       sem_coleta: indicatorRows.filter((i: any) => i.status === "sem_coleta").length,
-      abaixo_meta: indicatorRows.filter((i: any) => i.status === "abaixo_meta" || i.status === "critico").length,
+      abaixo_meta: indicatorRows.filter(
+        (i: any) => i.status === "abaixo_meta" || i.status === "critico",
+      ).length,
       planos_atrasados: planRows.filter((p: any) => p.due_date && p.due_date < todayISO).length,
       reunioes_marcadas: upcomingRows.length,
     };

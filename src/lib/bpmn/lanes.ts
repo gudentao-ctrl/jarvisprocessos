@@ -70,11 +70,17 @@ export function computeLanes(g: FlowGraph): Lanes {
           : g.nodes.get(a.id)!.ins.map((c) => c.from_activity_id);
       for (const nid of neighbors) {
         const nk = keyOf(nid);
-        if (nk) { k = nk; break; }
+        if (nk) {
+          k = nk;
+          break;
+        }
       }
       if (!k) k = order[0];
     }
-    if (!members.has(k)) { members.set(k, []); order.push(k); }
+    if (!members.has(k)) {
+      members.set(k, []);
+      order.push(k);
+    }
     members.get(k)!.push(a.id);
     laneOf.set(a.id, k);
   }

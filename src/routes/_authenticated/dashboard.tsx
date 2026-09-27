@@ -33,18 +33,30 @@ function DashboardPage() {
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Concluídos</p>
-          <p className="text-2xl font-bold tabular-nums">{projects?.filter((p: any) => p.status === "concluido").length ?? 0}</p>
+          <p className="text-2xl font-bold tabular-nums">
+            {projects?.filter((p: any) => p.status === "concluido").length ?? 0}
+          </p>
         </Card>
       </div>
 
       <Card className="p-4">
         <h2 className="mb-3 font-semibold">Projetos em andamento</h2>
         {active.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum projeto em andamento. <Link to="/projetos" className="text-primary underline">Ver todos</Link></p>
+          <p className="text-sm text-muted-foreground">
+            Nenhum projeto em andamento.{" "}
+            <Link to="/projetos" className="text-primary underline">
+              Ver todos
+            </Link>
+          </p>
         ) : (
           <div className="space-y-2">
             {active.map((p: any) => (
-              <Link key={p.id} to="/projetos/$id" params={{ id: p.id }} className="flex items-center justify-between rounded-md border p-3 hover:bg-secondary/50">
+              <Link
+                key={p.id}
+                to="/projetos/$id"
+                params={{ id: p.id }}
+                className="flex items-center justify-between rounded-md border p-3 hover:bg-secondary/50"
+              >
                 <div className="min-w-0 flex items-center gap-2">
                   <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">

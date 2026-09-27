@@ -13,7 +13,6 @@ export const TOOLS = [
   { key: "chamados", label: "Chamados" },
 ] as const;
 
-
 export type ToolKey = (typeof TOOLS)[number]["key"];
 export const MEMBER_ROLES = ["gestor", "consultor", "cliente"] as const;
 
@@ -33,9 +32,15 @@ export type Me = {
 
 const personalDataSchema = z.object({
   full_name: z.string().trim().min(3, "Informe o nome completo").max(120),
-  cpf: z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => value.length === 11, "CPF inválido"),
+  cpf: z
+    .string()
+    .transform((value) => value.replace(/\D/g, ""))
+    .refine((value) => value.length === 11, "CPF inválido"),
   birth_date: z.string().date("Data de nascimento inválida"),
-  whatsapp: z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => value.length >= 10 && value.length <= 13, "WhatsApp inválido"),
+  whatsapp: z
+    .string()
+    .transform((value) => value.replace(/\D/g, ""))
+    .refine((value) => value.length >= 10 && value.length <= 13, "WhatsApp inválido"),
 });
 
 async function assertSuperadmin(sb: any, userId?: string) {
@@ -62,12 +67,15 @@ export const getMe = createServerFn({ method: "GET" })
 
     const claims: any = context.claims ?? {};
     const email: string | null = profile?.email ?? claims.email ?? null;
-    const metaName: string =
-      claims.user_metadata?.full_name || claims.user_metadata?.name || "";
+    const metaName: string = claims.user_metadata?.full_name || claims.user_metadata?.name || "";
     const fullName =
       (profile?.full_name && String(profile.full_name).trim()) ||
       (metaName && String(metaName).trim()) ||
-      (email ? String(email).split("@")[0].replace(/[._-]+/g, " ") : "");
+      (email
+        ? String(email)
+            .split("@")[0]
+            .replace(/[._-]+/g, " ")
+        : "");
 
     if (!profile?.full_name && fullName) {
       await sb.from("profiles").update({ full_name: fullName }).eq("user_id", context.userId);
@@ -142,16 +150,21 @@ export const adminListUsers = createServerFn({ method: "GET" })
 export const adminSetUserStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      user_id: z.string().uuid(),
-      status: z.enum(["pending", "active", "rejected"]),
-      request_id: z.string().uuid().optional(),
-    }).parse(d),
+    z
+      .object({
+        user_id: z.string().uuid(),
+        status: z.enum(["pending", "active", "rejected"]),
+        request_id: z.string().uuid().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const { error } = await sb.from("profiles").update({ status: data.status }).eq("user_id", data.user_id);
+    const { error } = await sb
+      .from("profiles")
+      .update({ status: data.status })
+      .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
 
     if (data.request_id) {
@@ -178,27 +191,27 @@ export const adminSetUserStatus = createServerFn({ method: "POST" })
 export const adminSaveMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      user_id: z.string().uuid(),
-      company_id: z.string().uuid(),
-      member_role: z.enum(MEMBER_ROLES),
-      permissions: z.record(z.string(), z.boolean()).default({}),
-    }).parse(d),
+    z
+      .object({
+        user_id: z.string().uuid(),
+        company_id: z.string().uuid(),
+        member_role: z.enum(MEMBER_ROLES),
+        permissions: z.record(z.string(), z.boolean()).default({}),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const { error } = await sb
-      .from("company_members")
-      .upsert(
-        {
-          user_id: data.user_id,
-          company_id: data.company_id,
-          member_role: data.member_role,
-          permissions: data.permissions,
-        },
-        { onConflict: "user_id,company_id" },
-      );
+    const { error } = await sb.from("company_members").upsert(
+      {
+        user_id: data.user_id,
+        company_id: data.company_id,
+        member_role: data.member_role,
+        permissions: data.permissions,
+      },
+      { onConflict: "user_id,company_id" },
+    );
     if (error) throw new Error(error.message);
 
     await sb.from("audit_log").insert({
@@ -206,7 +219,11 @@ export const adminSaveMember = createServerFn({ method: "POST" })
       action: "member_permissions_change",
       entity: "company_members",
       company_id: data.company_id,
-      details: { user_id: data.user_id, member_role: data.member_role, permissions: data.permissions },
+      details: {
+        user_id: data.user_id,
+        member_role: data.member_role,
+        permissions: data.permissions,
+      },
     });
     return { ok: true };
   });
@@ -250,10 +267,14 @@ export const adminListAudit = createServerFn({ method: "GET" })
 
 export const adminUpdateUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => personalDataSchema.extend({
-    user_id: z.string().uuid(),
-    email: z.string().trim().email("E-mail inválido"),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    personalDataSchema
+      .extend({
+        user_id: z.string().uuid(),
+        email: z.string().trim().email("E-mail inválido"),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
@@ -267,17 +288,25 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
       ...(current.email !== data.email ? { email: data.email, email_confirm: true } : {}),
-      user_metadata: { full_name: data.full_name, cpf: data.cpf, birth_date: data.birth_date, whatsapp: data.whatsapp },
+      user_metadata: {
+        full_name: data.full_name,
+        cpf: data.cpf,
+        birth_date: data.birth_date,
+        whatsapp: data.whatsapp,
+      },
     });
     if (authError) throw new Error(authError.message);
 
-    const { error } = await sb.from("profiles").update({
-      email: data.email,
-      full_name: data.full_name,
-      cpf: data.cpf,
-      birth_date: data.birth_date,
-      whatsapp: data.whatsapp,
-    }).eq("user_id", data.user_id);
+    const { error } = await sb
+      .from("profiles")
+      .update({
+        email: data.email,
+        full_name: data.full_name,
+        cpf: data.cpf,
+        birth_date: data.birth_date,
+        whatsapp: data.whatsapp,
+      })
+      .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
 
     await sb.from("audit_log").insert({
@@ -292,10 +321,14 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
 
 export const adminCreateUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => personalDataSchema.extend({
-    email: z.string().trim().email("E-mail inválido"),
-    password: z.string().min(8, "A senha temporária deve ter pelo menos 8 caracteres").max(72),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    personalDataSchema
+      .extend({
+        email: z.string().trim().email("E-mail inválido"),
+        password: z.string().min(8, "A senha temporária deve ter pelo menos 8 caracteres").max(72),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
@@ -311,15 +344,19 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         whatsapp: data.whatsapp,
       },
     });
-    if (error || !created.user) throw new Error(error?.message ?? "Não foi possível criar o usuário");
-    const { error: profileError } = await sb.from("profiles").update({
-      email: data.email,
-      full_name: data.full_name,
-      cpf: data.cpf,
-      birth_date: data.birth_date,
-      whatsapp: data.whatsapp,
-      status: "active",
-    }).eq("user_id", created.user.id);
+    if (error || !created.user)
+      throw new Error(error?.message ?? "Não foi possível criar o usuário");
+    const { error: profileError } = await sb
+      .from("profiles")
+      .update({
+        email: data.email,
+        full_name: data.full_name,
+        cpf: data.cpf,
+        birth_date: data.birth_date,
+        whatsapp: data.whatsapp,
+        status: "active",
+      })
+      .eq("user_id", created.user.id);
     if (profileError) throw new Error(profileError.message);
     await sb.from("audit_log").insert({
       actor_id: context.userId,
@@ -333,21 +370,33 @@ export const adminCreateUser = createServerFn({ method: "POST" })
 
 export const adminSendPasswordReset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    user_id: z.string().uuid(),
-    email: z.string().email(),
-    redirect_to: z.string().url(),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        email: z.string().email(),
+        redirect_to: z.string().url(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
     const resetUrl = new URL(data.redirect_to);
-    const isAllowedHost = resetUrl.hostname === "localhost" || resetUrl.hostname.endsWith(".lovable.app");
-    if (!isAllowedHost || resetUrl.pathname !== "/auth") throw new Error("Endereço de recuperação inválido");
-    const { data: profile } = await sb.from("profiles").select("email").eq("user_id", data.user_id).single();
+    const isAllowedHost =
+      resetUrl.hostname === "localhost" || resetUrl.hostname.endsWith(".lovable.app");
+    if (!isAllowedHost || resetUrl.pathname !== "/auth")
+      throw new Error("Endereço de recuperação inválido");
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("email")
+      .eq("user_id", data.user_id)
+      .single();
     if (!profile || profile.email !== data.email) throw new Error("Usuário ou e-mail inválido");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, { redirectTo: data.redirect_to });
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, {
+      redirectTo: data.redirect_to,
+    });
     if (error) throw new Error(error.message);
     await sb.from("audit_log").insert({
       actor_id: context.userId,
@@ -365,9 +414,15 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    if (data.user_id === context.userId) throw new Error("O SuperAdmin não pode excluir a própria conta");
-    const { data: target } = await sb.from("profiles").select("is_superadmin, email").eq("user_id", data.user_id).single();
-    if (!target || target.is_superadmin) throw new Error("Uma conta SuperAdmin não pode ser excluída aqui");
+    if (data.user_id === context.userId)
+      throw new Error("O SuperAdmin não pode excluir a própria conta");
+    const { data: target } = await sb
+      .from("profiles")
+      .select("is_superadmin, email")
+      .eq("user_id", data.user_id)
+      .single();
+    if (!target || target.is_superadmin)
+      throw new Error("Uma conta SuperAdmin não pode ser excluída aqui");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     if (error) throw new Error(error.message);

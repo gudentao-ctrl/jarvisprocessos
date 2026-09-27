@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { optimizeProcess, createToBeVersionFromFindings } from "@/lib/flow-optimize.functions";
@@ -61,7 +65,12 @@ export function FlowOptimizePanel({ processId }: { processId: string }) {
   async function applyAsToBe() {
     setApplying(true);
     try {
-      const notes = [summary, ...findings.map((f) => `• [${CATEGORY_LABEL[f.category] ?? f.category}] ${f.title}: ${f.suggestion}`)].join("\n");
+      const notes = [
+        summary,
+        ...findings.map(
+          (f) => `• [${CATEGORY_LABEL[f.category] ?? f.category}] ${f.title}: ${f.suggestion}`,
+        ),
+      ].join("\n");
       await createToBeVersionFromFindings({
         data: { process_id: processId, label: "TO BE — Otimização IA", notes },
       });
@@ -77,7 +86,11 @@ export function FlowOptimizePanel({ processId }: { processId: string }) {
   return (
     <>
       <Button size="sm" variant="outline" onClick={run} disabled={busy}>
-        {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+        {busy ? (
+          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+        ) : (
+          <Sparkles className="h-4 w-4 mr-1" />
+        )}
         Otimizar Processo
       </Button>
 
@@ -92,31 +105,44 @@ export function FlowOptimizePanel({ processId }: { processId: string }) {
           <div className="space-y-2 mt-2">
             {findings.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Nenhum achado identificado.</p>
-            ) : findings.map((f, i) => (
-              <Card key={i} className="p-3 space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-[10px]">{CATEGORY_LABEL[f.category] ?? f.category}</Badge>
-                  <Badge className={`text-[10px] border ${IMPACT_COLOR[f.impact] ?? IMPACT_COLOR.medio}`} variant="outline">
-                    impacto {f.impact}
-                  </Badge>
-                  <p className="text-sm font-semibold">{f.title}</p>
-                </div>
-                {f.activity_titles.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Atividades: {f.activity_titles.join(", ")}
-                  </p>
-                )}
-                <p className="text-xs">{f.description}</p>
-                <div className="text-xs bg-primary/5 border-l-2 border-primary pl-2 py-1 rounded">
-                  <span className="font-semibold">Sugestão:</span> {f.suggestion}
-                </div>
-              </Card>
-            ))}
+            ) : (
+              findings.map((f, i) => (
+                <Card key={i} className="p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-[10px]">
+                      {CATEGORY_LABEL[f.category] ?? f.category}
+                    </Badge>
+                    <Badge
+                      className={`text-[10px] border ${IMPACT_COLOR[f.impact] ?? IMPACT_COLOR.medio}`}
+                      variant="outline"
+                    >
+                      impacto {f.impact}
+                    </Badge>
+                    <p className="text-sm font-semibold">{f.title}</p>
+                  </div>
+                  {f.activity_titles.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Atividades: {f.activity_titles.join(", ")}
+                    </p>
+                  )}
+                  <p className="text-xs">{f.description}</p>
+                  <div className="text-xs bg-primary/5 border-l-2 border-primary pl-2 py-1 rounded">
+                    <span className="font-semibold">Sugestão:</span> {f.suggestion}
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Fechar
+            </Button>
             <Button onClick={applyAsToBe} disabled={applying || findings.length === 0}>
-              {applying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              {applying ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+              )}
               Salvar como versão TO BE
             </Button>
           </DialogFooter>

@@ -18,7 +18,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LifeBuoy, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,9 +32,15 @@ export const Route = createFileRoute("/_authenticated/chamados/")({
   head: () => ({
     meta: [
       { title: "Chamados internos — JARVIS" },
-      { name: "description", content: "Solicitações de melhorias e registro de erros internos no JARVIS." },
+      {
+        name: "description",
+        content: "Solicitações de melhorias e registro de erros internos no JARVIS.",
+      },
       { property: "og:title", content: "Chamados internos — JARVIS" },
-      { property: "og:description", content: "Solicitações de melhorias e registro de erros internos no JARVIS." },
+      {
+        property: "og:description",
+        content: "Solicitações de melhorias e registro de erros internos no JARVIS.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -137,7 +149,9 @@ function TicketsPage() {
       </Card>
 
       <div className="space-y-2">
-        {isLoading && <Card className="p-6 text-center text-sm text-muted-foreground">Carregando…</Card>}
+        {isLoading && (
+          <Card className="p-6 text-center text-sm text-muted-foreground">Carregando…</Card>
+        )}
         {!isLoading && tickets.length === 0 && (
           <Card className="p-6 text-center text-sm text-muted-foreground">
             Você ainda não abriu chamados.

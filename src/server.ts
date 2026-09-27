@@ -22,7 +22,8 @@ function isAbortError(error: unknown): boolean {
   if (!error) return false;
   const e = error as { name?: string; code?: string; message?: string; cause?: unknown };
   if (e.name === "AbortError" || e.code === "ECONNRESET" || e.code === "ABORT_ERR") return true;
-  if (typeof e.message === "string" && /aborted|ECONNRESET|socket hang up/i.test(e.message)) return true;
+  if (typeof e.message === "string" && /aborted|ECONNRESET|socket hang up/i.test(e.message))
+    return true;
   if (e.cause && e.cause !== error) return isAbortError(e.cause);
   return false;
 }

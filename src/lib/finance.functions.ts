@@ -58,8 +58,11 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
       pq = pq.eq("project_id", data.project_id);
     }
 
-    const [{ data: hours, error: he }, { data: invoices, error: ie }, { data: payments, error: pe }] =
-      await Promise.all([hq, iq, pq]);
+    const [
+      { data: hours, error: he },
+      { data: invoices, error: ie },
+      { data: payments, error: pe },
+    ] = await Promise.all([hq, iq, pq]);
     if (he) throw new Error(he.message);
     if (ie) throw new Error(ie.message);
     if (pe) throw new Error(pe.message);
@@ -83,14 +86,15 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
         if (match) managerNote = match[1];
       }
 
-      const rowHours = note?.adjusted_hours !== undefined ? Number(note.adjusted_hours) : Number(r.hours);
+      const rowHours =
+        note?.adjusted_hours !== undefined ? Number(note.adjusted_hours) : Number(r.hours);
 
       const isRemun =
         note?.adjusted_remunerated !== undefined
           ? note.adjusted_remunerated
           : r.is_remunerated !== undefined && r.is_remunerated !== null
-          ? r.is_remunerated
-          : !r.notes?.includes("[NAO_REMUNERADA]");
+            ? r.is_remunerated
+            : !r.notes?.includes("[NAO_REMUNERADA]");
 
       let companyId = r.company_id;
       let companyObj = r.companies;
@@ -102,7 +106,11 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
       }
 
       let rawExps = r.work_hour_expenses ?? [];
-      if (note?.adjusted_expenses && Array.isArray(note.adjusted_expenses) && note.adjusted_expenses.length > 0) {
+      if (
+        note?.adjusted_expenses &&
+        Array.isArray(note.adjusted_expenses) &&
+        note.adjusted_expenses.length > 0
+      ) {
         rawExps = note.adjusted_expenses;
       }
 
@@ -381,9 +389,7 @@ export const getBilledReport = createServerFn({ method: "GET" })
 
     const { data: company } = await sb
       .from("companies")
-      .select(
-        "id, name, public_title, public_company_logo_url, public_consultancy_logo_url",
-      )
+      .select("id, name, public_title, public_company_logo_url, public_consultancy_logo_url")
       .eq("id", data.company_id)
       .maybeSingle();
 

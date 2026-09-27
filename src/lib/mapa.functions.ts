@@ -148,9 +148,7 @@ export type MapaCompanyInfo = {
 
 export const getMapaData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ company_id: z.string().uuid() }).parse(d ?? {}),
-  )
+  .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
 
@@ -186,14 +184,20 @@ export const getMapaData = createServerFn({ method: "GET" })
     // Map rows and extract metadata
     const rawItems: MapaItem[] = (rows ?? []).map((r: any) => {
       const meta = extractMeta(r.observations);
-      const parent_id = r.parent_id !== undefined && r.parent_id !== null ? r.parent_id : meta?.parent_id ?? null;
-      const item_type = r.item_type || meta?.item_type || (parent_id ? "desdobramento" : "diretriz");
-      
+      const parent_id =
+        r.parent_id !== undefined && r.parent_id !== null ? r.parent_id : (meta?.parent_id ?? null);
+      const item_type =
+        r.item_type || meta?.item_type || (parent_id ? "desdobramento" : "diretriz");
+
       const rawStatus = (meta?.status || r.status || "aberto") as any;
-      const status: "aberto" | "em_andamento" | "concluido" | "nao_sera_feito" =
-        ["aberto", "em_andamento", "concluido", "nao_sera_feito"].includes(rawStatus)
-          ? rawStatus
-          : "aberto";
+      const status: "aberto" | "em_andamento" | "concluido" | "nao_sera_feito" = [
+        "aberto",
+        "em_andamento",
+        "concluido",
+        "nao_sera_feito",
+      ].includes(rawStatus)
+        ? rawStatus
+        : "aberto";
 
       let progress_pct = 0;
       if (r.progress_pct !== undefined && r.progress_pct !== null) {
@@ -210,7 +214,9 @@ export const getMapaData = createServerFn({ method: "GET" })
 
       const rawDemand = (r.demand_type || "processo").toLowerCase();
       const standardKeysList = ["pessoas", "processo", "negocio"];
-      const inferredCustom = !standardKeysList.includes(rawDemand) ? (r.demand_type || "").toUpperCase() : null;
+      const inferredCustom = !standardKeysList.includes(rawDemand)
+        ? (r.demand_type || "").toUpperCase()
+        : null;
       const custom_pillar = r.custom_pillar || meta?.custom_pillar || inferredCustom || null;
       const demand_type = custom_pillar ? custom_pillar.toLowerCase() : rawDemand;
 
@@ -251,7 +257,7 @@ export const getMapaData = createServerFn({ method: "GET" })
     // Detect distinct pillars
     const standardKeys = new Set(["pessoas", "processo", "negocio"]);
     const foundKeys = new Set(rawItems.map((i) => i.demand_type.toLowerCase()));
-    
+
     // First, build hierarchical tree by pillar to compute derived progress and status for diretrizes
     const treeByPillar: Record<string, MapaItem[]> = {};
     const processedItems: MapaItem[] = [];
@@ -273,11 +279,14 @@ export const getMapaData = createServerFn({ method: "GET" })
           const activeChildren = children.filter((c) => c.status !== "nao_sera_feito");
           if (activeChildren.length > 0) {
             dirProgress = Math.round(
-              activeChildren.reduce((acc, c) => acc + (c.progress_pct || 0), 0) / activeChildren.length,
+              activeChildren.reduce((acc, c) => acc + (c.progress_pct || 0), 0) /
+                activeChildren.length,
             );
             if (activeChildren.every((c) => c.status === "concluido")) {
               dirStatus = "concluido";
-            } else if (activeChildren.some((c) => c.status === "em_andamento" || (c.progress_pct || 0) > 0)) {
+            } else if (
+              activeChildren.some((c) => c.status === "em_andamento" || (c.progress_pct || 0) > 0)
+            ) {
               dirStatus = "em_andamento";
             } else {
               dirStatus = "aberto";
@@ -323,7 +332,8 @@ export const getMapaData = createServerFn({ method: "GET" })
 
       const activeAcoes = pAcoes.filter((i) => i.status !== "nao_sera_feito");
       const sumProgress = activeAcoes.reduce((acc, curr) => acc + (curr.progress_pct || 0), 0);
-      const progress_pct = activeAcoes.length > 0 ? Math.round(sumProgress / activeAcoes.length) : 0;
+      const progress_pct =
+        activeAcoes.length > 0 ? Math.round(sumProgress / activeAcoes.length) : 0;
 
       return {
         ...basePillar,
@@ -416,7 +426,11 @@ export const saveMapaItem = createServerFn({ method: "POST" })
 
     if (adjustedStatus === "concluido" && adjustedProgress < 100) {
       adjustedProgress = 100;
-    } else if (adjustedProgress === 100 && adjustedStatus !== "concluido" && adjustedStatus !== "nao_sera_feito") {
+    } else if (
+      adjustedProgress === 100 &&
+      adjustedStatus !== "concluido" &&
+      adjustedStatus !== "nao_sera_feito"
+    ) {
       adjustedStatus = "concluido";
     } else if (adjustedProgress > 0 && adjustedProgress < 100 && adjustedStatus === "aberto") {
       adjustedStatus = "em_andamento";
@@ -427,8 +441,10 @@ export const saveMapaItem = createServerFn({ method: "POST" })
     const cleanObs = cleanObservations(data.observations);
     // Standard demand_type mapping for compatibility with planos-acao
     let standardDemand = data.demand_type.toLowerCase();
-    const isCustomPillar = !["pessoas", "processo", "negocio"].includes(standardDemand) || !!data.custom_pillar;
-    const resolvedCustomPillar = data.custom_pillar?.trim() || (isCustomPillar ? data.demand_type.toUpperCase() : null);
+    const isCustomPillar =
+      !["pessoas", "processo", "negocio"].includes(standardDemand) || !!data.custom_pillar;
+    const resolvedCustomPillar =
+      data.custom_pillar?.trim() || (isCustomPillar ? data.demand_type.toUpperCase() : null);
 
     if (!["pessoas", "processo", "negocio"].includes(standardDemand)) {
       standardDemand = "processo";
@@ -467,7 +483,7 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       company_id: data.company_id,
       title: data.title,
       description: data.description || "",
-      responsible: isDiretriz ? (data.responsible || "") : (data.responsible || ""),
+      responsible: isDiretriz ? data.responsible || "" : data.responsible || "",
       status: dbStatus,
       demand_type: standardDemand,
       observations: finalObservations,

@@ -100,14 +100,20 @@ function TemplateDocumentosPage() {
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="animate-spin" /></div>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
 
   return (
     <div className="space-y-4 max-w-3xl">
       <div>
         <h1 className="text-xl font-bold">Template de documentos</h1>
         <p className="text-sm text-muted-foreground">
-          Branding unificado para PDFs {company ? `da empresa "${company.name}"` : "(padrão global)"}.
+          Branding unificado para PDFs{" "}
+          {company ? `da empresa "${company.name}"` : "(padrão global)"}.
         </p>
       </div>
 
@@ -120,11 +126,19 @@ function TemplateDocumentosPage() {
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <Label>Logo consultoria (URL)</Label>
-            <Input value={form.consultancy_logo_url} onChange={(e) => setForm({ ...form, consultancy_logo_url: e.target.value })} placeholder="https://…/logo.png" />
+            <Input
+              value={form.consultancy_logo_url}
+              onChange={(e) => setForm({ ...form, consultancy_logo_url: e.target.value })}
+              placeholder="https://…/logo.png"
+            />
           </div>
           <div>
             <Label>Logo cliente (URL)</Label>
-            <Input value={form.client_logo_url} onChange={(e) => setForm({ ...form, client_logo_url: e.target.value })} placeholder="https://…/cliente.png" />
+            <Input
+              value={form.client_logo_url}
+              onChange={(e) => setForm({ ...form, client_logo_url: e.target.value })}
+              placeholder="https://…/cliente.png"
+            />
           </div>
         </div>
 
@@ -132,47 +146,90 @@ function TemplateDocumentosPage() {
           <div>
             <Label>Cor primária</Label>
             <div className="flex gap-2">
-              <Input type="color" value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} className="w-14 p-1" />
-              <Input value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} />
+              <Input
+                type="color"
+                value={form.primary_color}
+                onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
+                className="w-14 p-1"
+              />
+              <Input
+                value={form.primary_color}
+                onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
+              />
             </div>
           </div>
           <div>
             <Label>Cor de destaque</Label>
             <div className="flex gap-2">
-              <Input type="color" value={form.accent_color} onChange={(e) => setForm({ ...form, accent_color: e.target.value })} className="w-14 p-1" />
-              <Input value={form.accent_color} onChange={(e) => setForm({ ...form, accent_color: e.target.value })} />
+              <Input
+                type="color"
+                value={form.accent_color}
+                onChange={(e) => setForm({ ...form, accent_color: e.target.value })}
+                className="w-14 p-1"
+              />
+              <Input
+                value={form.accent_color}
+                onChange={(e) => setForm({ ...form, accent_color: e.target.value })}
+              />
             </div>
           </div>
           <div>
             <Label>Fonte (CSS)</Label>
-            <Input value={form.font_family} onChange={(e) => setForm({ ...form, font_family: e.target.value })} />
+            <Input
+              value={form.font_family}
+              onChange={(e) => setForm({ ...form, font_family: e.target.value })}
+            />
           </div>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <Label>Prefixo de código</Label>
-            <Input value={form.code_prefix} onChange={(e) => setForm({ ...form, code_prefix: e.target.value })} placeholder="PRC" />
+            <Input
+              value={form.code_prefix}
+              onChange={(e) => setForm({ ...form, code_prefix: e.target.value })}
+              placeholder="PRC"
+            />
           </div>
           <div>
             <Label>Numeração inicial</Label>
-            <Input type="number" value={form.numbering_seed} onChange={(e) => setForm({ ...form, numbering_seed: Number(e.target.value) || 1 })} />
+            <Input
+              type="number"
+              value={form.numbering_seed}
+              onChange={(e) => setForm({ ...form, numbering_seed: Number(e.target.value) || 1 })}
+            />
           </div>
         </div>
 
         <div>
           <Label>Cabeçalho (texto ou HTML simples)</Label>
-          <Textarea rows={2} value={form.header_html} onChange={(e) => setForm({ ...form, header_html: e.target.value })} placeholder="Ex: Consultoria XYZ · Processos & Melhoria Contínua" />
+          <Textarea
+            rows={2}
+            value={form.header_html}
+            onChange={(e) => setForm({ ...form, header_html: e.target.value })}
+            placeholder="Ex: Consultoria XYZ · Processos & Melhoria Contínua"
+          />
         </div>
         <div>
           <Label>Rodapé (texto ou HTML simples)</Label>
-          <Textarea rows={2} value={form.footer_html} onChange={(e) => setForm({ ...form, footer_html: e.target.value })} placeholder="Confidencial · página {page}/{total}" />
-          <p className="text-[11px] text-muted-foreground mt-1">Use <code>{"{page}"}</code> e <code>{"{total}"}</code> para numeração.</p>
+          <Textarea
+            rows={2}
+            value={form.footer_html}
+            onChange={(e) => setForm({ ...form, footer_html: e.target.value })}
+            placeholder="Confidencial · página {page}/{total}"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Use <code>{"{page}"}</code> e <code>{"{total}"}</code> para numeração.
+          </p>
         </div>
 
         <div className="flex justify-end">
           <Button onClick={save} disabled={busy}>
-            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {busy ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             Salvar template
           </Button>
         </div>
@@ -184,16 +241,27 @@ function TemplateDocumentosPage() {
           className="rounded border p-4"
           style={{ fontFamily: form.font_family, borderColor: form.primary_color }}
         >
-          <div className="flex items-center justify-between border-b pb-2 mb-3" style={{ borderColor: form.primary_color }}>
+          <div
+            className="flex items-center justify-between border-b pb-2 mb-3"
+            style={{ borderColor: form.primary_color }}
+          >
             <div className="flex items-center gap-2">
-              {form.consultancy_logo_url && <img src={form.consultancy_logo_url} alt="" className="h-8 object-contain" />}
-              <span className="text-xs" style={{ color: form.primary_color }}>{form.header_html || "Cabeçalho"}</span>
+              {form.consultancy_logo_url && (
+                <img src={form.consultancy_logo_url} alt="" className="h-8 object-contain" />
+              )}
+              <span className="text-xs" style={{ color: form.primary_color }}>
+                {form.header_html || "Cabeçalho"}
+              </span>
             </div>
-            {form.client_logo_url && <img src={form.client_logo_url} alt="" className="h-8 object-contain" />}
+            {form.client_logo_url && (
+              <img src={form.client_logo_url} alt="" className="h-8 object-contain" />
+            )}
           </div>
           <div style={{ color: form.primary_color }}>
             <div className="text-lg font-bold">Nome do processo</div>
-            <div className="text-xs" style={{ color: form.accent_color }}>{form.code_prefix}-{String(form.numbering_seed).padStart(4, "0")}</div>
+            <div className="text-xs" style={{ color: form.accent_color }}>
+              {form.code_prefix}-{String(form.numbering_seed).padStart(4, "0")}
+            </div>
           </div>
           <div className="mt-4 text-[11px] text-muted-foreground border-t pt-2">
             {form.footer_html.replace("{page}", "1").replace("{total}", "1") || "Rodapé"}

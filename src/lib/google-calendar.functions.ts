@@ -1,11 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import {
-  getMaiaStore,
-  saveMaiaStore,
-  assertManagerOrAdmin,
-} from "./maia-finance.functions";
+import { getMaiaStore, saveMaiaStore, assertManagerOrAdmin } from "./maia-finance.functions";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
@@ -15,11 +11,7 @@ const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 export async function getGoogleOAuthCredentials(
   sb?: any,
 ): Promise<{ clientId: string; clientSecret: string }> {
-  let clientId = (
-    process.env.GOOGLE_CLIENT_ID ||
-    process.env.VITE_GOOGLE_CLIENT_ID ||
-    ""
-  ).trim();
+  let clientId = (process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "").trim();
   let clientSecret = (
     process.env.GOOGLE_CLIENT_SECRET ||
     process.env.VITE_GOOGLE_CLIENT_SECRET ||
@@ -31,8 +23,7 @@ export async function getGoogleOAuthCredentials(
       const store = await getMaiaStore(sb);
       if (store?.googleOAuth?.clientId) {
         clientId = clientId || store.googleOAuth.clientId.trim();
-        clientSecret =
-          clientSecret || (store.googleOAuth.clientSecret || "").trim();
+        clientSecret = clientSecret || (store.googleOAuth.clientSecret || "").trim();
         if (clientId) process.env.GOOGLE_CLIENT_ID = clientId;
         if (clientSecret) process.env.GOOGLE_CLIENT_SECRET = clientSecret;
       }
@@ -71,9 +62,7 @@ export const getGoogleOAuthConfig = createServerFn({ method: "GET" })
     const { clientId, clientSecret } = await getGoogleOAuthCredentials(sb);
     return {
       configured: !!(clientId && clientSecret),
-      clientId: clientId
-        ? `${clientId.slice(0, 12)}...${clientId.slice(-12)}`
-        : "",
+      clientId: clientId ? `${clientId.slice(0, 12)}...${clientId.slice(-12)}` : "",
       rawClientId: clientId,
       hasSecret: !!clientSecret,
     };
@@ -85,9 +74,7 @@ export const saveGoogleOAuthConfig = createServerFn({ method: "POST" })
     z
       .object({
         clientId: z.string().min(5, "Informe um Client ID válido do Google"),
-        clientSecret: z
-          .string()
-          .min(5, "Informe um Client Secret válido do Google"),
+        clientSecret: z.string().min(5, "Informe um Client Secret válido do Google"),
       })
       .parse(d),
   )
@@ -137,9 +124,7 @@ export const getGoogleAuthUrl = createServerFn({ method: "GET" })
     const sb: any = context.supabase;
     const { clientId } = await getGoogleOAuthCredentials(sb);
     if (!clientId) {
-      throw new Error(
-        "Credenciais do Google não configuradas no servidor (GOOGLE_CLIENT_ID).",
-      );
+      throw new Error("Credenciais do Google não configuradas no servidor (GOOGLE_CLIENT_ID).");
     }
 
     const params = new URLSearchParams({
@@ -192,10 +177,9 @@ export const saveGoogleCalendarTokens = createServerFn({ method: "POST" })
     const tokens: any = await res.json();
 
     // Fetch Google user email
-    const profileRes = await fetch(
-      `https://www.googleapis.com/oauth2/v2/userinfo`,
-      { headers: { Authorization: `Bearer ${tokens.access_token}` } },
-    );
+    const profileRes = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo`, {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
     const profile: any = profileRes.ok ? await profileRes.json() : {};
     const googleEmail = profile.email || null;
 
@@ -203,9 +187,7 @@ export const saveGoogleCalendarTokens = createServerFn({ method: "POST" })
       user_id: context.userId,
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token ?? null,
-      expiry_date: tokens.expires_in
-        ? Date.now() + tokens.expires_in * 1000
-        : null,
+      expiry_date: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null,
       google_email: googleEmail,
       updated_at: new Date().toISOString(),
     };
@@ -265,10 +247,7 @@ export const disconnectGoogleCalendar = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
 
     try {
-      await sb
-        .from("user_google_calendar_tokens")
-        .delete()
-        .eq("user_id", context.userId);
+      await sb.from("user_google_calendar_tokens").delete().eq("user_id", context.userId);
     } catch {}
 
     try {
@@ -284,10 +263,7 @@ export const disconnectGoogleCalendar = createServerFn({ method: "POST" })
 
 // ─── Refresh token if needed ──────────────────────────────────────────────────
 
-async function getValidAccessToken(
-  sb: any,
-  userId: string,
-): Promise<string | null> {
+async function getValidAccessToken(sb: any, userId: string): Promise<string | null> {
   let row: any = null;
 
   try {
@@ -328,9 +304,7 @@ async function getValidAccessToken(
     if (!res.ok) return null;
     const tokens: any = await res.json();
 
-    const newExpiry = tokens.expires_in
-      ? Date.now() + tokens.expires_in * 1000
-      : null;
+    const newExpiry = tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null;
 
     try {
       await sb
@@ -382,9 +356,7 @@ export const syncEventToGoogleCalendar = createServerFn({ method: "POST" })
 
     const attendees = data.guest_emails.map((email) => ({ email }));
     const startDt = new Date(data.starts_at);
-    const endDt = data.ends_at
-      ? new Date(data.ends_at)
-      : new Date(startDt.getTime() + 60 * 60_000);
+    const endDt = data.ends_at ? new Date(data.ends_at) : new Date(startDt.getTime() + 60 * 60_000);
 
     const body = {
       summary: data.title,
@@ -420,10 +392,7 @@ export const syncEventToGoogleCalendar = createServerFn({ method: "POST" })
     const gEvent: any = await res.json();
 
     // Persist google_event_id on the local record
-    await sb
-      .from("calendar_events")
-      .update({ google_event_id: gEvent.id })
-      .eq("id", data.event_id);
+    await sb.from("calendar_events").update({ google_event_id: gEvent.id }).eq("id", data.event_id);
 
     return { ok: true, google_event_id: gEvent.id as string };
   });

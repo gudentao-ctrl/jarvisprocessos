@@ -83,7 +83,7 @@ export function AskAiFab(props: Props = {}) {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   const scope = props.scope ?? (companyId ? "company" : undefined);
-  const scopeId = props.scopeId ?? (scope === "company" ? companyId ?? undefined : undefined);
+  const scopeId = props.scopeId ?? (scope === "company" ? (companyId ?? undefined) : undefined);
   const moduleHint = useMemo(() => moduleFromPath(path), [path]);
 
   const ask = useServerFn(askConsultantAi);
@@ -151,12 +151,20 @@ export function AskAiFab(props: Props = {}) {
               disabled={mut.isPending || question.trim().length < 2 || !companyId}
               className="min-h-11 w-full"
             >
-              {mut.isPending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analisando dados…</>) : "Perguntar"}
+              {mut.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analisando dados…
+                </>
+              ) : (
+                "Perguntar"
+              )}
             </Button>
 
             {!answer && !mut.isPending && (
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Comandos rápidos</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Comandos rápidos
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {QUICK_COMMANDS.map((s) => (
                     <button
@@ -181,12 +189,19 @@ export function AskAiFab(props: Props = {}) {
             {answer && (
               <div className="rounded-xl border bg-muted/30 p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resposta</span>
-                  <button onClick={() => setAnswer(null)} className="text-muted-foreground hover:text-foreground">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Resposta
+                  </span>
+                  <button
+                    onClick={() => setAnswer(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm">{answer}</div>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm">
+                  {answer}
+                </div>
               </div>
             )}
           </div>

@@ -7,7 +7,16 @@ import { z } from "zod";
  * BPMN é derivado; toda edição acontece aqui.
  * ============================================================ */
 
-const ACTIVITY_TYPES = ["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"] as const;
+const ACTIVITY_TYPES = [
+  "start",
+  "task",
+  "decision",
+  "wait",
+  "approval",
+  "end",
+  "info_in",
+  "info_out",
+] as const;
 const CONNECTION_TYPES = ["sequential", "decision", "parallel", "return", "subprocess"] as const;
 
 export const getFlow = createServerFn({ method: "GET" })
@@ -24,7 +33,11 @@ export const getFlow = createServerFn({ method: "GET" })
     ] = await Promise.all([
       sb.from("processes").select("*, companies(id, name)").eq("id", data.process_id).single(),
       sb.from("process_activities").select("*").eq("process_id", data.process_id).order("ordering"),
-      sb.from("activity_connections").select("*").eq("process_id", data.process_id).order("order_index"),
+      sb
+        .from("activity_connections")
+        .select("*")
+        .eq("process_id", data.process_id)
+        .order("order_index"),
       sb.from("process_decisions").select("*"),
       sb.from("activity_links").select("*"),
     ]);
@@ -69,7 +82,12 @@ export const saveFlowActivity = createServerFn({ method: "POST" })
     const sb = context.supabase;
     if (data.id) {
       const { id, ...rest } = data;
-      const { data: row, error } = await sb.from("process_activities").update(rest).eq("id", id).select().single();
+      const { data: row, error } = await sb
+        .from("process_activities")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
@@ -103,14 +121,19 @@ export const deleteFlowActivity = createServerFn({ method: "POST" })
 export const reorderFlowActivities = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      items: z.array(z.object({ id: z.string().uuid(), ordering: z.number().int() })),
-    }).parse(d),
+    z
+      .object({
+        items: z.array(z.object({ id: z.string().uuid(), ordering: z.number().int() })),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await Promise.all(
       data.items.map((it) =>
-        context.supabase.from("process_activities").update({ ordering: it.ordering }).eq("id", it.id),
+        context.supabase
+          .from("process_activities")
+          .update({ ordering: it.ordering })
+          .eq("id", it.id),
       ),
     );
     return { ok: true };
@@ -135,11 +158,20 @@ export const saveConnection = createServerFn({ method: "POST" })
     const sb = context.supabase;
     if (data.id) {
       const { id, ...rest } = data;
-      const { data: row, error } = await sb.from("activity_connections").update(rest).eq("id", id).select().single();
+      const { data: row, error } = await sb
+        .from("activity_connections")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
-    const { data: row, error } = await sb.from("activity_connections").insert(data).select().single();
+    const { data: row, error } = await sb
+      .from("activity_connections")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -148,7 +180,10 @@ export const deleteConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("activity_connections").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("activity_connections")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -158,17 +193,27 @@ export const deleteConnection = createServerFn({ method: "POST" })
 export const saveDecisionQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      activity_id: z.string().uuid(),
-      question: z.string(),
-    }).parse(d),
+    z
+      .object({
+        activity_id: z.string().uuid(),
+        question: z.string(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    const { data: existing } = await sb.from("process_decisions").select("id").eq("activity_id", data.activity_id).maybeSingle();
+    const { data: existing } = await sb
+      .from("process_decisions")
+      .select("id")
+      .eq("activity_id", data.activity_id)
+      .maybeSingle();
     if (existing) {
       const { data: row, error } = await sb
-        .from("process_decisions").update({ question: data.question }).eq("id", existing.id).select().single();
+        .from("process_decisions")
+        .update({ question: data.question })
+        .eq("id", existing.id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
@@ -182,14 +227,20 @@ export const saveDecisionQuestion = createServerFn({ method: "POST" })
 export const saveActivityLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      activity_id: z.string().uuid(),
-      link_type: z.enum(["indicator", "cronoanalysis", "action_plan"]),
-      target_id: z.string().uuid(),
-    }).parse(d),
+    z
+      .object({
+        activity_id: z.string().uuid(),
+        link_type: z.enum(["indicator", "cronoanalysis", "action_plan"]),
+        target_id: z.string().uuid(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase.from("activity_links").insert(data).select().single();
+    const { data: row, error } = await context.supabase
+      .from("activity_links")
+      .insert(data)
+      .select()
+      .single();
     if (error && !error.message.includes("duplicate")) throw new Error(error.message);
     return row;
   });
@@ -208,17 +259,23 @@ export const deleteActivityLink = createServerFn({ method: "POST" })
 export const addActivityRelative = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      process_id: z.string().uuid(),
-      relative_to: z.string().uuid(),
-      mode: z.enum(["before", "after", "parallel"]),
-      title: z.string().min(1).default("Nova atividade"),
-      type: z.enum(ACTIVITY_TYPES).default("task"),
-    }).parse(d),
+    z
+      .object({
+        process_id: z.string().uuid(),
+        relative_to: z.string().uuid(),
+        mode: z.enum(["before", "after", "parallel"]),
+        title: z.string().min(1).default("Nova atividade"),
+        type: z.enum(ACTIVITY_TYPES).default("task"),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    const { data: ref } = await sb.from("process_activities").select("*").eq("id", data.relative_to).single();
+    const { data: ref } = await sb
+      .from("process_activities")
+      .select("*")
+      .eq("id", data.relative_to)
+      .single();
     if (!ref) throw new Error("Atividade de referência não encontrada");
 
     // Insert new activity
@@ -232,7 +289,10 @@ export const addActivityRelative = createServerFn({ method: "POST" })
         .gte("ordering", insertOrdering);
       await Promise.all(
         (toShift ?? []).map((r) =>
-          sb.from("process_activities").update({ ordering: r.ordering + 1 }).eq("id", r.id),
+          sb
+            .from("process_activities")
+            .update({ ordering: r.ordering + 1 })
+            .eq("id", r.id),
         ),
       );
     }
@@ -251,7 +311,10 @@ export const addActivityRelative = createServerFn({ method: "POST" })
     // Wire connections
     if (data.mode === "after") {
       // ref -> new; move ref's outgoing to new
-      const { data: outs } = await sb.from("activity_connections").select("*").eq("from_activity_id", ref.id);
+      const { data: outs } = await sb
+        .from("activity_connections")
+        .select("*")
+        .eq("from_activity_id", ref.id);
       await Promise.all(
         (outs ?? []).map((o) =>
           sb.from("activity_connections").update({ from_activity_id: newAct.id }).eq("id", o.id),
@@ -265,7 +328,10 @@ export const addActivityRelative = createServerFn({ method: "POST" })
       });
     } else if (data.mode === "before") {
       // new -> ref; move ref's incoming to new
-      const { data: ins } = await sb.from("activity_connections").select("*").eq("to_activity_id", ref.id);
+      const { data: ins } = await sb
+        .from("activity_connections")
+        .select("*")
+        .eq("to_activity_id", ref.id);
       await Promise.all(
         (ins ?? []).map((i) =>
           sb.from("activity_connections").update({ to_activity_id: newAct.id }).eq("id", i.id),
@@ -279,7 +345,10 @@ export const addActivityRelative = createServerFn({ method: "POST" })
       });
     } else if (data.mode === "parallel") {
       // Duplicate ref's incoming to new; ref -> new as parallel
-      const { data: ins } = await sb.from("activity_connections").select("*").eq("to_activity_id", ref.id);
+      const { data: ins } = await sb
+        .from("activity_connections")
+        .select("*")
+        .eq("to_activity_id", ref.id);
       await Promise.all(
         (ins ?? []).map((i) =>
           sb.from("activity_connections").insert({
@@ -299,7 +368,11 @@ export const duplicateActivity = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    const { data: ref } = await sb.from("process_activities").select("*").eq("id", data.id).single();
+    const { data: ref } = await sb
+      .from("process_activities")
+      .select("*")
+      .eq("id", data.id)
+      .single();
     if (!ref) throw new Error("Atividade não encontrada");
     const { id, created_at, updated_at, ...rest } = ref as any;
     const { data: row, error } = await sb

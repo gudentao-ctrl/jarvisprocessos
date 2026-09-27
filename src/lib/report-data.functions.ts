@@ -16,30 +16,72 @@ async function fetchReport(sb: any, company_id: string, from: string, to: string
   const fromStart = `${from}T00:00:00.000Z`;
 
   const [
-    company, interviews, processes, cronoSessions, cronoObs, indicators, collections,
-    plans, planHistory, calendar, hours, opportunities,
+    company,
+    interviews,
+    processes,
+    cronoSessions,
+    cronoObs,
+    indicators,
+    collections,
+    plans,
+    planHistory,
+    calendar,
+    hours,
+    opportunities,
   ] = await Promise.all([
     sb.from("companies").select("id,name").eq("id", company_id).maybeSingle(),
-    sb.from("interviews").select("id,title,interview_date,participant,status,generation_status,created_at")
-      .eq("company_id", company_id).gte("interview_date", from).lte("interview_date", to),
-    sb.from("processes").select("id,name,status,objective,created_at,updated_at")
+    sb
+      .from("interviews")
+      .select("id,title,interview_date,participant,status,generation_status,created_at")
+      .eq("company_id", company_id)
+      .gte("interview_date", from)
+      .lte("interview_date", to),
+    sb
+      .from("processes")
+      .select("id,name,status,objective,created_at,updated_at")
       .eq("company_id", company_id),
-    sb.from("cronoanalysis_sessions").select("id,process_id,observation_date,product,machine,notes")
-      .eq("company_id", company_id).gte("observation_date", from).lte("observation_date", to),
+    sb
+      .from("cronoanalysis_sessions")
+      .select("id,process_id,observation_date,product,machine,notes")
+      .eq("company_id", company_id)
+      .gte("observation_date", from)
+      .lte("observation_date", to),
     sb.from("cronoanalysis_observations").select("session_id,activity,classification,time_minutes"),
-    sb.from("indicators").select("id,code,name,unit,target,frequency,direction,critical_min,critical_max")
+    sb
+      .from("indicators")
+      .select("id,code,name,unit,target,frequency,direction,critical_min,critical_max")
       .eq("company_id", company_id),
-    sb.from("indicator_collections").select("indicator_id,value,reference_period,submitted_at,evaluation")
-      .gte("submitted_at", fromStart).lte("submitted_at", toEnd),
-    sb.from("action_plans").select("id,title,status,priority,responsible,due_date,created_at,updated_at,process_id,category,gut_score")
+    sb
+      .from("indicator_collections")
+      .select("indicator_id,value,reference_period,submitted_at,evaluation")
+      .gte("submitted_at", fromStart)
+      .lte("submitted_at", toEnd),
+    sb
+      .from("action_plans")
+      .select(
+        "id,title,status,priority,responsible,due_date,created_at,updated_at,process_id,category,gut_score",
+      )
       .eq("company_id", company_id),
-    sb.from("action_plan_history").select("plan_id,field,new_value,changed_at")
-      .gte("changed_at", fromStart).lte("changed_at", toEnd),
-    sb.from("calendar_events").select("id,title,event_type,starts_at,ends_at,participants,duration_min")
-      .eq("company_id", company_id).gte("starts_at", fromStart).lte("starts_at", toEnd),
-    sb.from("work_hours").select("id,work_date,hours,activity_type,responsible,notes")
-      .eq("company_id", company_id).gte("work_date", from).lte("work_date", to),
-    sb.from("improvement_opportunities").select("id,title,category,status,expected_impact,created_at")
+    sb
+      .from("action_plan_history")
+      .select("plan_id,field,new_value,changed_at")
+      .gte("changed_at", fromStart)
+      .lte("changed_at", toEnd),
+    sb
+      .from("calendar_events")
+      .select("id,title,event_type,starts_at,ends_at,participants,duration_min")
+      .eq("company_id", company_id)
+      .gte("starts_at", fromStart)
+      .lte("starts_at", toEnd),
+    sb
+      .from("work_hours")
+      .select("id,work_date,hours,activity_type,responsible,notes")
+      .eq("company_id", company_id)
+      .gte("work_date", from)
+      .lte("work_date", to),
+    sb
+      .from("improvement_opportunities")
+      .select("id,title,category,status,expected_impact,created_at")
       .eq("company_id", company_id),
   ]);
 

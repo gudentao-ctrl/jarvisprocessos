@@ -56,7 +56,8 @@ export function formatValue(v: number | null | undefined, unit?: string | null) 
 
 function compact(n: number) {
   const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}M`;
+  if (abs >= 1_000_000)
+    return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}M`;
   if (abs >= 1_000) return `${(n / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k`;
   return n.toLocaleString("pt-BR", { maximumFractionDigits: abs < 10 ? 1 : 0 });
 }
@@ -135,7 +136,11 @@ export function IndicatorSpark({
   const percent = isPercentUnit(indicator?.unit);
   const target = indicator?.target != null ? Number(indicator.target) : null;
   const scale = useMemo(
-    () => buildScale(points.map((p) => p.value), { target, percent }),
+    () =>
+      buildScale(
+        points.map((p) => p.value),
+        { target, percent },
+      ),
     [points, target, percent],
   );
 
@@ -174,11 +179,7 @@ export function IndicatorSpark({
 
   const common = (
     <>
-      <YAxis
-        hide
-        domain={scale.domain}
-        ticks={scale.ticks}
-      />
+      <YAxis hide domain={scale.domain} ticks={scale.ticks} />
       <Tooltip
         formatter={(v: any) => formatValue(Number(v), indicator?.unit)}
         labelFormatter={(l: any) => String(l)}
@@ -211,7 +212,14 @@ export function IndicatorSpark({
               <XAxis dataKey="label" hide />
               {common}
               {kind === "area" ? (
-                <Area dataKey="value" stroke={BLUE} fill={BLUE} fillOpacity={0.18} strokeWidth={2} type="monotone" />
+                <Area
+                  dataKey="value"
+                  stroke={BLUE}
+                  fill={BLUE}
+                  fillOpacity={0.18}
+                  strokeWidth={2}
+                  type="monotone"
+                />
               ) : (
                 <Line dataKey="value" stroke={BLUE} strokeWidth={2} dot={false} type="monotone" />
               )}
@@ -238,7 +246,11 @@ export function IndicatorDetailChart({
   const percent = isPercentUnit(indicator?.unit);
   const target = indicator?.target != null ? Number(indicator.target) : null;
   const scale = useMemo(
-    () => buildScale(points.map((p) => p.value), { target, percent }),
+    () =>
+      buildScale(
+        points.map((p) => p.value),
+        { target, percent },
+      ),
     [points, target, percent],
   );
 
@@ -329,7 +341,11 @@ export function IndicatorDetailChart({
           y={target}
           stroke={OK}
           strokeDasharray="5 4"
-          label={{ value: `Meta ${compact(target)}`, position: "right", style: { fontSize: 11, fill: OK } }}
+          label={{
+            value: `Meta ${compact(target)}`,
+            position: "right",
+            style: { fontSize: 11, fill: OK },
+          }}
         />
       )}
     </>
@@ -382,5 +398,11 @@ export function IndicatorDetailChart({
 }
 
 export function chartKindLabel(kind: ChartKind) {
-  return kind === "gauge" ? "Medidor" : kind === "bar" ? "Barras" : kind === "area" ? "Área" : "Linha";
+  return kind === "gauge"
+    ? "Medidor"
+    : kind === "bar"
+      ? "Barras"
+      : kind === "area"
+        ? "Área"
+        : "Linha";
 }

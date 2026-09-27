@@ -5,10 +5,30 @@ import { ArrowRight, Sparkles, Lightbulb, GitBranch, Target, GitCompare } from "
 export const Route = createFileRoute("/_authenticated/projetos/$id/melhorias")({
   component: () => {
     const items = [
-      { label: "Análise crítica", description: "Insights e gargalos detectados pela IA", to: "/analise-critica", icon: Sparkles },
-      { label: "Oportunidades", description: "Backlog de melhorias", to: "/oportunidades", icon: Lightbulb },
-      { label: "Causa raiz", description: "5 porquês e Ishikawa", to: "/causa-raiz", icon: GitBranch },
-      { label: "Priorização", description: "Matriz impacto × esforço", to: "/priorizacao", icon: Target },
+      {
+        label: "Análise crítica",
+        description: "Insights e gargalos detectados pela IA",
+        to: "/analise-critica",
+        icon: Sparkles,
+      },
+      {
+        label: "Oportunidades",
+        description: "Backlog de melhorias",
+        to: "/oportunidades",
+        icon: Lightbulb,
+      },
+      {
+        label: "Causa raiz",
+        description: "5 porquês e Ishikawa",
+        to: "/causa-raiz",
+        icon: GitBranch,
+      },
+      {
+        label: "Priorização",
+        description: "Matriz impacto × esforço",
+        to: "/priorizacao",
+        icon: Target,
+      },
       { label: "TO BE", description: "Processos redesenhados", to: "/tobe", icon: GitCompare },
     ];
     return (

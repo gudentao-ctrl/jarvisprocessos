@@ -44,7 +44,11 @@ export function ExportPdfButton({ filename = "relatorio.pdf" }: { filename?: str
 
   return (
     <Button onClick={exportPdf} disabled={busy}>
-      {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+      {busy ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <Download className="mr-2 h-4 w-4" />
+      )}
       Exportar PDF
     </Button>
   );

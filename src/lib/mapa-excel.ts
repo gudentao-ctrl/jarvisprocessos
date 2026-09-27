@@ -77,8 +77,7 @@ export function exportMapaExcel(opts: {
   const totalPct =
     totals.desdb > 0
       ? Math.round(
-          pillars.reduce((s, p) => s + p.progress_pct * p.total_desdobramentos, 0) /
-            totals.desdb,
+          pillars.reduce((s, p) => s + p.progress_pct * p.total_desdobramentos, 0) / totals.desdb,
         )
       : 0;
 
@@ -218,11 +217,6 @@ export function exportMapaExcel(opts: {
   XLSX.utils.book_append_sheet(wb, ws2, "Detalhamento");
 
   /* ── salvar ── */
-  const safeName = company.name
-    .replace(/[^a-zA-Z0-9À-ÿ\s]/g, "")
-    .replace(/\s+/g, "_");
-  XLSX.writeFile(
-    wb,
-    `Mapa_Estrategico_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`,
-  );
+  const safeName = company.name.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").replace(/\s+/g, "_");
+  XLSX.writeFile(wb, `Mapa_Estrategico_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }

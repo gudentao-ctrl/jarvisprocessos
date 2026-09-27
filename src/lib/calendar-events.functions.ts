@@ -8,7 +8,9 @@ const EventInput = z.object({
   project_id: z.string().uuid().nullable().optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional().default(""),
-  event_type: z.enum(["reuniao", "alinhamento", "workshop", "visita", "entrega", "outro"]).default("reuniao"),
+  event_type: z
+    .enum(["reuniao", "alinhamento", "workshop", "visita", "entrega", "outro"])
+    .default("reuniao"),
   starts_at: z.string().min(1),
   ends_at: z.string().nullable().optional(),
   location: z.string().max(300).optional().default(""),
@@ -41,9 +43,7 @@ export const listCalendarLocations = createServerFn({ method: "GET" })
 
 export const createCalendarLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ name: z.string().trim().min(1).max(100) }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ name: z.string().trim().min(1).max(100) }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     const { data: row, error } = await sb
@@ -58,11 +58,13 @@ export const createCalendarLocation = createServerFn({ method: "POST" })
 export const listEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      company_id: z.string().uuid().nullable().optional(),
-      project_id: z.string().uuid().nullable().optional(),
-      view: z.enum(["all", "company"]).optional().default("all"),
-    }).parse(d ?? {}),
+    z
+      .object({
+        company_id: z.string().uuid().nullable().optional(),
+        project_id: z.string().uuid().nullable().optional(),
+        view: z.enum(["all", "company"]).optional().default("all"),
+      })
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
@@ -89,7 +91,10 @@ export const listEvents = createServerFn({ method: "GET" })
 
     const [{ data: profiles }, { data: memberships }] = await Promise.all([
       sb.from("profiles").select("user_id, is_superadmin").in("user_id", creatorIds),
-      sb.from("company_members").select("user_id, company_id, member_role").in("user_id", creatorIds),
+      sb
+        .from("company_members")
+        .select("user_id, company_id, member_role")
+        .in("user_id", creatorIds),
     ]);
 
     const superadmins = new Set(
@@ -168,10 +173,13 @@ export const saveEvent = createServerFn({ method: "POST" })
             if (res.ok) {
               const tokens: any = await res.json();
               accessToken = tokens.access_token;
-              await sb.from("user_google_calendar_tokens").update({
-                access_token: tokens.access_token,
-                expiry_date: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null,
-              }).eq("user_id", context.userId);
+              await sb
+                .from("user_google_calendar_tokens")
+                .update({
+                  access_token: tokens.access_token,
+                  expiry_date: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null,
+                })
+                .eq("user_id", context.userId);
             }
           }
 
@@ -203,7 +211,10 @@ export const saveEvent = createServerFn({ method: "POST" })
             });
             if (gRes.ok) {
               const gEvent: any = await gRes.json();
-              await sb.from("calendar_events").update({ google_event_id: gEvent.id }).eq("id", row.id);
+              await sb
+                .from("calendar_events")
+                .update({ google_event_id: gEvent.id })
+                .eq("id", row.id);
               row.google_event_id = gEvent.id;
             } else {
               console.error("[Google Calendar] saveEvent sync failed:", await gRes.text());

@@ -18,10 +18,12 @@ export const listActionPlanHistory = createServerFn({ method: "GET" })
 export const addActionPlanNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      plan_id: z.string().uuid(),
-      comment: z.string().min(1),
-    }).parse(d),
+    z
+      .object({
+        plan_id: z.string().uuid(),
+        comment: z.string().min(1),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase

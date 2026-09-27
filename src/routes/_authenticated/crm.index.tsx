@@ -25,9 +25,25 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Handshake, Plus, Trash2, Bell, Flame, Snowflake, User, MessageSquarePlus, Building2 } from "lucide-react";
+import {
+  Handshake,
+  Plus,
+  Trash2,
+  Bell,
+  Flame,
+  Snowflake,
+  User,
+  MessageSquarePlus,
+  Building2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
@@ -113,7 +129,13 @@ const emptyForm = (): LeadForm => ({
   end_date: "",
 });
 
-function LeadClassificationBadge({ classification, isHot }: { classification?: string; isHot?: boolean }) {
+function LeadClassificationBadge({
+  classification,
+  isHot,
+}: {
+  classification?: string;
+  isHot?: boolean;
+}) {
   const c = classification || (isHot ? "quente" : "frio");
   if (c === "quente") {
     return (
@@ -164,7 +186,11 @@ function CrmPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<LeadForm>(emptyForm());
   const [actLead, setActLead] = useState<string | null>(null);
-  const [actForm, setActForm] = useState({ kind: "contato", description: "", occurred_at: today() });
+  const [actForm, setActForm] = useState({
+    kind: "contato",
+    description: "",
+    occurred_at: today(),
+  });
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["crm"] });
@@ -258,7 +284,8 @@ function CrmPage() {
   }, [leads]);
 
   const openEdit = (l: any) => {
-    const classif = (l.classification as "quente" | "medio" | "frio") || (l.is_hot ? "quente" : "frio");
+    const classif =
+      (l.classification as "quente" | "medio" | "frio") || (l.is_hot ? "quente" : "frio");
     setForm({
       id: l.id,
       company_name: l.company_name ?? "",
@@ -358,7 +385,8 @@ function CrmPage() {
                     <div className="flex items-center gap-1.5 text-xs text-foreground/90 font-medium">
                       <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <span className="truncate">
-                        {[l.contact_name, l.contact_role].filter(Boolean).join(" · ") || "Sem contato informado"}
+                        {[l.contact_name, l.contact_role].filter(Boolean).join(" · ") ||
+                          "Sem contato informado"}
                       </span>
                     </div>
 
@@ -366,9 +394,13 @@ function CrmPage() {
                     {(l.origem || l.source) && (
                       <div className="text-[11px] text-muted-foreground">
                         <span>Origem: {l.origem || l.source}</span>
-                        {((l.origem === "Indicação" || l.source === "Indicação") && l.quem_indicou) && (
-                          <span className="font-medium text-foreground"> · Indicado por {l.quem_indicou}</span>
-                        )}
+                        {(l.origem === "Indicação" || l.source === "Indicação") &&
+                          l.quem_indicou && (
+                            <span className="font-medium text-foreground">
+                              {" "}
+                              · Indicado por {l.quem_indicou}
+                            </span>
+                          )}
                       </div>
                     )}
 
@@ -384,7 +416,9 @@ function CrmPage() {
                     {l.stage === "fechamento" && (
                       <div className="rounded-md border bg-muted/40 p-2.5 text-xs space-y-1.5">
                         <div className="flex items-center justify-between font-semibold text-foreground border-b pb-1">
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Dados do Contrato</span>
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                            Dados do Contrato
+                          </span>
                           {l.contract_type && (
                             <Badge variant="outline" className="text-[10px] font-normal">
                               {contractLabel(l.contract_type)}
@@ -411,18 +445,27 @@ function CrmPage() {
                             </div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Total de horas do projeto: </span>
+                            <span className="text-muted-foreground">
+                              Total de horas do projeto:{" "}
+                            </span>
                             <span className="font-semibold text-primary">
-                              {l.total_project_hours != null && l.total_project_hours !== "" ? `${l.total_project_hours}h` : "—"}
+                              {l.total_project_hours != null && l.total_project_hours !== ""
+                                ? `${l.total_project_hours}h`
+                                : "—"}
                             </span>
                           </div>
-                          {canViewFinance && (l.hourly_rate != null || l.contract_total != null) && (
-                            <div className="text-muted-foreground pt-0.5 border-t mt-0.5">
-                              {l.hourly_rate != null && <span>{brl(l.hourly_rate)}/h</span>}
-                              {l.hourly_rate != null && l.contract_total != null && <span> · </span>}
-                              {l.contract_total != null && <span>Total {brl(l.contract_total)}</span>}
-                            </div>
-                          )}
+                          {canViewFinance &&
+                            (l.hourly_rate != null || l.contract_total != null) && (
+                              <div className="text-muted-foreground pt-0.5 border-t mt-0.5">
+                                {l.hourly_rate != null && <span>{brl(l.hourly_rate)}/h</span>}
+                                {l.hourly_rate != null && l.contract_total != null && (
+                                  <span> · </span>
+                                )}
+                                {l.contract_total != null && (
+                                  <span>Total {brl(l.contract_total)}</span>
+                                )}
+                              </div>
+                            )}
                         </div>
                       </div>
                     )}
@@ -432,13 +475,18 @@ function CrmPage() {
                         size="sm"
                         className="w-full"
                         disabled={convertM.isPending}
-                        onClick={() => confirm(`Criar ${l.company_name} como empresa ativa?`) && convertM.mutate(l.id)}
+                        onClick={() =>
+                          confirm(`Criar ${l.company_name} como empresa ativa?`) &&
+                          convertM.mutate(l.id)
+                        }
                       >
                         <Building2 className="mr-1 h-3.5 w-3.5" /> Criar empresa ativa
                       </Button>
                     )}
                     {l.converted_company_id && (
-                      <Badge variant="outline" className="text-[10px]">Empresa ativa vinculada</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        Empresa ativa vinculada
+                      </Badge>
                     )}
 
                     <p className="text-[11px] text-muted-foreground">
@@ -523,7 +571,9 @@ function CrmPage() {
               </Card>
             ))}
             {activeCompanies.length === 0 && (
-              <Card className="p-6 text-center text-sm text-muted-foreground">Nenhuma empresa ativa.</Card>
+              <Card className="p-6 text-center text-sm text-muted-foreground">
+                Nenhuma empresa ativa.
+              </Card>
             )}
           </div>
         </TabsContent>
@@ -558,11 +608,17 @@ function CrmPage() {
             </div>
             <div>
               <Label>Telefone</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
             </div>
             <div>
               <Label>E-mail</Label>
-              <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
             </div>
             <div>
               <Label>Origem</Label>
@@ -841,7 +897,10 @@ function CrmPage() {
             </div>
             <div>
               <Label>Tipo</Label>
-              <Select value={actForm.kind} onValueChange={(v) => setActForm({ ...actForm, kind: v })}>
+              <Select
+                value={actForm.kind}
+                onValueChange={(v) => setActForm({ ...actForm, kind: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -875,7 +934,9 @@ function CrmPage() {
         </DialogContent>
       </Dialog>
 
-      <p className="text-xs text-muted-foreground">Estágios: {CRM_STAGES.map((s) => stageLabel(s.value)).join(" → ")}</p>
+      <p className="text-xs text-muted-foreground">
+        Estágios: {CRM_STAGES.map((s) => stageLabel(s.value)).join(" → ")}
+      </p>
     </div>
   );
 }

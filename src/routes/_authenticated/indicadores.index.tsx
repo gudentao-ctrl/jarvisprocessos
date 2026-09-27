@@ -2,19 +2,44 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Trash2, BarChart3, Link2, Copy, Settings2, MessageCircle, Check } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  BarChart3,
+  Link2,
+  Copy,
+  Settings2,
+  MessageCircle,
+  Check,
+} from "lucide-react";
 import { saveIndicator, deleteIndicator, listProcesses } from "@/lib/processes.functions";
 import { listCompanies } from "@/lib/interviews.functions";
-import { listIndicatorStatus, updateIndicatorPublicSettings, listCollections } from "@/lib/indicator-collections.functions";
+import {
+  listIndicatorStatus,
+  updateIndicatorPublicSettings,
+  listCollections,
+} from "@/lib/indicator-collections.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -23,18 +48,34 @@ export const Route = createFileRoute("/_authenticated/indicadores/")({
 });
 
 const STATUS_STYLES: Record<string, { dot: string; label: string; chip: string }> = {
-  ok:           { dot: "bg-emerald-500", label: "Dentro da meta", chip: "bg-emerald-100 text-emerald-900 border-emerald-300" },
-  abaixo_meta:  { dot: "bg-amber-500",   label: "Abaixo da meta", chip: "bg-amber-100 text-amber-900 border-amber-300" },
-  critico:      { dot: "bg-red-500",     label: "Crítico",        chip: "bg-red-100 text-red-900 border-red-300" },
-  atrasado:     { dot: "bg-orange-500",  label: "Atrasado",       chip: "bg-orange-100 text-orange-900 border-orange-300" },
-  sem_coleta:   { dot: "bg-slate-400",   label: "Sem coleta",     chip: "bg-slate-100 text-slate-700 border-slate-300" },
+  ok: {
+    dot: "bg-emerald-500",
+    label: "Dentro da meta",
+    chip: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  },
+  abaixo_meta: {
+    dot: "bg-amber-500",
+    label: "Abaixo da meta",
+    chip: "bg-amber-100 text-amber-900 border-amber-300",
+  },
+  critico: { dot: "bg-red-500", label: "Crítico", chip: "bg-red-100 text-red-900 border-red-300" },
+  atrasado: {
+    dot: "bg-orange-500",
+    label: "Atrasado",
+    chip: "bg-orange-100 text-orange-900 border-orange-300",
+  },
+  sem_coleta: {
+    dot: "bg-slate-400",
+    label: "Sem coleta",
+    chip: "bg-slate-100 text-slate-700 border-slate-300",
+  },
 };
 
 const FREQUENCIES = [
-  { value: "diario",     label: "Diário" },
-  { value: "semanal",    label: "Semanal" },
-  { value: "quinzenal",  label: "Quinzenal" },
-  { value: "mensal",     label: "Mensal" },
+  { value: "diario", label: "Diário" },
+  { value: "semanal", label: "Semanal" },
+  { value: "quinzenal", label: "Quinzenal" },
+  { value: "mensal", label: "Mensal" },
   { value: "trimestral", label: "Trimestral" },
 ];
 
@@ -57,7 +98,14 @@ function IndicadoresPage() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ company_id: "", process_id: "", name: "", unit: "", target: "", frequency: "mensal" });
+  const [form, setForm] = useState({
+    company_id: "",
+    process_id: "",
+    name: "",
+    unit: "",
+    target: "",
+    frequency: "mensal",
+  });
 
   // Preencher automaticamente com a empresa ativa ao abrir o diálogo
   const openDialog = (o: boolean) => {
@@ -71,10 +119,20 @@ function IndicadoresPage() {
       qc.invalidateQueries({ queryKey: ["indicator-status"] });
       qc.invalidateQueries({ queryKey: ["company-alerts"] });
       setOpen(false);
-      setForm({ company_id: "", process_id: "", name: "", unit: "", target: "", frequency: "mensal" });
+      setForm({
+        company_id: "",
+        process_id: "",
+        name: "",
+        unit: "",
+        target: "",
+        frequency: "mensal",
+      });
       toast.success("Indicador criado");
     },
-    onError: (e: any) => { console.error(e); toast.error(e?.message ?? "Erro ao criar indicador"); },
+    onError: (e: any) => {
+      console.error(e);
+      toast.error(e?.message ?? "Erro ao criar indicador");
+    },
   });
 
   const del = useMutation({
@@ -108,35 +166,94 @@ function IndicadoresPage() {
         </div>
         <Dialog open={open} onOpenChange={openDialog}>
           <DialogTrigger asChild>
-            <Button className="shrink-0 min-h-11"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
+            <Button className="shrink-0 min-h-11">
+              <Plus className="h-4 w-4 mr-1" /> Novo
+            </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo indicador</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Novo indicador</DialogTitle>
+            </DialogHeader>
             <div className="space-y-3">
-              <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div>
+                <Label>Nome *</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                <div><Label>Unidade</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="%, un, R$…" /></div>
-                <div><Label>Meta</Label><Input type="number" value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })} /></div>
+                <div>
+                  <Label>Unidade</Label>
+                  <Input
+                    value={form.unit}
+                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    placeholder="%, un, R$…"
+                  />
+                </div>
+                <div>
+                  <Label>Meta</Label>
+                  <Input
+                    type="number"
+                    value={form.target}
+                    onChange={(e) => setForm({ ...form, target: e.target.value })}
+                  />
+                </div>
               </div>
               <div>
                 <Label>Frequência</Label>
-                <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+                <Select
+                  value={form.frequency}
+                  onValueChange={(v) => setForm({ ...form, frequency: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FREQUENCIES.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Empresa</Label>
-                <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <Select
+                  value={form.company_id}
+                  onValueChange={(v) => setForm({ ...form, company_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Processo</Label>
-                <Select value={form.process_id} onValueChange={(v) => setForm({ ...form, process_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{processes.filter((p: any) => !form.company_id || p.company_id === form.company_id).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                <Select
+                  value={form.process_id}
+                  onValueChange={(v) => setForm({ ...form, process_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {processes
+                      .filter((p: any) => !form.company_id || p.company_id === form.company_id)
+                      .map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
                 </Select>
               </div>
               <Button onClick={submit} className="w-full min-h-11" disabled={create.isPending}>
@@ -164,14 +281,21 @@ function IndicadoresPage() {
                     <p className="font-semibold truncate">{i.name}</p>
                     <p className="text-[10px] font-mono text-muted-foreground truncate">{i.code}</p>
                   </div>
-                  <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setEditing(i)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="shrink-0"
+                    onClick={() => setEditing(i)}
+                  >
                     <Settings2 className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <p className="text-[10px] uppercase text-muted-foreground">Último</p>
-                    <p className="font-bold tabular-nums">{i.last_value ?? "—"} {i.unit}</p>
+                    <p className="font-bold tabular-nums">
+                      {i.last_value ?? "—"} {i.unit}
+                    </p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase text-muted-foreground">Meta</p>
@@ -182,7 +306,12 @@ function IndicadoresPage() {
                     <p className="font-bold capitalize">{i.frequency || "—"}</p>
                   </div>
                 </div>
-                <span className={cn("inline-flex items-center text-[11px] font-medium rounded-full border px-2 py-0.5", st.chip)}>
+                <span
+                  className={cn(
+                    "inline-flex items-center text-[11px] font-medium rounded-full border px-2 py-0.5",
+                    st.chip,
+                  )}
+                >
                   {st.label}
                 </span>
                 <div className="flex flex-wrap gap-2 pt-1 border-t">
@@ -196,7 +325,9 @@ function IndicadoresPage() {
                     size="sm"
                     variant="ghost"
                     className="ml-auto text-destructive"
-                    onClick={() => { if (confirm("Excluir indicador e suas coletas?")) del.mutate(i.id); }}
+                    onClick={() => {
+                      if (confirm("Excluir indicador e suas coletas?")) del.mutate(i.id);
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -211,7 +342,10 @@ function IndicadoresPage() {
         <IndicatorSettingsSheet
           indicator={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["indicator-status"] }); }}
+          onSaved={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["indicator-status"] });
+          }}
         />
       )}
     </div>
@@ -226,8 +360,12 @@ function publicUrl(token: string) {
 function LinkButton({ token, indicatorName }: { token: string; indicatorName: string }) {
   async function copy() {
     const url = publicUrl(token);
-    try { await navigator.clipboard.writeText(url); toast.success("Link copiado"); }
-    catch { toast.error("Copie manualmente: " + url); }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Copie manualmente: " + url);
+    }
   }
   function whatsapp() {
     const url = publicUrl(token);
@@ -246,7 +384,15 @@ function LinkButton({ token, indicatorName }: { token: string; indicatorName: st
   );
 }
 
-function IndicatorSettingsSheet({ indicator, onClose, onSaved }: { indicator: any; onClose: () => void; onSaved: () => void }) {
+function IndicatorSettingsSheet({
+  indicator,
+  onClose,
+  onSaved,
+}: {
+  indicator: any;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [form, setForm] = useState({
     target: indicator.target ?? "",
     critical_min: indicator.critical_min ?? "",
@@ -266,8 +412,12 @@ function IndicatorSettingsSheet({ indicator, onClose, onSaved }: { indicator: an
   });
 
   const save = useMutation({
-    mutationFn: (data: any) => updateIndicatorPublicSettings({ data: { id: indicator.id, ...data } }),
-    onSuccess: () => { toast.success("Salvo"); onSaved(); },
+    mutationFn: (data: any) =>
+      updateIndicatorPublicSettings({ data: { id: indicator.id, ...data } }),
+    onSuccess: () => {
+      toast.success("Salvo");
+      onSaved();
+    },
     onError: (e: any) => toast.error(e?.message),
   });
 
@@ -296,57 +446,133 @@ function IndicatorSettingsSheet({ indicator, onClose, onSaved }: { indicator: an
         <div className="space-y-4 mt-4 pb-8">
           <Card className="p-3 bg-muted/30">
             <p className="text-xs text-muted-foreground mb-1">Link público</p>
-            <p className="text-xs font-mono break-all bg-background border rounded px-2 py-1.5">{publicUrl(indicator.public_token)}</p>
+            <p className="text-xs font-mono break-all bg-background border rounded px-2 py-1.5">
+              {publicUrl(indicator.public_token)}
+            </p>
             <div className="flex gap-2 mt-2">
               <LinkButton token={indicator.public_token} indicatorName={indicator.name} />
             </div>
           </Card>
 
           <div className="grid grid-cols-2 gap-2">
-            <div><Label>Meta</Label><Input type="number" value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })} /></div>
+            <div>
+              <Label>Meta</Label>
+              <Input
+                type="number"
+                value={form.target}
+                onChange={(e) => setForm({ ...form, target: e.target.value })}
+              />
+            </div>
             <div>
               <Label>Direção</Label>
-              <Select value={form.direction} onValueChange={(v) => setForm({ ...form, direction: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.direction}
+                onValueChange={(v) => setForm({ ...form, direction: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="higher_better">Maior é melhor</SelectItem>
                   <SelectItem value="lower_better">Menor é melhor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Limite crítico mín.</Label><Input type="number" value={form.critical_min} onChange={(e) => setForm({ ...form, critical_min: e.target.value })} /></div>
-            <div><Label>Limite crítico máx.</Label><Input type="number" value={form.critical_max} onChange={(e) => setForm({ ...form, critical_max: e.target.value })} /></div>
-            <div><Label>Unidade</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} /></div>
+            <div>
+              <Label>Limite crítico mín.</Label>
+              <Input
+                type="number"
+                value={form.critical_min}
+                onChange={(e) => setForm({ ...form, critical_min: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Limite crítico máx.</Label>
+              <Input
+                type="number"
+                value={form.critical_max}
+                onChange={(e) => setForm({ ...form, critical_max: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Unidade</Label>
+              <Input
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              />
+            </div>
             <div>
               <Label>Frequência</Label>
-              <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+              <Select
+                value={form.frequency}
+                onValueChange={(v) => setForm({ ...form, frequency: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FREQUENCIES.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
           </div>
-          <div><Label>Responsável (nome)</Label><Input value={form.responsible_name} onChange={(e) => setForm({ ...form, responsible_name: e.target.value })} /></div>
-          <div><Label>Responsável (e-mail)</Label><Input type="email" value={form.responsible_email} onChange={(e) => setForm({ ...form, responsible_email: e.target.value })} /></div>
-          <div><Label>Instruções para quem coleta</Label><Textarea value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} placeholder="Como medir, fonte do dado, exceções…" /></div>
+          <div>
+            <Label>Responsável (nome)</Label>
+            <Input
+              value={form.responsible_name}
+              onChange={(e) => setForm({ ...form, responsible_name: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Responsável (e-mail)</Label>
+            <Input
+              type="email"
+              value={form.responsible_email}
+              onChange={(e) => setForm({ ...form, responsible_email: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Instruções para quem coleta</Label>
+            <Textarea
+              value={form.instructions}
+              onChange={(e) => setForm({ ...form, instructions: e.target.value })}
+              placeholder="Como medir, fonte do dado, exceções…"
+            />
+          </div>
 
           <Button onClick={submit} className="w-full min-h-11" disabled={save.isPending}>
             {save.isPending ? "Salvando…" : "Salvar configurações"}
           </Button>
 
           <div className="pt-4 border-t">
-            <p className="text-sm font-semibold mb-2">Histórico de coletas ({collections.length})</p>
+            <p className="text-sm font-semibold mb-2">
+              Histórico de coletas ({collections.length})
+            </p>
             {collections.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhuma coleta ainda. Envie o link público para começar.</p>
+              <p className="text-xs text-muted-foreground">
+                Nenhuma coleta ainda. Envie o link público para começar.
+              </p>
             ) : (
               <div className="space-y-1">
                 {collections.slice(0, 20).map((c: any) => (
-                  <div key={c.id} className={cn(
-                    "flex items-center justify-between gap-2 text-xs rounded border px-2 py-1.5",
-                    STATUS_STYLES[c.evaluation === "ok" ? "ok" : c.evaluation]?.chip,
-                  )}>
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "flex items-center justify-between gap-2 text-xs rounded border px-2 py-1.5",
+                      STATUS_STYLES[c.evaluation === "ok" ? "ok" : c.evaluation]?.chip,
+                    )}
+                  >
                     <div className="min-w-0">
-                      <p className="font-bold tabular-nums">{c.value} {indicator.unit}</p>
-                      <p className="truncate opacity-70">{c.submitted_by_name || "—"} · {new Date(c.submitted_at).toLocaleString()}</p>
+                      <p className="font-bold tabular-nums">
+                        {c.value} {indicator.unit}
+                      </p>
+                      <p className="truncate opacity-70">
+                        {c.submitted_by_name || "—"} · {new Date(c.submitted_at).toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 ))}

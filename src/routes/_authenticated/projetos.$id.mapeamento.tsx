@@ -3,7 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, Workflow, Timer, Share2, GitBranch, HeartCrack, Map } from "lucide-react";
 import { listProcesses, listCronoSessions, listPains } from "@/lib/processes.functions";
-import { PageHeader, StatPill, accentBar, accentBg, accentText, type MapAccent } from "@/components/mapping/PageHeader";
+import {
+  PageHeader,
+  StatPill,
+  accentBar,
+  accentBg,
+  accentText,
+  type MapAccent,
+} from "@/components/mapping/PageHeader";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id/mapeamento")({
@@ -16,7 +23,10 @@ function MapeamentoHub() {
   const painsFn = useServerFn(listPains);
 
   const { data: processes = [] } = useQuery({ queryKey: ["processes"], queryFn: () => procFn() });
-  const { data: cronos = [] } = useQuery({ queryKey: ["crono-sessions"], queryFn: () => cronoFn({ data: {} }) });
+  const { data: cronos = [] } = useQuery({
+    queryKey: ["crono-sessions"],
+    queryFn: () => cronoFn({ data: {} }),
+  });
   const { data: pains = [] } = useQuery({ queryKey: ["pains"], queryFn: () => painsFn() });
 
   const items: {
@@ -107,7 +117,12 @@ function MapeamentoHub() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{i.label}</p>
                 <p className="text-sm text-muted-foreground">{i.description}</p>
-                <p className={cn("mt-2 text-[11px] font-semibold uppercase tracking-wide", accentText[i.accent])}>
+                <p
+                  className={cn(
+                    "mt-2 text-[11px] font-semibold uppercase tracking-wide",
+                    accentText[i.accent],
+                  )}
+                >
                   {i.meta}
                 </p>
               </div>

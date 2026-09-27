@@ -74,7 +74,9 @@ function PublicPlan() {
     return (
       <div className="min-h-screen grid place-items-center bg-muted/30 px-4 py-8">
         <div className="w-full max-w-md bg-background rounded-2xl border p-6 text-center space-y-3">
-          <div className="mx-auto h-14 w-14 rounded-full bg-emerald-100 grid place-items-center text-3xl">✓</div>
+          <div className="mx-auto h-14 w-14 rounded-full bg-emerald-100 grid place-items-center text-3xl">
+            ✓
+          </div>
           <h1 className="text-xl font-bold">Atualização enviada</h1>
           <p className="text-sm text-muted-foreground">Obrigado! Sua atualização foi registrada.</p>
         </div>
@@ -86,7 +88,9 @@ function PublicPlan() {
     <div className="min-h-screen bg-muted/30 px-4 py-8">
       <div className="mx-auto w-full max-w-md bg-background rounded-2xl border shadow-sm p-6 space-y-5">
         <header className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Plano de Ação</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Plano de Ação
+          </p>
           <h1 className="text-xl font-bold leading-tight">{plan.title}</h1>
           {plan.description && <p className="text-sm text-muted-foreground">{plan.description}</p>}
         </header>
@@ -102,7 +106,13 @@ function PublicPlan() {
           </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); mut.mutate(); }} className="space-y-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            mut.mutate();
+          }}
+          className="space-y-3"
+        >
           <div>
             <label className="text-xs font-medium text-muted-foreground">Status</label>
             <select
@@ -110,7 +120,11 @@ function PublicPlan() {
               onChange={(e) => setStatus(e.target.value)}
               className="w-full border rounded-lg px-3 py-3 min-h-12 text-base bg-background"
             >
-              {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>

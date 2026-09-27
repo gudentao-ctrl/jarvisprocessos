@@ -32,13 +32,15 @@ export function permissionForPath(pathname: string): ToolKey | null {
     pathname.startsWith("/roadmap") ||
     pathname.startsWith("/template-documentos") ||
     pathname.startsWith("/projetos")
-  ) return "gestao";
+  )
+    return "gestao";
   return null;
 }
 
 export function hasToolPermission(profile: Me | undefined, permission: ToolKey | null) {
   if (!permission) return true;
-  return !!profile?.isSuperadmin || !!profile?.memberships.some(
-    (membership) => membership.permissions?.[permission] === true,
+  return (
+    !!profile?.isSuperadmin ||
+    !!profile?.memberships.some((membership) => membership.permissions?.[permission] === true)
   );
 }

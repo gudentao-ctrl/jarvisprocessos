@@ -22,63 +22,99 @@ const norm = (v: unknown) =>
     .toLowerCase();
 
 const str = (def = "") =>
-  z.preprocess((v) => {
-    if (v === null || v === undefined) return def;
-    if (typeof v === "string") return v;
-    if (typeof v === "number" || typeof v === "boolean") return String(v);
-    return JSON.stringify(v);
-  }, z.string()).catch(def);
+  z
+    .preprocess((v) => {
+      if (v === null || v === undefined) return def;
+      if (typeof v === "string") return v;
+      if (typeof v === "number" || typeof v === "boolean") return String(v);
+      return JSON.stringify(v);
+    }, z.string())
+    .catch(def);
 
 const num = (def = 0) =>
-  z.preprocess((v) => {
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    const n = parseFloat(String(v ?? "").replace(",", "."));
-    return Number.isFinite(n) ? n : def;
-  }, z.number()).catch(def);
+  z
+    .preprocess((v) => {
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      const n = parseFloat(String(v ?? "").replace(",", "."));
+      return Number.isFinite(n) ? n : def;
+    }, z.number())
+    .catch(def);
 
 const bool = (def = false) =>
-  z.preprocess((v) => {
-    if (typeof v === "boolean") return v;
-    const s = norm(v);
-    if (["sim", "true", "yes", "1", "obrigatorio", "necessario"].includes(s)) return true;
-    if (s === "") return def;
-    if (["nao", "false", "no", "0"].includes(s)) return false;
-    return def;
-  }, z.boolean()).catch(def);
+  z
+    .preprocess((v) => {
+      if (typeof v === "boolean") return v;
+      const s = norm(v);
+      if (["sim", "true", "yes", "1", "obrigatorio", "necessario"].includes(s)) return true;
+      if (s === "") return def;
+      if (["nao", "false", "no", "0"].includes(s)) return false;
+      return def;
+    }, z.boolean())
+    .catch(def);
 
 const strList = () =>
-  z.preprocess((v) => {
-    if (Array.isArray(v)) return v.map((x) => String(x ?? "")).filter(Boolean);
-    if (typeof v === "string") return v.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
-    return [];
-  }, z.array(z.string())).catch([] as string[]);
+  z
+    .preprocess((v) => {
+      if (Array.isArray(v)) return v.map((x) => String(x ?? "")).filter(Boolean);
+      if (typeof v === "string")
+        return v
+          .split(/[,;]/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+      return [];
+    }, z.array(z.string()))
+    .catch([] as string[]);
 
-function enumLoose<T extends string>(values: readonly T[], def: T, aliases: Record<string, T> = {}) {
-  return z.preprocess((v) => {
-    const s = norm(v);
-    if ((values as readonly string[]).includes(s)) return s;
-    if (aliases[s]) return aliases[s];
-    const partial = values.find((x) => s.startsWith(x) || s.includes(x));
-    return partial ?? def;
-  }, z.enum(values as unknown as [T, ...T[]])).catch(def);
+function enumLoose<T extends string>(
+  values: readonly T[],
+  def: T,
+  aliases: Record<string, T> = {},
+) {
+  return z
+    .preprocess(
+      (v) => {
+        const s = norm(v);
+        if ((values as readonly string[]).includes(s)) return s;
+        if (aliases[s]) return aliases[s];
+        const partial = values.find((x) => s.startsWith(x) || s.includes(x));
+        return partial ?? def;
+      },
+      z.enum(values as unknown as [T, ...T[]]),
+    )
+    .catch(def);
 }
 
 const ActivityType = enumLoose(
   ["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"] as const,
   "task",
   {
-    inicio: "start", fim: "end", tarefa: "task", atividade: "task",
-    decisao: "decision", espera: "wait", aprovacao: "approval",
-    entrada: "info_in", saida: "info_out",
+    inicio: "start",
+    fim: "end",
+    tarefa: "task",
+    atividade: "task",
+    decisao: "decision",
+    espera: "wait",
+    aprovacao: "approval",
+    entrada: "info_in",
+    saida: "info_out",
   },
 );
 
 const Severity = enumLoose(["baixa", "media", "alta", "critica"] as const, "media", {
-  low: "baixa", medium: "media", high: "alta", critical: "critica", moderada: "media",
+  low: "baixa",
+  medium: "media",
+  high: "alta",
+  critical: "critica",
+  moderada: "media",
 });
 
 const Level = enumLoose(["baixo", "medio", "alto"] as const, "medio", {
-  low: "baixo", medium: "medio", high: "alto", baixa: "baixo", media: "medio", alta: "alto",
+  low: "baixo",
+  medium: "medio",
+  high: "alto",
+  baixa: "baixo",
+  media: "medio",
+  alta: "alto",
 });
 
 const ActivitySchema = z.object({
@@ -168,7 +204,6 @@ const PipelineSchema = z.object({
   decision_map: z.array(DecisionMapSchema).catch([]).default([]),
 });
 
-
 const SYSTEM_PROMPT = `Você é um consultor de processos sênior. A partir de uma transcrição de entrevista operacional, gere TODOS os entregáveis abaixo em uma única resposta JSON.
 
 REGRAS RÍGIDAS:
@@ -208,7 +243,11 @@ function condenseText(s: string, max = 120000): string {
 }
 
 function looseJson(raw: string): any {
-  const txt = (raw ?? "").trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const txt = (raw ?? "")
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "")
+    .trim();
   try {
     return JSON.parse(txt);
   } catch {
@@ -233,7 +272,8 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
       .eq("id", data.interview_id)
       .single();
     if (ie || !interview) throw new Error("Entrevista não encontrada");
-    if (!interview.company_id) throw new Error("Vincule a entrevista a uma empresa antes de gerar.");
+    if (!interview.company_id)
+      throw new Error("Vincule a entrevista a uma empresa antes de gerar.");
 
     const { data: t } = await supabase
       .from("transcripts")
@@ -244,7 +284,11 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
     if (content.length < 50) throw new Error("Transcrição vazia ou muito curta.");
 
     const hash = hashString(content);
-    if (!data.force && interview.transcript_hash === hash && interview.generation_status === "done") {
+    if (
+      !data.force &&
+      interview.transcript_hash === hash &&
+      interview.generation_status === "done"
+    ) {
       return { skipped: true, reason: "Transcrição inalterada — use 'Regenerar' para forçar." };
     }
 
@@ -270,8 +314,14 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
     }
 
     const stats = {
-      processes: 0, activities: 0, edges: 0, pains: 0,
-      indicators: 0, opportunities: 0, info_map: 0, decision_map: 0,
+      processes: 0,
+      activities: 0,
+      edges: 0,
+      pains: 0,
+      indicators: 0,
+      opportunities: 0,
+      info_map: 0,
+      decision_map: 0,
     };
 
     // Salva ata na entrevista
@@ -387,19 +437,38 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         .is("validated_at", null);
       const sevMap: Record<string, number> = { baixa: 2, media: 3, alta: 4, critica: 5 };
       const allowedCat = new Set([
-        "processo","informacao","governanca","pessoas","tecnologia",
-        "planejamento","qualidade","producao","compras","logistica",
+        "processo",
+        "informacao",
+        "governanca",
+        "pessoas",
+        "tecnologia",
+        "planejamento",
+        "qualidade",
+        "producao",
+        "compras",
+        "logistica",
       ]);
       for (let i = 0; i < parsed.pains.length; i++) {
         const p = parsed.pains[i];
-        const { data: created } = await supabase.from("pain_points").insert({
-          company_id: interview.company_id!, project_id: interview.project_id ?? null,
-          source: "interview", source_id: interview.id,
-          category: allowedCat.has(norm(p.category)) ? norm(p.category) : "processo",
-          description: p.description, severity: sevMap[p.severity] ?? 3,
-          generated_by_ai: true, source_interview_id: interview.id,
-        } as any).select("id").single();
-        if (created) { painIdByRef.set(p.ref || `d${i + 1}`, created.id); stats.pains++; }
+        const { data: created } = await supabase
+          .from("pain_points")
+          .insert({
+            company_id: interview.company_id!,
+            project_id: interview.project_id ?? null,
+            source: "interview",
+            source_id: interview.id,
+            category: allowedCat.has(norm(p.category)) ? norm(p.category) : "processo",
+            description: p.description,
+            severity: sevMap[p.severity] ?? 3,
+            generated_by_ai: true,
+            source_interview_id: interview.id,
+          } as any)
+          .select("id")
+          .single();
+        if (created) {
+          painIdByRef.set(p.ref || `d${i + 1}`, created.id);
+          stats.pains++;
+        }
       }
     }
 
@@ -414,19 +483,26 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
       for (let i = 0; i < parsed.indicators.length; i++) {
         const ind = parsed.indicators[i];
         const t = parseFloat(ind.target);
-        const { data: created } = await supabase.from("indicators").insert({
-          company_id: interview.company_id!,
-          project_id: interview.project_id ?? null,
-          process_id: ind.process_ref ? processIdByRef.get(ind.process_ref) ?? null : null,
-          name: ind.name,
-          description: ind.description,
-          unit: ind.unit,
-          target: Number.isFinite(t) ? t : null,
-          frequency: ind.frequency,
-          generated_by_ai: true,
-          source_interview_id: interview.id,
-        } as any).select("id").single();
-        if (created) { indicatorIdByRef.set(ind.ref || `i${i + 1}`, created.id); stats.indicators++; }
+        const { data: created } = await supabase
+          .from("indicators")
+          .insert({
+            company_id: interview.company_id!,
+            project_id: interview.project_id ?? null,
+            process_id: ind.process_ref ? (processIdByRef.get(ind.process_ref) ?? null) : null,
+            name: ind.name,
+            description: ind.description,
+            unit: ind.unit,
+            target: Number.isFinite(t) ? t : null,
+            frequency: ind.frequency,
+            generated_by_ai: true,
+            source_interview_id: interview.id,
+          } as any)
+          .select("id")
+          .single();
+        if (created) {
+          indicatorIdByRef.set(ind.ref || `i${i + 1}`, created.id);
+          stats.indicators++;
+        }
       }
     }
 
@@ -440,7 +516,10 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         .is("validated_at", null);
       const impactMap: Record<string, number> = { baixo: 1, medio: 2, alto: 3 };
       const effortMap: Record<string, number> = { baixo: 3, medio: 2, alto: 1 };
-      const { data: companySectors } = await supabase.from("sectors").select("id, name").eq("company_id", interview.company_id!);
+      const { data: companySectors } = await supabase
+        .from("sectors")
+        .select("id, name")
+        .eq("company_id", interview.company_id!);
       const rows = parsed.opportunities.map((o) => {
         const score = impactMap[o.impact] * 3 + effortMap[o.effort] * 2;
         let priority: "baixa" | "media" | "alta" | "critica" = "media";
@@ -450,11 +529,13 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
         return {
           company_id: interview.company_id!,
           project_id: interview.project_id ?? null,
-          process_id: o.process_ref ? processIdByRef.get(o.process_ref) ?? null : null,
-          pain_point_id: o.pain_ref ? painIdByRef.get(o.pain_ref) ?? null : null,
-          indicator_id: o.indicator_ref ? indicatorIdByRef.get(o.indicator_ref) ?? null : null,
+          process_id: o.process_ref ? (processIdByRef.get(o.process_ref) ?? null) : null,
+          pain_point_id: o.pain_ref ? (painIdByRef.get(o.pain_ref) ?? null) : null,
+          indicator_id: o.indicator_ref ? (indicatorIdByRef.get(o.indicator_ref) ?? null) : null,
           sector: o.sector || null,
-          sector_id: o.sector ? (companySectors ?? []).find((s: any) => norm(s.name) === norm(o.sector))?.id ?? null : null,
+          sector_id: o.sector
+            ? ((companySectors ?? []).find((s: any) => norm(s.name) === norm(o.sector))?.id ?? null)
+            : null,
           title: o.title,
           description: o.description,
           category: o.category,

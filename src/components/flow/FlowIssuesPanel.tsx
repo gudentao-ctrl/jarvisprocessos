@@ -39,13 +39,20 @@ export function FlowIssuesPanel({
   async function handleFix() {
     if (!onAutofix) return;
     setFixing(true);
-    try { await onAutofix(); } finally { setFixing(false); }
+    try {
+      await onAutofix();
+    } finally {
+      setFixing(false);
+    }
   }
 
   return (
     <Card className="p-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <button className="flex items-center gap-2 flex-1 text-left min-w-0" onClick={() => setOpen((v) => !v)}>
+        <button
+          className="flex items-center gap-2 flex-1 text-left min-w-0"
+          onClick={() => setOpen((v) => !v)}
+        >
           <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
           <span className="text-sm font-medium">Inconsistências</span>
           {errors > 0 && <span className="text-xs text-destructive">({errors} erros)</span>}
@@ -53,7 +60,11 @@ export function FlowIssuesPanel({
         </button>
         {onAutofix && issues.length > 0 && (
           <Button size="sm" variant="outline" onClick={handleFix} disabled={fixing}>
-            {fixing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+            {fixing ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <Wand2 className="h-3.5 w-3.5 mr-1" />
+            )}
             Corrigir automaticamente
           </Button>
         )}
@@ -67,7 +78,12 @@ export function FlowIssuesPanel({
                 <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${COLOR[i.severity]}`} />
                 <span className="flex-1">{i.message}</span>
                 {i.activityId && (
-                  <Button size="sm" variant="ghost" className="h-5 px-1.5 text-xs" onClick={() => onFocus(i.activityId!)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 px-1.5 text-xs"
+                    onClick={() => onFocus(i.activityId!)}
+                  >
                     abrir
                   </Button>
                 )}

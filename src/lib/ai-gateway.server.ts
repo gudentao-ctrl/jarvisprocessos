@@ -78,7 +78,7 @@ export async function getAiConfig(supabase?: SupabaseClient | null): Promise<Res
   return {
     provider,
     openAiApiKey: activeOpenAiKey || undefined,
-    openAiBaseUrl: envBaseUrl.replace(/\\+$/,""),
+    openAiBaseUrl: envBaseUrl.replace(/\\+$/, ""),
     lovableApiKey: activeLovableKey || undefined,
     chatModel: dbChatModel || process.env.OPENAI_CHAT_MODEL || "gpt-4o",
     ollamaBaseUrl: envOllamaBaseUrl,
@@ -259,7 +259,9 @@ export interface ChatAiOptions {
  * Inclui auto-retry e fallback automático. Suporta string direta ou objeto ChatAiOptions.
  */
 export async function chatAi(prompt: string): Promise<string>;
-export async function chatAi(options: ChatAiOptions): Promise<{ content: string; provider: string }>;
+export async function chatAi(
+  options: ChatAiOptions,
+): Promise<{ content: string; provider: string }>;
 export async function chatAi(
   optionsOrPrompt: ChatAiOptions | string,
 ): Promise<{ content: string; provider: string } | string> {
@@ -320,7 +322,9 @@ export async function chatAi(
         // Atualiza timestamp para recarregar UI
         if (supabase) {
           const now = new Date().toISOString();
-          await supabase.from("system_settings").upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
+          await supabase
+            .from("system_settings")
+            .upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
         }
         return isString ? (content.trim() as any) : { content: content.trim(), provider: "openai" };
       } catch (err: any) {
@@ -369,7 +373,9 @@ export async function chatAi(
         const content = json.choices?.[0]?.message?.content ?? "";
         if (supabase) {
           const now = new Date().toISOString();
-          await supabase.from("system_settings").upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
+          await supabase
+            .from("system_settings")
+            .upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
         }
         return isString ? (content.trim() as any) : { content: content.trim(), provider: "ollama" };
       } catch (err: any) {
@@ -390,7 +396,11 @@ export async function chatAi(
         "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: model ? (model.includes("/") ? model : `openai/${model}`) : "google/gemini-3-flash-preview",
+        model: model
+          ? model.includes("/")
+            ? model
+            : `openai/${model}`
+          : "google/gemini-3-flash-preview",
         messages,
         response_format: jsonMode ? { type: "json_object" } : undefined,
         temperature,
@@ -411,7 +421,9 @@ export async function chatAi(
     const content = json.choices?.[0]?.message?.content ?? "";
     if (supabase) {
       const now = new Date().toISOString();
-      await supabase.from("system_settings").upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
+      await supabase
+        .from("system_settings")
+        .upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
     }
     return isString ? (content.trim() as any) : { content: content.trim(), provider: "lovable" };
   }
@@ -425,7 +437,11 @@ export async function chatAi(
  * PIPELINE DE ENTREGÁVEIS COMPLETOS (PÓS-ENTREVISTA)
  * ============================================================ */
 
-export async function runAiPipeline(options: { systemPrompt: string; userPrompt: string; supabase?: SupabaseClient | null }): Promise<string> {
+export async function runAiPipeline(options: {
+  systemPrompt: string;
+  userPrompt: string;
+  supabase?: SupabaseClient | null;
+}): Promise<string> {
   const { systemPrompt, userPrompt, supabase } = options;
   const config = await getAiConfig(supabase);
 

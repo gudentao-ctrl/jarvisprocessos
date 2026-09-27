@@ -9,7 +9,13 @@ function fileBase(pop: PopContent) {
   return `POP-${(popProcessName(pop) || "processo").replace(/\W+/g, "-").toLowerCase()}`;
 }
 
-export function ExportPopPdfButton({ pop, companyName }: { pop: PopContent; companyName?: string }) {
+export function ExportPopPdfButton({
+  pop,
+  companyName,
+}: {
+  pop: PopContent;
+  companyName?: string;
+}) {
   function exportPdf() {
     try {
       buildPopPdf(pop, companyName).save(`${fileBase(pop)}.pdf`);
@@ -26,21 +32,45 @@ export function ExportPopPdfButton({ pop, companyName }: { pop: PopContent; comp
   );
 }
 
-
-export function ExportPopWordButton({ pop, companyName }: { pop: PopContent; companyName?: string }) {
+export function ExportPopWordButton({
+  pop,
+  companyName,
+}: {
+  pop: PopContent;
+  companyName?: string;
+}) {
   const [busy, setBusy] = useState(false);
 
   async function exportDocx() {
     setBusy(true);
     try {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType, BorderStyle } =
-        await import("docx");
+      const {
+        Document,
+        Packer,
+        Paragraph,
+        TextRun,
+        HeadingLevel,
+        AlignmentType,
+        Table,
+        TableRow,
+        TableCell,
+        WidthType,
+        ShadingType,
+        BorderStyle,
+      } = await import("docx");
 
       const h = (t: string) =>
-        new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 240, after: 120 }, children: [new TextRun({ text: t, bold: true })] });
-      const p = (t: string) => new Paragraph({ children: [new TextRun(t || "-")], spacing: { after: 80 } });
+        new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 240, after: 120 },
+          children: [new TextRun({ text: t, bold: true })],
+        });
+      const p = (t: string) =>
+        new Paragraph({ children: [new TextRun(t || "-")], spacing: { after: 80 } });
       const li = (items: string[]) =>
-        items.length ? items.map((t) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun(t)] })) : [p("-")];
+        items.length
+          ? items.map((t) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun(t)] }))
+          : [p("-")];
 
       const border = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
       const borders = { top: border, bottom: border, left: border, right: border };
@@ -79,7 +109,12 @@ export function ExportPopWordButton({ pop, companyName }: { pop: PopContent; com
 
       const steps: any[] = [];
       pop.steps.forEach((s, i) => {
-        steps.push(new Paragraph({ spacing: { before: 160 }, children: [new TextRun({ text: `${i + 1}. ${s.title}`, bold: true })] }));
+        steps.push(
+          new Paragraph({
+            spacing: { before: 160 },
+            children: [new TextRun({ text: `${i + 1}. ${s.title}`, bold: true })],
+          }),
+        );
         if (s.description) steps.push(new Paragraph({ children: [new TextRun(s.description)] }));
         const meta: Array<[string, string]> = [
           ["Responsável", s.responsible],
@@ -90,7 +125,14 @@ export function ExportPopWordButton({ pop, companyName }: { pop: PopContent; com
         ];
         for (const [k, v] of meta) {
           if (!v) continue;
-          steps.push(new Paragraph({ children: [new TextRun({ text: `${k}: `, bold: true, size: 18 }), new TextRun({ text: v, size: 18 })] }));
+          steps.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${k}: `, bold: true, size: 18 }),
+                new TextRun({ text: v, size: 18 }),
+              ],
+            }),
+          );
         }
       });
       if (!steps.length) steps.push(p("-"));
@@ -99,42 +141,82 @@ export function ExportPopWordButton({ pop, companyName }: { pop: PopContent; com
         styles: { default: { document: { run: { font: "Arial", size: 22 } } } },
         sections: [
           {
-            properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
+            properties: {
+              page: {
+                size: { width: 11906, height: 16838 },
+                margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 },
+              },
+            },
             children: [
-              new Paragraph({ alignment: AlignmentType.LEFT, children: [new TextRun({ text: "Procedimento Operacional Padrão (POP)", bold: true, size: 34 })] }),
+              new Paragraph({
+                alignment: AlignmentType.LEFT,
+                children: [
+                  new TextRun({
+                    text: "Procedimento Operacional Padrão (POP)",
+                    bold: true,
+                    size: 34,
+                  }),
+                ],
+              }),
               new Paragraph({
                 spacing: { after: 240 },
-                children: [new TextRun({ text: [popProcessName(pop) || "Processo", companyName ?? ""].filter(Boolean).join(" — "), color: "555555" })],
+                children: [
+                  new TextRun({
+                    text: [popProcessName(pop) || "Processo", companyName ?? ""]
+                      .filter(Boolean)
+                      .join(" — "),
+                    color: "555555",
+                  }),
+                ],
               }),
               h("1. Identificação"),
               table(["Campo", "Conteúdo"], idRows, [3000, 6638]),
-              h("2. Objetivo"), p(pop.objective),
-              h("3. Aplicação / Escopo"), p(pop.scope),
+              h("2. Objetivo"),
+              p(pop.objective),
+              h("3. Aplicação / Escopo"),
+              p(pop.scope),
               h("4. Definições"),
-              table(["Termo", "Definição"], pop.definitions.map((d) => [d.term, d.definition]), [3000, 6638]),
+              table(
+                ["Termo", "Definição"],
+                pop.definitions.map((d) => [d.term, d.definition]),
+                [3000, 6638],
+              ),
               h("5. Responsabilidades"),
               table(
                 ["Responsável", "Função", "Responsabilidade"],
                 pop.responsibilities.map((r) => [r.role, r.job_function, r.responsibility]),
                 [2600, 2400, 4638],
               ),
-              h("6. Entradas"), ...li(pop.inputs),
-              h("7. Procedimento Operacional"), ...steps,
-              h("8. Regras de Negócio"), ...li(pop.business_rules),
-              h("9. Pontos de Controle"), ...li(pop.control_points),
+              h("6. Entradas"),
+              ...li(pop.inputs),
+              h("7. Procedimento Operacional"),
+              ...steps,
+              h("8. Regras de Negócio"),
+              ...li(pop.business_rules),
+              h("9. Pontos de Controle"),
+              ...li(pop.control_points),
               h("10. Riscos do Processo"),
-              table(["Risco", "Impacto", "Mitigação"], pop.risks.map((r) => [r.description, r.impact, r.mitigation]), [4000, 2000, 3638]),
+              table(
+                ["Risco", "Impacto", "Mitigação"],
+                pop.risks.map((r) => [r.description, r.impact, r.mitigation]),
+                [4000, 2000, 3638],
+              ),
               h("11. Indicadores sugeridos"),
               table(
                 ["Indicador", "Descrição", "Fórmula", "Meta"],
                 pop.indicators.map((i) => [i.name, i.description, i.formula, i.goal]),
                 [2200, 3600, 2200, 1638],
               ),
-              h("12. Saídas"), ...li(pop.outputs),
-              h("13. Sistemas utilizados"), ...li(pop.systems),
-              h("14. Documentos Relacionados"), ...li(pop.related_documents),
-              h("15. Pontos de Atenção"), ...li(pop.attention_points),
-              h("16. Observações"), p(pop.notes),
+              h("12. Saídas"),
+              ...li(pop.outputs),
+              h("13. Sistemas utilizados"),
+              ...li(pop.systems),
+              h("14. Documentos Relacionados"),
+              ...li(pop.related_documents),
+              h("15. Pontos de Atenção"),
+              ...li(pop.attention_points),
+              h("16. Observações"),
+              p(pop.notes),
             ],
           },
         ],
@@ -157,7 +239,11 @@ export function ExportPopWordButton({ pop, companyName }: { pop: PopContent; com
 
   return (
     <Button variant="outline" onClick={exportDocx} disabled={busy}>
-      {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+      {busy ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <FileText className="mr-2 h-4 w-4" />
+      )}
       Exportar Word
     </Button>
   );

@@ -3,15 +3,33 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  listCompanies, createCompany, updateCompany, deleteCompany,
-  createSector, updateSector, deleteSector, setCompanyActive,
+  listCompanies,
+  createCompany,
+  updateCompany,
+  deleteCompany,
+  createSector,
+  updateSector,
+  deleteSector,
+  setCompanyActive,
 } from "@/lib/interviews.functions";
 import { getMe } from "@/lib/access.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Building2, Plus, Trash2, X, Radar, Check, Globe, Power, PowerOff, Pencil, Clock } from "lucide-react";
+import {
+  Building2,
+  Plus,
+  Trash2,
+  X,
+  Radar,
+  Check,
+  Globe,
+  Power,
+  PowerOff,
+  Pencil,
+  Clock,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -45,31 +63,47 @@ function CompaniesPage() {
 
   const addCompany = useMutation({
     mutationFn: () => addCo({ data: { name: newName.trim() } }),
-    onSuccess: () => { setNewName(""); qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Empresa criada"); },
+    onSuccess: () => {
+      setNewName("");
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Empresa criada");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao criar empresa"),
   });
 
   const updateCompanyMutation = useMutation({
     mutationFn: (vars: { id: string; name: string }) => updCo({ data: vars }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Nome da empresa atualizado"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Nome da empresa atualizado");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar empresa"),
   });
 
   const removeCompany = useMutation({
     mutationFn: (id: string) => delCo({ data: { id } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Empresa excluída"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Empresa excluída");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir"),
   });
 
   const addSector = useMutation({
     mutationFn: (vars: { company_id: string; name: string }) => addSec({ data: vars }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Setor adicionado"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Setor adicionado");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao adicionar setor"),
   });
 
   const updateSectorMutation = useMutation({
     mutationFn: (vars: { id: string; name: string }) => updSec({ data: vars }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Setor atualizado"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Setor atualizado");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar setor"),
   });
 
@@ -84,7 +118,10 @@ function CompaniesPage() {
 
   const removeSector = useMutation({
     mutationFn: (id: string) => delSec({ data: { id } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Setor excluído"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Setor excluído");
+    },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir setor"),
   });
 
@@ -102,12 +139,17 @@ function CompaniesPage() {
 
       <Card className="p-4">
         <form
-          onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addCompany.mutate(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (newName.trim()) addCompany.mutate();
+          }}
           className="flex gap-2"
         >
           <Input
-            value={newName} onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nova empresa..." className="h-11"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nova empresa..."
+            className="h-11"
           />
           <Button type="submit" disabled={!newName.trim() || addCompany.isPending} className="h-11">
             <Plus className="mr-1 h-4 w-4" /> Criar
@@ -130,32 +172,49 @@ function CompaniesPage() {
       </div>
 
       <div className="space-y-3">
-        {data?.filter((c: any) => showInactive || c.is_active !== false).map((c: any) => (
-          <CompanyCard
-            key={c.id}
-            company={c}
-            active={c.id === companyId}
-            isSuperadmin={isSuperadmin}
-            onOpen={() => openCompany(c.id)}
-            onDelete={() => confirm(`Excluir "${c.name}" e seus setores?`) && removeCompany.mutate(c.id)}
-            onUpdateCompany={(name) => updateCompanyMutation.mutateAsync({ id: c.id, name })}
-            onAddSector={(name) => addSector.mutate({ company_id: c.id, name })}
-            onUpdateSector={(id, name) => updateSectorMutation.mutateAsync({ id, name })}
-            onDeleteSector={(id) => removeSector.mutate(id)}
-            onToggleActive={() =>
-              toggleActive.mutate({ id: c.id, is_active: c.is_active === false })
-            }
-          />
-        ))}
+        {data
+          ?.filter((c: any) => showInactive || c.is_active !== false)
+          .map((c: any) => (
+            <CompanyCard
+              key={c.id}
+              company={c}
+              active={c.id === companyId}
+              isSuperadmin={isSuperadmin}
+              onOpen={() => openCompany(c.id)}
+              onDelete={() =>
+                confirm(`Excluir "${c.name}" e seus setores?`) && removeCompany.mutate(c.id)
+              }
+              onUpdateCompany={(name) => updateCompanyMutation.mutateAsync({ id: c.id, name })}
+              onAddSector={(name) => addSector.mutate({ company_id: c.id, name })}
+              onUpdateSector={(id, name) => updateSectorMutation.mutateAsync({ id, name })}
+              onDeleteSector={(id) => removeSector.mutate(id)}
+              onToggleActive={() =>
+                toggleActive.mutate({ id: c.id, is_active: c.is_active === false })
+              }
+            />
+          ))}
       </div>
     </div>
   );
 }
 
 function CompanyCard({
-  company, active, isSuperadmin, onOpen, onDelete, onUpdateCompany, onAddSector, onUpdateSector, onDeleteSector, onToggleActive,
+  company,
+  active,
+  isSuperadmin,
+  onOpen,
+  onDelete,
+  onUpdateCompany,
+  onAddSector,
+  onUpdateSector,
+  onDeleteSector,
+  onToggleActive,
 }: {
-  company: any; active: boolean; isSuperadmin: boolean; onOpen: () => void; onDelete: () => void;
+  company: any;
+  active: boolean;
+  isSuperadmin: boolean;
+  onOpen: () => void;
+  onDelete: () => void;
   onUpdateCompany: (name: string) => Promise<any>;
   onAddSector: (name: string) => void;
   onUpdateSector: (id: string, name: string) => Promise<any>;
@@ -193,7 +252,9 @@ function CompanyCard({
   };
 
   return (
-    <Card className={`${active ? "p-4 ring-2 ring-primary" : "p-4"} ${inactive ? "opacity-70" : ""}`}>
+    <Card
+      className={`${active ? "p-4 ring-2 ring-primary" : "p-4"} ${inactive ? "opacity-70" : ""}`}
+    >
       <div className="flex items-start justify-between gap-2">
         {editingCompany ? (
           <form onSubmit={handleSaveCompany} className="flex min-w-0 flex-1 items-center gap-2">
@@ -210,7 +271,13 @@ function CompanyCard({
                 }
               }}
             />
-            <Button size="icon" variant="ghost" type="submit" className="h-8 w-8 text-primary" title="Salvar">
+            <Button
+              size="icon"
+              variant="ghost"
+              type="submit"
+              className="h-8 w-8 text-primary"
+              title="Salvar"
+            >
               <Check className="h-4 w-4" />
             </Button>
             <Button
@@ -231,9 +298,15 @@ function CompanyCard({
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
             <button onClick={onOpen} className="flex min-w-0 items-center gap-2 text-left truncate">
               <Building2 className="h-4 w-4 shrink-0 text-primary" />
-              <h3 className="truncate font-semibold hover:underline" title={company.name}>{company.name}</h3>
+              <h3 className="truncate font-semibold hover:underline" title={company.name}>
+                {company.name}
+              </h3>
               {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
-              {inactive && <Badge variant="secondary" className="shrink-0">Inativa</Badge>}
+              {inactive && (
+                <Badge variant="secondary" className="shrink-0">
+                  Inativa
+                </Badge>
+              )}
               {company.public_enabled && (
                 <span title="Portal público ativo">
                   <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -258,7 +331,12 @@ function CompanyCard({
             )}
           </div>
         )}
-        <Button size="sm" variant="outline" onClick={() => setPortalOpen(true)} className="h-8 gap-1">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setPortalOpen(true)}
+          className="h-8 gap-1"
+        >
           <Globe className="h-3.5 w-3.5" /> Portal
         </Button>
         <Button size="sm" variant="outline" onClick={onOpen} className="h-8 gap-1">
@@ -275,7 +353,13 @@ function CompanyCard({
           {inactive ? "Reativar" : "Inativar"}
         </Button>
         {isSuperadmin && (
-          <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Excluir empresa">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            title="Excluir empresa"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
@@ -283,9 +367,15 @@ function CompanyCard({
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
         <Badge variant="outline" className="gap-1 font-medium">
           <Clock className="h-3 w-3" />
-          Horas do Mês: {Number(company.month_hours ?? company.total_hours ?? 0).toFixed(2).replace(".", ",")}h
+          Horas do Mês:{" "}
+          {Number(company.month_hours ?? company.total_hours ?? 0)
+            .toFixed(2)
+            .replace(".", ",")}
+          h
         </Badge>
-        {company.start_date && <span>Início {company.start_date.split("-").reverse().join("/")}</span>}
+        {company.start_date && (
+          <span>Início {company.start_date.split("-").reverse().join("/")}</span>
+        )}
         {company.end_date && <span>Término {company.end_date.split("-").reverse().join("/")}</span>}
       </div>
       <PortalPublicoDialog
@@ -314,7 +404,13 @@ function CompanyCard({
                     if (e.key === "Escape") setEditingSectorId(null);
                   }}
                 />
-                <Button size="icon" variant="ghost" type="submit" className="h-7 w-7 text-primary" title="Salvar setor">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  type="submit"
+                  className="h-7 w-7 text-primary"
+                  title="Salvar setor"
+                >
                   <Check className="h-3.5 w-3.5" />
                 </Button>
                 <Button
@@ -332,7 +428,10 @@ function CompanyCard({
           }
 
           return (
-            <div key={s.id} className="flex items-center justify-between rounded-md bg-secondary px-3 py-1.5 text-sm">
+            <div
+              key={s.id}
+              className="flex items-center justify-between rounded-md bg-secondary px-3 py-1.5 text-sm"
+            >
               <span className="truncate">{s.name}</span>
               {isSuperadmin && (
                 <div className="flex items-center gap-1 shrink-0">
@@ -366,15 +465,26 @@ function CompanyCard({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (sectorName.trim()) { onAddSector(sectorName.trim()); setSectorName(""); }
+            if (sectorName.trim()) {
+              onAddSector(sectorName.trim());
+              setSectorName("");
+            }
           }}
           className="mt-3 flex gap-2"
         >
           <Input
-            value={sectorName} onChange={(e) => setSectorName(e.target.value)}
-            placeholder="Adicionar setor..." className="h-9 text-sm"
+            value={sectorName}
+            onChange={(e) => setSectorName(e.target.value)}
+            placeholder="Adicionar setor..."
+            className="h-9 text-sm"
           />
-          <Button type="submit" size="sm" variant="outline" disabled={!sectorName.trim()} className="h-9">
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            disabled={!sectorName.trim()}
+            className="h-9"
+          >
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </form>

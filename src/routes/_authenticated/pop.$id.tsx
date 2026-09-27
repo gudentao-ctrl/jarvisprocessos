@@ -2,7 +2,17 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ClipboardList, Loader2, Save, Sparkles, Trash2, Upload, Workflow, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  ClipboardList,
+  Loader2,
+  Save,
+  Sparkles,
+  Trash2,
+  Upload,
+  Workflow,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 import { generatePop, getPop, savePop, deletePop } from "@/lib/pop.functions";
 import { listProcesses } from "@/lib/processes.functions";
@@ -19,15 +29,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/pop/$id")({
   head: () => ({
     meta: [
       { title: "Editor de POP | JARVIS" },
-      { name: "description", content: "Gere e edite um Procedimento Operacional Padrão com IA e exporte em PDF ou Word." },
+      {
+        name: "description",
+        content: "Gere e edite um Procedimento Operacional Padrão com IA e exporte em PDF ou Word.",
+      },
       { property: "og:title", content: "Editor de POP | JARVIS" },
-      { property: "og:description", content: "Gere e edite um Procedimento Operacional Padrão com IA." },
+      {
+        property: "og:description",
+        content: "Gere e edite um Procedimento Operacional Padrão com IA.",
+      },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -114,8 +136,13 @@ function PopEditorPage() {
         if (file.size > MAX_MB * 1024 * 1024) throw new Error(`Arquivo maior que ${MAX_MB}MB.`);
         dataUrl = await toDataUrl(file);
         const key = `${selectedCompany || "sem-empresa"}/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-        const { error: upErr } = await supabase.storage.from("pop-sources").upload(key, file, { upsert: true });
-        if (!upErr) { path = key; setSourcePath(key); }
+        const { error: upErr } = await supabase.storage
+          .from("pop-sources")
+          .upload(key, file, { upsert: true });
+        if (!upErr) {
+          path = key;
+          setSourcePath(key);
+        }
       }
       const result = await gen({
         data: {
@@ -131,7 +158,8 @@ function PopEditorPage() {
       setContent(result);
       setSourceType(mode);
       if (path) setSourcePath(path);
-      if (title === "Novo POP" && result.identification.process_name) setTitle(`POP – ${result.identification.process_name}`);
+      if (title === "Novo POP" && result.identification.process_name)
+        setTitle(`POP – ${result.identification.process_name}`);
       toast.success("POP gerado. Revise e edite antes de salvar.");
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar POP");
@@ -178,7 +206,10 @@ function PopEditorPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/pop" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        to="/pop"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="mr-1 h-4 w-4" /> Voltar aos POPs
       </Link>
 
@@ -200,19 +231,37 @@ function PopEditorPage() {
       <Card className="grid gap-3 p-4 sm:grid-cols-3">
         <div>
           <Label>Empresa</Label>
-          <Select value={selectedCompany} onValueChange={(v) => { setSelectedCompany(v); setProcessId(""); }}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <Select
+            value={selectedCompany}
+            onValueChange={(v) => {
+              setSelectedCompany(v);
+              setProcessId("");
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
             <SelectContent>
-              {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {companies.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label>Processo vinculado</Label>
           <Select value={processId} onValueChange={setProcessId}>
-            <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Opcional" />
+            </SelectTrigger>
             <SelectContent>
-              {processes.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              {processes.map((p: any) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -247,13 +296,17 @@ function PopEditorPage() {
             <Button variant="outline" onClick={() => fileRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" /> Selecionar arquivo
             </Button>
-            <span className="text-xs text-muted-foreground">{file ? file.name : "Nenhum arquivo selecionado"}</span>
+            <span className="text-xs text-muted-foreground">
+              {file ? file.name : "Nenhum arquivo selecionado"}
+            </span>
           </div>
         </div>
 
         <div>
           <h2 className="text-sm font-semibold">3. Fluxo mapeado no JARVIS</h2>
-          <p className="text-xs text-muted-foreground">Selecione um processo acima para usar o fluxo já mapeado.</p>
+          <p className="text-xs text-muted-foreground">
+            Selecione um processo acima para usar o fluxo já mapeado.
+          </p>
           <Button
             variant="outline"
             className="mt-2"
@@ -266,16 +319,27 @@ function PopEditorPage() {
 
         <div className="flex flex-wrap gap-2 border-t pt-4">
           <Button disabled={generating} onClick={() => handleGenerate(file ? "imagem" : "texto")}>
-            {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            {generating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
             {content ? "Atualizar com IA" : "Gerar POP com IA"}
           </Button>
           {content && (
             <>
               <Button variant="secondary" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Salvar POP
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}{" "}
+                Salvar POP
               </Button>
               <Select value={status} onValueChange={(v) => setStatus(v as any)}>
-                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rascunho">Rascunho</SelectItem>
                   <SelectItem value="aprovado">Aprovado</SelectItem>
@@ -293,8 +357,8 @@ function PopEditorPage() {
 
       {!content && !generating && (
         <Card className="flex items-center gap-3 border-dashed p-6 text-sm text-muted-foreground">
-          <FileText className="h-5 w-5" />
-          O documento gerado aparecerá aqui, com todos os campos editáveis antes de salvar.
+          <FileText className="h-5 w-5" />O documento gerado aparecerá aqui, com todos os campos
+          editáveis antes de salvar.
         </Card>
       )}
 
@@ -304,12 +368,16 @@ function PopEditorPage() {
           <PopEditor value={content} onChange={setContent} />
           <div className="sticky bottom-4 flex flex-wrap gap-2">
             <Button size="lg" className="flex-1" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Salvar POP
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}{" "}
+              Salvar POP
             </Button>
           </div>
         </>
       )}
-
     </div>
   );
 }

@@ -7,19 +7,13 @@ import { cn } from "@/lib/utils";
 
 export function CompanySwitcher() {
   const { company, companies, setCompanyId } = useActiveCompany();
-  const visible = (companies as any[]).filter(
-    (c) => c.is_active !== false || c.id === company?.id,
-  );
+  const visible = (companies as any[]).filter((c) => c.is_active !== false || c.id === company?.id);
   const [open, setOpen] = useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 max-w-[220px] gap-2 truncate"
-        >
+        <Button variant="outline" size="sm" className="h-9 max-w-[220px] gap-2 truncate">
           <Building2 className="h-4 w-4 shrink-0 text-primary" />
           <span className="truncate text-sm font-medium">
             {company?.name ?? "Selecionar empresa"}

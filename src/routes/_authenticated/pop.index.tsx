@@ -15,9 +15,16 @@ export const Route = createFileRoute("/_authenticated/pop/")({
   head: () => ({
     meta: [
       { title: "POP – Procedimento Operacional Padrão | JARVIS" },
-      { name: "description", content: "Gere, edite e arquive Procedimentos Operacionais Padrão com apoio de IA, vinculados aos processos mapeados." },
+      {
+        name: "description",
+        content:
+          "Gere, edite e arquive Procedimentos Operacionais Padrão com apoio de IA, vinculados aos processos mapeados.",
+      },
       { property: "og:title", content: "POP – Procedimento Operacional Padrão | JARVIS" },
-      { property: "og:description", content: "POPs gerados por IA a partir de descrição, fluxograma ou fluxo mapeado." },
+      {
+        property: "og:description",
+        content: "POPs gerados por IA a partir de descrição, fluxograma ou fluxo mapeado.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -39,7 +46,11 @@ function PopListPage() {
     const t = q.trim().toLowerCase();
     if (!t) return pops;
     return pops.filter((p: any) =>
-      [p.title, p.processes?.name, p.companies?.name].filter(Boolean).join(" ").toLowerCase().includes(t),
+      [p.title, p.processes?.name, p.companies?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(t),
     );
   }, [pops, q]);
 
@@ -71,7 +82,12 @@ function PopListPage() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Buscar por processo ou título…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input
+          className="pl-9"
+          placeholder="Buscar por processo ou título…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
       </div>
 
       {isLoading ? (
@@ -93,13 +109,22 @@ function PopListPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{p.title}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {[p.companies?.name, p.processes?.name].filter(Boolean).join(" · ") || "Sem processo vinculado"}
+                    {[p.companies?.name, p.processes?.name].filter(Boolean).join(" · ") ||
+                      "Sem processo vinculado"}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide">
-                    <span className={p.status === "aprovado" ? "rounded-full bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600" : "rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-600"}>
+                    <span
+                      className={
+                        p.status === "aprovado"
+                          ? "rounded-full bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600"
+                          : "rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-600"
+                      }
+                    >
                       {p.status}
                     </span>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">origem: {p.source_type}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                      origem: {p.source_type}
+                    </span>
                   </div>
                 </div>
               </Card>

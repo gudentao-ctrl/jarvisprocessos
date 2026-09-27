@@ -19,8 +19,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Plus,
   Trash2,
@@ -148,8 +160,7 @@ const empty = (): Row => ({
   manager_note: "",
 });
 
-const brl = (n: number) =>
-  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function fmtDuration(h: number) {
   const total = Math.round(h * 60);
@@ -159,7 +170,10 @@ function fmtDuration(h: number) {
 }
 
 function typeLabel(v: string) {
-  return (ACTIVITY_TYPES as readonly { value: string; label: string }[]).find((t) => t.value === v)?.label ?? v;
+  return (
+    (ACTIVITY_TYPES as readonly { value: string; label: string }[]).find((t) => t.value === v)
+      ?.label ?? v
+  );
 }
 
 // Componente com máscara monetária fluida e natural (R$ 0,00)
@@ -241,8 +255,7 @@ function HorasPage() {
   );
   const myName = me?.fullName || me?.email || "";
   const isManager =
-    !!me?.isSuperadmin ||
-    (me?.memberships ?? []).some((m: any) => m.member_role === "gestor");
+    !!me?.isSuperadmin || (me?.memberships ?? []).some((m: any) => m.member_role === "gestor");
   const minDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 2);
@@ -344,7 +357,7 @@ function HorasPage() {
       }
     }
 
-    let startTime = (r.start_time ?? "08:00").slice(0, 5);
+    const startTime = (r.start_time ?? "08:00").slice(0, 5);
     let endTime = (r.end_time ?? "12:00").slice(0, 5);
     if (r.adjusted_by_manager && r.hours !== undefined && r.hours !== null) {
       const [sh, sm] = startTime.split(":").map(Number);
@@ -465,7 +478,8 @@ function HorasPage() {
                       Aviso de Ajuste pela Gestão:
                     </div>
                     <p className="mt-1 text-xs text-amber-800 dark:text-amber-300 font-medium">
-                      {editing.manager_note || "Este lançamento foi auditado e ajustado pela gestão."}
+                      {editing.manager_note ||
+                        "Este lançamento foi auditado e ajustado pela gestão."}
                     </p>
                   </div>
                 )}
@@ -647,7 +661,9 @@ function HorasPage() {
                       <div>
                         <Label
                           className="text-sm font-semibold cursor-pointer"
-                          onClick={() => setEditing({ ...editing, hasExpense: !editing.hasExpense })}
+                          onClick={() =>
+                            setEditing({ ...editing, hasExpense: !editing.hasExpense })
+                          }
                         >
                           Adicionar despesas neste atendimento?
                         </Label>
@@ -691,9 +707,7 @@ function HorasPage() {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <div className="sm:col-span-1">
-                                <Label className="text-[11px] text-muted-foreground">
-                                  Valor
-                                </Label>
+                                <Label className="text-[11px] text-muted-foreground">Valor</Label>
                                 <CurrencyInput
                                   className="h-10 text-sm font-medium"
                                   value={currentExp.amount}
@@ -866,14 +880,20 @@ function HorasPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
               <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              Notificação da Gestão: {adjustedItems.length} lançamento{adjustedItems.length === 1 ? "" : "s"} ajustado{adjustedItems.length === 1 ? "" : "s"}
+              Notificação da Gestão: {adjustedItems.length} lançamento
+              {adjustedItems.length === 1 ? "" : "s"} ajustado
+              {adjustedItems.length === 1 ? "" : "s"}
             </div>
-            <Badge variant="outline" className="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border-amber-300 text-[10px] font-bold">
+            <Badge
+              variant="outline"
+              className="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border-amber-300 text-[10px] font-bold"
+            >
               Auditoria da Gestão
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            A gestão revisou e realizou ajustes em seus lançamentos de horas/despesas. Veja os detalhes abaixo:
+            A gestão revisou e realizou ajustes em seus lançamentos de horas/despesas. Veja os
+            detalhes abaixo:
           </p>
           <div className="space-y-1.5 pt-1">
             {adjustedItems.slice(0, 5).map((item: any) => (
@@ -883,13 +903,17 @@ function HorasPage() {
               >
                 <div>
                   <span className="font-semibold text-foreground">
-                    {item.companies?.name || "Cliente"} · {new Date(item.work_date + "T00:00:00").toLocaleDateString("pt-BR")}:
+                    {item.companies?.name || "Cliente"} ·{" "}
+                    {new Date(item.work_date + "T00:00:00").toLocaleDateString("pt-BR")}:
                   </span>{" "}
                   <span className="text-amber-800 dark:text-amber-300 font-medium">
                     {item.manager_note || "Lançamento auditado e ajustado pela gestão."}
                   </span>
                 </div>
-                <Badge variant="secondary" className="text-[10px] shrink-0 font-bold self-start sm:self-auto">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] shrink-0 font-bold self-start sm:self-auto"
+                >
                   {fmtDuration(Number(item.hours))}
                 </Badge>
               </div>
@@ -973,12 +997,13 @@ function HorasPage() {
                       {new Date(r.work_date + "T00:00:00").toLocaleDateString("pt-BR")}
                       {r.adjusted_by_manager ? (
                         <span className="font-semibold text-amber-700 dark:text-amber-400">
-                          {" "}· Duração ajustada pela gestão: {fmtDuration(Number(r.hours))}
+                          {" "}
+                          · Duração ajustada pela gestão: {fmtDuration(Number(r.hours))}
                         </span>
+                      ) : r.start_time && r.end_time ? (
+                        ` · ${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}`
                       ) : (
-                        r.start_time && r.end_time
-                          ? ` · ${String(r.start_time).slice(0, 5)}–${String(r.end_time).slice(0, 5)}`
-                          : ""
+                        ""
                       )}
                     </p>
                     {r.description && <p className="mt-1 text-sm">{r.description}</p>}

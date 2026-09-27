@@ -6,9 +6,18 @@ const GREY: [number, number, number] = [110, 116, 128];
 const EMERALD: [number, number, number] = [16, 120, 72];
 
 const CHAR_MAP: Record<string, string> = {
-  "\u2265": ">=", "\u2264": "<=", "\u2260": "!=", "\u2248": "~", "\u00b1": "+/-",
-  "\u2192": "->", "\u2190": "<-", "\u2022": "-", "\u2011": "-", "\u2212": "-",
-  "\u200b": "", "\u00a0": " ",
+  "\u2265": ">=",
+  "\u2264": "<=",
+  "\u2260": "!=",
+  "\u2248": "~",
+  "\u00b1": "+/-",
+  "\u2192": "->",
+  "\u2190": "<-",
+  "\u2022": "-",
+  "\u2011": "-",
+  "\u2212": "-",
+  "\u200b": "",
+  "\u00a0": " ",
 };
 
 function sanitize(v?: string | null) {
@@ -140,10 +149,12 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
     const tools = sum(r.work_hour_tools, "amount");
 
     // Detalhamento de despesas por categoria
-    const expBreakdown = (r.work_hour_expenses ?? []).map((e: any) => {
-      const cat = e.category ? `${e.category}: ` : "";
-      return `${cat}${brl(e.amount)}`;
-    }).join(", ");
+    const expBreakdown = (r.work_hour_expenses ?? [])
+      .map((e: any) => {
+        const cat = e.category ? `${e.category}: ` : "";
+        return `${cat}${brl(e.amount)}`;
+      })
+      .join(", ");
 
     return { rate, hoursAmount, exp, tools, expBreakdown, total: hoursAmount + exp + tools };
   };
@@ -190,7 +201,18 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
       autoTable(doc, {
         startY: y,
         margin: { left: M, right: M },
-        head: [["Data", "Tipo", "Descrição / Despesas Detalhadas", "Horas", "Valor/h", "Desp.", "Ferr.", "Total"]],
+        head: [
+          [
+            "Data",
+            "Tipo",
+            "Descrição / Despesas Detalhadas",
+            "Horas",
+            "Valor/h",
+            "Desp.",
+            "Ferr.",
+            "Total",
+          ],
+        ],
         body: list.map((r) => {
           const v = rowValue(r);
           let descText = sanitize(r.description) || "-";
@@ -368,6 +390,9 @@ export function exportBilledPdf(data: BilledReport, mode: BilledPdfMode) {
     doc.text(`${i}/${pages}`, W - M, doc.internal.pageSize.getHeight() - 8, { align: "right" });
   }
 
-  const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   doc.save(`faturamento-${slug || "cliente"}-${mode}.pdf`);
 }

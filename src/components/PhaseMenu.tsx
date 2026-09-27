@@ -18,7 +18,9 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
   const currentLabel = PHASES.find((p) => p.slug === current)?.label ?? "Etapas";
   const visiblePhases = PHASES.filter((phase) => {
     if (phase.slug === "controle") return hasToolPermission(profile, "gestao");
-    return PHASE_TOOLS[phase.slug].some((item) => hasToolPermission(profile, permissionForPath(item.to)));
+    return PHASE_TOOLS[phase.slug].some((item) =>
+      hasToolPermission(profile, permissionForPath(item.to)),
+    );
   });
 
   return (
@@ -51,7 +53,9 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
                 active && "bg-accent",
               )}
             >
-              <Check className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-primary" : "opacity-0")} />
+              <Check
+                className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-primary" : "opacity-0")}
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{p.label}</p>
                 {p.description && (
@@ -70,8 +74,13 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
 export function PhaseGrid() {
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
-  const visiblePhases = PHASES.filter((phase) => phase.slug !== "controle" &&
-    PHASE_TOOLS[phase.slug].some((item) => hasToolPermission(profile, permissionForPath(item.to))));
+  const visiblePhases = PHASES.filter(
+    (phase) =>
+      phase.slug !== "controle" &&
+      PHASE_TOOLS[phase.slug].some((item) =>
+        hasToolPermission(profile, permissionForPath(item.to)),
+      ),
+  );
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
       {visiblePhases.map((p) => (

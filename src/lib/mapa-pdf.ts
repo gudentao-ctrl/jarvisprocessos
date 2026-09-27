@@ -63,16 +63,7 @@ function drawLogoBox(
 
   if (dataUrl) {
     try {
-      pdf.addImage(
-        dataUrl,
-        "PNG",
-        x + 1.5,
-        y + 1.5,
-        maxW - 3,
-        maxH - 3,
-        undefined,
-        "FAST",
-      );
+      pdf.addImage(dataUrl, "PNG", x + 1.5, y + 1.5, maxW - 3, maxH - 3, undefined, "FAST");
       return;
     } catch {
       /* fallback se imagem corrompida */
@@ -89,36 +80,16 @@ function drawLogoBox(
 /**
  * Cabeçalho compacto para as páginas de conteúdo interno (Pág 2..N)
  */
-function drawContentHeader(
-  pdf: jsPDF,
-  company: MapaCompanyInfo,
-  pillarName?: string,
-) {
+function drawContentHeader(pdf: jsPDF, company: MapaCompanyInfo, pillarName?: string) {
   // Container branco do cabeçalho
   pdf.setFillColor(255, 255, 255);
   pdf.rect(0, 0, PAGE_W, 20, "F");
 
   // Logo consultoria à esquerda
-  drawLogoBox(
-    pdf,
-    company.consultancy_logo,
-    MARGIN_X,
-    3,
-    28,
-    11,
-    "MAIA",
-  );
+  drawLogoBox(pdf, company.consultancy_logo, MARGIN_X, 3, 28, 11, "MAIA");
 
   // Logo empresa à direita
-  drawLogoBox(
-    pdf,
-    company.company_logo,
-    PAGE_W - MARGIN_X - 28,
-    3,
-    28,
-    11,
-    company.name,
-  );
+  drawLogoBox(pdf, company.company_logo, PAGE_W - MARGIN_X - 28, 3, 28, 11, company.name);
 
   // Textos centrais
   pdf.setFont("helvetica", "bold");
@@ -173,24 +144,8 @@ export async function exportMapaPdf(opts: {
   pdf.rect(0, 0, PAGE_W, 3, "F");
 
   // Logos com containers seguros e não sobrepostos
-  drawLogoBox(
-    pdf,
-    company.consultancy_logo,
-    MARGIN_X,
-    6,
-    42,
-    16,
-    "MAIA CONSULTORIA",
-  );
-  drawLogoBox(
-    pdf,
-    company.company_logo,
-    PAGE_W - MARGIN_X - 42,
-    6,
-    42,
-    16,
-    company.name,
-  );
+  drawLogoBox(pdf, company.consultancy_logo, MARGIN_X, 6, 42, 16, "MAIA CONSULTORIA");
+  drawLogoBox(pdf, company.company_logo, PAGE_W - MARGIN_X - 42, 6, 42, 16, company.name);
 
   // Título e Metadados Centrais
   pdf.setFont("helvetica", "bold");
@@ -201,22 +156,16 @@ export async function exportMapaPdf(opts: {
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8.5);
   pdf.setTextColor(...COLOR_MUTED);
-  pdf.text(
-    "Painel Executivo de Diretrizes e Desdobramentos Estratégicos",
-    PAGE_W / 2,
-    19.5,
-    { align: "center" },
-  );
+  pdf.text("Painel Executivo de Diretrizes e Desdobramentos Estratégicos", PAGE_W / 2, 19.5, {
+    align: "center",
+  });
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
   pdf.setTextColor(...COLOR_SECONDARY);
-  pdf.text(
-    `Empresa: ${company.name}    |    Data de Emissão: ${dateStr}`,
-    PAGE_W / 2,
-    25.5,
-    { align: "center" },
-  );
+  pdf.text(`Empresa: ${company.name}    |    Data de Emissão: ${dateStr}`, PAGE_W / 2, 25.5, {
+    align: "center",
+  });
 
   // Linha divisória
   pdf.setDrawColor(...COLOR_ACCENT);
@@ -236,8 +185,7 @@ export async function exportMapaPdf(opts: {
   const globalProgress =
     activeAcoes.length > 0
       ? Math.round(
-          activeAcoes.reduce((acc, a) => acc + (a.progress_pct || 0), 0) /
-            activeAcoes.length,
+          activeAcoes.reduce((acc, a) => acc + (a.progress_pct || 0), 0) / activeAcoes.length,
         )
       : 0;
 
@@ -344,9 +292,12 @@ export async function exportMapaPdf(opts: {
 
     // Banner de cabeçalho do pilar
     let headerColor: [number, number, number] = COLOR_PRIMARY;
-    if (pilar.key === "pessoas") headerColor = [124, 58, 237]; // Violet
-    else if (pilar.key === "processo") headerColor = [37, 99, 235]; // Blue
-    else if (pilar.key === "negocio") headerColor = [5, 150, 105]; // Emerald
+    if (pilar.key === "pessoas")
+      headerColor = [124, 58, 237]; // Violet
+    else if (pilar.key === "processo")
+      headerColor = [37, 99, 235]; // Blue
+    else if (pilar.key === "negocio")
+      headerColor = [5, 150, 105]; // Emerald
     else headerColor = [217, 119, 6]; // Amber
 
     pdf.setFillColor(...headerColor);
@@ -437,12 +388,9 @@ export async function exportMapaPdf(opts: {
       pdf.setFontSize(7);
       pdf.setTextColor(...st.color);
       pdf.text(st.label, cardX + 9, rowY + 4.5);
-      pdf.text(
-        `${st.count} ${st.count === 1 ? "ação" : "ações"}`,
-        cardX + cardW - 9,
-        rowY + 4.5,
-        { align: "right" },
-      );
+      pdf.text(`${st.count} ${st.count === 1 ? "ação" : "ações"}`, cardX + cardW - 9, rowY + 4.5, {
+        align: "right",
+      });
     });
 
     // Diretrizes deste pilar (prévia)
@@ -513,11 +461,7 @@ export async function exportMapaPdf(opts: {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8.5);
     pdf.setTextColor(255, 255, 255);
-    pdf.text(
-      `PILAR: ${pilar.name.toUpperCase()}`,
-      MARGIN_X + 4,
-      cursorY + 5.2,
-    );
+    pdf.text(`PILAR: ${pilar.name.toUpperCase()}`, MARGIN_X + 4, cursorY + 5.2);
     pdf.text(
       `${pilar.total_diretrizes} Diretrizes  ·  ${pilar.total_desdobramentos} Ações de Desdobramento  ·  ${pilar.progress_pct}% de Avanço Consolidado`,
       PAGE_W - MARGIN_X - 4,
@@ -543,15 +487,7 @@ export async function exportMapaPdf(opts: {
       pdf.setFillColor(241, 245, 249);
       pdf.setDrawColor(...COLOR_BORDER);
       pdf.setLineWidth(0.3);
-      pdf.roundedRect(
-        MARGIN_X,
-        cursorY,
-        PAGE_W - 2 * MARGIN_X,
-        dirBoxH,
-        1.5,
-        1.5,
-        "FD",
-      );
+      pdf.roundedRect(MARGIN_X, cursorY, PAGE_W - 2 * MARGIN_X, dirBoxH, 1.5, 1.5, "FD");
 
       // Indicador vertical colorido à esquerda
       pdf.setFillColor(...pillarBg);
@@ -561,11 +497,7 @@ export async function exportMapaPdf(opts: {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(...COLOR_PRIMARY);
-      pdf.text(
-        `DIRETRIZ ${dIdx + 1}: ${diretriz.title}`,
-        MARGIN_X + 6,
-        cursorY + 6,
-      );
+      pdf.text(`DIRETRIZ ${dIdx + 1}: ${diretriz.title}`, MARGIN_X + 6, cursorY + 6);
 
       // Metadados à direita
       pdf.setFont("helvetica", "bold");
@@ -583,10 +515,7 @@ export async function exportMapaPdf(opts: {
         pdf.setFont("helvetica", "italic");
         pdf.setFontSize(7);
         pdf.setTextColor(...COLOR_MUTED);
-        const desc = pdf.splitTextToSize(
-          diretriz.observations,
-          PAGE_W - 2 * MARGIN_X - 12,
-        );
+        const desc = pdf.splitTextToSize(diretriz.observations, PAGE_W - 2 * MARGIN_X - 12);
         pdf.text(desc[0] || "", MARGIN_X + 6, cursorY + 11);
       }
 
@@ -744,19 +673,10 @@ export async function exportMapaPdf(opts: {
       MARGIN_X,
       PAGE_H - 6,
     );
-    pdf.text(
-      `Página ${pNum} de ${totalPages}`,
-      PAGE_W - MARGIN_X,
-      PAGE_H - 6,
-      { align: "right" },
-    );
+    pdf.text(`Página ${pNum} de ${totalPages}`, PAGE_W - MARGIN_X, PAGE_H - 6, { align: "right" });
   }
 
   /* ── Download do arquivo ── */
-  const safeName = company.name
-    .replace(/[^a-zA-Z0-9À-ÿ\s]/g, "")
-    .replace(/\s+/g, "_");
-  pdf.save(
-    `Mapa_Estrategico_${safeName}_${now.toISOString().slice(0, 10)}.pdf`,
-  );
+  const safeName = company.name.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").replace(/\s+/g, "_");
+  pdf.save(`Mapa_Estrategico_${safeName}_${now.toISOString().slice(0, 10)}.pdf`);
 }

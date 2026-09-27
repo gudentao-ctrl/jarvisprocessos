@@ -161,8 +161,14 @@ export const getPublicDashboard = createServerFn({ method: "GET" })
         .eq("company_id", companyId)
         .order("created_at", { ascending: false }),
       sb.from("processes").select("id, name").eq("company_id", companyId),
-      sb.from("root_cause_analyses").select("id, problem, conclusion, pain_point_id").eq("company_id", companyId),
-      sb.from("pain_points").select("id, description, source_interview_id").eq("company_id", companyId),
+      sb
+        .from("root_cause_analyses")
+        .select("id, problem, conclusion, pain_point_id")
+        .eq("company_id", companyId),
+      sb
+        .from("pain_points")
+        .select("id, description, source_interview_id")
+        .eq("company_id", companyId),
       sb.from("interviews").select("id, title, interview_date").eq("company_id", companyId),
       sb.from("sectors").select("id, name").eq("company_id", companyId).order("name"),
     ]);

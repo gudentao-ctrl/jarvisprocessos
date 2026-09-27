@@ -20,16 +20,36 @@ type Ctx = {
 };
 
 const CHAR_MAP: Record<string, string> = {
-  "\u2265": ">=", "\u2264": "<=", "\u2260": "!=", "\u2248": "~", "\u00b1": "+/-",
-  "\u2192": "->", "\u2190": "<-", "\u2022": "-", "\u2011": "-", "\u2212": "-",
-  "\u200b": "", "\u00a0": " ",
+  "\u2265": ">=",
+  "\u2264": "<=",
+  "\u2260": "!=",
+  "\u2248": "~",
+  "\u00b1": "+/-",
+  "\u2192": "->",
+  "\u2190": "<-",
+  "\u2022": "-",
+  "\u2011": "-",
+  "\u2212": "-",
+  "\u200b": "",
+  "\u00a0": " ",
 };
 
 /** jsPDF core fonts are WinAnsi: swap glyphs they cannot render. */
 function sanitize(v?: string) {
   return (v ?? "")
-    .replace(/[\u2265\u2264\u2260\u2248\u00b1\u2192\u2190\u2022\u2011\u2212\u200b\u00a0]/g, (c) => CHAR_MAP[c] ?? c)
-    .replace(/[\u0100-\u01ff\u2000-\u2bff]/g, (c) => (c === "\u2013" || c === "\u2014" ? "-" : c === "\u2018" || c === "\u2019" ? "'" : c === "\u201c" || c === "\u201d" ? '"' : ""));
+    .replace(
+      /[\u2265\u2264\u2260\u2248\u00b1\u2192\u2190\u2022\u2011\u2212\u200b\u00a0]/g,
+      (c) => CHAR_MAP[c] ?? c,
+    )
+    .replace(/[\u0100-\u01ff\u2000-\u2bff]/g, (c) =>
+      c === "\u2013" || c === "\u2014"
+        ? "-"
+        : c === "\u2018" || c === "\u2019"
+          ? "'"
+          : c === "\u201c" || c === "\u201d"
+            ? '"'
+            : "",
+    );
 }
 
 const dash = (v?: string) => {
@@ -111,7 +131,15 @@ function table(ctx: Ctx, head: string[], body: string[][], widths?: number[]) {
     body: (body.length ? body : [head.map(() => "-")]).map((r) => r.map(dash)),
     rowPageBreak: "avoid",
     theme: "grid",
-    styles: { font: "helvetica", fontSize: 9, cellPadding: 2.4, lineColor: [214, 220, 230], lineWidth: 0.15, textColor: [45, 45, 45], valign: "top" },
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      cellPadding: 2.4,
+      lineColor: [214, 220, 230],
+      lineWidth: 0.15,
+      textColor: [45, 45, 45],
+      valign: "top",
+    },
     headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
     alternateRowStyles: { fillColor: [248, 250, 253] },
     columnStyles,
@@ -139,8 +167,14 @@ function coverPage(ctx: Ctx, pop: PopContent, companyName?: string) {
   doc.text(dash(companyName), M, 66);
 
   let y = 100;
-  doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(...NAVY);
-  for (const line of doc.splitTextToSize(dash(popProcessName(pop)) || "Processo", W - M * 2) as string[]) {
+  doc
+    .setFont("helvetica", "bold")
+    .setFontSize(16)
+    .setTextColor(...NAVY);
+  for (const line of doc.splitTextToSize(
+    dash(popProcessName(pop)) || "Processo",
+    W - M * 2,
+  ) as string[]) {
     doc.text(line, M, y);
     y += 8;
   }
@@ -157,7 +191,13 @@ function coverPage(ctx: Ctx, pop: PopContent, companyName?: string) {
     margin: { left: M, right: M },
     body: rows,
     theme: "grid",
-    styles: { font: "helvetica", fontSize: 9.5, cellPadding: 3, lineColor: [214, 220, 230], lineWidth: 0.15 },
+    styles: {
+      font: "helvetica",
+      fontSize: 9.5,
+      cellPadding: 3,
+      lineColor: [214, 220, 230],
+      lineWidth: 0.15,
+    },
     columnStyles: {
       0: { fillColor: LIGHT, fontStyle: "bold", textColor: NAVY, cellWidth: (W - M * 2) * 0.26 },
       1: { cellWidth: (W - M * 2) * 0.24 },
@@ -167,7 +207,10 @@ function coverPage(ctx: Ctx, pop: PopContent, companyName?: string) {
   });
 
   y = lastY(doc, y) + 12;
-  doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(...NAVY);
+  doc
+    .setFont("helvetica", "bold")
+    .setFontSize(10)
+    .setTextColor(...NAVY);
   doc.text("Objetivo do documento", M, y);
   y += 6;
   doc.setFont("helvetica", "normal").setFontSize(9.5).setTextColor(60, 60, 60);
@@ -257,7 +300,12 @@ export function buildPopPdf(pop: PopContent, companyName?: string) {
   paragraph(ctx, pop.scope);
 
   sectionTitle(ctx, 4, "Definições e siglas");
-  table(ctx, ["Termo", "Definição"], pop.definitions.map((d) => [dash(d.term), dash(d.definition)]), [28, 72]);
+  table(
+    ctx,
+    ["Termo", "Definição"],
+    pop.definitions.map((d) => [dash(d.term), dash(d.definition)]),
+    [28, 72],
+  );
 
   sectionTitle(ctx, 5, "Responsabilidades");
   table(
@@ -277,8 +325,12 @@ export function buildPopPdf(pop: PopContent, companyName?: string) {
     const { doc: d } = ctx;
     d.setFillColor(...LIGHT);
     d.roundedRect(M, ctx.y - 5, ctx.W - M * 2, 8.5, 1.5, 1.5, "F");
-    d.setFont("helvetica", "bold").setFontSize(10).setTextColor(...NAVY);
-    d.text(sanitize(`Etapa ${i + 1} - ${s.title || "-"}`), M + 3, ctx.y + 0.6, { maxWidth: ctx.W - M * 2 - 6 });
+    d.setFont("helvetica", "bold")
+      .setFontSize(10)
+      .setTextColor(...NAVY);
+    d.text(sanitize(`Etapa ${i + 1} - ${s.title || "-"}`), M + 3, ctx.y + 0.6, {
+      maxWidth: ctx.W - M * 2 - 6,
+    });
     ctx.y += 10;
     if (s.description) paragraph(ctx, s.description);
     const meta = [

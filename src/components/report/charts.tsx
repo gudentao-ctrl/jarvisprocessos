@@ -1,15 +1,35 @@
 import { format, parseISO, startOfWeek, startOfMonth } from "date-fns";
 import type { ChartKey } from "@/lib/report-types";
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  CartesianGrid,
 } from "recharts";
 
 // Use loose typing here — ReportData is produced by Supabase queries and
 // carries nested unknowns after the serverFn boundary.
 export type ReportData = any;
 
-const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
+const COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#f59e0b",
+  "#dc2626",
+  "#7c3aed",
+  "#0891b2",
+  "#db2777",
+  "#65a30d",
+];
 
 const H = 240;
 
@@ -18,23 +38,29 @@ function Empty({ msg = "Sem dados no período" }: { msg?: string }) {
 }
 
 function groupBy<T = any>(arr: T[], key: (t: T) => string): Record<string, T[]> {
-  return (arr ?? []).reduce((acc: any, item: T) => {
-    const k = key(item) || "—";
-    (acc[k] ||= []).push(item);
-    return acc;
-  }, {} as Record<string, T[]>);
+  return (arr ?? []).reduce(
+    (acc: any, item: T) => {
+      const k = key(item) || "—";
+      (acc[k] ||= []).push(item);
+      return acc;
+    },
+    {} as Record<string, T[]>,
+  );
 }
 
 // ---- Planos ----
 function ActionsByStatus({ d }: { d: ReportData }) {
-  const rows = Object.entries(groupBy(d.plans, (p) => p.status || "sem_status"))
-    .map(([name, arr]: [string, any]) => ({ name, value: arr.length }));
+  const rows = Object.entries(groupBy(d.plans, (p) => p.status || "sem_status")).map(
+    ([name, arr]: [string, any]) => ({ name, value: arr.length }),
+  );
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <PieChart>
         <Pie data={rows} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-          {rows.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          {rows.map((_: any, i: number) => (
+            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+          ))}
         </Pie>
         <Legend />
         <Tooltip />
@@ -44,14 +70,17 @@ function ActionsByStatus({ d }: { d: ReportData }) {
 }
 
 function ActionsByPriority({ d }: { d: ReportData }) {
-  const rows = Object.entries(groupBy(d.plans, (p) => p.priority || "sem_prioridade"))
-    .map(([name, arr]: [string, any]) => ({ name, total: arr.length }));
+  const rows = Object.entries(groupBy(d.plans, (p) => p.priority || "sem_prioridade")).map(
+    ([name, arr]: [string, any]) => ({ name, total: arr.length }),
+  );
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip />
+        <XAxis dataKey="name" />
+        <YAxis allowDecimals={false} />
+        <Tooltip />
         <Bar dataKey="total" fill="#2563eb" />
       </BarChart>
     </ResponsiveContainer>
@@ -60,13 +89,16 @@ function ActionsByPriority({ d }: { d: ReportData }) {
 
 function ActionsByResponsible({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.plans, (p) => p.responsible || "—"))
-    .map(([name, arr]: [string, any]) => ({ name, total: arr.length })).slice(0, 12);
+    .map(([name, arr]: [string, any]) => ({ name, total: arr.length }))
+    .slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows} layout="vertical">
-        <XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={120} />
-        <Tooltip /><Bar dataKey="total" fill="#16a34a" />
+        <XAxis type="number" allowDecimals={false} />
+        <YAxis type="category" dataKey="name" width={120} />
+        <Tooltip />
+        <Bar dataKey="total" fill="#16a34a" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -75,13 +107,16 @@ function ActionsByResponsible({ d }: { d: ReportData }) {
 function ActionsByProcess({ d }: { d: ReportData }) {
   const procMap = new Map<string, string>(d.processes.map((p: any) => [p.id, p.name]));
   const rows = Object.entries(groupBy(d.plans, (p) => procMap.get(p.process_id) || "Sem processo"))
-    .map(([name, arr]: [string, any]) => ({ name, total: arr.length })).slice(0, 12);
+    .map(([name, arr]: [string, any]) => ({ name, total: arr.length }))
+    .slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip />
+        <XAxis dataKey="name" />
+        <YAxis allowDecimals={false} />
+        <Tooltip />
         <Bar dataKey="total" fill="#7c3aed" />
       </BarChart>
     </ResponsiveContainer>
@@ -111,7 +146,10 @@ function ActionsEvolution({ d }: { d: ReportData }) {
     <ResponsiveContainer width="100%" height={H}>
       <LineChart data={rows}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="semana" /><YAxis allowDecimals={false} /><Tooltip /><Legend />
+        <XAxis dataKey="semana" />
+        <YAxis allowDecimals={false} />
+        <Tooltip />
+        <Legend />
         <Line dataKey="criados" stroke="#2563eb" />
         <Line dataKey="concluidos" stroke="#16a34a" />
       </LineChart>
@@ -127,7 +165,9 @@ function ActionsCompletion({ d }: { d: ReportData }) {
     <div className="grid h-56 place-items-center">
       <div className="text-center">
         <p className="text-5xl font-bold text-primary">{pct}%</p>
-        <p className="mt-2 text-sm text-muted-foreground">{done} de {total} concluídos</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {done} de {total} concluídos
+        </p>
       </div>
     </div>
   );
@@ -142,10 +182,13 @@ function IndicatorsEvolution({ d }: { d: ReportData }) {
   for (const [id, coll] of Object.entries(byInd)) {
     const name = indMap.get(id) ?? id.slice(0, 6);
     keys.push(name);
-    for (const c of (coll as any[])) {
+    for (const c of coll as any[]) {
       const dt = format(parseISO(c.submitted_at), "dd/MM");
       let row = series.find((r: any) => r.data === dt);
-      if (!row) { row = { data: dt }; series.push(row); }
+      if (!row) {
+        row = { data: dt };
+        series.push(row);
+      }
       row[name] = c.value;
     }
   }
@@ -154,25 +197,38 @@ function IndicatorsEvolution({ d }: { d: ReportData }) {
     <ResponsiveContainer width="100%" height={H}>
       <LineChart data={series}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="data" /><YAxis /><Tooltip /><Legend />
-        {keys.slice(0, 6).map((k: any, i: number) => <Line key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} />)}
+        <XAxis dataKey="data" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        {keys.slice(0, 6).map((k: any, i: number) => (
+          <Line key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} />
+        ))}
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
 function IndicatorsTargetVsActual({ d }: { d: ReportData }) {
-  const rows = d.indicators.map((i: any) => {
-    const coll = d.collections.filter((c: any) => c.indicator_id === i.id);
-    const last = coll.sort((a: any, b: any) => a.submitted_at.localeCompare(b.submitted_at)).pop();
-    return { name: i.code || i.name, meta: i.target ?? 0, realizado: last?.value ?? 0 };
-  }).filter((r: any) => r.meta || r.realizado).slice(0, 12);
+  const rows = d.indicators
+    .map((i: any) => {
+      const coll = d.collections.filter((c: any) => c.indicator_id === i.id);
+      const last = coll
+        .sort((a: any, b: any) => a.submitted_at.localeCompare(b.submitted_at))
+        .pop();
+      return { name: i.code || i.name, meta: i.target ?? 0, realizado: last?.value ?? 0 };
+    })
+    .filter((r: any) => r.meta || r.realizado)
+    .slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" /><YAxis /><Tooltip /><Legend />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
         <Bar dataKey="meta" fill="#94a3b8" />
         <Bar dataKey="realizado" fill="#2563eb" />
       </BarChart>
@@ -193,8 +249,10 @@ function IndicatorsBelowTarget({ d }: { d: ReportData }) {
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows} layout="vertical">
-        <XAxis type="number" /><YAxis type="category" dataKey="name" width={120} />
-        <Tooltip /><Bar dataKey="gap" fill="#dc2626" />
+        <XAxis type="number" />
+        <YAxis type="category" dataKey="name" width={120} />
+        <Tooltip />
+        <Bar dataKey="gap" fill="#dc2626" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -208,7 +266,9 @@ function IndicatorsNoCollection({ d }: { d: ReportData }) {
     <ul className="space-y-1 p-4 text-sm">
       {rows.map((i: any) => (
         <li key={i.id} className="flex justify-between border-b py-1">
-          <span>{i.code} {i.name}</span>
+          <span>
+            {i.code} {i.name}
+          </span>
           <span className="text-muted-foreground">{i.frequency ?? "—"}</span>
         </li>
       ))}
@@ -220,8 +280,10 @@ function IndicatorsNoCollection({ d }: { d: ReportData }) {
 function HoursByBucket({ d, unit }: { d: ReportData; unit: "week" | "month" }) {
   const buckets = new Map<string, number>();
   for (const h of d.hours) {
-    const key = format(unit === "week" ? startOfWeek(parseISO(h.work_date)) : startOfMonth(parseISO(h.work_date)),
-      unit === "week" ? "dd/MM" : "MM/yyyy");
+    const key = format(
+      unit === "week" ? startOfWeek(parseISO(h.work_date)) : startOfMonth(parseISO(h.work_date)),
+      unit === "week" ? "dd/MM" : "MM/yyyy",
+    );
     buckets.set(key, (buckets.get(key) ?? 0) + (h.hours ?? 0));
   }
   const rows = [...buckets.entries()].map(([bucket, horas]) => ({ bucket, horas }));
@@ -230,7 +292,9 @@ function HoursByBucket({ d, unit }: { d: ReportData; unit: "week" | "month" }) {
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="bucket" /><YAxis /><Tooltip />
+        <XAxis dataKey="bucket" />
+        <YAxis />
+        <Tooltip />
         <Bar dataKey="horas" fill="#0891b2" />
       </BarChart>
     </ResponsiveContainer>
@@ -238,15 +302,23 @@ function HoursByBucket({ d, unit }: { d: ReportData; unit: "week" | "month" }) {
 }
 
 function HoursByActivity({ d }: { d: ReportData }) {
-  const rows = Object.entries(groupBy(d.hours, (h) => h.activity_type || "outros"))
-    .map(([name, arr]: [string, any]) => ({ name, value: arr.reduce((s: any, x: any) => s + (x.hours ?? 0), 0) }));
+  const rows = Object.entries(groupBy(d.hours, (h) => h.activity_type || "outros")).map(
+    ([name, arr]: [string, any]) => ({
+      name,
+      value: arr.reduce((s: any, x: any) => s + (x.hours ?? 0), 0),
+    }),
+  );
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <PieChart>
         <Pie data={rows} dataKey="value" nameKey="name" outerRadius={80} label>
-          {rows.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-        </Pie><Legend /><Tooltip />
+          {rows.map((_: any, i: number) => (
+            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+          ))}
+        </Pie>
+        <Legend />
+        <Tooltip />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -254,13 +326,19 @@ function HoursByActivity({ d }: { d: ReportData }) {
 
 function HoursByProcess({ d }: { d: ReportData }) {
   const rows = Object.entries(groupBy(d.hours, (h) => h.responsible || "—"))
-    .map(([name, arr]: [string, any]) => ({ name, horas: arr.reduce((s: any, x: any) => s + (x.hours ?? 0), 0) })).slice(0, 12);
+    .map(([name, arr]: [string, any]) => ({
+      name,
+      horas: arr.reduce((s: any, x: any) => s + (x.hours ?? 0), 0),
+    }))
+    .slice(0, 12);
   if (!rows.length) return <Empty />;
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows} layout="vertical">
-        <XAxis type="number" /><YAxis type="category" dataKey="name" width={120} />
-        <Tooltip /><Bar dataKey="horas" fill="#65a30d" />
+        <XAxis type="number" />
+        <YAxis type="category" dataKey="name" width={120} />
+        <Tooltip />
+        <Bar dataKey="horas" fill="#65a30d" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -284,8 +362,12 @@ function CronoValueAdded({ d }: { d: ReportData }) {
     <ResponsiveContainer width="100%" height={H}>
       <PieChart>
         <Pie data={rows} dataKey="value" nameKey="name" outerRadius={80} label>
-          <Cell fill="#16a34a" /><Cell fill="#f59e0b" /><Cell fill="#dc2626" />
-        </Pie><Legend /><Tooltip />
+          <Cell fill="#16a34a" />
+          <Cell fill="#f59e0b" />
+          <Cell fill="#dc2626" />
+        </Pie>
+        <Legend />
+        <Tooltip />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -305,7 +387,9 @@ function ConsultingActivity({ d }: { d: ReportData }) {
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={rows}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip />
+        <XAxis dataKey="name" />
+        <YAxis allowDecimals={false} />
+        <Tooltip />
         <Bar dataKey="total" fill="#db2777" />
       </BarChart>
     </ResponsiveContainer>
@@ -314,41 +398,57 @@ function ConsultingActivity({ d }: { d: ReportData }) {
 
 // ---- Registry ----
 export const CHART_CATALOG: { key: ChartKey; group: string; label: string }[] = [
-  { key: "actions_evolution",       group: "Planos de Ação", label: "Evolução das ações" },
-  { key: "actions_by_status",       group: "Planos de Ação", label: "Ações por status" },
-  { key: "actions_by_priority",     group: "Planos de Ação", label: "Ações por prioridade" },
-  { key: "actions_by_responsible",  group: "Planos de Ação", label: "Ações por responsável" },
-  { key: "actions_by_process",      group: "Planos de Ação", label: "Ações por processo" },
-  { key: "actions_completion",      group: "Planos de Ação", label: "Percentual concluído" },
-  { key: "indicators_evolution",    group: "Indicadores",    label: "Evolução temporal" },
+  { key: "actions_evolution", group: "Planos de Ação", label: "Evolução das ações" },
+  { key: "actions_by_status", group: "Planos de Ação", label: "Ações por status" },
+  { key: "actions_by_priority", group: "Planos de Ação", label: "Ações por prioridade" },
+  { key: "actions_by_responsible", group: "Planos de Ação", label: "Ações por responsável" },
+  { key: "actions_by_process", group: "Planos de Ação", label: "Ações por processo" },
+  { key: "actions_completion", group: "Planos de Ação", label: "Percentual concluído" },
+  { key: "indicators_evolution", group: "Indicadores", label: "Evolução temporal" },
   { key: "indicators_target_vs_actual", group: "Indicadores", label: "Meta × Realizado" },
-  { key: "indicators_below_target", group: "Indicadores",    label: "Indicadores abaixo da meta" },
-  { key: "indicators_no_collection",group: "Indicadores",    label: "Indicadores sem coleta" },
-  { key: "hours_by_week",           group: "Horas",          label: "Horas por semana" },
-  { key: "hours_by_month",          group: "Horas",          label: "Horas por mês" },
-  { key: "hours_by_activity",       group: "Horas",          label: "Horas por atividade" },
-  { key: "hours_by_process",        group: "Horas",          label: "Horas por responsável" },
-  { key: "crono_value_added",       group: "Cronoanálise",   label: "Tempo VA / NVA / NNVA" },
-  { key: "consulting_activity",     group: "Consultoria",    label: "Atividade da consultoria" },
+  { key: "indicators_below_target", group: "Indicadores", label: "Indicadores abaixo da meta" },
+  { key: "indicators_no_collection", group: "Indicadores", label: "Indicadores sem coleta" },
+  { key: "hours_by_week", group: "Horas", label: "Horas por semana" },
+  { key: "hours_by_month", group: "Horas", label: "Horas por mês" },
+  { key: "hours_by_activity", group: "Horas", label: "Horas por atividade" },
+  { key: "hours_by_process", group: "Horas", label: "Horas por responsável" },
+  { key: "crono_value_added", group: "Cronoanálise", label: "Tempo VA / NVA / NNVA" },
+  { key: "consulting_activity", group: "Consultoria", label: "Atividade da consultoria" },
 ];
 
 export function renderChart(key: ChartKey, d: ReportData) {
   switch (key) {
-    case "actions_by_status":       return <ActionsByStatus d={d} />;
-    case "actions_by_priority":     return <ActionsByPriority d={d} />;
-    case "actions_by_responsible":  return <ActionsByResponsible d={d} />;
-    case "actions_by_process":      return <ActionsByProcess d={d} />;
-    case "actions_evolution":       return <ActionsEvolution d={d} />;
-    case "actions_completion":      return <ActionsCompletion d={d} />;
-    case "indicators_evolution":    return <IndicatorsEvolution d={d} />;
-    case "indicators_target_vs_actual": return <IndicatorsTargetVsActual d={d} />;
-    case "indicators_below_target": return <IndicatorsBelowTarget d={d} />;
-    case "indicators_no_collection":return <IndicatorsNoCollection d={d} />;
-    case "hours_by_week":           return <HoursByBucket d={d} unit="week" />;
-    case "hours_by_month":          return <HoursByBucket d={d} unit="month" />;
-    case "hours_by_activity":       return <HoursByActivity d={d} />;
-    case "hours_by_process":        return <HoursByProcess d={d} />;
-    case "crono_value_added":       return <CronoValueAdded d={d} />;
-    case "consulting_activity":     return <ConsultingActivity d={d} />;
+    case "actions_by_status":
+      return <ActionsByStatus d={d} />;
+    case "actions_by_priority":
+      return <ActionsByPriority d={d} />;
+    case "actions_by_responsible":
+      return <ActionsByResponsible d={d} />;
+    case "actions_by_process":
+      return <ActionsByProcess d={d} />;
+    case "actions_evolution":
+      return <ActionsEvolution d={d} />;
+    case "actions_completion":
+      return <ActionsCompletion d={d} />;
+    case "indicators_evolution":
+      return <IndicatorsEvolution d={d} />;
+    case "indicators_target_vs_actual":
+      return <IndicatorsTargetVsActual d={d} />;
+    case "indicators_below_target":
+      return <IndicatorsBelowTarget d={d} />;
+    case "indicators_no_collection":
+      return <IndicatorsNoCollection d={d} />;
+    case "hours_by_week":
+      return <HoursByBucket d={d} unit="week" />;
+    case "hours_by_month":
+      return <HoursByBucket d={d} unit="month" />;
+    case "hours_by_activity":
+      return <HoursByActivity d={d} />;
+    case "hours_by_process":
+      return <HoursByProcess d={d} />;
+    case "crono_value_added":
+      return <CronoValueAdded d={d} />;
+    case "consulting_activity":
+      return <ConsultingActivity d={d} />;
   }
 }

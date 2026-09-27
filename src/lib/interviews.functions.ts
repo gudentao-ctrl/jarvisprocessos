@@ -42,8 +42,13 @@ export const listCompanies = createServerFn({ method: "GET" })
     ]);
     if (error) throw new Error(error.message);
     return (data ?? []).map((company: any) => {
-      const companyProjects = (projects ?? []).filter((project: any) => project.company_id === company.id);
-      const dates = companyProjects.flatMap((project: any) => [project.start_date, project.end_date]).filter(Boolean).sort();
+      const companyProjects = (projects ?? []).filter(
+        (project: any) => project.company_id === company.id,
+      );
+      const dates = companyProjects
+        .flatMap((project: any) => [project.start_date, project.end_date])
+        .filter(Boolean)
+        .sort();
       const monthHours = (hours ?? [])
         .filter((entry: any) => entry.company_id === company.id)
         .reduce((sum: number, entry: any) => sum + Number(entry.hours ?? 0), 0);
@@ -165,7 +170,9 @@ export const listInterviews = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let q = context.supabase
       .from("interviews")
-      .select("id, title, participant, interview_date, status, meeting_type, company_id, created_at, companies(name), sectors(name)")
+      .select(
+        "id, title, participant, interview_date, status, meeting_type, company_id, created_at, companies(name), sectors(name)",
+      )
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.company_id) q = q.eq("company_id", data.company_id);
@@ -294,10 +301,9 @@ export const transcribeInterview = createServerFn({ method: "POST" })
       .single();
     if (ie || !interview?.audio_path) throw new Error("Áudio não encontrado");
 
-    const parts: string[] =
-      (interview.audio_parts as string[] | null)?.length
-        ? (interview.audio_parts as string[])
-        : [interview.audio_path];
+    const parts: string[] = (interview.audio_parts as string[] | null)?.length
+      ? (interview.audio_parts as string[])
+      : [interview.audio_path];
 
     async function transcribePart(path: string): Promise<string> {
       const { data: blob, error: dlErr } = await context.supabase.storage
@@ -312,7 +318,9 @@ export const transcribeInterview = createServerFn({ method: "POST" })
           : path.endsWith(".m4a")
             ? "audio/mp4"
             : interview!.audio_mime || blob.type || "audio/webm";
-      const ext = path.split(".").pop() || (mime.includes("wav") ? "wav" : mime.includes("mp4") ? "m4a" : "mp3");
+      const ext =
+        path.split(".").pop() ||
+        (mime.includes("wav") ? "wav" : mime.includes("mp4") ? "m4a" : "mp3");
 
       const result = await transcribeAudioAi({
         fileBlob: blob,
@@ -365,7 +373,6 @@ export const transcribeInterview = createServerFn({ method: "POST" })
     return { ...upserted, part_index: index, parts_total: parts.length, done };
   });
 
-
 export const updateTranscript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -379,14 +386,19 @@ export const updateTranscript = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (current && current.content !== data.content) {
-      await context.supabase
-        .from("transcript_edits")
-        .insert({ transcript_id: current.id, previous_content: current.content, edited_by: context.userId });
+      await context.supabase.from("transcript_edits").insert({
+        transcript_id: current.id,
+        previous_content: current.content,
+        edited_by: context.userId,
+      });
     }
 
     const { data: row, error } = await context.supabase
       .from("transcripts")
-      .upsert({ interview_id: data.interview_id, content: data.content }, { onConflict: "interview_id" })
+      .upsert(
+        { interview_id: data.interview_id, content: data.content },
+        { onConflict: "interview_id" },
+      )
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -585,7 +597,10 @@ export const exportInterviewPdf = createServerFn({ method: "POST" })
       }
     }
 
-    function drawText(text: string, opts: { size?: number; bold?: boolean; color?: any; gap?: number } = {}) {
+    function drawText(
+      text: string,
+      opts: { size?: number; bold?: boolean; color?: any; gap?: number } = {},
+    ) {
       const size = opts.size ?? 10;
       const useFont = opts.bold ? fontBold : font;
       const color = opts.color ?? DARK;
@@ -609,7 +624,13 @@ export const exportInterviewPdf = createServerFn({ method: "POST" })
         const lines = wrapText("• " + item, 10, MAX_W - 10);
         for (let i = 0; i < lines.length; i++) {
           ensureSpace(14);
-          page.drawText(lines[i], { x: MARGIN + (i === 0 ? 0 : 10), y, size: 10, font, color: DARK });
+          page.drawText(lines[i], {
+            x: MARGIN + (i === 0 ? 0 : 10),
+            y,
+            size: 10,
+            font,
+            color: DARK,
+          });
           y -= 13;
         }
         y -= 2;
@@ -620,7 +641,11 @@ export const exportInterviewPdf = createServerFn({ method: "POST" })
     // Header bar
     page.drawRectangle({ x: 0, y: PAGE_H - 36, width: PAGE_W, height: 36, color: ORANGE });
     page.drawText("JARVIS — Entrevista Operacional", {
-      x: MARGIN, y: PAGE_H - 24, size: 13, font: fontBold, color: rgb(1, 1, 1),
+      x: MARGIN,
+      y: PAGE_H - 24,
+      size: 13,
+      font: fontBold,
+      color: rgb(1, 1, 1),
     });
     y = PAGE_H - 36 - 30;
 
@@ -630,7 +655,9 @@ export const exportInterviewPdf = createServerFn({ method: "POST" })
       interview.sectors?.name && `Setor: ${interview.sectors.name}`,
       interview.participant && `Participante: ${interview.participant}`,
       `Data: ${interview.interview_date}`,
-    ].filter(Boolean).join("  •  ");
+    ]
+      .filter(Boolean)
+      .join("  •  ");
     drawText(meta, { size: 9, color: GRAY, gap: 12 });
 
     if (analysis?.summary) {
@@ -649,7 +676,13 @@ export const exportInterviewPdf = createServerFn({ method: "POST" })
     if (transcript?.content) {
       ensureSpace(40);
       page.drawRectangle({ x: MARGIN, y: y - 14, width: 4, height: 14, color: ORANGE });
-      page.drawText("Transcrição Completa", { x: MARGIN + 10, y: y - 11, size: 12, font: fontBold, color: DARK });
+      page.drawText("Transcrição Completa", {
+        x: MARGIN + 10,
+        y: y - 11,
+        size: 12,
+        font: fontBold,
+        color: DARK,
+      });
       y -= 22;
       drawText(transcript.content, { size: 9, color: DARK });
     }
@@ -757,8 +790,14 @@ export const chunkAudioIfNeeded = createServerFn({ method: "POST" })
     if (ie || !interview?.audio_path) throw new Error("Áudio não encontrado");
 
     // Se já foi fatiado em múltiplos blocos, retorna
-    if ((interview.audio_parts as string[] | null)?.length && (interview.audio_parts as string[]).length > 1) {
-      return { parts: interview.audio_parts as string[], total: (interview.audio_parts as string[]).length };
+    if (
+      (interview.audio_parts as string[] | null)?.length &&
+      (interview.audio_parts as string[]).length > 1
+    ) {
+      return {
+        parts: interview.audio_parts as string[],
+        total: (interview.audio_parts as string[]).length,
+      };
     }
 
     // Baixa o áudio mestre para checagem de tamanho
@@ -782,7 +821,9 @@ export const chunkAudioIfNeeded = createServerFn({ method: "POST" })
     const arrayBuffer = await blob.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     const CHUNK_SIZE = 18 * 1024 * 1024; // 18 MB por bloco
-    const folder = interview.audio_path.includes("/") ? interview.audio_path.split("/")[0] : interview.id;
+    const folder = interview.audio_path.includes("/")
+      ? interview.audio_path.split("/")[0]
+      : interview.id;
     const ext = interview.audio_path.split(".").pop() || "mp3";
     const contentType = interview.audio_mime || blob.type || "audio/mpeg";
 
@@ -803,10 +844,7 @@ export const chunkAudioIfNeeded = createServerFn({ method: "POST" })
       partIdx++;
     }
 
-    await context.supabase
-      .from("interviews")
-      .update({ audio_parts: parts })
-      .eq("id", interview.id);
+    await context.supabase.from("interviews").update({ audio_parts: parts }).eq("id", interview.id);
 
     return { parts, total: parts.length };
   });

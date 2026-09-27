@@ -1,4 +1,5 @@
-export const POP_UNKNOWN = "Informação não identificada no processo. Recomenda-se validar durante o mapeamento.";
+export const POP_UNKNOWN =
+  "Informação não identificada no processo. Recomenda-se validar durante o mapeamento.";
 
 export type PopIdentification = {
   process_name: string;
@@ -88,7 +89,16 @@ const arr = (v: any): string[] =>
         .map((x) =>
           typeof x === "string"
             ? x
-            : str(x?.title ?? x?.name ?? x?.nome ?? x?.description ?? x?.descricao ?? x?.documento ?? x?.sistema ?? ""),
+            : str(
+                x?.title ??
+                  x?.name ??
+                  x?.nome ??
+                  x?.description ??
+                  x?.descricao ??
+                  x?.documento ??
+                  x?.sistema ??
+                  "",
+              ),
         )
         .filter(Boolean)
     : [];
@@ -97,7 +107,9 @@ export function normalizePop(raw: any): PopContent {
   const id = raw?.identification ?? raw?.identificacao ?? {};
   return {
     identification: {
-      process_name: str(id.process_name ?? id.nome_processo ?? raw?.process_name ?? raw?.nome_processo),
+      process_name: str(
+        id.process_name ?? id.nome_processo ?? raw?.process_name ?? raw?.nome_processo,
+      ),
       code: str(id.code ?? id.codigo),
       version: str(id.version ?? id.versao) || "1.0",
       issue_date: str(id.issue_date ?? id.data_emissao),
@@ -121,7 +133,11 @@ export function normalizePop(raw: any): PopContent {
           job_function: str(r?.job_function ?? r?.function ?? r?.funcao),
           responsibility: str(r?.responsibility ?? r?.responsabilidade),
         }))
-      : arr(raw?.responsibles ?? raw?.responsaveis).map((role) => ({ role, job_function: "", responsibility: "" })),
+      : arr(raw?.responsibles ?? raw?.responsaveis).map((role) => ({
+          role,
+          job_function: "",
+          responsibility: "",
+        })),
     inputs: arr(raw?.inputs ?? raw?.entradas),
     steps: Array.isArray(raw?.steps ?? raw?.procedimento ?? raw?.procedimento_operacional)
       ? (raw.steps ?? raw.procedimento ?? raw.procedimento_operacional).map((s: any) => ({
@@ -134,7 +150,9 @@ export function normalizePop(raw: any): PopContent {
           system: Array.isArray(s?.system ?? s?.sistema ?? s?.systems)
             ? arr(s.system ?? s.sistema ?? s.systems).join(", ")
             : str(s?.system ?? s?.sistema ?? s?.systems),
-          decision_criteria: str(s?.decision_criteria ?? s?.criterios_decisao ?? s?.criterio_decisao),
+          decision_criteria: str(
+            s?.decision_criteria ?? s?.criterios_decisao ?? s?.criterio_decisao,
+          ),
           expected_result: str(s?.expected_result ?? s?.resultado_esperado),
         }))
       : [],
@@ -143,7 +161,9 @@ export function normalizePop(raw: any): PopContent {
     control_points: arr(raw?.control_points ?? raw?.pontos_controle),
     risks: Array.isArray(raw?.risks ?? raw?.riscos)
       ? (raw.risks ?? raw.riscos).map((r: any) => ({
-          description: str(r?.description ?? r?.descricao ?? r?.risco ?? (typeof r === "string" ? r : "")),
+          description: str(
+            r?.description ?? r?.descricao ?? r?.risco ?? (typeof r === "string" ? r : ""),
+          ),
           impact: str(r?.impact ?? r?.impacto),
           mitigation: str(r?.mitigation ?? r?.mitigacao ?? r?.tratamento),
         }))

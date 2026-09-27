@@ -68,15 +68,9 @@ function GoogleCallbackPage() {
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-            {status === "processing" && (
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-            )}
-            {status === "success" && (
-              <CheckCircle2 className="h-7 w-7 text-emerald-500" />
-            )}
-            {status === "error" && (
-              <AlertCircle className="h-7 w-7 text-destructive" />
-            )}
+            {status === "processing" && <Loader2 className="h-7 w-7 animate-spin text-primary" />}
+            {status === "success" && <CheckCircle2 className="h-7 w-7 text-emerald-500" />}
+            {status === "error" && <AlertCircle className="h-7 w-7 text-destructive" />}
           </div>
           <CardTitle className="mt-2 text-xl">
             {status === "processing" && "Conectando Google Agenda..."}
@@ -92,9 +86,7 @@ function GoogleCallbackPage() {
         <CardContent>
           {status === "error" && (
             <div className="flex justify-center gap-2">
-              <Button onClick={() => navigate({ to: "/perfil" })}>
-                Voltar ao Perfil
-              </Button>
+              <Button onClick={() => navigate({ to: "/perfil" })}>Voltar ao Perfil</Button>
             </div>
           )}
         </CardContent>

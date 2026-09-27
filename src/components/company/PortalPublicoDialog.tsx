@@ -130,7 +130,6 @@ function LogoUpload({
   );
 }
 
-
 export function PortalPublicoDialog({
   companyId,
   companyName,
@@ -277,7 +276,6 @@ export function PortalPublicoDialog({
               path={consultancyLogo}
               onChange={setConsultancyLogo}
             />
-
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>

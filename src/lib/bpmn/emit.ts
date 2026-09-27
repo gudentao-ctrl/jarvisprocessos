@@ -26,12 +26,14 @@ export function emitBpmn(g: FlowGraph, opts: EmitOptions = {}): EmitResult {
   const flowRefs: string[] = [];
 
   // LaneSet
-  const laneSetXml = layout.lanes.order.map((key) => {
-    const ids = layout.lanes.members.get(key) ?? [];
-    return `      <bpmn:lane id="Lane_${slug(key)}" name="${escapeXml(key)}">
+  const laneSetXml = layout.lanes.order
+    .map((key) => {
+      const ids = layout.lanes.members.get(key) ?? [];
+      return `      <bpmn:lane id="Lane_${slug(key)}" name="${escapeXml(key)}">
 ${ids.map((id) => `        <bpmn:flowNodeRef>Act_${id}</bpmn:flowNodeRef>`).join("\n")}
       </bpmn:lane>`;
-  }).join("\n");
+    })
+    .join("\n");
 
   // Detecta gateway paralelo
   const isParallel = (id: string) => {
@@ -53,8 +55,12 @@ ${ids.map((id) => `        <bpmn:flowNodeRef>Act_${id}</bpmn:flowNodeRef>`).join
     usedElements.add(elem);
 
     const n = g.nodes.get(a.id)!;
-    const inFlows = n.ins.map((c) => `        <bpmn:incoming>Flow_${c.id}</bpmn:incoming>`).join("\n");
-    const outFlows = n.outs.map((c) => `        <bpmn:outgoing>Flow_${c.id}</bpmn:outgoing>`).join("\n");
+    const inFlows = n.ins
+      .map((c) => `        <bpmn:incoming>Flow_${c.id}</bpmn:incoming>`)
+      .join("\n");
+    const outFlows = n.outs
+      .map((c) => `        <bpmn:outgoing>Flow_${c.id}</bpmn:outgoing>`)
+      .join("\n");
     const q = g.decisions.get(a.id)?.question;
     const label = a.type === "decision" && q ? `${a.title} — ${q}` : a.title;
 
@@ -62,7 +68,7 @@ ${ids.map((id) => `        <bpmn:flowNodeRef>Act_${id}</bpmn:flowNodeRef>`).join
       `      <bpmn:${elem} id="Act_${a.id}" name="${escapeXml(label)}">
 ${inFlows}
 ${outFlows}
-      </bpmn:${elem}>`
+      </bpmn:${elem}>`,
     );
   }
 
@@ -70,7 +76,7 @@ ${outFlows}
   for (const c of g.connections) {
     const label = c.label ? ` name="${escapeXml(c.label)}"` : "";
     flowRefs.push(
-      `      <bpmn:sequenceFlow id="Flow_${c.id}"${label} sourceRef="Act_${c.from_activity_id}" targetRef="Act_${c.to_activity_id}" />`
+      `      <bpmn:sequenceFlow id="Flow_${c.id}"${label} sourceRef="Act_${c.from_activity_id}" targetRef="Act_${c.to_activity_id}" />`,
     );
   }
 
@@ -79,7 +85,7 @@ ${outFlows}
   shapes.push(
     `      <bpmndi:BPMNShape id="Shape_Pool" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="${layout.poolBounds.x}" y="${layout.poolBounds.y}" width="${layout.poolBounds.w}" height="${layout.poolBounds.h}" />
-      </bpmndi:BPMNShape>`
+      </bpmndi:BPMNShape>`,
   );
   for (const key of layout.lanes.order) {
     const lb = layout.laneBounds.get(key);
@@ -87,7 +93,7 @@ ${outFlows}
     shapes.push(
       `      <bpmndi:BPMNShape id="Shape_Lane_${slug(key)}" bpmnElement="Lane_${slug(key)}" isHorizontal="true">
         <dc:Bounds x="${layout.poolBounds.x + LANE_TITLE_W}" y="${lb.y}" width="${layout.poolBounds.w - LANE_TITLE_W}" height="${lb.h}" />
-      </bpmndi:BPMNShape>`
+      </bpmndi:BPMNShape>`,
     );
   }
   for (const a of g.activities) {
@@ -95,7 +101,7 @@ ${outFlows}
     shapes.push(
       `      <bpmndi:BPMNShape id="Shape_${a.id}" bpmnElement="Act_${a.id}">
         <dc:Bounds x="${round(p.x)}" y="${round(p.y)}" width="${p.w}" height="${p.h}" />
-      </bpmndi:BPMNShape>`
+      </bpmndi:BPMNShape>`,
     );
   }
 
@@ -119,7 +125,10 @@ ${outFlows}
       if (Math.abs(dy) > 4) return dy;
       return midX(a.to_activity_id) - midX(b.to_activity_id);
     });
-    outsByNode.set(fromId, outs.map((c) => c.id));
+    outsByNode.set(
+      fromId,
+      outs.map((c) => c.id),
+    );
   }
   for (const [toId, node] of g.nodes) {
     const ins = [...node.ins].sort((a, b) => {
@@ -127,7 +136,10 @@ ${outFlows}
       if (Math.abs(dy) > 4) return dy;
       return midX(a.from_activity_id) - midX(b.from_activity_id);
     });
-    insByNode.set(toId, ins.map((c) => c.id));
+    insByNode.set(
+      toId,
+      ins.map((c) => c.id),
+    );
   }
   const edges: string[] = [];
   for (const c of g.connections) {
@@ -136,18 +148,25 @@ ${outFlows}
     if (!s || !t) continue;
     const sArr = outsByNode.get(c.from_activity_id) ?? [c.id];
     const tArr = insByNode.get(c.to_activity_id) ?? [c.id];
-    const pts = routeEdge(s, t, {
-      sourceIndex: Math.max(0, sArr.indexOf(c.id)),
-      sourceCount: sArr.length,
-      targetIndex: Math.max(0, tArr.indexOf(c.id)),
-      targetCount: tArr.length,
-      isReturn: g.backEdges.has(c.id) || c.type === "return",
-    }, allBoxes);
-    const waypoints = pts.map((p) => `        <di:waypoint x="${round(p.x)}" y="${round(p.y)}" />`).join("\n");
+    const pts = routeEdge(
+      s,
+      t,
+      {
+        sourceIndex: Math.max(0, sArr.indexOf(c.id)),
+        sourceCount: sArr.length,
+        targetIndex: Math.max(0, tArr.indexOf(c.id)),
+        targetCount: tArr.length,
+        isReturn: g.backEdges.has(c.id) || c.type === "return",
+      },
+      allBoxes,
+    );
+    const waypoints = pts
+      .map((p) => `        <di:waypoint x="${round(p.x)}" y="${round(p.y)}" />`)
+      .join("\n");
     edges.push(
       `      <bpmndi:BPMNEdge id="Edge_${c.id}" bpmnElement="Flow_${c.id}">
 ${waypoints}
-      </bpmndi:BPMNEdge>`
+      </bpmndi:BPMNEdge>`,
     );
   }
 
@@ -181,12 +200,18 @@ ${edges.join("\n")}
 
 function bpmnElementFor(type: string): string {
   switch (type) {
-    case "start": return "startEvent";
-    case "end": return "endEvent";
-    case "decision": return "exclusiveGateway";
-    case "approval": return "userTask";
-    case "wait": return "receiveTask";
-    default: return "task";
+    case "start":
+      return "startEvent";
+    case "end":
+      return "endEvent";
+    case "decision":
+      return "exclusiveGateway";
+    case "approval":
+      return "userTask";
+    case "wait":
+      return "receiveTask";
+    default:
+      return "task";
   }
 }
 
@@ -199,7 +224,9 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function round(n: number) { return Math.round(n * 10) / 10; }
+function round(n: number) {
+  return Math.round(n * 10) / 10;
+}
 function slug(s: string): string {
   return s.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "") || "x";
 }

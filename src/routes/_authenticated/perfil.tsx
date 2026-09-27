@@ -10,13 +10,7 @@ import {
   getGoogleOAuthConfig,
   saveGoogleOAuthConfig,
 } from "@/lib/google-calendar.functions";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -92,9 +86,9 @@ function PerfilPage() {
 
   const isManagerOrAdmin = Boolean(
     profile?.isSuperadmin ||
-      (profile?.memberships ?? []).some(
-        (m: any) => m.role === "gestor" || m.member_role === "gestor",
-      ),
+    (profile?.memberships ?? []).some(
+      (m: any) => m.role === "gestor" || m.member_role === "gestor",
+    ),
   );
 
   const disconnectMut = useMutation({
@@ -168,9 +162,7 @@ function PerfilPage() {
         setConfigClientId(oauthConfig.rawClientId || "");
         setConfigClientSecret("");
         setConfigModalOpen(true);
-        toast.info(
-          "Configure as credenciais do Google Cloud para prosseguir com a integração.",
-        );
+        toast.info("Configure as credenciais do Google Cloud para prosseguir com a integração.");
         return;
       } else {
         toast.error(
@@ -214,9 +206,7 @@ function PerfilPage() {
             </div>
             <div>
               <CardTitle className="text-lg">Dados Cadastrais</CardTitle>
-              <CardDescription>
-                Suas informações de acesso na plataforma
-              </CardDescription>
+              <CardDescription>Suas informações de acesso na plataforma</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -224,9 +214,7 @@ function PerfilPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border bg-muted/20 p-3">
               <span className="text-xs text-muted-foreground">Nome Completo</span>
-              <p className="font-medium text-foreground">
-                {profile?.fullName || "Não informado"}
-              </p>
+              <p className="font-medium text-foreground">{profile?.fullName || "Não informado"}</p>
             </div>
             <div className="rounded-lg border bg-muted/20 p-3">
               <span className="text-xs text-muted-foreground">E-mail Cadastrado</span>
@@ -238,9 +226,7 @@ function PerfilPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Permissões de Acesso:
-            </span>
+            <span className="text-xs font-medium text-muted-foreground">Permissões de Acesso:</span>
             {profile?.isSuperadmin ? (
               <Badge variant="destructive" className="flex items-center gap-1">
                 <Shield className="h-3 w-3" /> Superadmin
@@ -372,7 +358,10 @@ function PerfilPage() {
                   profile?.email &&
                   googleStatus.email.toLowerCase() !== profile.email.toLowerCase() && (
                     <p className="text-[11px] text-muted-foreground">
-                      💡 E-mail de login no Jarvis: <span className="font-semibold text-foreground">{profile.email}</span> · Conta vinculada no Google: <span className="font-semibold text-foreground">{googleStatus.email}</span>
+                      💡 E-mail de login no Jarvis:{" "}
+                      <span className="font-semibold text-foreground">{profile.email}</span> · Conta
+                      vinculada no Google:{" "}
+                      <span className="font-semibold text-foreground">{googleStatus.email}</span>
                     </p>
                   )}
               </div>
@@ -433,9 +422,17 @@ function PerfilPage() {
           <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
             <p className="font-medium text-foreground">💡 Como funciona a integração?</p>
             <ul className="mt-1 list-disc space-y-1 pl-4">
-              <li>Ao criar um evento na Agenda com convidados por e-mail, ele é gerado na sua conta Google.</li>
-              <li>Os participantes recebem convites oficiais por e-mail com data, horário e local.</li>
-              <li>Se o seu e-mail cadastrado não for Gmail, você pode vincular sua conta Google desejada a qualquer momento.</li>
+              <li>
+                Ao criar um evento na Agenda com convidados por e-mail, ele é gerado na sua conta
+                Google.
+              </li>
+              <li>
+                Os participantes recebem convites oficiais por e-mail com data, horário e local.
+              </li>
+              <li>
+                Se o seu e-mail cadastrado não for Gmail, você pode vincular sua conta Google
+                desejada a qualquer momento.
+              </li>
               <li>Você pode desconectar sua conta a qualquer momento nesta página.</li>
             </ul>
           </div>
@@ -458,12 +455,15 @@ function PerfilPage() {
             <DialogDescription>
               {profile?.email && !isGmail(profile.email) ? (
                 <>
-                  Seu e-mail cadastrado (<strong className="text-foreground">{profile.email}</strong>) não é uma conta <span className="font-mono text-xs">@gmail.com</span>.
-                  Informe abaixo o e-mail da sua conta Google que você deseja utilizar para sincronizar sua agenda:
+                  Seu e-mail cadastrado (
+                  <strong className="text-foreground">{profile.email}</strong>) não é uma conta{" "}
+                  <span className="font-mono text-xs">@gmail.com</span>. Informe abaixo o e-mail da
+                  sua conta Google que você deseja utilizar para sincronizar sua agenda:
                 </>
               ) : (
                 <>
-                  Informe o e-mail da conta Google que você deseja utilizar para sincronizar seus compromissos:
+                  Informe o e-mail da conta Google que você deseja utilizar para sincronizar seus
+                  compromissos:
                 </>
               )}
             </DialogDescription>
@@ -490,7 +490,8 @@ function PerfilPage() {
                 }}
               />
               <p className="text-[11px] text-muted-foreground">
-                Você será redirecionado para a tela oficial do Google para autorizar o acesso à agenda.
+                Você será redirecionado para a tela oficial do Google para autorizar o acesso à
+                agenda.
               </p>
             </div>
           </div>
@@ -532,7 +533,8 @@ function PerfilPage() {
               Configurar Credenciais do Google Cloud
             </DialogTitle>
             <DialogDescription>
-              Cadastre o Client ID e Client Secret do aplicativo OAuth para habilitar a conexão com o Google Agenda.
+              Cadastre o Client ID e Client Secret do aplicativo OAuth para habilitar a conexão com
+              o Google Agenda.
             </DialogDescription>
           </DialogHeader>
 
@@ -551,10 +553,23 @@ function PerfilPage() {
                 </a>
               </p>
               <ol className="list-decimal pl-4 space-y-1 text-muted-foreground text-[11px]">
-                <li>Acesse o projeto no Google Cloud e certifique-se de que a <strong>Google Calendar API</strong> está ativada.</li>
-                <li>Vá em <strong>APIs e Serviços &gt; Credenciais &gt; Criar Credenciais &gt; ID do cliente OAuth</strong>.</li>
-                <li>Selecione Tipo de aplicativo: <strong>Aplicativo da Web</strong>.</li>
-                <li>Em <strong>URIs de redirecionamento autorizados</strong>, adicione exatamente:</li>
+                <li>
+                  Acesse o projeto no Google Cloud e certifique-se de que a{" "}
+                  <strong>Google Calendar API</strong> está ativada.
+                </li>
+                <li>
+                  Vá em{" "}
+                  <strong>
+                    APIs e Serviços &gt; Credenciais &gt; Criar Credenciais &gt; ID do cliente OAuth
+                  </strong>
+                  .
+                </li>
+                <li>
+                  Selecione Tipo de aplicativo: <strong>Aplicativo da Web</strong>.
+                </li>
+                <li>
+                  Em <strong>URIs de redirecionamento autorizados</strong>, adicione exatamente:
+                </li>
               </ol>
               <div className="flex items-center justify-between gap-2 rounded bg-background p-2 border font-mono text-[11px]">
                 <span className="truncate">{redirectUriStr}</span>
@@ -596,7 +611,8 @@ function PerfilPage() {
                 onChange={(e) => setConfigClientSecret(e.target.value)}
               />
               <p className="text-[10px] text-muted-foreground">
-                As credenciais são salvas de forma segura no servidor e utilizadas para emitir os tokens da agenda.
+                As credenciais são salvas de forma segura no servidor e utilizadas para emitir os
+                tokens da agenda.
               </p>
             </div>
           </div>
@@ -611,9 +627,7 @@ function PerfilPage() {
             </Button>
             <Button
               disabled={
-                saveOAuthConfigMut.isPending ||
-                !configClientId.trim() ||
-                !configClientSecret.trim()
+                saveOAuthConfigMut.isPending || !configClientId.trim() || !configClientSecret.trim()
               }
               onClick={() =>
                 saveOAuthConfigMut.mutate({

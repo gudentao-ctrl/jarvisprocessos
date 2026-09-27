@@ -1,13 +1,31 @@
-import { createFileRoute, Outlet, redirect, Link, useRouter, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  Link,
+  useRouter,
+  useRouterState,
+} from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Mic, Building2, Clock, CalendarDays, FileBarChart2, Radar, ShieldCheck, Wallet, Handshake,
-  LifeBuoy, Menu, User, Landmark, Map,
+  Mic,
+  Building2,
+  Clock,
+  CalendarDays,
+  FileBarChart2,
+  Radar,
+  ShieldCheck,
+  Wallet,
+  Handshake,
+  LifeBuoy,
+  Menu,
+  User,
+  Landmark,
+  Map,
 } from "lucide-react";
-
 
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
@@ -16,7 +34,14 @@ import { AskAiFab } from "@/components/AskAiFab";
 import { getMe } from "@/lib/access.functions";
 import { permissionForPath } from "@/lib/access-control";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -44,8 +69,13 @@ export const Route = createFileRoute("/_authenticated")({
         .eq("user_id", data.user.id);
       const allowed = location.pathname.startsWith("/fase/")
         ? (memberships ?? []).some((membership: any) =>
-            ["gestao", "pop", "indicadores", "horas"].some((key) => membership.permissions?.[key] === true))
-        : (memberships ?? []).some((membership: any) => membership.permissions?.[requiredPermission] === true);
+            ["gestao", "pop", "indicadores", "horas"].some(
+              (key) => membership.permissions?.[key] === true,
+            ),
+          )
+        : (memberships ?? []).some(
+            (membership: any) => membership.permissions?.[requiredPermission] === true,
+          );
       if (!allowed) throw redirect({ to: "/acesso-pendente" });
     }
     return { user: data.user };
@@ -66,13 +96,19 @@ const NAV = [
   { to: "/chamados", icon: LifeBuoy, label: "Chamados", permission: "chamados" },
 ] as const;
 
-
-
-
 function AuthenticatedLayout() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const HIDE_COMPANY_SWITCHER = ["/admin", "/calendario", "/crm", "/horas", "/financeiro", "/financeiro-maia", "/perfil", "/google-callback"];
+  const HIDE_COMPANY_SWITCHER = [
+    "/admin",
+    "/calendario",
+    "/crm",
+    "/horas",
+    "/financeiro",
+    "/financeiro-maia",
+    "/perfil",
+    "/google-callback",
+  ];
   const showSwitcher = !HIDE_COMPANY_SWITCHER.some((p) => pathname.startsWith(p));
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
@@ -116,7 +152,6 @@ function AuthenticatedLayout() {
             <SidebarLink to="/perfil" icon={User} label="Meu Perfil" />
           </div>
         </aside>
-
 
         {/* Content area */}
         <div className="flex min-w-0 flex-1 flex-col lg:ml-60">

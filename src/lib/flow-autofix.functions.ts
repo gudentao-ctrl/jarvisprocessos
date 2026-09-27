@@ -53,18 +53,31 @@ export const autofixFlow = createServerFn({ method: "POST" })
     let endId: string | null = activities.find((a: any) => a.type === "end")?.id ?? null;
     if (!endId) {
       const maxOrd = activities.reduce((m: number, a: any) => Math.max(m, a.ordering ?? 0), -1);
-      const { data: row } = await sb.from("process_activities").insert({
-        process_id: pid, type: "end", title: "Fim", ordering: maxOrd + 1,
-      }).select("id").single();
+      const { data: row } = await sb
+        .from("process_activities")
+        .insert({
+          process_id: pid,
+          type: "end",
+          title: "Fim",
+          ordering: maxOrd + 1,
+        })
+        .select("id")
+        .single();
       endId = row?.id ?? null;
       if (endId) summary.endCreated++;
     }
 
     // 3) Rotula saídas de decisão sem label
-    const decisionIds = new Set(activities.filter((a: any) => a.type === "decision").map((a: any) => a.id));
+    const decisionIds = new Set(
+      activities.filter((a: any) => a.type === "decision").map((a: any) => a.id),
+    );
     const outsByFrom = new Map<string, any[]>();
     // Recarrega conexões após remoção
-    const { data: conns2 } = await sb.from("activity_connections").select("*").eq("process_id", pid).order("order_index");
+    const { data: conns2 } = await sb
+      .from("activity_connections")
+      .select("*")
+      .eq("process_id", pid)
+      .order("order_index");
     for (const c of conns2 ?? []) {
       if (!outsByFrom.has(c.from_activity_id)) outsByFrom.set(c.from_activity_id, []);
       outsByFrom.get(c.from_activity_id)!.push(c);
@@ -92,7 +105,8 @@ export const autofixFlow = createServerFn({ method: "POST" })
       if (a.type === "end") continue;
       if (withOuts.has(a.id)) continue;
       // Próxima atividade por ordering; se última, conecta ao end
-      const next = sorted.slice(i + 1).find((x: any) => x.id !== a.id) ?? (endId ? { id: endId } : null);
+      const next =
+        sorted.slice(i + 1).find((x: any) => x.id !== a.id) ?? (endId ? { id: endId } : null);
       if (!next) continue;
       await sb.from("activity_connections").insert({
         process_id: pid,
@@ -105,7 +119,10 @@ export const autofixFlow = createServerFn({ method: "POST" })
     }
 
     // 5) Remove gateways redundantes (decision com 1-in/1-out): reconecta a origem direto ao destino.
-    const { data: conns3 } = await sb.from("activity_connections").select("*").eq("process_id", pid);
+    const { data: conns3 } = await sb
+      .from("activity_connections")
+      .select("*")
+      .eq("process_id", pid);
     const insBy = new Map<string, any[]>();
     const outsBy = new Map<string, any[]>();
     for (const c of conns3 ?? []) {
@@ -120,9 +137,12 @@ export const autofixFlow = createServerFn({ method: "POST" })
       const outs = outsBy.get(a.id) ?? [];
       if (ins.length === 1 && outs.length === 1) {
         // Reconecta ins[0].from → outs[0].to
-        await sb.from("activity_connections").update({
-          to_activity_id: outs[0].to_activity_id,
-        }).eq("id", ins[0].id);
+        await sb
+          .from("activity_connections")
+          .update({
+            to_activity_id: outs[0].to_activity_id,
+          })
+          .eq("id", ins[0].id);
         await sb.from("activity_connections").delete().eq("id", outs[0].id);
         await sb.from("process_decisions").delete().eq("activity_id", a.id);
         await sb.from("process_activities").delete().eq("id", a.id);
@@ -132,14 +152,21 @@ export const autofixFlow = createServerFn({ method: "POST" })
 
     // 6) Remove eventos start/end duplicados: mantém o de menor ordering.
     for (const type of ["start", "end"] as const) {
-      const evs = activities.filter((x: any) => x.type === type)
+      const evs = activities
+        .filter((x: any) => x.type === type)
         .sort((a: any, b: any) => (a.ordering ?? 0) - (b.ordering ?? 0));
       if (evs.length <= 1) continue;
       const keep = evs[0].id;
       for (const dup of evs.slice(1)) {
         // Redireciona entradas do duplicado para o mantido
-        await sb.from("activity_connections").update({ to_activity_id: keep }).eq("to_activity_id", dup.id);
-        await sb.from("activity_connections").update({ from_activity_id: keep }).eq("from_activity_id", dup.id);
+        await sb
+          .from("activity_connections")
+          .update({ to_activity_id: keep })
+          .eq("to_activity_id", dup.id);
+        await sb
+          .from("activity_connections")
+          .update({ from_activity_id: keep })
+          .eq("from_activity_id", dup.id);
         await sb.from("process_activities").delete().eq("id", dup.id);
         summary.duplicateEventsRemoved++;
       }

@@ -15,9 +15,15 @@ export const Route = createFileRoute("/acesso-pendente")({
   head: () => ({
     meta: [
       { title: "Acesso pendente — JARVIS" },
-      { name: "description", content: "Sua solicitação de acesso ao JARVIS aguarda aprovação do administrador." },
+      {
+        name: "description",
+        content: "Sua solicitação de acesso ao JARVIS aguarda aprovação do administrador.",
+      },
       { property: "og:title", content: "Acesso pendente — JARVIS" },
-      { property: "og:description", content: "Solicitação de acesso ao JARVIS aguardando aprovação." },
+      {
+        property: "og:description",
+        content: "Solicitação de acesso ao JARVIS aguardando aprovação.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -76,14 +82,19 @@ function PendingAccessPage() {
           </div>
           <h1 className="mt-4 text-xl font-bold">Acesso aguardando aprovação</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {email ? `${email} · ` : ""}O administrador precisa liberar sua empresa e suas ferramentas.
+            {email ? `${email} · ` : ""}O administrador precisa liberar sua empresa e suas
+            ferramentas.
           </p>
         </div>
 
         <div className="space-y-3">
           <div>
             <Label>Empresa que você atende</Label>
-            <Input className="mt-1.5 h-11" value={company} onChange={(e) => setCompany(e.target.value)} />
+            <Input
+              className="mt-1.5 h-11"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
           </div>
           <div>
             <Label>Mensagem (opcional)</Label>

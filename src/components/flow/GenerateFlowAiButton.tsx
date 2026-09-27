@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,7 +31,9 @@ export function GenerateFlowAiButton({
   async function run() {
     setBusy(true);
     try {
-      const r = await generateFlowForProcess({ data: { process_id: processId, description, replace } });
+      const r = await generateFlowForProcess({
+        data: { process_id: processId, description, replace },
+      });
       toast.success(`Fluxo gerado: ${r.activities} atividades, ${r.connections} conexões`);
       setOpen(false);
       setDescription("");
@@ -49,8 +57,8 @@ export function GenerateFlowAiButton({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              A IA usará o nome, objetivo, entradas/saídas e a entrevista de origem (se houver) como contexto.
-              Adicione observações abaixo se quiser guiá-la.
+              A IA usará o nome, objetivo, entradas/saídas e a entrevista de origem (se houver) como
+              contexto. Adicione observações abaixo se quiser guiá-la.
             </p>
             <div>
               <Label>Contexto adicional (opcional)</Label>
@@ -69,9 +77,15 @@ export function GenerateFlowAiButton({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+              Cancelar
+            </Button>
             <Button onClick={run} disabled={busy}>
-              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
               Gerar
             </Button>
           </DialogFooter>

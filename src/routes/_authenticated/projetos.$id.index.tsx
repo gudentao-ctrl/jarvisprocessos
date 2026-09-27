@@ -39,10 +39,30 @@ function ProjectHome() {
   const upcoming = alertsData?.upcoming ?? [];
 
   const cards = [
-    { label: "Entrevistas", value: data?.interviews ?? 0, icon: Mic, to: "/projetos/$id/diagnostico" },
-    { label: "Processos mapeados", value: data?.processes ?? 0, icon: Workflow, to: "/projetos/$id/mapeamento" },
-    { label: "Oportunidades", value: data?.opportunities ?? 0, icon: Lightbulb, to: "/projetos/$id/melhorias" },
-    { label: "Planos abertos", value: data?.openPlans ?? 0, icon: ClipboardList, to: "/projetos/$id/execucao" },
+    {
+      label: "Entrevistas",
+      value: data?.interviews ?? 0,
+      icon: Mic,
+      to: "/projetos/$id/diagnostico",
+    },
+    {
+      label: "Processos mapeados",
+      value: data?.processes ?? 0,
+      icon: Workflow,
+      to: "/projetos/$id/mapeamento",
+    },
+    {
+      label: "Oportunidades",
+      value: data?.opportunities ?? 0,
+      icon: Lightbulb,
+      to: "/projetos/$id/melhorias",
+    },
+    {
+      label: "Planos abertos",
+      value: data?.openPlans ?? 0,
+      icon: ClipboardList,
+      to: "/projetos/$id/execucao",
+    },
     {
       label: "Ações vencidas",
       value: data?.overduePlans ?? 0,
@@ -50,7 +70,12 @@ function ProjectHome() {
       to: "/projetos/$id/execucao",
       danger: (data?.overduePlans ?? 0) > 0,
     },
-    { label: "Indicadores", value: data?.indicators ?? 0, icon: BarChart3, to: "/projetos/$id/execucao" },
+    {
+      label: "Indicadores",
+      value: data?.indicators ?? 0,
+      icon: BarChart3,
+      to: "/projetos/$id/execucao",
+    },
   ] as const;
 
   return (
@@ -64,7 +89,9 @@ function ProjectHome() {
           <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-2.5">
             <CalendarClock className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold">Próximas reuniões</p>
-            <span className="ml-auto text-xs tabular-nums text-muted-foreground">{upcoming.length}</span>
+            <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+              {upcoming.length}
+            </span>
           </div>
           <ul className="divide-y">
             {upcoming.slice(0, 5).map((u: any) => (
@@ -107,7 +134,7 @@ function ProjectHome() {
               <Card className="p-4 transition-colors hover:bg-secondary/50 active:bg-secondary">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${("danger" in c && c.danger) ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${"danger" in c && c.danger ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}
                   >
                     <c.icon className="h-5 w-5" />
                   </div>

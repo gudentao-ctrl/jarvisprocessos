@@ -1,16 +1,49 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactFlow, {
-  Background, Controls, MiniMap,
-  type Node, type Edge, type Connection,
-  addEdge, useNodesState, useEdgesState, MarkerType, ReactFlowProvider, useReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  type Node,
+  type Edge,
+  type Connection,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+  ReactFlowProvider,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import dagre from "dagre";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Save, Trash2, Maximize2, Minimize2, LayoutGrid, List as ListIcon, Workflow, ArrowDown, MoreVertical, Link2 } from "lucide-react";
-import { saveActivity, deleteActivity, saveEdge, deleteEdge, saveCanvasLayout } from "@/lib/processes.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Save,
+  Trash2,
+  Maximize2,
+  Minimize2,
+  LayoutGrid,
+  List as ListIcon,
+  Workflow,
+  ArrowDown,
+  MoreVertical,
+  Link2,
+} from "lucide-react";
+import {
+  saveActivity,
+  deleteActivity,
+  saveEdge,
+  deleteEdge,
+  saveCanvasLayout,
+} from "@/lib/processes.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -26,18 +59,40 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  start: "Início", task: "Atividade", decision: "Decisão", wait: "Espera",
-  approval: "Aprovação", end: "Fim", info_in: "Info ↘", info_out: "Info ↗",
+  start: "Início",
+  task: "Atividade",
+  decision: "Decisão",
+  wait: "Espera",
+  approval: "Aprovação",
+  end: "Fim",
+  info_in: "Info ↘",
+  info_out: "Info ↗",
 };
 
 const NODE_W = 180;
 const NODE_H = 56;
 
 type Activity = {
-  id: string; process_id: string; type: string; title: string; responsible: string;
-  area: string; systems: string[]; time_minutes: number; notes: string; x: number; y: number; ordering: number;
+  id: string;
+  process_id: string;
+  type: string;
+  title: string;
+  responsible: string;
+  area: string;
+  systems: string[];
+  time_minutes: number;
+  notes: string;
+  x: number;
+  y: number;
+  ordering: number;
 };
-type EdgeRow = { id: string; process_id: string; source_id: string; target_id: string; label: string };
+type EdgeRow = {
+  id: string;
+  process_id: string;
+  source_id: string;
+  target_id: string;
+  label: string;
+};
 
 function layoutWithDagre(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
@@ -61,24 +116,36 @@ export function BpmFlow(props: { processId: string; activities: Activity[]; edge
 }
 
 function BpmFlowInner({
-  processId, activities: initialActivities, edges: initialEdges,
-}: { processId: string; activities: Activity[]; edges: EdgeRow[] }) {
+  processId,
+  activities: initialActivities,
+  edges: initialEdges,
+}: {
+  processId: string;
+  activities: Activity[];
+  edges: EdgeRow[];
+}) {
   const initialNodes: Node[] = useMemo(
-    () => initialActivities.map((a) => ({
-      id: a.id,
-      position: { x: Number(a.x ?? 0), y: Number(a.y ?? 0) },
-      data: { ...a, label: a.title },
-      type: "default",
-      style: { width: NODE_W, minHeight: NODE_H },
-      className: `rounded-lg border-2 px-3 py-2 text-sm font-medium shadow-sm ${TYPE_COLORS[a.type] ?? TYPE_COLORS.task}`,
-    })),
+    () =>
+      initialActivities.map((a) => ({
+        id: a.id,
+        position: { x: Number(a.x ?? 0), y: Number(a.y ?? 0) },
+        data: { ...a, label: a.title },
+        type: "default",
+        style: { width: NODE_W, minHeight: NODE_H },
+        className: `rounded-lg border-2 px-3 py-2 text-sm font-medium shadow-sm ${TYPE_COLORS[a.type] ?? TYPE_COLORS.task}`,
+      })),
     [initialActivities],
   );
   const initialFlowEdges: Edge[] = useMemo(
-    () => initialEdges.map((e) => ({
-      id: e.id, source: e.source_id, target: e.target_id, label: e.label,
-      markerEnd: { type: MarkerType.ArrowClosed }, animated: false,
-    })),
+    () =>
+      initialEdges.map((e) => ({
+        id: e.id,
+        source: e.source_id,
+        target: e.target_id,
+        label: e.label,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        animated: false,
+      })),
     [initialEdges],
   );
 
@@ -86,7 +153,9 @@ function BpmFlowInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlowEdges);
   const [selected, setSelected] = useState<Node | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
-  const [mode, setMode] = useState<"flow" | "list">(typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "flow");
+  const [mode, setMode] = useState<"flow" | "list">(
+    typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "flow",
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [connectFromId, setConnectFromId] = useState<string | null>(null);
   const [activitiesIndex, setActivitiesIndex] = useState<Record<string, Activity>>(
@@ -94,34 +163,66 @@ function BpmFlowInner({
   );
   const rf = useReactFlow();
 
-  useEffect(() => { setNodes(initialNodes); setActivitiesIndex(Object.fromEntries(initialActivities.map((a) => [a.id, a]))); }, [initialNodes, initialActivities, setNodes]);
-  useEffect(() => { setEdges(initialFlowEdges); }, [initialFlowEdges, setEdges]);
+  useEffect(() => {
+    setNodes(initialNodes);
+    setActivitiesIndex(Object.fromEntries(initialActivities.map((a) => [a.id, a])));
+  }, [initialNodes, initialActivities, setNodes]);
+  useEffect(() => {
+    setEdges(initialFlowEdges);
+  }, [initialFlowEdges, setEdges]);
 
   const orderedActivities = useMemo(
     () => Object.values(activitiesIndex).sort((a, b) => (a.ordering ?? 0) - (b.ordering ?? 0)),
     [activitiesIndex],
   );
 
-  const onConnect = useCallback(async (conn: Connection) => {
-    if (!conn.source || !conn.target) return;
-    try {
-      const row = await saveEdge({ data: { process_id: processId, source_id: conn.source, target_id: conn.target, label: "" } });
-      setEdges((eds) => addEdge({ id: row.id, source: conn.source!, target: conn.target!, markerEnd: { type: MarkerType.ArrowClosed } }, eds));
-    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
-  }, [processId, setEdges]);
+  const onConnect = useCallback(
+    async (conn: Connection) => {
+      if (!conn.source || !conn.target) return;
+      try {
+        const row = await saveEdge({
+          data: {
+            process_id: processId,
+            source_id: conn.source,
+            target_id: conn.target,
+            label: "",
+          },
+        });
+        setEdges((eds) =>
+          addEdge(
+            {
+              id: row.id,
+              source: conn.source!,
+              target: conn.target!,
+              markerEnd: { type: MarkerType.ArrowClosed },
+            },
+            eds,
+          ),
+        );
+      } catch (e: any) {
+        toast.error(e?.message ?? "Erro");
+      }
+    },
+    [processId, setEdges],
+  );
 
   async function addNode(type: string, opts?: { connectFromId?: string }) {
     const ordering = nodes.length;
     const row = await saveActivity({
       data: {
-        process_id: processId, ordering, type: type as any,
+        process_id: processId,
+        ordering,
+        type: type as any,
         title: TYPE_LABELS[type] ?? "Nova atividade",
-        x: 100 + (ordering % 4) * 220, y: 80 + Math.floor(ordering / 4) * 120,
+        x: 100 + (ordering % 4) * 220,
+        y: 80 + Math.floor(ordering / 4) * 120,
       },
     });
     const newNode: Node = {
-      id: row.id, position: { x: Number(row.x ?? 0), y: Number(row.y ?? 0) },
-      data: { ...row, label: row.title }, type: "default",
+      id: row.id,
+      position: { x: Number(row.x ?? 0), y: Number(row.y ?? 0) },
+      data: { ...row, label: row.title },
+      type: "default",
       style: { width: NODE_W, minHeight: NODE_H },
       className: `rounded-lg border-2 px-3 py-2 text-sm font-medium shadow-sm ${TYPE_COLORS[type] ?? TYPE_COLORS.task}`,
     };
@@ -131,8 +232,22 @@ function BpmFlowInner({
 
     if (opts?.connectFromId) {
       try {
-        const edgeRow = await saveEdge({ data: { process_id: processId, source_id: opts.connectFromId, target_id: row.id, label: "" } });
-        setEdges((eds) => eds.concat({ id: edgeRow.id, source: opts.connectFromId!, target: row.id, markerEnd: { type: MarkerType.ArrowClosed } }));
+        const edgeRow = await saveEdge({
+          data: {
+            process_id: processId,
+            source_id: opts.connectFromId,
+            target_id: row.id,
+            label: "",
+          },
+        });
+        setEdges((eds) =>
+          eds.concat({
+            id: edgeRow.id,
+            source: opts.connectFromId!,
+            target: row.id,
+            markerEnd: { type: MarkerType.ArrowClosed },
+          }),
+        );
       } catch {}
     }
     return row.id as string;
@@ -146,7 +261,9 @@ function BpmFlowInner({
       await saveCanvasLayout({ data: { positions } });
       toast.success("Organizado");
       setTimeout(() => rf.fitView({ padding: 0.2 }), 50);
-    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
   }
 
   async function persistLayout() {
@@ -160,22 +277,39 @@ function BpmFlowInner({
       await deleteActivity({ data: { id } });
       setNodes((nds) => nds.filter((n) => n.id !== id));
       setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
-      setActivitiesIndex((idx) => { const { [id]: _, ...rest } = idx; return rest; });
+      setActivitiesIndex((idx) => {
+        const { [id]: _, ...rest } = idx;
+        return rest;
+      });
       if (selected?.id === id) setSelected(null);
       toast.success("Removido");
-    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
   }
 
   async function connectNodes(sourceId: string, targetId: string) {
     if (sourceId === targetId) return;
     if (edges.some((e) => e.source === sourceId && e.target === targetId)) {
-      toast.info("Conexão já existe"); return;
+      toast.info("Conexão já existe");
+      return;
     }
     try {
-      const row = await saveEdge({ data: { process_id: processId, source_id: sourceId, target_id: targetId, label: "" } });
-      setEdges((eds) => eds.concat({ id: row.id, source: sourceId, target: targetId, markerEnd: { type: MarkerType.ArrowClosed } }));
+      const row = await saveEdge({
+        data: { process_id: processId, source_id: sourceId, target_id: targetId, label: "" },
+      });
+      setEdges((eds) =>
+        eds.concat({
+          id: row.id,
+          source: sourceId,
+          target: targetId,
+          markerEnd: { type: MarkerType.ArrowClosed },
+        }),
+      );
       toast.success("Conectado");
-    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
   }
 
   async function updateActivity(id: string, patch: Partial<Activity>) {
@@ -196,16 +330,16 @@ function BpmFlowInner({
     );
     try {
       await saveActivity({ data: { ...updated, id } as any });
-    } catch (e: any) { toast.error(e?.message ?? "Erro ao salvar"); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao salvar");
+    }
   }
 
   const sel = selected ? activitiesIndex[selected.id] : null;
 
   const containerClass = cn(
     "flex flex-col gap-2 bg-background",
-    fullscreen
-      ? "fixed inset-0 z-50 p-2"
-      : "relative h-[75vh] md:h-[80vh] rounded-lg border p-2",
+    fullscreen ? "fixed inset-0 z-50 p-2" : "relative h-[75vh] md:h-[80vh] rounded-lg border p-2",
   );
 
   return (
@@ -215,13 +349,19 @@ function BpmFlowInner({
         <div className="inline-flex rounded-md border bg-background">
           <button
             onClick={() => setMode("list")}
-            className={cn("inline-flex items-center gap-1 px-3 py-2 text-xs font-medium", mode === "list" && "bg-secondary")}
+            className={cn(
+              "inline-flex items-center gap-1 px-3 py-2 text-xs font-medium",
+              mode === "list" && "bg-secondary",
+            )}
           >
             <ListIcon className="h-3.5 w-3.5" /> Lista
           </button>
           <button
             onClick={() => setMode("flow")}
-            className={cn("inline-flex items-center gap-1 px-3 py-2 text-xs font-medium border-l", mode === "flow" && "bg-secondary")}
+            className={cn(
+              "inline-flex items-center gap-1 px-3 py-2 text-xs font-medium border-l",
+              mode === "flow" && "bg-secondary",
+            )}
           >
             <Workflow className="h-3.5 w-3.5" /> Fluxo
           </button>
@@ -236,11 +376,21 @@ function BpmFlowInner({
             <Save className="h-4 w-4 mr-1" /> Salvar
           </Button>
         )}
-        <Button size="sm" variant="outline" className="min-h-9" onClick={() => setPaletteOpen(true)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="min-h-9"
+          onClick={() => setPaletteOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-1" /> Adicionar
         </Button>
         <div className="ml-auto">
-          <Button size="sm" variant="ghost" className="min-h-9" onClick={() => setFullscreen((v) => !v)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="min-h-9"
+            onClick={() => setFullscreen((v) => !v)}
+          >
             {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>
@@ -255,7 +405,8 @@ function BpmFlowInner({
             onNodesChange={onNodesChange}
             onEdgesChange={(changes) => {
               onEdgesChange(changes);
-              for (const c of changes) if (c.type === "remove") deleteEdge({ data: { id: c.id } }).catch(() => {});
+              for (const c of changes)
+                if (c.type === "remove") deleteEdge({ data: { id: c.id } }).catch(() => {});
             }}
             onConnect={onConnect}
             onNodeClick={(_, n) => setSelected(n)}
@@ -294,13 +445,18 @@ function BpmFlowInner({
       {/* Add palette sheet */}
       <Sheet open={paletteOpen} onOpenChange={setPaletteOpen}>
         <SheetContent side="bottom" className="h-auto max-h-[70vh]">
-          <SheetHeader><SheetTitle>Adicionar etapa</SheetTitle></SheetHeader>
+          <SheetHeader>
+            <SheetTitle>Adicionar etapa</SheetTitle>
+          </SheetHeader>
           <div className="grid grid-cols-2 gap-2 mt-3 pb-4">
             {Object.entries(TYPE_LABELS).map(([k, l]) => (
               <button
                 key={k}
                 onClick={() => addNode(k)}
-                className={cn("min-h-12 rounded-lg border-2 px-3 py-2 text-sm font-medium text-left", TYPE_COLORS[k])}
+                className={cn(
+                  "min-h-12 rounded-lg border-2 px-3 py-2 text-sm font-medium text-left",
+                  TYPE_COLORS[k],
+                )}
               >
                 + {l}
               </button>
@@ -325,18 +481,55 @@ function BpmFlowInner({
               <div className="space-y-3 mt-3 pb-6">
                 <div>
                   <label className="text-xs text-muted-foreground">Tipo</label>
-                  <Select value={sel.type} onValueChange={(v) => updateActivity(sel.id, { type: v })}>
-                    <SelectTrigger className="min-h-11"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={sel.type}
+                    onValueChange={(v) => updateActivity(sel.id, { type: v })}
+                  >
+                    <SelectTrigger className="min-h-11">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(TYPE_LABELS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+                      {Object.entries(TYPE_LABELS).map(([k, l]) => (
+                        <SelectItem key={k} value={k}>
+                          {l}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <Field label="Título" value={sel.title} onChange={(v) => updateActivity(sel.id, { title: v })} />
-                <Field label="Responsável" value={sel.responsible ?? ""} onChange={(v) => updateActivity(sel.id, { responsible: v })} />
-                <Field label="Área" value={sel.area ?? ""} onChange={(v) => updateActivity(sel.id, { area: v })} />
-                <Field label="Tempo (min)" type="number" value={String(sel.time_minutes ?? 0)} onChange={(v) => updateActivity(sel.id, { time_minutes: Number(v) || 0 })} />
-                <Field label="Sistemas (vírgula)" value={(sel.systems ?? []).join(", ")} onChange={(v) => updateActivity(sel.id, { systems: v.split(",").map((s) => s.trim()).filter(Boolean) })} />
+                <Field
+                  label="Título"
+                  value={sel.title}
+                  onChange={(v) => updateActivity(sel.id, { title: v })}
+                />
+                <Field
+                  label="Responsável"
+                  value={sel.responsible ?? ""}
+                  onChange={(v) => updateActivity(sel.id, { responsible: v })}
+                />
+                <Field
+                  label="Área"
+                  value={sel.area ?? ""}
+                  onChange={(v) => updateActivity(sel.id, { area: v })}
+                />
+                <Field
+                  label="Tempo (min)"
+                  type="number"
+                  value={String(sel.time_minutes ?? 0)}
+                  onChange={(v) => updateActivity(sel.id, { time_minutes: Number(v) || 0 })}
+                />
+                <Field
+                  label="Sistemas (vírgula)"
+                  value={(sel.systems ?? []).join(", ")}
+                  onChange={(v) =>
+                    updateActivity(sel.id, {
+                      systems: v
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                />
                 <div>
                   <label className="text-xs text-muted-foreground">Observações</label>
                   <textarea
@@ -348,11 +541,17 @@ function BpmFlowInner({
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Conectar para…</label>
                   <Select onValueChange={(v) => connectNodes(sel.id, v)}>
-                    <SelectTrigger className="min-h-11"><SelectValue placeholder="Selecione destino" /></SelectTrigger>
+                    <SelectTrigger className="min-h-11">
+                      <SelectValue placeholder="Selecione destino" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {orderedActivities.filter((a) => a.id !== sel.id).map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.title || "(sem título)"}</SelectItem>
-                      ))}
+                      {orderedActivities
+                        .filter((a) => a.id !== sel.id)
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.title || "(sem título)"}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -366,7 +565,16 @@ function BpmFlowInner({
 }
 
 function ListView({
-  activities, edges, connectFromId, onSetConnectFrom, onAddAfter, onSelect, onConnect, onRemove, onChangeType, onChangeTitle,
+  activities,
+  edges,
+  connectFromId,
+  onSetConnectFrom,
+  onAddAfter,
+  onSelect,
+  onConnect,
+  onRemove,
+  onChangeType,
+  onChangeTitle,
 }: {
   activities: Activity[];
   edges: Edge[];
@@ -384,7 +592,9 @@ function ListView({
       <div className="flex-1 flex items-center justify-center text-center p-6 border-2 border-dashed rounded-lg">
         <div>
           <p className="text-sm text-muted-foreground mb-1">Nenhuma atividade ainda.</p>
-          <p className="text-xs text-muted-foreground">Toque em "Adicionar" para criar a primeira etapa.</p>
+          <p className="text-xs text-muted-foreground">
+            Toque em "Adicionar" para criar a primeira etapa.
+          </p>
         </div>
       </div>
     );
@@ -414,7 +624,11 @@ function ListView({
                   onChange={(e) => onChangeType(a.id, e.target.value)}
                   className="text-[10px] font-bold uppercase bg-transparent border-0 px-0 cursor-pointer"
                 >
-                  {Object.entries(TYPE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  {Object.entries(TYPE_LABELS).map(([k, l]) => (
+                    <option key={k} value={k}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </div>
               <input
@@ -490,7 +704,17 @@ function ListView({
   );
 }
 
-function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
   return (
     <div>
       <label className="text-xs text-muted-foreground">{label}</label>

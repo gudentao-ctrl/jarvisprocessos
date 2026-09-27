@@ -72,7 +72,10 @@ function condense(text: string, max: number): string {
 /** Extrai o primeiro objeto JSON válido de uma resposta (tolera cercas/ruído). */
 
 function extractJson(raw: string): any {
-  const s = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const s = raw
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
   try {
     return JSON.parse(s);
   } catch {
@@ -109,15 +112,16 @@ async function callAi(user: string) {
   throw lastErr ?? new Error("Falha IA");
 }
 
-
 export const generateFlowForProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      process_id: z.string().uuid(),
-      description: z.string().optional().default(""),
-      replace: z.boolean().optional().default(false),
-    }).parse(d),
+    z
+      .object({
+        process_id: z.string().uuid(),
+        description: z.string().optional().default(""),
+        replace: z.boolean().optional().default(false),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
@@ -149,10 +153,14 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       proc.inputs ? `Entradas: ${proc.inputs}` : "",
       proc.outputs ? `Saídas: ${proc.outputs}` : "",
       proc.description ? `Descrição: ${condense(proc.description, 2000)}` : "",
-      data.description ? `Contexto adicional do consultor: ${condense(data.description, 2000)}` : "",
+      data.description
+        ? `Contexto adicional do consultor: ${condense(data.description, 2000)}`
+        : "",
       transcript ? `\nTrecho da entrevista (referência):\n${transcript}` : "",
       "\nGere no máximo 25 atividades.",
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const raw = await callAi(userMsg);
     let parsed: z.infer<typeof AiFlow>;
@@ -213,7 +221,9 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       .insert(rows)
       .select("id, ordering");
     if (insErr) throw new Error(insErr.message);
-    const byOrdering = new Map<number, string>((inserted ?? []).map((r: any) => [r.ordering, r.id]));
+    const byOrdering = new Map<number, string>(
+      (inserted ?? []).map((r: any) => [r.ordering, r.id]),
+    );
     parsed.activities.forEach((a, i) => {
       const id = byOrdering.get(rows[i].ordering);
       if (id) idByRef.set(a.ref, id);
@@ -242,7 +252,6 @@ export const generateFlowForProcess = createServerFn({ method: "POST" })
       })
       .filter(Boolean) as any[];
     if (connRows.length) await sb.from("activity_connections").insert(connRows);
-
 
     return {
       ok: true,

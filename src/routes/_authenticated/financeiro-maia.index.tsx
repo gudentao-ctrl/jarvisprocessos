@@ -34,8 +34,21 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Landmark,
   ShieldCheck,
@@ -104,13 +117,7 @@ function parseBrlNumber(val: string): number {
   return parseFloat(cleaned) || 0;
 }
 
-function MonthPicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-}) {
+function MonthPicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [yearStr, monthStr] = (value || currentMonthYear()).split("-");
   const year = parseInt(yearStr, 10) || new Date().getFullYear();
   const month = parseInt(monthStr, 10) || new Date().getMonth() + 1;
@@ -186,7 +193,8 @@ function FinanceiroMaiaPage() {
   const hasFinancialAccess =
     !!profile?.isSuperadmin ||
     (profile?.memberships ?? []).some(
-      (m: any) => m.permissions?.financeiro === true || m.role === "gestor" || m.permissions?.gestao === true,
+      (m: any) =>
+        m.permissions?.financeiro === true || m.role === "gestor" || m.permissions?.gestao === true,
     );
 
   if (!hasFinancialAccess && profile) {
@@ -356,7 +364,8 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
   const saveBonusMut = useMutation({
     mutationFn: () => {
       const amount = parseBrlNumber(bonusForm.amountStr);
-      if (amount <= 0) throw new Error("Informe um valor válido maior que zero para a bonificação.");
+      if (amount <= 0)
+        throw new Error("Informe um valor válido maior que zero para a bonificação.");
       if (!bonusForm.consultant_id) throw new Error("Selecione o consultor.");
       if (!bonusForm.service_description.trim()) throw new Error("Informe a descrição do serviço.");
       return saveBonusFn({
@@ -421,7 +430,9 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
             </div>
 
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Cliente / Empresa</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Cliente / Empresa
+              </Label>
               <Select value={companyFilter} onValueChange={setCompanyFilter}>
                 <SelectTrigger className="h-9 w-48 text-xs">
                   <SelectValue placeholder="Todas as empresas" />
@@ -438,7 +449,9 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
             </div>
 
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Status Auditoria</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Status Auditoria
+              </Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-9 w-36 text-xs">
                   <SelectValue />
@@ -501,7 +514,9 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
       {/* Grid de Auditoria */}
       <Card className="divide-y overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Carregando lançamentos…</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Carregando lançamentos…
+          </div>
         ) : hours.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             Nenhum lançamento encontrado para o período e filtros selecionados.
@@ -544,11 +559,17 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
 
                     {/* Status Remuneração */}
                     {h.is_remunerated === false ? (
-                      <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20 font-bold">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20 font-bold"
+                      >
                         Não Remunerada
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 font-bold">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 font-bold"
+                      >
                         Remunerada
                       </Badge>
                     )}
@@ -692,7 +713,9 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
                 <div>
                   <span className="font-semibold text-foreground">{b.consultant_name}</span>
                   <span className="text-muted-foreground ml-2">({fmtDate(b.bonus_date)})</span>
-                  <p className="text-muted-foreground text-[11px] mt-0.5">{b.service_description}</p>
+                  <p className="text-muted-foreground text-[11px] mt-0.5">
+                    {b.service_description}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-emerald-600">{brl(b.amount)}</span>
@@ -719,7 +742,8 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
               <Award className="h-5 w-5 text-amber-500" /> Lançar Bonificação ao Consultor
             </DialogTitle>
             <DialogDescription>
-              Lance uma bonificação por serviço ou mérito. O valor integrará os custos de equipe no DRE do mês.
+              Lance uma bonificação por serviço ou mérito. O valor integrará os custos de equipe no
+              DRE do mês.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2 text-sm">
@@ -776,7 +800,9 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
                 rows={3}
                 placeholder="Ex.: Bonificação por entrega antecipada do módulo financeiro ou treinamento extraordinário..."
                 value={bonusForm.service_description}
-                onChange={(e) => setBonusForm({ ...bonusForm, service_description: e.target.value })}
+                onChange={(e) =>
+                  setBonusForm({ ...bonusForm, service_description: e.target.value })
+                }
               />
             </div>
           </div>
@@ -786,7 +812,12 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
             </Button>
             <Button
               className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
-              disabled={saveBonusMut.isPending || !bonusForm.consultant_id || !bonusForm.amountStr || !bonusForm.service_description.trim()}
+              disabled={
+                saveBonusMut.isPending ||
+                !bonusForm.consultant_id ||
+                !bonusForm.amountStr ||
+                !bonusForm.service_description.trim()
+              }
               onClick={() => saveBonusMut.mutate()}
             >
               {saveBonusMut.isPending ? "Salvando..." : "Salvar Bonificação"}
@@ -860,15 +891,21 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
       {/* Resumo do Fechamento */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Total a Pagar Equipe</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Total a Pagar Equipe
+          </p>
           <p className="text-xl font-bold text-primary tabular-nums">{brl(totals.totalPayable)}</p>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Horas Remuneradas</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Horas Remuneradas
+          </p>
           <p className="text-xl font-bold tabular-nums">{fmtHours(totals.totalHours)}</p>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Reembolsos de Despesas</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Reembolsos de Despesas
+          </p>
           <p className="text-xl font-bold tabular-nums">{brl(totals.reimbursements)}</p>
         </Card>
         <Card className="p-3">
@@ -896,9 +933,13 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Carregando fechamento da equipe…</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Carregando fechamento da equipe…
+          </div>
         ) : team.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Nenhum consultor cadastrado.</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Nenhum consultor cadastrado.
+          </div>
         ) : (
           team.map((c: any) => {
             const isContaCorrente = c.regime === "conta_corrente";
@@ -995,7 +1036,10 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
 
                   {/* Fechamento imutável */}
                   {c.isClosed ? (
-                    <Badge variant="secondary" className="gap-1 text-[10px] py-0.5 text-muted-foreground">
+                    <Badge
+                      variant="secondary"
+                      className="gap-1 text-[10px] py-0.5 text-muted-foreground"
+                    >
                       <Lock className="h-3 w-3" /> Fechado
                     </Badge>
                   ) : (
@@ -1051,7 +1095,8 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
             <div className="space-y-3 py-2">
               <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
                 <p>
-                  <strong className="text-foreground">Consultor:</strong> {notifyModalConsultant.fullName}
+                  <strong className="text-foreground">Consultor:</strong>{" "}
+                  {notifyModalConsultant.fullName}
                 </p>
                 <p>
                   <strong className="text-foreground">WhatsApp:</strong>{" "}
@@ -1062,7 +1107,9 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
                 </p>
                 <p>
                   <strong className="text-foreground">Valor a Receber:</strong>{" "}
-                  <span className="font-bold text-primary">{brl(notifyModalConsultant.totalPayable)}</span>
+                  <span className="font-bold text-primary">
+                    {brl(notifyModalConsultant.totalPayable)}
+                  </span>
                 </p>
                 <p>
                   <strong className="text-foreground">Competência:</strong> {selectedMonth}
@@ -1185,8 +1232,7 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
   });
 
   const cloneCostsMut = useMutation({
-    mutationFn: () =>
-      cloneCostsFn({ data: { current_month_year: selectedMonth } }),
+    mutationFn: () => cloneCostsFn({ data: { current_month_year: selectedMonth } }),
     onSuccess: (res) => {
       toast.success(`${res.count} custos importados do mês anterior!`);
       qc.invalidateQueries({ queryKey: ["maia-dre"] });
@@ -1199,13 +1245,19 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
       {/* Resumo do DRE */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Faturamento Bruto (Indicador)</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Faturamento Bruto (Indicador)
+          </p>
           <p className="text-xl font-bold tabular-nums">{brl(dre?.grossRevenue ?? 0)}</p>
           <span className="text-[10px] text-muted-foreground">Faturas emitidas</span>
         </Card>
         <Card className="p-3 border-emerald-500/40 bg-emerald-500/5">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Receita Realizada (Base DRE)</p>
-          <p className="text-xl font-bold text-emerald-600 tabular-nums">{brl(dre?.totalPaymentsReceived ?? 0)}</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Receita Realizada (Base DRE)
+          </p>
+          <p className="text-xl font-bold text-emerald-600 tabular-nums">
+            {brl(dre?.totalPaymentsReceived ?? 0)}
+          </p>
           <span className="text-[10px] text-muted-foreground">Pagamentos recebidos</span>
         </Card>
         <Card className="p-3">
@@ -1218,23 +1270,34 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
           <span className="text-[10px] text-muted-foreground">Sobre pagamentos</span>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Receita Operacional Líquida</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Receita Operacional Líquida
+          </p>
           <p className="text-xl font-bold text-foreground tabular-nums">
             {brl(dre?.netRevenue ?? 0)}
           </p>
           <span className="text-[10px] text-muted-foreground">Pagamentos (-) Impostos</span>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Custo da Equipe</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Custo da Equipe
+          </p>
           <p className="text-xl font-bold text-destructive tabular-nums">
-            (-) {brl((dre?.teamLaborCost ?? 0) + (dre?.expenseReimbursements ?? 0) + (dre?.consultantBonuses ?? 0))}
+            (-){" "}
+            {brl(
+              (dre?.teamLaborCost ?? 0) +
+                (dre?.expenseReimbursements ?? 0) +
+                (dre?.consultantBonuses ?? 0),
+            )}
           </p>
           <span className="text-[10px] text-muted-foreground">
             Hon. {brl(dre?.teamLaborCost ?? 0)} · Bon. {brl(dre?.consultantBonuses ?? 0)}
           </span>
         </Card>
         <Card className="p-3">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Lucro Líquido do Período</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Lucro Líquido do Período
+          </p>
           <p
             className={cn(
               "text-xl font-bold tabular-nums",
@@ -1246,7 +1309,9 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
           <span className="text-[10px] text-muted-foreground">Resultado do mês</span>
         </Card>
         <Card className="p-3 border-blue-500/30 bg-blue-500/5">
-          <p className="text-[10px] uppercase text-muted-foreground font-semibold">Acumulado Anterior</p>
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold">
+            Acumulado Anterior
+          </p>
           <p
             className={cn(
               "text-xl font-bold tabular-nums",
@@ -1319,17 +1384,22 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
       <Card className="divide-y overflow-hidden text-sm">
         <div className="flex justify-between p-3.5 bg-muted/40 font-semibold text-xs text-muted-foreground">
           <span>INDICADOR OPERACIONAL: FATURAMENTO BRUTO (FATURAS EMITIDAS)</span>
-          <span className="tabular-nums font-bold text-foreground">{brl(dre?.grossRevenue ?? 0)}</span>
+          <span className="tabular-nums font-bold text-foreground">
+            {brl(dre?.grossRevenue ?? 0)}
+          </span>
         </div>
 
         <div className="flex justify-between p-3.5 bg-muted/20 font-bold">
           <span>1. Receita Realizada (Pagamentos Recebidos dos Clientes)</span>
-          <span className="tabular-nums text-emerald-600">{brl(dre?.totalPaymentsReceived ?? 0)}</span>
+          <span className="tabular-nums text-emerald-600">
+            {brl(dre?.totalPaymentsReceived ?? 0)}
+          </span>
         </div>
         <div className="flex justify-between p-3.5 pl-6 text-xs text-muted-foreground">
           <span>
             (-) Dedução de Impostos (
-            {dre?.taxes?.map((t: any) => `${t.name}: ${t.rate_percent}%`).join(" · ") || "0%"}) — calculados sobre pagamentos recebidos
+            {dre?.taxes?.map((t: any) => `${t.name}: ${t.rate_percent}%`).join(" · ") || "0%"}) —
+            calculados sobre pagamentos recebidos
           </span>
           <span className="tabular-nums text-destructive">(-) {brl(dre?.taxesDeduction ?? 0)}</span>
         </div>
@@ -1342,7 +1412,12 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
         <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>3. Custos Operacionais de Equipe</span>
           <span className="tabular-nums text-destructive">
-            (-) {brl((dre?.teamLaborCost ?? 0) + (dre?.expenseReimbursements ?? 0) + (dre?.consultantBonuses ?? 0))}
+            (-){" "}
+            {brl(
+              (dre?.teamLaborCost ?? 0) +
+                (dre?.expenseReimbursements ?? 0) +
+                (dre?.consultantBonuses ?? 0),
+            )}
           </span>
         </div>
         <div className="flex justify-between p-3.5 pl-6 text-xs text-muted-foreground">
@@ -1360,7 +1435,10 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
           <span className="tabular-nums font-semibold">(-) {brl(dre?.consultantBonuses ?? 0)}</span>
         </div>
         {(dre?.bonusesList ?? []).map((b: any) => (
-          <div key={b.id} className="flex items-center justify-between p-2 pl-10 text-[11px] text-muted-foreground bg-amber-500/5">
+          <div
+            key={b.id}
+            className="flex items-center justify-between p-2 pl-10 text-[11px] text-muted-foreground bg-amber-500/5"
+          >
             <span>
               {b.consultant_name} ({fmtDate(b.bonus_date)}): {b.service_description}
             </span>
@@ -1371,10 +1449,15 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
         {/* Custos Fixos */}
         <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>4. Despesas Fixas Corporativas</span>
-          <span className="tabular-nums text-destructive">(-) {brl(dre?.totalFixedCosts ?? 0)}</span>
+          <span className="tabular-nums text-destructive">
+            (-) {brl(dre?.totalFixedCosts ?? 0)}
+          </span>
         </div>
         {(dre?.fixedCosts ?? []).map((f: any) => (
-          <div key={f.id} className="flex items-center justify-between p-3 pl-6 text-xs hover:bg-muted/10">
+          <div
+            key={f.id}
+            className="flex items-center justify-between p-3 pl-6 text-xs hover:bg-muted/10"
+          >
             <span>{f.description}</span>
             <div className="flex items-center gap-2">
               <span className="tabular-nums text-muted-foreground">(-) {brl(f.amount)}</span>
@@ -1393,10 +1476,15 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
         {/* Custos Variáveis */}
         <div className="flex justify-between p-3.5 font-bold bg-muted/20">
           <span>5. Despesas Variáveis Corporativas</span>
-          <span className="tabular-nums text-destructive">(-) {brl(dre?.totalVariableCosts ?? 0)}</span>
+          <span className="tabular-nums text-destructive">
+            (-) {brl(dre?.totalVariableCosts ?? 0)}
+          </span>
         </div>
         {(dre?.variableCosts ?? []).map((v: any) => (
-          <div key={v.id} className="flex items-center justify-between p-3 pl-6 text-xs hover:bg-muted/10">
+          <div
+            key={v.id}
+            className="flex items-center justify-between p-3 pl-6 text-xs hover:bg-muted/10"
+          >
             <span>{v.description}</span>
             <div className="flex items-center gap-2">
               <span className="tabular-nums text-muted-foreground">(-) {brl(v.amount)}</span>
@@ -1478,8 +1566,12 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="custo_fixo">Custo Fixo (ex: Aluguel, Sistemas, Contabilidade)</SelectItem>
-                  <SelectItem value="custo_variavel">Custo Variável (ex: Viagem diretoria, Material)</SelectItem>
+                  <SelectItem value="custo_fixo">
+                    Custo Fixo (ex: Aluguel, Sistemas, Contabilidade)
+                  </SelectItem>
+                  <SelectItem value="custo_variavel">
+                    Custo Variável (ex: Viagem diretoria, Material)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1508,9 +1600,7 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
             </Button>
             <Button
               disabled={
-                !costForm.description.trim() ||
-                !costForm.amountStr.trim() ||
-                saveCostMut.isPending
+                !costForm.description.trim() || !costForm.amountStr.trim() || saveCostMut.isPending
               }
               onClick={() => saveCostMut.mutate()}
             >
@@ -1790,7 +1880,9 @@ function ConfiguracoesSection() {
                   <SelectContent>
                     <SelectItem value="fixo">Fixo Mensal</SelectItem>
                     <SelectItem value="hora">Por Hora Trabalhada</SelectItem>
-                    <SelectItem value="conta_corrente">Conta Corrente (Piso + Mínimo + Extra)</SelectItem>
+                    <SelectItem value="conta_corrente">
+                      Conta Corrente (Piso + Mínimo + Extra)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

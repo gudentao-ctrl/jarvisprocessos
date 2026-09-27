@@ -44,7 +44,11 @@ export function concatFloat32(chunks: Float32Array[]): Float32Array {
   return out;
 }
 
-export function downsample(input: Float32Array, from: number, to = TARGET_SAMPLE_RATE): Float32Array {
+export function downsample(
+  input: Float32Array,
+  from: number,
+  to = TARGET_SAMPLE_RATE,
+): Float32Array {
   if (from === to) return input;
   const ratio = from / to;
   const len = Math.floor(input.length / ratio);
@@ -74,7 +78,10 @@ export function splitToWavChunks(samples: Float32Array, chunkSeconds = CHUNK_SEC
  * Não decodifica para Float32Array na memória RAM, garantindo suporte a
  * gravações de 2 a 4+ horas sem estourar o limite de memória do navegador.
  */
-export async function splitWavFileBinary(file: Blob, chunkSeconds = CHUNK_SECONDS): Promise<Blob[]> {
+export async function splitWavFileBinary(
+  file: Blob,
+  chunkSeconds = CHUNK_SECONDS,
+): Promise<Blob[]> {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   const view = new DataView(buffer);
@@ -139,7 +146,7 @@ export async function fileToWavChunks(
   if (isWav) {
     onProgress?.("Fatiando áudio WAV em blocos de 5 minutos...");
     const parts = await splitWavFileBinary(file, CHUNK_SECONDS);
-    const estimatedDuration = Math.round((file.size / 32000));
+    const estimatedDuration = Math.round(file.size / 32000);
     return { parts, durationSec: estimatedDuration };
   }
 

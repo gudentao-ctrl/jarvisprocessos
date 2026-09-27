@@ -21,8 +21,20 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Map,
   Building2,
@@ -61,7 +73,8 @@ export const Route = createFileRoute("/_authenticated/mapa/")({
       { title: "Mapa Estratégico | JARVIS" },
       {
         name: "description",
-        content: "Mapa estratégico da consultoria por pilares: Pessoas, Processos e Negócios com diretrizes e desdobramentos.",
+        content:
+          "Mapa estratégico da consultoria por pilares: Pessoas, Processos e Negócios com diretrizes e desdobramentos.",
       },
     ],
   }),
@@ -116,7 +129,8 @@ function statusInfo(status: string) {
   if (status === "concluido") {
     return {
       label: "Concluído",
-      badgeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      badgeClass:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
       icon: CheckCircle2,
       dotClass: "bg-emerald-500",
     };
@@ -124,7 +138,8 @@ function statusInfo(status: string) {
   if (status === "em_andamento") {
     return {
       label: "Em andamento",
-      badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      badgeClass:
+        "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800",
       icon: Clock,
       dotClass: "bg-blue-500",
     };
@@ -132,33 +147,63 @@ function statusInfo(status: string) {
   if (status === "nao_sera_feito") {
     return {
       label: "Não será feito",
-      badgeClass: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+      badgeClass:
+        "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800",
       icon: AlertCircle,
       dotClass: "bg-rose-500",
     };
   }
   return {
     label: "A iniciar",
-    badgeClass: "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    badgeClass:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-slate-200 dark:border-slate-700",
     icon: Circle,
     dotClass: "bg-slate-400",
   };
 }
 
 function tierOf(score: number) {
-  if (score >= 75) return { label: "Crítico", chip: "bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400" };
-  if (score >= 40) return { label: "Alto", chip: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400" };
-  if (score >= 15) return { label: "Médio", chip: "bg-blue-500/10 text-blue-600 border-blue-500/30 dark:text-blue-400" };
+  if (score >= 75)
+    return {
+      label: "Crítico",
+      chip: "bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400",
+    };
+  if (score >= 40)
+    return {
+      label: "Alto",
+      chip: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400",
+    };
+  if (score >= 15)
+    return {
+      label: "Médio",
+      chip: "bg-blue-500/10 text-blue-600 border-blue-500/30 dark:text-blue-400",
+    };
   return { label: "Baixo", chip: "bg-muted text-muted-foreground border-border" };
 }
 
-function GutStepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function GutStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
   const set = (v: number) => onChange(Math.min(5, Math.max(1, v)));
   return (
     <div>
       <Label className="text-xs">{label}</Label>
       <div className="flex items-stretch gap-1 mt-1">
-        <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => set(value - 1)} disabled={value <= 1} aria-label={`Diminuir ${label}`}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => set(value - 1)}
+          disabled={value <= 1}
+          aria-label={`Diminuir ${label}`}
+        >
           <Minus className="h-3.5 w-3.5" />
         </Button>
         <Input
@@ -169,7 +214,15 @@ function GutStepper({ label, value, onChange }: { label: string; value: number; 
           onChange={(e) => set(Number(e.target.value) || 1)}
           className="w-full text-center tabular-nums h-8 text-xs font-semibold"
         />
-        <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => set(value + 1)} disabled={value >= 5} aria-label={`Aumentar ${label}`}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => set(value + 1)}
+          disabled={value >= 5}
+          aria-label={`Aumentar ${label}`}
+        >
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -201,7 +254,11 @@ function MapaPage() {
     queryFn: () => listCompaniesFn(),
   });
 
-  const { data: mapaData, isLoading: loadingMapa, isFetching } = useQuery({
+  const {
+    data: mapaData,
+    isLoading: loadingMapa,
+    isFetching,
+  } = useQuery({
     queryKey: ["mapa", companyId],
     queryFn: () => (companyId ? getMapaFn({ data: { company_id: companyId } }) : null),
     enabled: !!companyId,
@@ -457,7 +514,7 @@ function MapaPage() {
       return;
     }
     const pKey = pName.toLowerCase().replace(/\s+/g, "_");
-    
+
     // Create initial guideline in this pillar
     saveMutation.mutate({
       company_id: companyId,
@@ -612,7 +669,8 @@ function MapaPage() {
             Selecione uma Empresa para Carregar o Mapa
           </h2>
           <p className="mt-2 text-sm text-muted-foreground max-w-md">
-            O Mapa Estratégico é individualizado por cliente e conectado diretamente aos planos de ação e painel do cliente da empresa.
+            O Mapa Estratégico é individualizado por cliente e conectado diretamente aos planos de
+            ação e painel do cliente da empresa.
           </p>
           <div className="mt-6 w-full max-w-xs">
             <Select
@@ -649,11 +707,13 @@ function MapaPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Layers className="h-4 w-4 text-primary" /> Pilares Estratégicos — {currentCompany?.name}
+                <Layers className="h-4 w-4 text-primary" /> Pilares Estratégicos —{" "}
+                {currentCompany?.name}
               </h2>
               <span className="text-xs text-muted-foreground">
                 {totalAcoes} {totalAcoes === 1 ? "ação de desdobramento" : "ações de desdobramento"}
-                {totalDiretrizes > 0 && ` em ${totalDiretrizes} ${totalDiretrizes === 1 ? "diretriz" : "diretrizes"}`}
+                {totalDiretrizes > 0 &&
+                  ` em ${totalDiretrizes} ${totalDiretrizes === 1 ? "diretriz" : "diretrizes"}`}
               </span>
             </div>
 
@@ -666,12 +726,17 @@ function MapaPage() {
                     p.border,
                     "bg-gradient-to-br",
                     p.gradient,
-                    "bg-card"
+                    "bg-card",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wider", p.badge)}>
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wider",
+                          p.badge,
+                        )}
+                      >
                         {p.name}
                       </span>
                       {p.description && (
@@ -694,7 +759,10 @@ function MapaPage() {
                   <div className="mt-4 space-y-1.5">
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60 dark:bg-muted/30">
                       <div
-                        className={cn("h-full transition-all duration-500 rounded-full", p.progressColor)}
+                        className={cn(
+                          "h-full transition-all duration-500 rounded-full",
+                          p.progressColor,
+                        )}
                         style={{ width: `${Math.min(100, Math.max(0, p.progress_pct))}%` }}
                       />
                     </div>
@@ -707,7 +775,9 @@ function MapaPage() {
                         <CheckCircle2 className="h-3 w-3" />
                         <span className="tabular-nums">{p.concluidas}</span>
                       </div>
-                      <span className="text-[9px] text-muted-foreground font-medium">Concluídas</span>
+                      <span className="text-[9px] text-muted-foreground font-medium">
+                        Concluídas
+                      </span>
                     </div>
 
                     <div className="rounded-md bg-blue-50/60 dark:bg-blue-950/20 p-1 border border-blue-200/50 dark:border-blue-800/40">
@@ -723,7 +793,9 @@ function MapaPage() {
                         <Circle className="h-3 w-3" />
                         <span className="tabular-nums">{p.a_iniciar}</span>
                       </div>
-                      <span className="text-[9px] text-muted-foreground font-medium">A iniciar</span>
+                      <span className="text-[9px] text-muted-foreground font-medium">
+                        A iniciar
+                      </span>
                     </div>
 
                     <div className="rounded-md bg-rose-50/60 dark:bg-rose-950/20 p-1 border border-rose-200/50 dark:border-rose-800/40">
@@ -842,7 +914,7 @@ function MapaPage() {
                   <div
                     className={cn(
                       "flex items-center justify-between p-3.5 sm:px-4 cursor-pointer select-none transition-colors border-b",
-                      "bg-muted/40 hover:bg-muted/60"
+                      "bg-muted/40 hover:bg-muted/60",
                     )}
                     onClick={() => toggleNode(pilarKey)}
                   >
@@ -855,17 +927,25 @@ function MapaPage() {
                         <ChevronDown
                           className={cn(
                             "h-4 w-4 transition-transform duration-200",
-                            !isPilarOpen && "-rotate-90"
+                            !isPilarOpen && "-rotate-90",
                           )}
                         />
                       </button>
 
                       <div className="flex items-center gap-2.5">
-                        <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider", pilar.badge)}>
+                        <span
+                          className={cn(
+                            "px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider",
+                            pilar.badge,
+                          )}
+                        >
                           {pilar.name}
                         </span>
                         <span className="text-xs text-muted-foreground font-medium">
-                          ({pilar.total_diretrizes} {pilar.total_diretrizes === 1 ? "diretriz" : "diretrizes"}, {pilar.total_desdobramentos} {pilar.total_desdobramentos === 1 ? "ação" : "ações"})
+                          ({pilar.total_diretrizes}{" "}
+                          {pilar.total_diretrizes === 1 ? "diretriz" : "diretrizes"},{" "}
+                          {pilar.total_desdobramentos}{" "}
+                          {pilar.total_desdobramentos === 1 ? "ação" : "ações"})
                         </span>
                       </div>
                     </div>
@@ -900,13 +980,16 @@ function MapaPage() {
                     <div className="divide-y divide-border/60">
                       {roots.length === 0 ? (
                         <div className="p-6 text-center text-xs text-muted-foreground">
-                          Nenhuma diretriz cadastrada para este pilar. Clique em "Nova Diretriz" para começar.
+                          Nenhuma diretriz cadastrada para este pilar. Clique em "Nova Diretriz"
+                          para começar.
                         </div>
                       ) : (
                         roots.map((diretriz, dirIdx) => {
                           const isDirOpen = expandedNodes[diretriz.id] !== false;
                           const children = diretriz.children || [];
-                          const completedChildren = children.filter((c) => c.status === "concluido").length;
+                          const completedChildren = children.filter(
+                            (c) => c.status === "concluido",
+                          ).length;
                           const dirStatus = statusInfo(diretriz.status);
 
                           return (
@@ -915,7 +998,7 @@ function MapaPage() {
                               <div
                                 className={cn(
                                   "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:px-4 hover:bg-muted/30 transition-colors cursor-pointer",
-                                  isDirOpen && children.length > 0 && "bg-muted/15"
+                                  isDirOpen && children.length > 0 && "bg-muted/15",
                                 )}
                                 onClick={() => toggleNode(diretriz.id)}
                               >
@@ -933,7 +1016,7 @@ function MapaPage() {
                                     <ChevronDown
                                       className={cn(
                                         "h-4 w-4 transition-transform duration-200",
-                                        !isDirOpen && "-rotate-90"
+                                        !isDirOpen && "-rotate-90",
                                       )}
                                     />
                                   </button>
@@ -946,16 +1029,29 @@ function MapaPage() {
                                       <h3 className="text-sm font-bold text-foreground hover:text-primary transition-colors">
                                         {diretriz.title}
                                       </h3>
-                                      <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-4.5 gap-1 font-medium", dirStatus.badgeClass)}>
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-[10px] px-1.5 py-0 h-4.5 gap-1 font-medium",
+                                          dirStatus.badgeClass,
+                                        )}
+                                      >
                                         <dirStatus.icon className="h-2.5 w-2.5" />
                                         {dirStatus.label}
                                       </Badge>
                                       {children.length > 0 ? (
-                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4.5 font-bold tabular-nums">
-                                          {completedChildren}/{children.length} {children.length === 1 ? "ação" : "ações"}
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-[10px] px-1.5 py-0 h-4.5 font-bold tabular-nums"
+                                        >
+                                          {completedChildren}/{children.length}{" "}
+                                          {children.length === 1 ? "ação" : "ações"}
                                         </Badge>
                                       ) : (
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 text-muted-foreground">
+                                        <Badge
+                                          variant="outline"
+                                          className="text-[10px] px-1.5 py-0 h-4.5 text-muted-foreground"
+                                        >
                                           0 ações
                                         </Badge>
                                       )}
@@ -1064,7 +1160,10 @@ function MapaPage() {
                                               </p>
                                               <Badge
                                                 variant="outline"
-                                                className={cn("text-[9px] px-1.5 py-0 h-4 gap-1 font-medium", subStatus.badgeClass)}
+                                                className={cn(
+                                                  "text-[9px] px-1.5 py-0 h-4 gap-1 font-medium",
+                                                  subStatus.badgeClass,
+                                                )}
                                               >
                                                 <subStatus.icon className="h-2.5 w-2.5" />
                                                 {subStatus.label}
@@ -1087,12 +1186,21 @@ function MapaPage() {
                                               {sub.due_date && (
                                                 <span className="inline-flex items-center gap-1">
                                                   <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                  {new Date(sub.due_date).toLocaleDateString("pt-BR")}
+                                                  {new Date(sub.due_date).toLocaleDateString(
+                                                    "pt-BR",
+                                                  )}
                                                 </span>
                                               )}
                                               {sub.gut_score ? (
-                                                <span className={cn("inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold border", tierOf(sub.gut_score).chip)}>
-                                                  {sub.gut_score >= 75 && <Flame className="h-2.5 w-2.5" />}
+                                                <span
+                                                  className={cn(
+                                                    "inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold border",
+                                                    tierOf(sub.gut_score).chip,
+                                                  )}
+                                                >
+                                                  {sub.gut_score >= 75 && (
+                                                    <Flame className="h-2.5 w-2.5" />
+                                                  )}
                                                   GUT {sub.gut_score}
                                                 </span>
                                               ) : null}
@@ -1110,7 +1218,10 @@ function MapaPage() {
                                           <div className="flex items-center gap-1.5">
                                             <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
                                               <div
-                                                className={cn("h-full rounded-full transition-all duration-300", subStatus.dotClass)}
+                                                className={cn(
+                                                  "h-full rounded-full transition-all duration-300",
+                                                  subStatus.dotClass,
+                                                )}
                                                 style={{ width: `${sub.progress_pct}%` }}
                                               />
                                             </div>
@@ -1139,16 +1250,24 @@ function MapaPage() {
                                             <Trash2 className="h-3 w-3" />
                                           </Button>
 
-                                          {(sub.description || sub.problem || sub.cause || sub.expected_result || sub.observations) && (
+                                          {(sub.description ||
+                                            sub.problem ||
+                                            sub.cause ||
+                                            sub.expected_result ||
+                                            sub.observations) && (
                                             <Button
                                               variant="ghost"
                                               size="icon"
                                               className={cn(
                                                 "h-6 w-6 text-muted-foreground hover:text-primary",
-                                                expandedActionDetails[sub.id] && "text-primary"
+                                                expandedActionDetails[sub.id] && "text-primary",
                                               )}
                                               onClick={() => toggleActionDetail(sub.id)}
-                                              title={expandedActionDetails[sub.id] ? "Ocultar detalhes" : "Ver detalhes"}
+                                              title={
+                                                expandedActionDetails[sub.id]
+                                                  ? "Ocultar detalhes"
+                                                  : "Ver detalhes"
+                                              }
                                             >
                                               {expandedActionDetails[sub.id] ? (
                                                 <EyeOff className="h-3 w-3" />
@@ -1164,32 +1283,52 @@ function MapaPage() {
                                           <div className="mt-2 p-3 rounded-lg border border-border/40 bg-muted/20 space-y-2 text-xs">
                                             {sub.problem && (
                                               <div>
-                                                <span className="font-semibold text-foreground">Problema: </span>
-                                                <span className="text-muted-foreground">{sub.problem}</span>
+                                                <span className="font-semibold text-foreground">
+                                                  Problema:{" "}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {sub.problem}
+                                                </span>
                                               </div>
                                             )}
                                             {sub.cause && (
                                               <div>
-                                                <span className="font-semibold text-foreground">Causa: </span>
-                                                <span className="text-muted-foreground">{sub.cause}</span>
+                                                <span className="font-semibold text-foreground">
+                                                  Causa:{" "}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {sub.cause}
+                                                </span>
                                               </div>
                                             )}
                                             {(sub.description || sub.observations) && (
                                               <div>
-                                                <span className="font-semibold text-foreground">Descrição: </span>
-                                                <span className="text-muted-foreground">{sub.description || sub.observations}</span>
+                                                <span className="font-semibold text-foreground">
+                                                  Descrição:{" "}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {sub.description || sub.observations}
+                                                </span>
                                               </div>
                                             )}
                                             {sub.expected_result && (
                                               <div>
-                                                <span className="font-semibold text-foreground">Resultado Esperado: </span>
-                                                <span className="text-muted-foreground">{sub.expected_result}</span>
+                                                <span className="font-semibold text-foreground">
+                                                  Resultado Esperado:{" "}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {sub.expected_result}
+                                                </span>
                                               </div>
                                             )}
                                             {sub.origin && (
                                               <div>
-                                                <span className="font-semibold text-foreground">Origem: </span>
-                                                <span className="text-muted-foreground">{sub.origin}</span>
+                                                <span className="font-semibold text-foreground">
+                                                  Origem:{" "}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {sub.origin}
+                                                </span>
                                               </div>
                                             )}
                                           </div>
@@ -1214,7 +1353,11 @@ function MapaPage() {
 
       {/* Modal de Diretriz (simplificado) */}
       <Dialog
-        open={itemModalOpen && (itemModalMode === "diretriz" || (itemModalMode === "edit" && itemForm.item_type === "diretriz"))}
+        open={
+          itemModalOpen &&
+          (itemModalMode === "diretriz" ||
+            (itemModalMode === "edit" && itemForm.item_type === "diretriz"))
+        }
         onOpenChange={setItemModalOpen}
       >
         <DialogContent className="max-w-lg">
@@ -1282,12 +1425,18 @@ function MapaPage() {
             </div>
 
             <p className="text-[10px] text-muted-foreground italic">
-              A diretriz é classificada automaticamente como Nível 2 (Mãe). Os desdobramentos (ações executáveis) serão adicionados dentro dela.
+              A diretriz é classificada automaticamente como Nível 2 (Mãe). Os desdobramentos (ações
+              executáveis) serão adicionados dentro dela.
             </p>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
-            <Button type="button" variant="outline" size="sm" onClick={() => setItemModalOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setItemModalOpen(false)}
+            >
               Cancelar
             </Button>
             <Button
@@ -1304,7 +1453,11 @@ function MapaPage() {
 
       {/* Modal de Desdobramento (completo = igual Plano de Ação) */}
       <Dialog
-        open={itemModalOpen && (itemModalMode === "desdobramento" || (itemModalMode === "edit" && itemForm.item_type !== "diretriz"))}
+        open={
+          itemModalOpen &&
+          (itemModalMode === "desdobramento" ||
+            (itemModalMode === "edit" && itemForm.item_type !== "diretriz"))
+        }
         onOpenChange={setItemModalOpen}
       >
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -1465,10 +1618,16 @@ function MapaPage() {
                   </p>
                 </div>
                 {(() => {
-                  const score = (itemForm.gravity || 3) * (itemForm.urgency || 3) * (itemForm.trend || 3);
+                  const score =
+                    (itemForm.gravity || 3) * (itemForm.urgency || 3) * (itemForm.trend || 3);
                   const tier = tierOf(score);
                   return (
-                    <span className={cn("rounded-full border px-2 py-0.5 text-xs font-black tabular-nums inline-flex items-center gap-1", tier.chip)}>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-xs font-black tabular-nums inline-flex items-center gap-1",
+                        tier.chip,
+                      )}
+                    >
                       {score >= 75 && <Flame className="h-3 w-3" />}
                       {score} · {tier.label}
                     </span>
@@ -1476,9 +1635,21 @@ function MapaPage() {
                 })()}
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <GutStepper label="Gravidade" value={itemForm.gravity} onChange={(v) => setItemForm({ ...itemForm, gravity: v })} />
-                <GutStepper label="Urgência" value={itemForm.urgency} onChange={(v) => setItemForm({ ...itemForm, urgency: v })} />
-                <GutStepper label="Tendência" value={itemForm.trend} onChange={(v) => setItemForm({ ...itemForm, trend: v })} />
+                <GutStepper
+                  label="Gravidade"
+                  value={itemForm.gravity}
+                  onChange={(v) => setItemForm({ ...itemForm, gravity: v })}
+                />
+                <GutStepper
+                  label="Urgência"
+                  value={itemForm.urgency}
+                  onChange={(v) => setItemForm({ ...itemForm, urgency: v })}
+                />
+                <GutStepper
+                  label="Tendência"
+                  value={itemForm.trend}
+                  onChange={(v) => setItemForm({ ...itemForm, trend: v })}
+                />
               </div>
             </div>
 
@@ -1487,38 +1658,43 @@ function MapaPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <Label className="text-xs font-semibold">Status de Execução</Label>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {(["aberto", "em_andamento", "concluido", "nao_sera_feito"] as const).map((st) => {
-                    const stMeta = statusInfo(st);
-                    const isActive = itemForm.status === st;
-                    return (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => {
-                          let nextPct = itemForm.progress_pct;
-                          if (st === "concluido") nextPct = 100;
-                          else if (st === "aberto" || st === "nao_sera_feito") nextPct = 0;
-                          else if (st === "em_andamento" && (nextPct === 0 || nextPct === 100)) nextPct = 50;
-                          setItemForm({ ...itemForm, status: st, progress_pct: nextPct });
-                        }}
-                        className={cn(
-                          "px-2 py-1 rounded text-xs font-semibold border transition-all",
-                          isActive
-                            ? stMeta.badgeClass + " shadow-xs font-bold"
-                            : "bg-background text-muted-foreground hover:bg-muted"
-                        )}
-                      >
-                        {stMeta.label}
-                      </button>
-                    );
-                  })}
+                  {(["aberto", "em_andamento", "concluido", "nao_sera_feito"] as const).map(
+                    (st) => {
+                      const stMeta = statusInfo(st);
+                      const isActive = itemForm.status === st;
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => {
+                            let nextPct = itemForm.progress_pct;
+                            if (st === "concluido") nextPct = 100;
+                            else if (st === "aberto" || st === "nao_sera_feito") nextPct = 0;
+                            else if (st === "em_andamento" && (nextPct === 0 || nextPct === 100))
+                              nextPct = 50;
+                            setItemForm({ ...itemForm, status: st, progress_pct: nextPct });
+                          }}
+                          className={cn(
+                            "px-2 py-1 rounded text-xs font-semibold border transition-all",
+                            isActive
+                              ? stMeta.badgeClass + " shadow-xs font-bold"
+                              : "bg-background text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          {stMeta.label}
+                        </button>
+                      );
+                    },
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1.5 pt-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground font-medium">Percentual de Avanço</span>
-                  <span className="font-bold tabular-nums text-foreground">{itemForm.progress_pct}%</span>
+                  <span className="font-bold tabular-nums text-foreground">
+                    {itemForm.progress_pct}%
+                  </span>
                 </div>
                 <Slider
                   min={0}
@@ -1528,7 +1704,8 @@ function MapaPage() {
                   onValueChange={([val]) => {
                     let st = itemForm.status;
                     if (val === 100) st = "concluido";
-                    else if (val === 0) st = itemForm.status === "nao_sera_feito" ? "nao_sera_feito" : "aberto";
+                    else if (val === 0)
+                      st = itemForm.status === "nao_sera_feito" ? "nao_sera_feito" : "aberto";
                     else st = "em_andamento";
                     setItemForm({ ...itemForm, progress_pct: val, status: st });
                   }}
@@ -1539,7 +1716,12 @@ function MapaPage() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
-            <Button type="button" variant="outline" size="sm" onClick={() => setItemModalOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setItemModalOpen(false)}
+            >
               Cancelar
             </Button>
             <Button
@@ -1564,7 +1746,8 @@ function MapaPage() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-xs text-muted-foreground">
-              Adicione um novo pilar personalizado para agrupar diretrizes (ex: TECNOLOGIA, SUSTENTABILIDADE, INOVAÇÃO).
+              Adicione um novo pilar personalizado para agrupar diretrizes (ex: TECNOLOGIA,
+              SUSTENTABILIDADE, INOVAÇÃO).
             </p>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Nome do Pilar *</Label>

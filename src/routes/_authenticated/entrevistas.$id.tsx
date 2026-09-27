@@ -3,8 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
-  getInterview, updateTranscript, analyzeInterview,
-  updateAnalysis, deleteInterview, transcribeInterview,
+  getInterview,
+  updateTranscript,
+  analyzeInterview,
+  updateAnalysis,
+  deleteInterview,
+  transcribeInterview,
 } from "@/lib/interviews.functions";
 import { generateArtifactsFromInterview } from "@/lib/interview-pipeline.functions";
 import { Button } from "@/components/ui/button";
@@ -15,9 +19,32 @@ import { PageHeader } from "@/components/mapping/PageHeader";
 import { EmptyState, CardSkeleton } from "@/components/mapping/EmptyState";
 import { cn } from "@/lib/utils";
 import {
-  ArrowLeft, Sparkles, Save, Trash2, Download, Plus, X, Loader2, RefreshCw, Workflow,
-  Mic, FileText, ListChecks, Rocket, Building2, User, Calendar, Layers, Lightbulb,
-  AlertTriangle, Frown, Wrench, GitBranch, Cpu, SearchX, ScrollText,
+  ArrowLeft,
+  Sparkles,
+  Save,
+  Trash2,
+  Download,
+  Plus,
+  X,
+  Loader2,
+  RefreshCw,
+  Workflow,
+  Mic,
+  FileText,
+  ListChecks,
+  Rocket,
+  Building2,
+  User,
+  Calendar,
+  Layers,
+  Lightbulb,
+  AlertTriangle,
+  Frown,
+  Wrench,
+  GitBranch,
+  Cpu,
+  SearchX,
+  ScrollText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,15 +52,47 @@ export const Route = createFileRoute("/_authenticated/entrevistas/$id")({
   component: InterviewDetail,
 });
 
-type ListKey = "insights" | "critical_points" | "pains" | "problems" | "decisions" | "flows" | "systems";
+type ListKey =
+  "insights" | "critical_points" | "pains" | "problems" | "decisions" | "flows" | "systems";
 
-const CATEGORIES: { key: ListKey; label: string; icon: typeof Frown; tone: string; bar: string }[] = [
-  { key: "pains", label: "Dores", icon: Frown, tone: "bg-acc-red/10 text-acc-red", bar: "bg-acc-red" },
-  { key: "problems", label: "Problemas Operacionais", icon: Wrench, tone: "bg-acc-amber/10 text-acc-amber", bar: "bg-acc-amber" },
-  { key: "decisions", label: "Decisões", icon: GitBranch, tone: "bg-acc-blue/10 text-acc-blue", bar: "bg-acc-blue" },
-  { key: "flows", label: "Fluxos de Processo", icon: Workflow, tone: "bg-acc-emerald/10 text-acc-emerald", bar: "bg-acc-emerald" },
-  { key: "systems", label: "Sistemas Citados", icon: Cpu, tone: "bg-acc-slate/10 text-acc-slate", bar: "bg-acc-slate" },
-];
+const CATEGORIES: { key: ListKey; label: string; icon: typeof Frown; tone: string; bar: string }[] =
+  [
+    {
+      key: "pains",
+      label: "Dores",
+      icon: Frown,
+      tone: "bg-acc-red/10 text-acc-red",
+      bar: "bg-acc-red",
+    },
+    {
+      key: "problems",
+      label: "Problemas Operacionais",
+      icon: Wrench,
+      tone: "bg-acc-amber/10 text-acc-amber",
+      bar: "bg-acc-amber",
+    },
+    {
+      key: "decisions",
+      label: "Decisões",
+      icon: GitBranch,
+      tone: "bg-acc-blue/10 text-acc-blue",
+      bar: "bg-acc-blue",
+    },
+    {
+      key: "flows",
+      label: "Fluxos de Processo",
+      icon: Workflow,
+      tone: "bg-acc-emerald/10 text-acc-emerald",
+      bar: "bg-acc-emerald",
+    },
+    {
+      key: "systems",
+      label: "Sistemas Citados",
+      icon: Cpu,
+      tone: "bg-acc-slate/10 text-acc-slate",
+      bar: "bg-acc-slate",
+    },
+  ];
 
 function MetaPill({ icon: Icon, label }: { icon: typeof User; label: string }) {
   return (
@@ -118,13 +177,19 @@ function InterviewDetail() {
 
   const saveTranscript = useMutation({
     mutationFn: () => updateT({ data: { interview_id: id, content: transcript } }),
-    onSuccess: () => { toast.success("Transcrição salva"); qc.invalidateQueries({ queryKey: ["interview", id] }); },
+    onSuccess: () => {
+      toast.success("Transcrição salva");
+      qc.invalidateQueries({ queryKey: ["interview", id] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const runAnalyze = useMutation({
     mutationFn: () => analyze({ data: { interview_id: id } }),
-    onSuccess: () => { toast.success("Análise concluída"); refetch(); },
+    onSuccess: () => {
+      toast.success("Análise concluída");
+      refetch();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -132,7 +197,7 @@ function InterviewDetail() {
     mutationFn: async () => {
       // Transcreve bloco por bloco com retentativa automática (suporte a áudios de 2+ horas)
       let i = 0;
-      // eslint-disable-next-line no-constant-condition
+
       while (true) {
         let r: any = null;
         let lastErr = "";
@@ -151,18 +216,24 @@ function InterviewDetail() {
         }
 
         if (!r) {
-          throw new Error(`Falha no bloco ${i + 1} após 3 tentativas: ${lastErr}. A transcrição já realizada foi salva.`);
+          throw new Error(
+            `Falha no bloco ${i + 1} após 3 tentativas: ${lastErr}. A transcrição já realizada foi salva.`,
+          );
         }
 
         if (r?.done || i >= (r?.parts_total ?? 1) - 1) break;
         i++;
-        toast.info(`Transcrevendo bloco ${i + 1}/${r.parts_total} (${Math.round(((i + 1) / r.parts_total) * 100)}%)...`);
+        toast.info(
+          `Transcrevendo bloco ${i + 1}/${r.parts_total} (${Math.round(((i + 1) / r.parts_total) * 100)}%)...`,
+        );
       }
     },
-    onSuccess: () => { toast.success("Transcrição concluída com sucesso!"); refetch(); },
+    onSuccess: () => {
+      toast.success("Transcrição concluída com sucesso!");
+      refetch();
+    },
     onError: (e: any) => toast.error(e.message),
   });
-
 
   const runPipeline = useMutation({
     mutationFn: (force: boolean) => generateAll({ data: { interview_id: id, force } }),
@@ -180,26 +251,33 @@ function InterviewDetail() {
   });
 
   const saveAnalysis = useMutation({
-    mutationFn: () => updateA({
-      data: {
-        interview_id: id,
-        summary: analysisDraft?.summary ?? "",
-        insights: analysisDraft?.insights ?? [],
-        critical_points: analysisDraft?.critical_points ?? [],
-        pains: analysisDraft?.pains ?? [],
-        problems: analysisDraft?.problems ?? [],
-        decisions: analysisDraft?.decisions ?? [],
-        flows: analysisDraft?.flows ?? [],
-        systems: analysisDraft?.systems ?? [],
-      },
-    }),
-    onSuccess: () => { toast.success("Análise salva"); qc.invalidateQueries({ queryKey: ["interview", id] }); },
+    mutationFn: () =>
+      updateA({
+        data: {
+          interview_id: id,
+          summary: analysisDraft?.summary ?? "",
+          insights: analysisDraft?.insights ?? [],
+          critical_points: analysisDraft?.critical_points ?? [],
+          pains: analysisDraft?.pains ?? [],
+          problems: analysisDraft?.problems ?? [],
+          decisions: analysisDraft?.decisions ?? [],
+          flows: analysisDraft?.flows ?? [],
+          systems: analysisDraft?.systems ?? [],
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Análise salva");
+      qc.invalidateQueries({ queryKey: ["interview", id] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const removing = useMutation({
     mutationFn: () => del({ data: { id } }),
-    onSuccess: () => { toast.success("Entrevista excluída"); window.location.href = "/entrevistas"; },
+    onSuccess: () => {
+      toast.success("Entrevista excluída");
+      window.location.href = "/entrevistas";
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -212,14 +290,20 @@ function InterviewDetail() {
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       let y = marginTop;
-      const write = (text: string, opts: { size?: number; bold?: boolean; color?: [number, number, number] } = {}) => {
+      const write = (
+        text: string,
+        opts: { size?: number; bold?: boolean; color?: [number, number, number] } = {},
+      ) => {
         const size = opts.size ?? 10;
         doc.setFont("helvetica", opts.bold ? "bold" : "normal");
         doc.setFontSize(size);
         doc.setTextColor(...(opts.color ?? [30, 30, 40]));
         const lines = doc.splitTextToSize(text || "—", pageW - marginX * 2) as string[];
         for (const line of lines) {
-          if (y > pageH - 40) { doc.addPage(); y = marginTop; }
+          if (y > pageH - 40) {
+            doc.addPage();
+            y = marginTop;
+          }
           doc.text(line, marginX, y);
           y += size + 3;
         }
@@ -238,11 +322,21 @@ function InterviewDetail() {
         interview.sectors?.name && `Setor: ${interview.sectors.name}`,
         interview.participant && `Participante: ${interview.participant}`,
         interview.interview_date && `Data: ${interview.interview_date}`,
-      ].filter(Boolean).join("  •  ");
+      ]
+        .filter(Boolean)
+        .join("  •  ");
       write(meta, { size: 9, color: [100, 100, 110] });
       y += 6;
-      if (analysisDraft?.summary) { write("RESUMO EXECUTIVO", { size: 11, bold: true, color: [249, 115, 22] }); write(analysisDraft.summary); y += 4; }
-      if (interview.minutes_md) { write("ATA DA REUNIÃO", { size: 11, bold: true, color: [249, 115, 22] }); write(interview.minutes_md); y += 4; }
+      if (analysisDraft?.summary) {
+        write("RESUMO EXECUTIVO", { size: 11, bold: true, color: [249, 115, 22] });
+        write(analysisDraft.summary);
+        y += 4;
+      }
+      if (interview.minutes_md) {
+        write("ATA DA REUNIÃO", { size: 11, bold: true, color: [249, 115, 22] });
+        write(interview.minutes_md);
+        y += 4;
+      }
       const sections: Array<[string, string[] | undefined]> = [
         ["Insights", analysisDraft?.insights],
         ["Pontos críticos", analysisDraft?.critical_points],
@@ -287,7 +381,9 @@ function InterviewDetail() {
         accent="info"
         action={
           <Button asChild variant="outline">
-            <Link to="/entrevistas"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar às entrevistas</Link>
+            <Link to="/entrevistas">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar às entrevistas
+            </Link>
           </Button>
         }
       />
@@ -306,7 +402,10 @@ function InterviewDetail() {
     });
   }
   function removeListItem(key: ListKey, idx: number) {
-    setAnalysisDraft((d: any) => ({ ...d, [key]: (d?.[key] ?? []).filter((_: any, i: number) => i !== idx) }));
+    setAnalysisDraft((d: any) => ({
+      ...d,
+      [key]: (d?.[key] ?? []).filter((_: any, i: number) => i !== idx),
+    }));
   }
   function addListItem(key: ListKey) {
     setAnalysisDraft((d: any) => ({ ...d, [key]: [...(d?.[key] ?? []), ""] }));
@@ -322,10 +421,13 @@ function InterviewDetail() {
         actions={
           <>
             <Button asChild variant="ghost" size="icon" className="h-10 w-10">
-              <Link to="/entrevistas"><ArrowLeft className="h-5 w-5" /></Link>
+              <Link to="/entrevistas">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
             </Button>
             <Button
-              variant="ghost" size="icon"
+              variant="ghost"
+              size="icon"
               onClick={() => confirm("Excluir esta entrevista?") && removing.mutate()}
               className="h-10 w-10 text-muted-foreground hover:text-destructive"
               aria-label="Excluir"
@@ -336,7 +438,9 @@ function InterviewDetail() {
         }
         stats={
           <>
-            {interview.companies?.name && <MetaPill icon={Building2} label={interview.companies.name} />}
+            {interview.companies?.name && (
+              <MetaPill icon={Building2} label={interview.companies.name} />
+            )}
             {interview.sectors?.name && <MetaPill icon={Layers} label={interview.sectors.name} />}
             {interview.participant && <MetaPill icon={User} label={interview.participant} />}
             <MetaPill icon={Calendar} label={String(interview.interview_date)} />
@@ -370,12 +474,21 @@ function InterviewDetail() {
           title="Transcrição"
           action={
             <Button
-              variant="ghost" size="sm" onClick={() => runTranscribe.mutate()}
-              disabled={runTranscribe.isPending} className="h-9 shrink-0 text-xs"
+              variant="ghost"
+              size="sm"
+              onClick={() => runTranscribe.mutate()}
+              disabled={runTranscribe.isPending}
+              className="h-9 shrink-0 text-xs"
             >
-              {runTranscribe.isPending
-                ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando...</>
-                : <><RefreshCw className="mr-1 h-3 w-3" /> Regerar</>}
+              {runTranscribe.isPending ? (
+                <>
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-1 h-3 w-3" /> Regerar
+                </>
+              )}
             </Button>
           }
         />
@@ -409,9 +522,16 @@ function InterviewDetail() {
         disabled={!hasTranscript || runAnalyze.isPending}
         className="h-14 w-full text-base font-semibold"
       >
-        {runAnalyze.isPending
-          ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analisando...</>
-          : <><Sparkles className="mr-2 h-5 w-5" /> {data.analysis ? "Reanalisar com IA" : "Analisar com IA"}</>}
+        {runAnalyze.isPending ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analisando...
+          </>
+        ) : (
+          <>
+            <Sparkles className="mr-2 h-5 w-5" />{" "}
+            {data.analysis ? "Reanalisar com IA" : "Analisar com IA"}
+          </>
+        )}
       </Button>
 
       {/* PIPELINE COMPLETO */}
@@ -429,8 +549,10 @@ function InterviewDetail() {
               Gerar entregáveis com IA
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Em uma única ação, a IA produz a <strong>ata da reunião</strong>, os <strong>processos mapeados (BPM)</strong>, dores, indicadores sugeridos, oportunidades e mapas de informação e decisão a partir desta entrevista.
-              Itens que você já validou são preservados.
+              Em uma única ação, a IA produz a <strong>ata da reunião</strong>, os{" "}
+              <strong>processos mapeados (BPM)</strong>, dores, indicadores sugeridos, oportunidades
+              e mapas de informação e decisão a partir desta entrevista. Itens que você já validou
+              são preservados.
             </p>
           </div>
         </div>
@@ -440,9 +562,16 @@ function InterviewDetail() {
             disabled={!hasTranscript || runPipeline.isPending}
             className="h-12 w-full"
           >
-            {runPipeline.isPending
-              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
-              : <><Sparkles className="mr-2 h-4 w-4" /> {interview.generation_status === "done" ? "Atualizar" : "Gerar tudo"}</>}
+            {runPipeline.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />{" "}
+                {interview.generation_status === "done" ? "Atualizar" : "Gerar tudo"}
+              </>
+            )}
           </Button>
           <Button
             onClick={() => runPipeline.mutate(true)}
@@ -465,7 +594,9 @@ function InterviewDetail() {
         <Card className="overflow-hidden p-0">
           <SectionHead icon={ScrollText} title="Ata da reunião" />
           <div className="p-4">
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{interview.minutes_md}</pre>
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+              {interview.minutes_md}
+            </pre>
           </div>
         </Card>
       )}
@@ -480,22 +611,27 @@ function InterviewDetail() {
               <Textarea
                 value={analysisDraft.summary ?? ""}
                 onChange={(e) => setAnalysisDraft({ ...analysisDraft, summary: e.target.value })}
-                rows={5} className="resize-y"
+                rows={5}
+                className="resize-y"
               />
             </div>
           </Card>
 
           <ListBlock
-            title="Insights Principais" icon={Lightbulb}
-            tone="bg-primary/10 text-primary" bar="bg-primary"
+            title="Insights Principais"
+            icon={Lightbulb}
+            tone="bg-primary/10 text-primary"
+            bar="bg-primary"
             items={analysisDraft.insights ?? []}
             onChange={(i, v) => updateListItem("insights", i, v)}
             onRemove={(i) => removeListItem("insights", i)}
             onAdd={() => addListItem("insights")}
           />
           <ListBlock
-            title="Pontos Críticos" icon={AlertTriangle}
-            tone="bg-destructive/10 text-destructive" bar="bg-destructive"
+            title="Pontos Críticos"
+            icon={AlertTriangle}
+            tone="bg-destructive/10 text-destructive"
+            bar="bg-destructive"
             items={analysisDraft.critical_points ?? []}
             onChange={(i, v) => updateListItem("critical_points", i, v)}
             onRemove={(i) => removeListItem("critical_points", i)}
@@ -505,7 +641,10 @@ function InterviewDetail() {
           {CATEGORIES.map((cat) => (
             <ListBlock
               key={cat.key}
-              title={cat.label} icon={cat.icon} tone={cat.tone} bar={cat.bar}
+              title={cat.label}
+              icon={cat.icon}
+              tone={cat.tone}
+              bar={cat.bar}
               items={analysisDraft[cat.key] ?? []}
               onChange={(i, v) => updateListItem(cat.key, i, v)}
               onRemove={(i) => removeListItem(cat.key, i)}
@@ -528,17 +667,19 @@ function InterviewDetail() {
               disabled={downloading.isPending}
               className="h-12 w-full"
             >
-              {downloading.isPending
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando PDF...</>
-                : <><Download className="mr-2 h-4 w-4" /> Exportar PDF</>}
+              {downloading.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" /> Exportar PDF
+                </>
+              )}
             </Button>
           </div>
 
-          <Link
-            to="/processos/sugerir/$interviewId"
-            params={{ interviewId: id }}
-            className="block"
-          >
+          <Link to="/processos/sugerir/$interviewId" params={{ interviewId: id }} className="block">
             <Button variant="outline" className="h-12 w-full">
               <Workflow className="mr-2 h-4 w-4" /> Sugerir processo com IA
             </Button>
@@ -550,10 +691,23 @@ function InterviewDetail() {
 }
 
 function ListBlock({
-  title, icon: Icon, tone, bar, items, onChange, onRemove, onAdd,
+  title,
+  icon: Icon,
+  tone,
+  bar,
+  items,
+  onChange,
+  onRemove,
+  onAdd,
 }: {
-  title: string; icon: typeof Frown; tone: string; bar: string; items: string[];
-  onChange: (i: number, v: string) => void; onRemove: (i: number) => void; onAdd: () => void;
+  title: string;
+  icon: typeof Frown;
+  tone: string;
+  bar: string;
+  items: string[];
+  onChange: (i: number, v: string) => void;
+  onRemove: (i: number) => void;
+  onAdd: () => void;
 }) {
   return (
     <Card className="relative overflow-hidden p-0">
@@ -576,13 +730,11 @@ function ListBlock({
         <div className="space-y-2">
           {items.map((item, i) => (
             <div key={i} className="group flex items-start gap-2">
-              <Input
-                value={item}
-                onChange={(e) => onChange(i, e.target.value)}
-                className="h-10"
-              />
+              <Input value={item} onChange={(e) => onChange(i, e.target.value)} className="h-10" />
               <Button
-                type="button" variant="ghost" size="icon"
+                type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => onRemove(i)}
                 className="h-10 w-10 shrink-0 text-muted-foreground opacity-100 transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 aria-label="Remover item"
@@ -593,7 +745,9 @@ function ListBlock({
           ))}
         </div>
         <Button
-          type="button" variant="ghost" size="sm"
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={onAdd}
           className="mt-2 h-9 text-xs text-muted-foreground"
         >

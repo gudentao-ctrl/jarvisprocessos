@@ -25,7 +25,11 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [chunks, setChunks] = useState(0);
   const [processing, setProcessing] = useState<string | null>(null);
-  const [ready, setReady] = useState<{ parts: number; duration: number; url: string | null } | null>(null);
+  const [ready, setReady] = useState<{
+    parts: number;
+    duration: number;
+    url: string | null;
+  } | null>(null);
   const recRef = useRef<ChunkedRecorder | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -91,8 +95,6 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
     onAudioReady([], 0);
   }
 
-  
-
   return (
     <div className="rounded-xl border bg-card p-4">
       {processing && (
@@ -153,10 +155,16 @@ export function AudioRecorder({ onAudioReady, disabled }: Props) {
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
             <AudioLines className="h-4 w-4 text-primary" />
             <span>
-              {fmt(ready.duration)} · {ready.parts} bloco(s) de até {CHUNK_SECONDS / 60} min para transcrição
+              {fmt(ready.duration)} · {ready.parts} bloco(s) de até {CHUNK_SECONDS / 60} min para
+              transcrição
             </span>
           </div>
-          <Button type="button" variant="ghost" onClick={clear} className="w-full text-muted-foreground">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={clear}
+            className="w-full text-muted-foreground"
+          >
             <Trash2 className="mr-2 h-4 w-4" /> Remover e gravar novamente
           </Button>
         </div>

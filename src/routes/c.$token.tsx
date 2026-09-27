@@ -3,7 +3,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createCollectionByAccessToken, getIndicatorByAccessToken } from "@/lib/indicator-collections.functions";
+import {
+  createCollectionByAccessToken,
+  getIndicatorByAccessToken,
+} from "@/lib/indicator-collections.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/c/$token")({
@@ -36,15 +39,23 @@ export const Route = createFileRoute("/c/$token")({
     </div>
   ),
   component: PublicCollect,
-  head: () => ({ meta: [
-    { title: "Coleta de indicador | JARVIS" },
-    { name: "description", content: "Coleta segura de indicadores para clientes autorizados no JARVIS." },
-    { property: "og:title", content: "Coleta de indicador | JARVIS" },
-    { property: "og:description", content: "Coleta segura de indicadores para clientes autorizados no JARVIS." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-    { name: "robots", content: "noindex" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Coleta de indicador | JARVIS" },
+      {
+        name: "description",
+        content: "Coleta segura de indicadores para clientes autorizados no JARVIS.",
+      },
+      { property: "og:title", content: "Coleta de indicador | JARVIS" },
+      {
+        property: "og:description",
+        content: "Coleta segura de indicadores para clientes autorizados no JARVIS.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
 });
 
 function PublicCollect() {
@@ -57,12 +68,15 @@ function PublicCollect() {
   const [done, setDone] = useState(false);
 
   const mut = useMutation({
-    mutationFn: () => create({ data: {
-      token,
-      value: Number(value),
-      reference_period: period,
-      observation,
-    } }),
+    mutationFn: () =>
+      create({
+        data: {
+          token,
+          value: Number(value),
+          reference_period: period,
+          observation,
+        },
+      }),
     onSuccess: () => setDone(true),
   });
 
@@ -70,14 +84,20 @@ function PublicCollect() {
     return (
       <div className="min-h-screen grid place-items-center bg-muted/30 px-4 py-8">
         <div className="w-full max-w-md bg-background rounded-2xl border p-6 text-center space-y-3">
-          <div className="mx-auto h-14 w-14 rounded-full bg-emerald-100 grid place-items-center text-3xl">✓</div>
+          <div className="mx-auto h-14 w-14 rounded-full bg-emerald-100 grid place-items-center text-3xl">
+            ✓
+          </div>
           <h1 className="text-xl font-bold">Valor enviado</h1>
           <p className="text-sm text-muted-foreground">
             Obrigado! Sua coleta foi registrada para <strong>{indicator.name}</strong>.
           </p>
           <Button
             variant="link"
-            onClick={() => { setDone(false); setValue(""); setObservation(""); }}
+            onClick={() => {
+              setDone(false);
+              setValue("");
+              setObservation("");
+            }}
             className="min-h-11 px-4 text-sm"
           >
             Enviar outro valor
@@ -91,7 +111,9 @@ function PublicCollect() {
     <div className="min-h-screen bg-muted/30 px-4 py-8">
       <div className="mx-auto w-full max-w-md bg-background rounded-2xl border shadow-sm p-6 space-y-5">
         <header className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{indicator.code}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {indicator.code}
+          </p>
           <h1 className="text-xl font-bold leading-tight">{indicator.name}</h1>
           {indicator.description && (
             <p className="text-sm text-muted-foreground">{indicator.description}</p>
@@ -101,7 +123,9 @@ function PublicCollect() {
         <div className="grid grid-cols-2 gap-3 text-sm rounded-lg bg-muted/40 p-3">
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Meta</p>
-            <p className="font-bold">{indicator.target ?? "—"} {indicator.unit}</p>
+            <p className="font-bold">
+              {indicator.target ?? "—"} {indicator.unit}
+            </p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Frequência</p>
@@ -116,7 +140,10 @@ function PublicCollect() {
         )}
 
         <form
-          onSubmit={(e) => { e.preventDefault(); mut.mutate(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            mut.mutate();
+          }}
           className="space-y-3"
         >
           <div>
@@ -135,7 +162,9 @@ function PublicCollect() {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Período de referência</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Período de referência
+            </label>
             <input
               type="date"
               value={period}
@@ -153,9 +182,7 @@ function PublicCollect() {
             />
           </div>
 
-          {mut.error && (
-            <p className="text-sm text-destructive">{(mut.error as Error).message}</p>
-          )}
+          {mut.error && <p className="text-sm text-destructive">{(mut.error as Error).message}</p>}
 
           <Button
             type="submit"

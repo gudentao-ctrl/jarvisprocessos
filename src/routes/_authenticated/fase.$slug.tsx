@@ -1,17 +1,46 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import {
-  ArrowRight, Mic, FileText, Sparkles, Map, GitBranch, Workflow, Timer,
-  Lightbulb, Target, GitCompare, ClipboardList, BarChart3, Inbox,
-  Clock, ListTodo, Trophy, FileBarChart2,
+  ArrowRight,
+  Mic,
+  FileText,
+  Sparkles,
+  Map,
+  GitBranch,
+  Workflow,
+  Timer,
+  Lightbulb,
+  Target,
+  GitCompare,
+  ClipboardList,
+  BarChart3,
+  Inbox,
+  Clock,
+  ListTodo,
+  Trophy,
+  FileBarChart2,
 } from "lucide-react";
 import { PHASES, PHASE_TOOLS, type PhaseSlug } from "@/lib/phases";
 import { PhaseMenu, useVisiblePhaseTools } from "@/components/PhaseMenu";
 
 const ICONS: Record<string, any> = {
-  Mic, FileText, Sparkles, Map, GitBranch, Workflow, Timer,
-  Lightbulb, Target, GitCompare, ClipboardList, BarChart3, Inbox,
-  Clock, ListTodo, Trophy, FileBarChart2,
+  Mic,
+  FileText,
+  Sparkles,
+  Map,
+  GitBranch,
+  Workflow,
+  Timer,
+  Lightbulb,
+  Target,
+  GitCompare,
+  ClipboardList,
+  BarChart3,
+  Inbox,
+  Clock,
+  ListTodo,
+  Trophy,
+  FileBarChart2,
 };
 
 export const Route = createFileRoute("/_authenticated/fase/$slug")({

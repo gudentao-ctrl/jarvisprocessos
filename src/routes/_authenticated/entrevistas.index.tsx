@@ -10,7 +10,16 @@ import { PageHeader, StatPill } from "@/components/mapping/PageHeader";
 import { EmptyState, CardSkeleton } from "@/components/mapping/EmptyState";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Mic, Calendar, User, Building2, CheckCircle2, Clock, FileText, Search, SearchX,
+  Plus,
+  Mic,
+  Calendar,
+  User,
+  Building2,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Search,
+  SearchX,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/entrevistas/")({
@@ -187,7 +196,9 @@ function InterviewsList() {
               <div className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <span className={cn("absolute inset-y-0 left-0 w-1", s.bar)} aria-hidden />
                 <div className="flex items-start gap-3 p-4 pl-5">
-                  <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", s.chip)}>
+                  <div
+                    className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", s.chip)}
+                  >
                     <Mic className="h-4.5 w-4.5" />
                   </div>
                   <div className="min-w-0 flex-1">

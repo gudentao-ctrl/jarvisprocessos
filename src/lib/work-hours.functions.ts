@@ -68,14 +68,16 @@ export function hoursBetween(start: string, end: string): number {
 export const listWorkHours = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      project_id: z.string().uuid().optional(),
-      company_id: z.string().uuid().optional(),
-      activity_type: z.string().optional(),
-      from: z.string().optional(),
-      to: z.string().optional(),
-      mine: z.boolean().optional().default(true),
-    }).parse(d ?? {}),
+    z
+      .object({
+        project_id: z.string().uuid().optional(),
+        company_id: z.string().uuid().optional(),
+        activity_type: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+        mine: z.boolean().optional().default(true),
+      })
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     let q = (context.supabase as any)
@@ -113,14 +115,15 @@ export const listWorkHours = createServerFn({ method: "GET" })
         if (match) managerNote = match[1];
       }
 
-      const hours = note?.adjusted_hours !== undefined ? Number(note.adjusted_hours) : Number(r.hours);
+      const hours =
+        note?.adjusted_hours !== undefined ? Number(note.adjusted_hours) : Number(r.hours);
 
       const isRemun =
         note?.adjusted_remunerated !== undefined
           ? note.adjusted_remunerated
           : r.is_remunerated !== undefined && r.is_remunerated !== null
-          ? r.is_remunerated
-          : !r.notes?.includes("[NAO_REMUNERADA]");
+            ? r.is_remunerated
+            : !r.notes?.includes("[NAO_REMUNERADA]");
 
       let companyId = r.company_id;
       let companyObj = r.companies;
@@ -132,7 +135,11 @@ export const listWorkHours = createServerFn({ method: "GET" })
       }
 
       let rawExps = r.work_hour_expenses ?? [];
-      if (note?.adjusted_expenses && Array.isArray(note.adjusted_expenses) && note.adjusted_expenses.length > 0) {
+      if (
+        note?.adjusted_expenses &&
+        Array.isArray(note.adjusted_expenses) &&
+        note.adjusted_expenses.length > 0
+      ) {
         rawExps = note.adjusted_expenses;
       }
 
@@ -184,8 +191,7 @@ export const saveWorkHours = createServerFn({ method: "POST" })
     ]);
     const isSuperadmin = !!prof?.is_superadmin;
     const isManager =
-      isSuperadmin ||
-      (memberships ?? []).some((m: any) => m.member_role === "gestor");
+      isSuperadmin || (memberships ?? []).some((m: any) => m.member_role === "gestor");
     if (!isManager) {
       const today = new Date();
       const limit = new Date(today.getTime() - 48 * 60 * 60 * 1000);
@@ -213,7 +219,10 @@ export const saveWorkHours = createServerFn({ method: "POST" })
     let row: any;
     if (id) {
       const { data: current, error: curErr } = await sb
-        .from("work_hours").select("billing_status").eq("id", id).maybeSingle();
+        .from("work_hours")
+        .select("billing_status")
+        .eq("id", id)
+        .maybeSingle();
       if (curErr) throw new Error(curErr.message);
       if (current?.billing_status === "faturado" && !isSuperadmin) {
         throw new Error("Lançamento já faturado não pode ser alterado.");
@@ -221,12 +230,21 @@ export const saveWorkHours = createServerFn({ method: "POST" })
 
       // 1. Tenta atualizar com is_remunerated
       let { data: updated, error } = await sb
-        .from("work_hours").update(payload).eq("id", id).select().single();
+        .from("work_hours")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
 
       // Se falhar por causa de is_remunerated (schema cache)
       if (error && (error.message?.includes("is_remunerated") || error.code === "PGRST204")) {
         const { is_remunerated, ...fallbackPayload } = payload;
-        const res = await sb.from("work_hours").update(fallbackPayload).eq("id", id).select().single();
+        const res = await sb
+          .from("work_hours")
+          .update(fallbackPayload)
+          .eq("id", id)
+          .select()
+          .single();
         if (res.error) throw new Error(res.error.message);
         updated = res.data;
         error = null;
@@ -249,9 +267,16 @@ export const saveWorkHours = createServerFn({ method: "POST" })
       if (error && (error.message?.includes("is_remunerated") || error.code === "PGRST204")) {
         const { is_remunerated, ...fallbackInsert } = insertData;
         const res = await sb.from("work_hours").insert(fallbackInsert).select().single();
-        if (res.error && (res.error.message?.includes("user_id") || res.error.code === "PGRST204")) {
+        if (
+          res.error &&
+          (res.error.message?.includes("user_id") || res.error.code === "PGRST204")
+        ) {
           const { user_id, ...fallbackInsertNoUid } = fallbackInsert;
-          const resNoUid = await sb.from("work_hours").insert(fallbackInsertNoUid).select().single();
+          const resNoUid = await sb
+            .from("work_hours")
+            .insert(fallbackInsertNoUid)
+            .select()
+            .single();
           if (resNoUid.error) throw new Error(resNoUid.error.message);
           inserted = resNoUid.data;
           error = null;
@@ -282,7 +307,11 @@ export const saveWorkHours = createServerFn({ method: "POST" })
         }
       }
     } else if (expense && expense.amount > 0) {
-      allExpenses.push({ category: "deslocamento", description: expense.description, amount: expense.amount });
+      allExpenses.push({
+        category: "deslocamento",
+        description: expense.description,
+        amount: expense.amount,
+      });
     }
 
     if (allExpenses.length > 0) {
@@ -301,7 +330,7 @@ export const saveWorkHours = createServerFn({ method: "POST" })
         };
       });
 
-      let { error: expError } = await sb.from("work_hour_expenses").insert(inserts);
+      const { error: expError } = await sb.from("work_hour_expenses").insert(inserts);
       if (expError && (expError.message?.includes("category") || expError.code === "PGRST204")) {
         // Fallback se a coluna category não existir na tabela work_hour_expenses
         const insertsNoCat = inserts.map(({ category, ...restExp }) => restExp);
@@ -343,11 +372,7 @@ export const deleteWorkHours = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     const [{ data: current }, { data: profile }] = await Promise.all([
-      sb
-        .from("work_hours")
-        .select("billing_status, company_id")
-        .eq("id", data.id)
-        .maybeSingle(),
+      sb.from("work_hours").select("billing_status, company_id").eq("id", data.id).maybeSingle(),
       sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
     ]);
     if (current?.billing_status === "faturado" && !profile?.is_superadmin) {

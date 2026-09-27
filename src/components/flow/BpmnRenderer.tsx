@@ -42,7 +42,9 @@ function hashInput(
     parts.push(`A:${a.id}:${a.type}:${a.ordering ?? 0}:${a.responsible ?? ""}:${a.title ?? ""}`);
   }
   for (const c of connections) {
-    parts.push(`C:${c.id}:${c.from_activity_id}:${c.to_activity_id}:${c.type ?? ""}:${c.order_index ?? 0}:${c.label ?? ""}`);
+    parts.push(
+      `C:${c.id}:${c.from_activity_id}:${c.to_activity_id}:${c.type ?? ""}:${c.order_index ?? 0}:${c.label ?? ""}`,
+    );
   }
   for (const d of decisions) {
     parts.push(`D:${d.activity_id}:${d.question ?? ""}`);
@@ -91,7 +93,11 @@ export function BpmnRenderer({
       container: hostRef.current,
       additionalModules: [MinimapModule],
     });
-    try { viewerRef.current.get("minimap").open(); } catch { /* ignore */ }
+    try {
+      viewerRef.current.get("minimap").open();
+    } catch {
+      /* ignore */
+    }
   }
 
   async function render(force = false) {
@@ -101,7 +107,9 @@ export function BpmnRenderer({
       let cached = xmlCache.get(inputHash);
       if (!cached) {
         const { xml, usedElements } = buildBpmnXml(activities, connections, decisions, {
-          processName, companyName, direction: "LR",
+          processName,
+          companyName,
+          direction: "LR",
         });
         const laidOut = await autoLayoutBpmn(xml);
         cached = { xml: laidOut, used: usedElements };
@@ -124,7 +132,9 @@ export function BpmnRenderer({
   // Re-layout automático em mutações do fluxo, com debounce de 150ms.
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => { render(); }, 150);
+    debounceRef.current = window.setTimeout(() => {
+      render();
+    }, 150);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
@@ -133,7 +143,11 @@ export function BpmnRenderer({
 
   useEffect(() => {
     return () => {
-      try { viewerRef.current?.destroy(); } catch { /* ignore */ }
+      try {
+        viewerRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
       viewerRef.current = null;
       lastXmlRef.current = "";
     };
@@ -160,9 +174,17 @@ export function BpmnRenderer({
     const el = containerRef.current;
     if (!el) return;
     if (!document.fullscreenElement) {
-      try { await el.requestFullscreen(); } catch { /* ignore */ }
+      try {
+        await el.requestFullscreen();
+      } catch {
+        /* ignore */
+      }
     } else {
-      try { await document.exitFullscreen(); } catch { /* ignore */ }
+      try {
+        await document.exitFullscreen();
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -214,7 +236,9 @@ export function BpmnRenderer({
     showGrid ? "bpmn-host--grid" : "",
     !showLanes ? "bpmn-host--no-lanes" : "",
     presentation ? "bpmn-host--presentation" : "",
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const groupCls = "inline-flex items-center overflow-hidden rounded-md border bg-card";
   const iconBtn = "h-8 w-9 rounded-none border-0 border-l first:border-l-0";
@@ -224,26 +248,54 @@ export function BpmnRenderer({
       {!presentation && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-2 py-2">
           <div className="mr-1 hidden min-w-0 sm:block">
-            <p className="truncate text-xs font-semibold leading-tight">{processName ?? "Processo"}</p>
+            <p className="truncate text-xs font-semibold leading-tight">
+              {processName ?? "Processo"}
+            </p>
             {companyName && (
-              <p className="truncate text-[10px] leading-tight text-muted-foreground">{companyName}</p>
+              <p className="truncate text-[10px] leading-tight text-muted-foreground">
+                {companyName}
+              </p>
             )}
           </div>
 
           <div className={groupCls}>
-            <Button size="sm" variant="ghost" className={`${iconBtn} w-auto px-2.5`} onClick={() => render(true)} title="Reorganizar diagrama">
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`${iconBtn} w-auto px-2.5`}
+              onClick={() => render(true)}
+              title="Reorganizar diagrama"
+            >
               <RefreshCw className="h-3.5 w-3.5 mr-1" /> Organizar
             </Button>
           </div>
 
           <div className={groupCls}>
-            <Button size="sm" variant="ghost" className={iconBtn} onClick={() => zoom(0.15)} title="Aproximar">
+            <Button
+              size="sm"
+              variant="ghost"
+              className={iconBtn}
+              onClick={() => zoom(0.15)}
+              title="Aproximar"
+            >
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" variant="ghost" className={iconBtn} onClick={() => zoom(-0.15)} title="Afastar">
+            <Button
+              size="sm"
+              variant="ghost"
+              className={iconBtn}
+              onClick={() => zoom(-0.15)}
+              title="Afastar"
+            >
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" variant="ghost" className={iconBtn} onClick={centralizar} title="Ajustar à tela">
+            <Button
+              size="sm"
+              variant="ghost"
+              className={iconBtn}
+              onClick={centralizar}
+              title="Ajustar à tela"
+            >
               <Crosshair className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -286,15 +338,29 @@ export function BpmnRenderer({
               onClick={toggleFullscreen}
               title={fullscreen ? "Sair de tela cheia" : "Tela cheia"}
             >
-              {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              {fullscreen ? (
+                <Minimize2 className="h-3.5 w-3.5" />
+              ) : (
+                <Maximize2 className="h-3.5 w-3.5" />
+              )}
             </Button>
           </div>
 
           <div className={`ml-auto ${groupCls}`}>
-            <Button size="sm" variant="ghost" className={`${iconBtn} w-auto px-2.5`} onClick={exportSvg}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`${iconBtn} w-auto px-2.5`}
+              onClick={exportSvg}
+            >
               <Download className="h-3.5 w-3.5 mr-1" /> SVG
             </Button>
-            <Button size="sm" variant="ghost" className={`${iconBtn} w-auto px-2.5`} onClick={exportPng}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`${iconBtn} w-auto px-2.5`}
+              onClick={exportPng}
+            >
               <Download className="h-3.5 w-3.5 mr-1" /> PNG
             </Button>
           </div>
@@ -316,13 +382,13 @@ export function BpmnRenderer({
       {!presentation && <BpmnLegend used={usedEls} />}
     </div>
   );
-
 }
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = filename;
+  a.href = url;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -348,7 +414,9 @@ export async function renderBpmnSvg(
     const Viewer = (mod.default ?? mod) as any;
     const viewer = new Viewer({ container: host });
     const { xml } = buildBpmnXml(activities, connections, decisions, {
-      processName, companyName, direction: "LR",
+      processName,
+      companyName,
+      direction: "LR",
     });
     const laidOut = await autoLayoutBpmn(xml);
     await viewer.importXML(laidOut);

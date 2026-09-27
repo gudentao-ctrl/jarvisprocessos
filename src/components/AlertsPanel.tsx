@@ -16,10 +16,28 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const SEVERITY_STYLES: Record<AlertSeverity, { dot: string; bg: string; text: string; label: string }> = {
-  critical: { dot: "bg-destructive", bg: "bg-destructive/10", text: "text-destructive", label: "Crítico" },
-  warning: { dot: "bg-amber-500", bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-500", label: "Atenção" },
-  info: { dot: "bg-sky-500", bg: "bg-sky-500/10", text: "text-sky-600 dark:text-sky-400", label: "Info" },
+const SEVERITY_STYLES: Record<
+  AlertSeverity,
+  { dot: string; bg: string; text: string; label: string }
+> = {
+  critical: {
+    dot: "bg-destructive",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    label: "Crítico",
+  },
+  warning: {
+    dot: "bg-amber-500",
+    bg: "bg-amber-500/10",
+    text: "text-amber-600 dark:text-amber-500",
+    label: "Atenção",
+  },
+  info: {
+    dot: "bg-sky-500",
+    bg: "bg-sky-500/10",
+    text: "text-sky-600 dark:text-sky-400",
+    label: "Info",
+  },
 };
 
 const CATEGORY_ICONS = {
@@ -61,13 +79,17 @@ export function AlertsPanel({ projectId }: { projectId: string }) {
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b bg-muted/30 p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${counts.critical > 0 ? "bg-destructive/10 text-destructive" : counts.warning > 0 ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>
+          <div
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${counts.critical > 0 ? "bg-destructive/10 text-destructive" : counts.warning > 0 ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}
+          >
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold">Central de Alertas</p>
             <p className="truncate text-xs text-muted-foreground">
-              {counts.total === 0 ? "Tudo em dia" : `${counts.total} ${counts.total === 1 ? "item" : "itens"} requerem atenção`}
+              {counts.total === 0
+                ? "Tudo em dia"
+                : `${counts.total} ${counts.total === 1 ? "item" : "itens"} requerem atenção`}
             </p>
           </div>
         </div>
@@ -107,7 +129,9 @@ export function AlertsPanel({ projectId }: { projectId: string }) {
                   className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/50 active:bg-muted"
                 >
                   <span className={`h-2 w-2 shrink-0 rounded-full ${s.dot}`} aria-hidden />
-                  <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${s.bg} ${s.text}`}>
+                  <div
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${s.bg} ${s.text}`}
+                  >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">

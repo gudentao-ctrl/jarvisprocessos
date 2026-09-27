@@ -20,8 +20,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   CalendarClock,
@@ -219,7 +231,7 @@ function CalendarioPage() {
   }
   const marked = Array.from(byDay.keys()).map((d) => new Date(d + "T12:00:00"));
   const selectedISO = selected ? toISO(selected) : undefined;
-  const dayItems = (selectedISO ? byDay.get(selectedISO) ?? [] : []).sort((a, b) =>
+  const dayItems = (selectedISO ? (byDay.get(selectedISO) ?? []) : []).sort((a, b) =>
     a.date.localeCompare(b.date),
   );
 
@@ -275,7 +287,7 @@ function CalendarioPage() {
     setForm((prev) => ({
       ...prev,
       guest_emails: [...prev.guest_emails, email],
-      sync_google: !!googleStatus?.connected ? true : prev.sync_google,
+      sync_google: googleStatus?.connected ? true : prev.sync_google,
     }));
     setEmailInput("");
   }
@@ -572,9 +584,7 @@ function CalendarioPage() {
               <Label>Empresa / Cliente</Label>
               <Select
                 value={form.company_id || "none"}
-                onValueChange={(v) =>
-                  setForm({ ...form, company_id: v === "none" ? "" : v })
-                }
+                onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="—" />
@@ -750,15 +760,7 @@ function toISO(d: Date) {
   return `${y}-${m}-${day}`;
 }
 
-function EventRow({
-  it,
-  onEdit,
-  onDelete,
-}: {
-  it: any;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
+function EventRow({ it, onEdit, onDelete }: { it: any; onEdit: () => void; onDelete: () => void }) {
   const time = new Date(it.date).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -766,8 +768,8 @@ function EventRow({
   const isInterview = it.kind === "interview";
   const chipCls = isInterview
     ? "bg-secondary text-secondary-foreground"
-    : TYPE_COLORS[it.type] ?? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
-  const chipLbl = isInterview ? "Entrevista" : TYPE_LABEL[it.type] ?? it.type;
+    : (TYPE_COLORS[it.type] ?? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300");
+  const chipLbl = isInterview ? "Entrevista" : (TYPE_LABEL[it.type] ?? it.type);
 
   const body = (
     <Card
@@ -780,7 +782,9 @@ function EventRow({
       <div
         className={cn(
           "grid h-12 w-12 shrink-0 place-items-center rounded-lg",
-          it.highlighted ? "bg-red-100 text-red-600 dark:bg-red-900/50" : "bg-primary/10 text-primary",
+          it.highlighted
+            ? "bg-red-100 text-red-600 dark:bg-red-900/50"
+            : "bg-primary/10 text-primary",
         )}
       >
         {it.highlighted ? <Sparkles className="h-5 w-5" /> : <CalendarClock className="h-5 w-5" />}
@@ -789,7 +793,10 @@ function EventRow({
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate text-sm font-semibold">{it.title}</p>
           <span
-            className={cn("shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase", chipCls)}
+            className={cn(
+              "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+              chipCls,
+            )}
           >
             {chipLbl}
           </span>
@@ -816,8 +823,7 @@ function EventRow({
           {it.guestEmails?.length > 0 && (
             <span className="ml-1.5 inline-flex items-center gap-0.5">
               <Users className="h-3 w-3 text-muted-foreground" />
-              {it.guestEmails.length}{" "}
-              {it.guestEmails.length === 1 ? "convidado" : "convidados"}
+              {it.guestEmails.length} {it.guestEmails.length === 1 ? "convidado" : "convidados"}
             </span>
           )}
         </p>

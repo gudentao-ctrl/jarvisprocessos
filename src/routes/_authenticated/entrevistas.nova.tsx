@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { AudioRecorder } from "@/components/AudioRecorder";
-import {
-  listCompanies, createInterview, transcribeInterview,
-} from "@/lib/interviews.functions";
+import { listCompanies, createInterview, transcribeInterview } from "@/lib/interviews.functions";
 import { ArrowLeft, Loader2, Mic, ClipboardList, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -57,9 +59,7 @@ function SectionCard({
           <p className="truncate text-sm font-bold">
             <span className="text-muted-foreground">{step}.</span> {title}
           </p>
-          {description && (
-            <p className="truncate text-xs text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="truncate text-xs text-muted-foreground">{description}</p>}
         </div>
       </div>
       <div className="space-y-4 p-4">{children}</div>
@@ -91,7 +91,6 @@ function NewInterview() {
   const hasTitle = title.trim().length > 0;
   const hasAudio = audioParts.length > 0;
   const missing = [!hasTitle && "título", !hasAudio && "áudio"].filter(Boolean) as string[];
-
 
   const submitting = useMutation({
     mutationFn: async () => {
@@ -136,7 +135,9 @@ function NewInterview() {
         }
 
         if (!uploaded) {
-          throw new Error(`Falha ao enviar bloco ${i + 1} de áudio após 3 tentativas: ${lastErr}. Seu áudio foi preservado para nova tentativa.`);
+          throw new Error(
+            `Falha ao enviar bloco ${i + 1} de áudio após 3 tentativas: ${lastErr}. Seu áudio foi preservado para nova tentativa.`,
+          );
         }
         paths.push(path);
       }
@@ -183,7 +184,10 @@ function NewInterview() {
           }
         }
       } catch (e: any) {
-        toast.error("Áudio salvo com sucesso no servidor! A transcrição continuará na página da entrevista: " + e.message);
+        toast.error(
+          "Áudio salvo com sucesso no servidor! A transcrição continuará na página da entrevista: " +
+            e.message,
+        );
       }
 
       return interview;
@@ -200,7 +204,6 @@ function NewInterview() {
     },
   });
 
-
   return (
     <div className="space-y-4">
       <header className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-transparent p-4 shadow-sm">
@@ -210,7 +213,9 @@ function NewInterview() {
         />
         <div className="relative flex min-w-0 items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="h-10 w-10 shrink-0 -ml-2">
-            <Link to="/entrevistas"><ArrowLeft className="h-5 w-5" /></Link>
+            <Link to="/entrevistas">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
           </Button>
           <div className="min-w-0">
             <h1 className="truncate text-xl font-black tracking-tight">Nova Entrevista</h1>
@@ -242,11 +247,21 @@ function NewInterview() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label>Empresa</Label>
-            <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setSectorId(""); }}>
-              <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <Select
+              value={companyId}
+              onValueChange={(v) => {
+                setCompanyId(v);
+                setSectorId("");
+              }}
+            >
+              <SelectTrigger className="mt-1.5 h-11">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
               <SelectContent>
                 {companies?.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -254,11 +269,19 @@ function NewInterview() {
 
           <div>
             <Label>Setor</Label>
-            <Select value={sectorId} onValueChange={setSectorId} disabled={!companyId || sectors.length === 0}>
-              <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder={companyId ? "Selecione" : "—"} /></SelectTrigger>
+            <Select
+              value={sectorId}
+              onValueChange={setSectorId}
+              disabled={!companyId || sectors.length === 0}
+            >
+              <SelectTrigger className="mt-1.5 h-11">
+                <SelectValue placeholder={companyId ? "Selecione" : "—"} />
+              </SelectTrigger>
               <SelectContent>
                 {sectors.map((s: any) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -268,7 +291,9 @@ function NewInterview() {
         {companies && companies.length === 0 && (
           <p className="text-xs text-muted-foreground">
             Nenhuma empresa cadastrada.{" "}
-            <Link to="/empresas" className="text-primary underline">Cadastrar agora</Link>
+            <Link to="/empresas" className="text-primary underline">
+              Cadastrar agora
+            </Link>
           </p>
         )}
 
@@ -276,14 +301,20 @@ function NewInterview() {
           <div>
             <Label htmlFor="part">Participante</Label>
             <Input
-              id="part" value={participant} onChange={(e) => setParticipant(e.target.value)}
-              placeholder="Nome ou cargo" className="mt-1.5 h-11"
+              id="part"
+              value={participant}
+              onChange={(e) => setParticipant(e.target.value)}
+              placeholder="Nome ou cargo"
+              className="mt-1.5 h-11"
             />
           </div>
           <div>
             <Label htmlFor="date">Data *</Label>
             <Input
-              id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)}
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               className="mt-1.5 h-11"
             />
           </div>
@@ -298,7 +329,10 @@ function NewInterview() {
         highlight={hasAudio}
       >
         <AudioRecorder
-          onAudioReady={(parts, dur) => { setAudioParts(parts); setAudioDuration(dur); }}
+          onAudioReady={(parts, dur) => {
+            setAudioParts(parts);
+            setAudioDuration(dur);
+          }}
           disabled={submitting.isPending}
         />
         {hasAudio && (
@@ -315,8 +349,13 @@ function NewInterview() {
           className="h-14 w-full text-base font-semibold"
         >
           {submitting.isPending ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {progress || "Salvando e transcrevendo..."}</>
-          ) : "Salvar e Transcrever"}
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />{" "}
+              {progress || "Salvando e transcrevendo..."}
+            </>
+          ) : (
+            "Salvar e Transcrever"
+          )}
         </Button>
 
         {missing.length > 0 && !submitting.isPending && (

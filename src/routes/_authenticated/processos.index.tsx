@@ -7,8 +7,20 @@ import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { PageHeader, StatPill } from "@/components/mapping/PageHeader";
 import { EmptyState, CardSkeleton } from "@/components/mapping/EmptyState";
 import { cn } from "@/lib/utils";
@@ -34,7 +46,12 @@ function ProcessosPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ company_id: companyId ?? "", parent_id: "", level: "0" as "0" | "1" | "2", name: "" });
+  const [form, setForm] = useState({
+    company_id: companyId ?? "",
+    parent_id: "",
+    level: "0" as "0" | "1" | "2",
+    name: "",
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -81,35 +98,55 @@ function ProcessosPage() {
     return m;
   }, [processes]);
 
-  const counts = useMemo(() => ({
-    n0: processes.filter((p) => p.level === "0").length,
-    n1: processes.filter((p) => p.level === "1").length,
-    n2: processes.filter((p) => p.level === "2").length,
-  }), [processes]);
+  const counts = useMemo(
+    () => ({
+      n0: processes.filter((p) => p.level === "0").length,
+      n1: processes.filter((p) => p.level === "1").length,
+      n2: processes.filter((p) => p.level === "2").length,
+    }),
+    [processes],
+  );
 
-  const parentOptions = processes.filter((p) => p.company_id === form.company_id && p.level !== "2");
+  const parentOptions = processes.filter(
+    (p) => p.company_id === form.company_id && p.level !== "2",
+  );
 
   const newButton = (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="min-h-10"><Plus className="h-4 w-4 mr-1.5" /> Novo</Button>
+        <Button className="min-h-10">
+          <Plus className="h-4 w-4 mr-1.5" /> Novo
+        </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Novo processo</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Novo processo</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div>
             <Label>Empresa</Label>
-            <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v, parent_id: "" })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <Select
+              value={form.company_id}
+              onValueChange={(v) => setForm({ ...form, company_id: v, parent_id: "" })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
               <SelectContent>
-                {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {companies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label>Nível</Label>
             <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v as any })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">N0 — Macroprocesso</SelectItem>
                 <SelectItem value="1">N1 — Processo principal</SelectItem>
@@ -120,10 +157,19 @@ function ProcessosPage() {
           {form.level !== "0" && (
             <div>
               <Label>Processo pai</Label>
-              <Select value={form.parent_id} onValueChange={(v) => setForm({ ...form, parent_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+              <Select
+                value={form.parent_id}
+                onValueChange={(v) => setForm({ ...form, parent_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
                 <SelectContent>
-                  {parentOptions.map((p) => <SelectItem key={p.id} value={p.id}>N{p.level} — {p.name}</SelectItem>)}
+                  {parentOptions.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      N{p.level} — {p.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -132,7 +178,9 @@ function ProcessosPage() {
             <Label>Nome</Label>
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
-          <Button onClick={submit} className="w-full min-h-11">Criar</Button>
+          <Button onClick={submit} className="w-full min-h-11">
+            Criar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -172,7 +220,10 @@ function ProcessosPage() {
             const c = companies.find((x) => x.id === cid);
             const roots = list.filter((p) => !p.parent_id);
             return (
-              <section key={cid} className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+              <section
+                key={cid}
+                className="overflow-hidden rounded-2xl border border-border/70 bg-card"
+              >
                 <div className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5">
                   <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <h2 className="min-w-0 truncate text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -183,7 +234,9 @@ function ProcessosPage() {
                   </span>
                 </div>
                 <div className="p-2">
-                  {roots.map((p) => <ProcessNode key={p.id} p={p} all={list} depth={0} />)}
+                  {roots.map((p) => (
+                    <ProcessNode key={p.id} p={p} all={list} depth={0} />
+                  ))}
                 </div>
               </section>
             );
@@ -242,7 +295,9 @@ function ProcessNode({ p, all, depth }: { p: Proc; all: Proc[]; depth: number })
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
       </div>
-      {children.map((c) => <ProcessNode key={c.id} p={c} all={all} depth={depth + 1} />)}
+      {children.map((c) => (
+        <ProcessNode key={c.id} p={c} all={all} depth={depth + 1} />
+      ))}
     </div>
   );
 }

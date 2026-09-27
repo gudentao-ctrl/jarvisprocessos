@@ -1,5 +1,20 @@
 import { memo, useMemo, useState } from "react";
-import { Plus, MoreVertical, ArrowDown, GitBranch, GitMerge, Repeat, Layers, Circle, CheckCircle2, GripVertical, User, Clock, Folder, HelpCircle } from "lucide-react";
+import {
+  Plus,
+  MoreVertical,
+  ArrowDown,
+  GitBranch,
+  GitMerge,
+  Repeat,
+  Layers,
+  Circle,
+  CheckCircle2,
+  GripVertical,
+  User,
+  Clock,
+  Folder,
+  HelpCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,11 +36,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  addActivityRelative,
-  reorderFlowActivities,
-  saveFlowActivity,
-} from "@/lib/flow.functions";
+import { addActivityRelative, reorderFlowActivities, saveFlowActivity } from "@/lib/flow.functions";
 import { autofixFlow } from "@/lib/flow-autofix.functions";
 import { ActivitySheet } from "./ActivitySheet";
 import { FlowIssuesPanel, type FlowIssue } from "./FlowIssuesPanel";
@@ -66,13 +77,24 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
 const TYPE_ACCENT: Record<string, { chip: string; bar: string; text: string }> = {
   start: { chip: "bg-map-time/10 text-map-time", bar: "bg-map-time", text: "text-map-time" },
   end: { chip: "bg-map-pain/10 text-map-pain", bar: "bg-map-pain", text: "text-map-pain" },
-  decision: { chip: "bg-map-decision/10 text-map-decision", bar: "bg-map-decision", text: "text-map-decision" },
+  decision: {
+    chip: "bg-map-decision/10 text-map-decision",
+    bar: "bg-map-decision",
+    text: "text-map-decision",
+  },
   approval: { chip: "bg-map-info/10 text-map-info", bar: "bg-map-info", text: "text-map-info" },
-  wait: { chip: "bg-muted text-muted-foreground", bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
-  task: { chip: "bg-map-process/10 text-map-process", bar: "bg-map-process", text: "text-map-process" },
+  wait: {
+    chip: "bg-muted text-muted-foreground",
+    bar: "bg-muted-foreground/40",
+    text: "text-muted-foreground",
+  },
+  task: {
+    chip: "bg-map-process/10 text-map-process",
+    bar: "bg-map-process",
+    text: "text-map-process",
+  },
 };
 const accentOf = (t: string) => TYPE_ACCENT[t] ?? TYPE_ACCENT.task;
-
 
 const TYPE_LABEL: Record<string, string> = {
   start: "Início",
@@ -139,8 +161,8 @@ export function FlowEditor({
     return m;
   }, [activities]);
 
-  const active = openId ? activityById.get(openId) ?? null : null;
-  const focused = focusId ? activityById.get(focusId) ?? null : null;
+  const active = openId ? (activityById.get(openId) ?? null) : null;
+  const focused = focusId ? (activityById.get(focusId) ?? null) : null;
 
   const issues = useMemo(
     () => computeIssues(sorted, connections, decisions),
@@ -162,7 +184,13 @@ export function FlowEditor({
   async function addAfter(refId: string) {
     try {
       await addActivityRelative({
-        data: { process_id: processId, relative_to: refId, mode: "after", title: "Nova atividade", type: "task" },
+        data: {
+          process_id: processId,
+          relative_to: refId,
+          mode: "after",
+          title: "Nova atividade",
+          type: "task",
+        },
       });
       toast.success("Atividade adicionada");
       onChange();
@@ -179,7 +207,9 @@ export function FlowEditor({
       if (r.endCreated) parts.push("evento Fim criado");
       if (r.decisionLabelsSet) parts.push(`${r.decisionLabelsSet} rótulos de decisão`);
       if (r.orphansConnected) parts.push(`${r.orphansConnected} órfãos conectados`);
-      toast.success(parts.length ? `Corrigido: ${parts.join(" · ")}` : "Nenhuma correção necessária");
+      toast.success(
+        parts.length ? `Corrigido: ${parts.join(" · ")}` : "Nenhuma correção necessária",
+      );
       onChange();
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao corrigir");
@@ -215,21 +245,43 @@ export function FlowEditor({
         <FlowOptimizePanel processId={processId} />
       </div>
       {issues.length > 0 && (
-        <FlowIssuesPanel issues={issues} activities={sorted} onFocus={(id) => { setFocusId(id); setOpenId(id); }} onAutofix={runAutofix} />
+        <FlowIssuesPanel
+          issues={issues}
+          activities={sorted}
+          onFocus={(id) => {
+            setFocusId(id);
+            setOpenId(id);
+          }}
+          onAutofix={runAutofix}
+        />
       )}
 
       {sorted.length === 0 ? (
         <Card className="p-8 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">Fluxo vazio. Adicione a primeira atividade.</p>
-          <Button onClick={addFirst}><Plus className="h-4 w-4 mr-1" /> Primeira atividade</Button>
+          <p className="text-sm text-muted-foreground">
+            Fluxo vazio. Adicione a primeira atividade.
+          </p>
+          <Button onClick={addFirst}>
+            <Plus className="h-4 w-4 mr-1" /> Primeira atividade
+          </Button>
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="relative min-w-0">
             {/* trilho vertical do fluxo */}
-            <div className="pointer-events-none absolute left-[26px] top-4 bottom-14 w-px bg-border md:left-[30px]" aria-hidden />
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={sorted.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+            <div
+              className="pointer-events-none absolute left-[26px] top-4 bottom-14 w-px bg-border md:left-[30px]"
+              aria-hidden
+            />
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sorted.map((a) => a.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 {sorted.map((a, idx) => {
                   const outgoing = outgoingByFrom.get(a.id) ?? [];
                   const decision = decisionByActivity.get(a.id);
@@ -261,14 +313,13 @@ export function FlowEditor({
             </div>
           </div>
 
-
           <aside className="hidden lg:block">
             <div className="sticky top-4">
               <ActivityDetailsPanel
                 activity={focused}
                 decision={focused ? decisionByActivity.get(focused.id) : undefined}
-                outgoing={focused ? outgoingByFrom.get(focused.id) ?? [] : []}
-                incoming={focused ? incomingByTo.get(focused.id) ?? [] : []}
+                outgoing={focused ? (outgoingByFrom.get(focused.id) ?? []) : []}
+                incoming={focused ? (incomingByTo.get(focused.id) ?? []) : []}
                 activityById={activityById}
                 onOpen={() => focused && setOpenId(focused.id)}
               />
@@ -293,9 +344,16 @@ export function FlowEditor({
   );
 }
 
-function FlowStats({ activities, connections }: { activities: FlowActivity[]; connections: FlowConnection[] }) {
+function FlowStats({
+  activities,
+  connections,
+}: {
+  activities: FlowActivity[];
+  connections: FlowConnection[];
+}) {
   const decisions = activities.filter((a) => a.type === "decision").length;
-  const responsaveis = new Set(activities.map((a) => (a.responsible ?? "").trim()).filter(Boolean)).size;
+  const responsaveis = new Set(activities.map((a) => (a.responsible ?? "").trim()).filter(Boolean))
+    .size;
   const minutos = activities.reduce((s, a) => s + (a.time_minutes ?? 0), 0);
   const items: Array<[string, string | number]> = [
     ["Etapas", activities.length],
@@ -303,7 +361,8 @@ function FlowStats({ activities, connections }: { activities: FlowActivity[]; co
     ["Decisões", decisions],
     ["Responsáveis", responsaveis],
   ];
-  if (minutos > 0) items.push(["Tempo", minutos >= 60 ? `${(minutos / 60).toFixed(1)} h` : `${minutos} min`]);
+  if (minutos > 0)
+    items.push(["Tempo", minutos >= 60 ? `${(minutos / 60).toFixed(1)} h` : `${minutos} min`]);
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
       {items.map(([label, value]) => (
@@ -347,7 +406,9 @@ const SortableActivityCard = memo(function SortableActivityCard({
   onAddAfter,
   onChange,
 }: SortableCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: a.id,
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -383,7 +444,10 @@ const SortableActivityCard = memo(function SortableActivityCard({
             isFocused ? "ring-2 ring-primary/40 shadow-sm" : ""
           } ${isDragging ? "shadow-lg" : ""}`}
           onMouseEnter={onFocus}
-          onClick={() => { onFocus(); onOpen(); }}
+          onClick={() => {
+            onFocus();
+            onOpen();
+          }}
         >
           <span className={`absolute inset-y-0 left-0 w-1 ${accent.bar}`} aria-hidden />
           <div className="flex items-start gap-2.5">
@@ -403,10 +467,14 @@ const SortableActivityCard = memo(function SortableActivityCard({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted-foreground">
                 <InlineResponsible activity={a} processId={processId} onChange={onChange} />
                 {a.area && (
-                  <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> {a.area}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Folder className="h-3 w-3" /> {a.area}
+                  </span>
                 )}
                 {a.time_minutes ? (
-                  <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {a.time_minutes} min</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {a.time_minutes} min
+                  </span>
                 ) : null}
               </div>
             </div>
@@ -424,7 +492,10 @@ const SortableActivityCard = memo(function SortableActivityCard({
       ) : !isLast ? (
         <div className="ml-[60px] py-1 md:ml-[72px]">
           <button
-            onClick={(e) => { e.stopPropagation(); onAddAfter(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddAfter();
+            }}
             className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-primary"
           >
             <ArrowDown className="h-3 w-3" /> conectar à próxima
@@ -434,7 +505,6 @@ const SortableActivityCard = memo(function SortableActivityCard({
     </div>
   );
 });
-
 
 function ActivityDetailsPanel({
   activity,
@@ -463,19 +533,27 @@ function ActivityDetailsPanel({
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <div className={`grid h-8 w-8 place-items-center rounded-lg ${isDecision ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"}`}>
+        <div
+          className={`grid h-8 w-8 place-items-center rounded-lg ${isDecision ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"}`}
+        >
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm truncate">{activity.title}</p>
-          <p className="text-[11px] text-muted-foreground">{TYPE_LABEL[activity.type] ?? activity.type}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {TYPE_LABEL[activity.type] ?? activity.type}
+          </p>
         </div>
       </div>
 
       <div className="space-y-1.5 text-xs">
         <DetailRow icon={User} label="Responsável" value={activity.responsible} />
         <DetailRow icon={Folder} label="Área" value={activity.area} />
-        <DetailRow icon={Clock} label="Tempo" value={activity.time_minutes ? `${activity.time_minutes} min` : null} />
+        <DetailRow
+          icon={Clock}
+          label="Tempo"
+          value={activity.time_minutes ? `${activity.time_minutes} min` : null}
+        />
         {isDecision && (
           <DetailRow icon={HelpCircle} label="Pergunta" value={decision?.question ?? null} />
         )}
@@ -483,29 +561,39 @@ function ActivityDetailsPanel({
 
       {activity.description && (
         <div className="text-xs">
-          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Descrição</p>
-          <p className="text-muted-foreground line-clamp-4 whitespace-pre-wrap">{activity.description}</p>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
+            Descrição
+          </p>
+          <p className="text-muted-foreground line-clamp-4 whitespace-pre-wrap">
+            {activity.description}
+          </p>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
-          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Entradas ({incoming.length})</p>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
+            Entradas ({incoming.length})
+          </p>
           <ul className="space-y-0.5">
             {incoming.length === 0 && <li className="text-muted-foreground/70 italic">—</li>}
             {incoming.slice(0, 4).map((c) => (
-              <li key={c.id} className="truncate text-muted-foreground">← {activityById.get(c.from_activity_id)?.title ?? "?"}</li>
+              <li key={c.id} className="truncate text-muted-foreground">
+                ← {activityById.get(c.from_activity_id)?.title ?? "?"}
+              </li>
             ))}
           </ul>
         </div>
         <div>
-          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Saídas ({outgoing.length})</p>
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
+            Saídas ({outgoing.length})
+          </p>
           <ul className="space-y-0.5">
             {outgoing.length === 0 && <li className="text-muted-foreground/70 italic">—</li>}
             {outgoing.slice(0, 4).map((c) => (
               <li key={c.id} className="truncate text-muted-foreground">
-                {c.label ? <span className="font-medium">{c.label}: </span> : null}
-                → {activityById.get(c.to_activity_id)?.title ?? "?"}
+                {c.label ? <span className="font-medium">{c.label}: </span> : null}→{" "}
+                {activityById.get(c.to_activity_id)?.title ?? "?"}
               </li>
             ))}
           </ul>
@@ -519,7 +607,15 @@ function ActivityDetailsPanel({
   );
 }
 
-function DetailRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null }) {
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | null;
+}) {
   return (
     <div className="flex items-start gap-1.5">
       <Icon className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
@@ -531,17 +627,31 @@ function DetailRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ c
   );
 }
 
-function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity; processId: string; onChange: () => void }) {
+function InlineTitle({
+  activity,
+  processId,
+  onChange,
+}: {
+  activity: FlowActivity;
+  processId: string;
+  onChange: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(activity.title);
   const [busy, setBusy] = useState(false);
 
   async function commit() {
     const v = value.trim();
-    if (!v || v === activity.title) { setEditing(false); setValue(activity.title); return; }
+    if (!v || v === activity.title) {
+      setEditing(false);
+      setValue(activity.title);
+      return;
+    }
     setBusy(true);
     try {
-      await saveFlowActivity({ data: { id: activity.id, process_id: processId, title: v, type: activity.type as any } });
+      await saveFlowActivity({
+        data: { id: activity.id, process_id: processId, title: v, type: activity.type as any },
+      });
       toast.success("Título atualizado");
       onChange();
     } catch (e: any) {
@@ -563,8 +673,14 @@ function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity
         onClick={(e) => e.stopPropagation()}
         onBlur={commit}
         onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
-          if (e.key === "Escape") { setValue(activity.title); setEditing(false); }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          }
+          if (e.key === "Escape") {
+            setValue(activity.title);
+            setEditing(false);
+          }
         }}
         className="font-medium text-sm bg-background border border-input rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-primary/40 min-w-0 flex-1"
       />
@@ -573,7 +689,10 @@ function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity
   return (
     <p
       className="font-medium text-sm truncate hover:underline decoration-dotted"
-      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+      }}
       title="Clique para editar"
     >
       {activity.title}
@@ -581,17 +700,36 @@ function InlineTitle({ activity, processId, onChange }: { activity: FlowActivity
   );
 }
 
-function InlineResponsible({ activity, processId, onChange }: { activity: FlowActivity; processId: string; onChange: () => void }) {
+function InlineResponsible({
+  activity,
+  processId,
+  onChange,
+}: {
+  activity: FlowActivity;
+  processId: string;
+  onChange: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(activity.responsible ?? "");
   const [busy, setBusy] = useState(false);
 
   async function commit() {
     const v = value.trim();
-    if (v === (activity.responsible ?? "")) { setEditing(false); return; }
+    if (v === (activity.responsible ?? "")) {
+      setEditing(false);
+      return;
+    }
     setBusy(true);
     try {
-      await saveFlowActivity({ data: { id: activity.id, process_id: processId, title: activity.title, type: activity.type as any, responsible: v } });
+      await saveFlowActivity({
+        data: {
+          id: activity.id,
+          process_id: processId,
+          title: activity.title,
+          type: activity.type as any,
+          responsible: v,
+        },
+      });
       onChange();
     } catch (e: any) {
       toast.error(e?.message ?? "Erro");
@@ -613,8 +751,14 @@ function InlineResponsible({ activity, processId, onChange }: { activity: FlowAc
         onClick={(e) => e.stopPropagation()}
         onBlur={commit}
         onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
-          if (e.key === "Escape") { setValue(activity.responsible ?? ""); setEditing(false); }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          }
+          if (e.key === "Escape") {
+            setValue(activity.responsible ?? "");
+            setEditing(false);
+          }
         }}
         className="text-xs bg-background border border-input rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-primary/40 w-32"
       />
@@ -623,7 +767,10 @@ function InlineResponsible({ activity, processId, onChange }: { activity: FlowAc
   return (
     <span
       className="hover:underline decoration-dotted cursor-text"
-      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+      }}
       title="Clique para editar"
     >
       👤 {activity.responsible || <span className="italic opacity-60">definir</span>}
@@ -663,7 +810,6 @@ const ConnectionArrow = memo(function ConnectionArrow({
       <span className="truncate text-muted-foreground">→ {target?.title ?? "?"}</span>
     </div>
   );
-
 });
 
 function computeIssues(
@@ -685,8 +831,12 @@ function computeIssues(
     incoming.set(c.to_activity_id, (incoming.get(c.to_activity_id) ?? 0) + 1);
   }
 
-  const hasStart = activities.some((a) => a.type === "start") || activities.some((a) => (incoming.get(a.id) ?? 0) === 0);
-  const hasEnd = activities.some((a) => a.type === "end") || activities.some((a) => (outgoing.get(a.id) ?? 0) === 0);
+  const hasStart =
+    activities.some((a) => a.type === "start") ||
+    activities.some((a) => (incoming.get(a.id) ?? 0) === 0);
+  const hasEnd =
+    activities.some((a) => a.type === "end") ||
+    activities.some((a) => (outgoing.get(a.id) ?? 0) === 0);
   if (!hasStart) issues.push({ severity: "error", message: "Fluxo sem início", activityId: null });
   if (!hasEnd) issues.push({ severity: "error", message: "Fluxo sem fim", activityId: null });
 
@@ -697,10 +847,18 @@ function computeIssues(
     if (a.type === "decision") {
       const dec = decisions.find((d) => d.activity_id === a.id);
       if (!dec || !dec.question?.trim()) {
-        issues.push({ severity: "warn", message: `Decisão "${a.title}" sem pergunta`, activityId: a.id });
+        issues.push({
+          severity: "warn",
+          message: `Decisão "${a.title}" sem pergunta`,
+          activityId: a.id,
+        });
       }
       if ((outgoing.get(a.id) ?? 0) < 2) {
-        issues.push({ severity: "warn", message: `Decisão "${a.title}" sem respostas`, activityId: a.id });
+        issues.push({
+          severity: "warn",
+          message: `Decisão "${a.title}" sem respostas`,
+          activityId: a.id,
+        });
       }
     }
     if (a.type !== "end" && (outgoing.get(a.id) ?? 0) === 0 && activities.length > 1) {

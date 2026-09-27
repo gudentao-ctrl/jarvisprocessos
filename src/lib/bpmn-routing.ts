@@ -5,26 +5,21 @@
 export type Box = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
 
-const ELBOW_GAP = 24;        // distância horizontal padrão do "cotovelo"
-const PARALLEL_SPACING = 8;  // offset entre múltiplas saídas de um mesmo nó
-const NODE_CLEARANCE = 18;   // folga ao contornar um nó
-const RETURN_DROP = 60;      // altura para caminho inferior de retrabalho
+const ELBOW_GAP = 24; // distância horizontal padrão do "cotovelo"
+const PARALLEL_SPACING = 8; // offset entre múltiplas saídas de um mesmo nó
+const NODE_CLEARANCE = 18; // folga ao contornar um nó
+const RETURN_DROP = 60; // altura para caminho inferior de retrabalho
 
 export type EdgeContext = {
   sourceIndex: number; // índice desta saída (0..n-1) do nó de origem
   sourceCount: number; // total de saídas do nó de origem
   targetIndex: number; // índice desta entrada do nó de destino
   targetCount: number;
-  isReturn: boolean;   // conexão de retrabalho / back-edge
+  isReturn: boolean; // conexão de retrabalho / back-edge
 };
 
 /** Roteia uma aresta em waypoints ortogonais Manhattan. */
-export function routeOrthogonal(
-  source: Box,
-  target: Box,
-  ctx: EdgeContext,
-  allBoxes: Box[],
-): Pt[] {
+export function routeOrthogonal(source: Box, target: Box, ctx: EdgeContext, allBoxes: Box[]): Pt[] {
   const sxRight = source.x + source.w;
   const txLeft = target.x;
 
@@ -34,11 +29,9 @@ export function routeOrthogonal(
 
   // Caso especial: back-edge / retorno → contornar por baixo.
   if (ctx.isReturn || target.x + target.w < source.x) {
-    const bottom = Math.max(
-      source.y + source.h,
-      target.y + target.h,
-      ...allBoxes.map((b) => b.y + b.h),
-    ) + RETURN_DROP;
+    const bottom =
+      Math.max(source.y + source.h, target.y + target.h, ...allBoxes.map((b) => b.y + b.h)) +
+      RETURN_DROP;
     const outX = sxRight + ELBOW_GAP;
     const inX = txLeft - ELBOW_GAP;
     return [

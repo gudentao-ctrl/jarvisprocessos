@@ -5,11 +5,36 @@ import { ArrowRight, Mic, FileText, Sparkles, Map, GitBranch } from "lucide-reac
 export const Route = createFileRoute("/_authenticated/projetos/$id/diagnostico")({
   component: () => {
     const items = [
-      { label: "Entrevistas", description: "Realizar e transcrever entrevistas", to: "/entrevistas", icon: Mic },
-      { label: "Análises automáticas", description: "Resumos e insights por IA", to: "/entrevistas", icon: Sparkles },
-      { label: "Mapa de dores", description: "Pontos de dor identificados", to: "/mapas/dores", icon: FileText },
-      { label: "Fluxo de informação", description: "Como a informação circula", to: "/mapas/informacao", icon: Map },
-      { label: "Fluxo de decisão", description: "Quem decide o quê", to: "/mapas/decisao", icon: GitBranch },
+      {
+        label: "Entrevistas",
+        description: "Realizar e transcrever entrevistas",
+        to: "/entrevistas",
+        icon: Mic,
+      },
+      {
+        label: "Análises automáticas",
+        description: "Resumos e insights por IA",
+        to: "/entrevistas",
+        icon: Sparkles,
+      },
+      {
+        label: "Mapa de dores",
+        description: "Pontos de dor identificados",
+        to: "/mapas/dores",
+        icon: FileText,
+      },
+      {
+        label: "Fluxo de informação",
+        description: "Como a informação circula",
+        to: "/mapas/informacao",
+        icon: Map,
+      },
+      {
+        label: "Fluxo de decisão",
+        description: "Quem decide o quê",
+        to: "/mapas/decisao",
+        icon: GitBranch,
+      },
     ];
     return (
       <div className="grid gap-3 sm:grid-cols-2">

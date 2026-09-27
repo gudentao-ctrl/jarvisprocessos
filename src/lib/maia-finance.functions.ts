@@ -10,7 +10,10 @@ export async function assertManagerOrAdmin(sb: any, userId: string) {
   const isAllowed =
     !!prof?.is_superadmin ||
     (mems ?? []).some(
-      (m: any) => m.member_role === "gestor" || m.permissions?.gestao === true || m.permissions?.financeiro === true,
+      (m: any) =>
+        m.member_role === "gestor" ||
+        m.permissions?.gestao === true ||
+        m.permissions?.financeiro === true,
     );
   if (!isAllowed) {
     throw new Error("Acesso exclusivo a Gestores e Superadmins.");
@@ -28,7 +31,12 @@ const memoryFallback: {
   auditNotes: Record<string, any>;
   dreEntries: any[];
   bonuses: any[];
-  googleOAuth?: { clientId: string; clientSecret: string; updated_at?: string; updated_by?: string };
+  googleOAuth?: {
+    clientId: string;
+    clientSecret: string;
+    updated_at?: string;
+    updated_by?: string;
+  };
   googleTokens?: Record<string, any>;
 } = {
   taxes: [{ id: "def-tax-1", name: "Simples Nacional / ISS", rate_percent: 6.0, is_active: true }],
@@ -52,11 +60,16 @@ export async function getMaiaStore(sb: any) {
     if (data?.header_html) {
       const parsed = JSON.parse(data.header_html);
       return {
-        taxes: Array.isArray(parsed.taxes) && parsed.taxes.length > 0 ? parsed.taxes : memoryFallback.taxes,
+        taxes:
+          Array.isArray(parsed.taxes) && parsed.taxes.length > 0
+            ? parsed.taxes
+            : memoryFallback.taxes,
         contracts: parsed.contracts || memoryFallback.contracts,
         closings: Array.isArray(parsed.closings) ? parsed.closings : memoryFallback.closings,
         auditNotes: parsed.auditNotes || memoryFallback.auditNotes,
-        dreEntries: Array.isArray(parsed.dreEntries) ? parsed.dreEntries : memoryFallback.dreEntries,
+        dreEntries: Array.isArray(parsed.dreEntries)
+          ? parsed.dreEntries
+          : memoryFallback.dreEntries,
         bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : memoryFallback.bonuses,
         googleOAuth: parsed.googleOAuth || memoryFallback.googleOAuth,
         googleTokens: parsed.googleTokens || memoryFallback.googleTokens,
@@ -210,15 +223,16 @@ export const listConsultantContracts = createServerFn({ method: "GET" })
     return (profiles ?? []).map((p: any) => {
       const dbC = contractMap.get(p.user_id);
       const storeC = store.contracts[p.user_id];
-      const contract = dbC || storeC || {
-        payment_regime: "hora",
-        monthly_fixed_amount: 0,
-        hourly_rate: 0,
-        base_floor_amount: 0,
-        min_hours: 0,
-        extra_hour_rate: 0,
-        active: true,
-      };
+      const contract = dbC ||
+        storeC || {
+          payment_regime: "hora",
+          monthly_fixed_amount: 0,
+          hourly_rate: 0,
+          base_floor_amount: 0,
+          min_hours: 0,
+          extra_hour_rate: 0,
+          active: true,
+        };
 
       return {
         userId: p.user_id,
@@ -272,7 +286,10 @@ export const listAuditWorkHours = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        month_year: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+        month_year: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
         user_id: z.string().uuid().optional(),
         consultant_id: z.string().uuid().optional(),
         company_id: z.string().uuid().optional(),
@@ -311,9 +328,7 @@ export const listAuditWorkHours = createServerFn({ method: "GET" })
       console.error("listAuditWorkHours query error:", qErr);
     }
 
-    const profileMap = new Map<string, any>(
-      (profiles ?? []).map((p: any) => [p.user_id, p])
-    );
+    const profileMap = new Map<string, any>((profiles ?? []).map((p: any) => [p.user_id, p]));
 
     let list = (rows ?? []).map((r: any) => {
       const uid = r.user_id || r.created_by;
@@ -325,8 +340,8 @@ export const listAuditWorkHours = createServerFn({ method: "GET" })
         note?.adjusted_remunerated !== undefined
           ? note.adjusted_remunerated
           : r.is_remunerated !== undefined && r.is_remunerated !== null
-          ? r.is_remunerated
-          : !r.notes?.includes("[NAO_REMUNERADA]");
+            ? r.is_remunerated
+            : !r.notes?.includes("[NAO_REMUNERADA]");
 
       const expenses = (r.work_hour_expenses ?? []).map((e: any) => {
         let cat = e.category;
@@ -402,12 +417,15 @@ export const updateAuditedWorkHour = createServerFn({ method: "POST" })
       if (data.hours !== undefined) payload.hours = data.hours;
       if (data.is_remunerated !== undefined) payload.is_remunerated = data.is_remunerated;
       try {
-        await sb.from("work_hours").update({
-          ...payload,
-          adjusted_by_manager: true,
-          audit_status: data.audit_status,
-          manager_note: data.manager_note,
-        }).eq("id", data.id);
+        await sb
+          .from("work_hours")
+          .update({
+            ...payload,
+            adjusted_by_manager: true,
+            audit_status: data.audit_status,
+            manager_note: data.manager_note,
+          })
+          .eq("id", data.id);
       } catch {
         await sb.from("work_hours").update(payload).eq("id", data.id);
       }
@@ -467,9 +485,7 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
     const oldRemun = current.is_remunerated !== false;
     const newRemun = data.is_remunerated;
     if (oldRemun !== newRemun) {
-      changes.push(
-        `Tipo alterado para ${newRemun ? "Hora Remunerada" : "Hora Não Remunerada"}`,
-      );
+      changes.push(`Tipo alterado para ${newRemun ? "Hora Remunerada" : "Hora Não Remunerada"}`);
     }
 
     // Empresa / Cliente
@@ -492,18 +508,22 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
     const validNewExpenses = (data.expenses || []).filter(
       (e) => e.amount > 0 || (e.description && e.description.trim()),
     );
-    const newTotalExps = validNewExpenses.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+    const newTotalExps = validNewExpenses.reduce(
+      (acc: number, e: any) => acc + Number(e.amount || 0),
+      0,
+    );
 
-    if (Math.abs(oldTotalExps - newTotalExps) > 0.01 || oldExps.length !== validNewExpenses.length) {
+    if (
+      Math.abs(oldTotalExps - newTotalExps) > 0.01 ||
+      oldExps.length !== validNewExpenses.length
+    ) {
       changes.push(
         `Despesas atualizadas de R$ ${oldTotalExps.toFixed(2)} para R$ ${newTotalExps.toFixed(2)}`,
       );
     }
 
     const changeDetails =
-      changes.length > 0
-        ? changes.join(" · ")
-        : "Revisado e confirmado pela gestão";
+      changes.length > 0 ? changes.join(" · ") : "Revisado e confirmado pela gestão";
 
     const fullManagerNote = data.manager_note?.trim()
       ? `${changeDetails} (Obs: ${data.manager_note.trim()})`
@@ -563,7 +583,7 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
 
-    let { error: updErr } = await sb.from("work_hours").update(fullPayload).eq("id", data.id);
+    const { error: updErr } = await sb.from("work_hours").update(fullPayload).eq("id", data.id);
     if (updErr) {
       const fallback1 = {
         hours: data.hours,
@@ -572,7 +592,7 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
         is_remunerated: data.is_remunerated,
         updated_at: new Date().toISOString(),
       };
-      let { error: fErr1 } = await sb.from("work_hours").update(fallback1).eq("id", data.id);
+      const { error: fErr1 } = await sb.from("work_hours").update(fallback1).eq("id", data.id);
       if (fErr1) {
         const fallbackBase = {
           hours: data.hours,
@@ -594,11 +614,13 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
           project_id: current.project_id,
           category: exp.category,
           amount: exp.amount,
-          description: exp.description ? `[${exp.category}] ${exp.description}` : `[${exp.category}]`,
+          description: exp.description
+            ? `[${exp.category}] ${exp.description}`
+            : `[${exp.category}]`,
           created_by: context.userId,
         }));
 
-        let { error: insErr } = await sb.from("work_hour_expenses").insert(rowsToInsert);
+        const { error: insErr } = await sb.from("work_hour_expenses").insert(rowsToInsert);
         if (insErr) {
           const fallbackRows = rowsToInsert.map(({ category, ...rest }) => rest);
           await sb.from("work_hour_expenses").insert(fallbackRows);
@@ -705,22 +727,25 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
     }
 
     // Aggregate hours and expenses by user
-    const userHoursMap = new Map<string, { totalHours: number; remuneratedHours: number; expensesTotal: number }>();
+    const userHoursMap = new Map<
+      string,
+      { totalHours: number; remuneratedHours: number; expensesTotal: number }
+    >();
     for (const h of hoursRows ?? []) {
       const uid = h.user_id || h.created_by;
       if (!uid) continue;
       const cur = userHoursMap.get(uid) || { totalHours: 0, remuneratedHours: 0, expensesTotal: 0 };
 
       const note = store.auditNotes[h.id];
-      const hrs = Number(note?.adjusted_hours !== undefined ? note.adjusted_hours : (h.hours || 0));
+      const hrs = Number(note?.adjusted_hours !== undefined ? note.adjusted_hours : h.hours || 0);
       cur.totalHours += hrs;
 
       const isRemun =
         note?.adjusted_remunerated !== undefined
           ? note.adjusted_remunerated
           : h.is_remunerated !== undefined && h.is_remunerated !== null
-          ? h.is_remunerated
-          : !h.notes?.includes("[NAO_REMUNERADA]");
+            ? h.is_remunerated
+            : !h.notes?.includes("[NAO_REMUNERADA]");
 
       if (isRemun) {
         cur.remuneratedHours += hrs;
@@ -737,14 +762,15 @@ export const getTeamClosingData = createServerFn({ method: "GET" })
       const uid = prof.user_id;
       const dbC = contractMap.get(uid);
       const storeC = store.contracts[uid];
-      const contract = dbC || storeC || {
-        payment_regime: "hora",
-        monthly_fixed_amount: 0,
-        hourly_rate: 0,
-        base_floor_amount: 0,
-        min_hours: 0,
-        extra_hour_rate: 0,
-      };
+      const contract = dbC ||
+        storeC || {
+          payment_regime: "hora",
+          monthly_fixed_amount: 0,
+          hourly_rate: 0,
+          base_floor_amount: 0,
+          min_hours: 0,
+          extra_hour_rate: 0,
+        };
 
       const existingClosing = closingMap.get(uid);
       const { totalHours, remuneratedHours, expensesTotal } = userHoursMap.get(uid) || {
@@ -871,7 +897,9 @@ export const closeConsultantMonth = createServerFn({ method: "POST" })
     } catch {}
 
     const store = await getMaiaStore(sb);
-    store.closings = store.closings.filter((c: any) => !(c.user_id === data.user_id && c.month_year === data.month_year));
+    store.closings = store.closings.filter(
+      (c: any) => !(c.user_id === data.user_id && c.month_year === data.month_year),
+    );
     store.closings.push(snapshot);
     await saveMaiaStore(sb, store);
 
@@ -896,13 +924,19 @@ export const toggleNfReceived = createServerFn({ method: "POST" })
 
     try {
       if (data.closing_id) {
-        await sb.from("consultant_closings").update({ nf_received: data.nf_received }).eq("id", data.closing_id);
+        await sb
+          .from("consultant_closings")
+          .update({ nf_received: data.nf_received })
+          .eq("id", data.closing_id);
       }
     } catch {}
 
     const store = await getMaiaStore(sb);
     store.closings = store.closings.map((c: any) => {
-      if ((data.closing_id && c.id === data.closing_id) || (data.user_id && c.user_id === data.user_id && c.month_year === data.month_year)) {
+      if (
+        (data.closing_id && c.id === data.closing_id) ||
+        (data.user_id && c.user_id === data.user_id && c.month_year === data.month_year)
+      ) {
         return { ...c, nf_received: data.nf_received };
       }
       return c;
@@ -926,32 +960,28 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
     const start = `${data.month_year}-01`;
     const end = `${data.month_year}-31`;
 
-    const [
-      { data: invoices },
-      { data: clientPayments },
-      { data: prevPayments },
-      store,
-    ] = await Promise.all([
-      sb
-        .from("invoices")
-        .select("total_amount, hours_total, period_start, period_end")
-        .gte("period_start", start)
-        .lte("period_end", end),
-      sb
-        .from("payments")
-        .select("amount, paid_at, method")
-        .gte("paid_at", start)
-        .lte("paid_at", end),
-      sb
-        .from("payments")
-        .select("amount, paid_at")
-        .lt("paid_at", start),
-      getMaiaStore(sb),
-    ]);
+    const [{ data: invoices }, { data: clientPayments }, { data: prevPayments }, store] =
+      await Promise.all([
+        sb
+          .from("invoices")
+          .select("total_amount, hours_total, period_start, period_end")
+          .gte("period_start", start)
+          .lte("period_end", end),
+        sb
+          .from("payments")
+          .select("amount, paid_at, method")
+          .gte("paid_at", start)
+          .lte("paid_at", end),
+        sb.from("payments").select("amount, paid_at").lt("paid_at", start),
+        getMaiaStore(sb),
+      ]);
 
     let taxes = store.taxes.filter((t: any) => t.is_active);
     try {
-      const { data: dbTaxes } = await sb.from("maia_tax_settings").select("*").eq("is_active", true);
+      const { data: dbTaxes } = await sb
+        .from("maia_tax_settings")
+        .select("*")
+        .eq("is_active", true);
       if (dbTaxes && dbTaxes.length > 0) taxes = dbTaxes;
     } catch {}
 
@@ -986,7 +1016,8 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
       (acc: number, t: any) => acc + Number(t.rate_percent || 0),
       0,
     );
-    const taxesDeduction = Math.round(((totalPaymentsReceived * totalTaxRatePercent) / 100) * 100) / 100;
+    const taxesDeduction =
+      Math.round(((totalPaymentsReceived * totalTaxRatePercent) / 100) * 100) / 100;
 
     // 4. Receita Operacional Líquida (Pagamentos Recebidos - Impostos)
     const netRevenue = Math.round((totalPaymentsReceived - taxesDeduction) * 100) / 100;
@@ -1013,18 +1044,20 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
     const fixedCosts = currentMonthEntries.filter((e: any) => e.entry_type === "custo_fixo");
     const variableCosts = currentMonthEntries.filter((e: any) => e.entry_type === "custo_variavel");
 
-    const totalFixedCosts = fixedCosts.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
-    const totalVariableCosts = variableCosts.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+    const totalFixedCosts = fixedCosts.reduce(
+      (acc: number, e: any) => acc + Number(e.amount || 0),
+      0,
+    );
+    const totalVariableCosts = variableCosts.reduce(
+      (acc: number, e: any) => acc + Number(e.amount || 0),
+      0,
+    );
 
     // 7. Lucro Operacional Líquido do Período Atual
     const totalCurrentTeamCosts = teamLaborCost + expenseReimbursements + consultantBonuses;
     const operatingProfit =
       Math.round(
-        (netRevenue -
-          totalCurrentTeamCosts -
-          totalFixedCosts -
-          totalVariableCosts) *
-          100,
+        (netRevenue - totalCurrentTeamCosts - totalFixedCosts - totalVariableCosts) * 100,
       ) / 100;
 
     // 8. Cálculo do Acumulado Líquido do Período Anterior
@@ -1032,7 +1065,8 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
       (acc: number, p: any) => acc + Number(p.amount || 0),
       0,
     );
-    const prevTaxesDeduction = Math.round(((prevPaymentsTotal * totalTaxRatePercent) / 100) * 100) / 100;
+    const prevTaxesDeduction =
+      Math.round(((prevPaymentsTotal * totalTaxRatePercent) / 100) * 100) / 100;
     const prevNetRevenue = Math.round((prevPaymentsTotal - prevTaxesDeduction) * 100) / 100;
 
     const prevClosings = allClosings.filter((c: any) => c.month_year < data.month_year);
@@ -1059,19 +1093,19 @@ export const getMaiaDreData = createServerFn({ method: "GET" })
       .filter((e: any) => e.entry_type === "custo_variavel")
       .reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
 
-    const previousAccumulatedProfit = Math.round(
-      (prevNetRevenue -
-        prevTeamLaborCost -
-        prevExpenseReimbursements -
-        prevBonusesTotal -
-        prevFixedCosts -
-        prevVariableCosts) *
-        100,
-    ) / 100;
+    const previousAccumulatedProfit =
+      Math.round(
+        (prevNetRevenue -
+          prevTeamLaborCost -
+          prevExpenseReimbursements -
+          prevBonusesTotal -
+          prevFixedCosts -
+          prevVariableCosts) *
+          100,
+      ) / 100;
 
-    const accumulatedConsolidatedProfit = Math.round(
-      (previousAccumulatedProfit + operatingProfit) * 100,
-    ) / 100;
+    const accumulatedConsolidatedProfit =
+      Math.round((previousAccumulatedProfit + operatingProfit) * 100) / 100;
 
     const currentMonthYear = new Date().toISOString().slice(0, 7);
     const isFutureOrOpen = data.month_year >= currentMonthYear;
@@ -1167,7 +1201,9 @@ export const saveMaiaDreEntry = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      store.dreEntries = store.dreEntries.map((e: any) => (e.id === data.id ? { ...e, ...newEntry } : e));
+      store.dreEntries = store.dreEntries.map((e: any) =>
+        e.id === data.id ? { ...e, ...newEntry } : e,
+      );
     } else {
       store.dreEntries.push(newEntry);
     }
@@ -1234,9 +1270,9 @@ export const cloneDreEntriesFromPreviousMonth = createServerFn({ method: "POST" 
     }));
 
     try {
-      await sb.from("maia_dre_entries").insert(
-        cloned.map((e: any) => ({ ...e, created_by: context.userId })),
-      );
+      await sb
+        .from("maia_dre_entries")
+        .insert(cloned.map((e: any) => ({ ...e, created_by: context.userId })));
     } catch {}
 
     store.dreEntries.push(...cloned);
@@ -1252,7 +1288,10 @@ export const listConsultantBonuses = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        month_year: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+        month_year: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
         consultant_id: z.string().optional(),
       })
       .parse(d ?? {}),
@@ -1269,9 +1308,7 @@ export const listConsultantBonuses = createServerFn({ method: "GET" })
     if (data.consultant_id && data.consultant_id !== "__all") {
       bonuses = bonuses.filter((b: any) => b.consultant_id === data.consultant_id);
     }
-    return bonuses.sort((a: any, b: any) =>
-      (b.bonus_date || "").localeCompare(a.bonus_date || ""),
-    );
+    return bonuses.sort((a: any, b: any) => (b.bonus_date || "").localeCompare(a.bonus_date || ""));
   });
 
 export const saveConsultantBonus = createServerFn({ method: "POST" })
@@ -1310,9 +1347,7 @@ export const saveConsultantBonus = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      store.bonuses = (store.bonuses || []).map((b: any) =>
-        b.id === data.id ? newBonus : b,
-      );
+      store.bonuses = (store.bonuses || []).map((b: any) => (b.id === data.id ? newBonus : b));
     } else {
       store.bonuses = [...(store.bonuses || []), newBonus];
     }

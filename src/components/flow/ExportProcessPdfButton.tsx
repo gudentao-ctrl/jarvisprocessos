@@ -6,13 +6,24 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Canvg } from "canvg";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getTemplateForCompany } from "@/lib/document-templates.functions";
 import { renderBpmnSvg } from "./BpmnRenderer";
 import { validateFlow, hasBlockingErrors } from "@/lib/flow-validate";
@@ -58,7 +69,12 @@ export type ExportProcessPdfProps = {
   decisions: FlowDecision[];
   indicators?: Array<{ id: string; name: string; unit?: string | null; target?: number | null }>;
   plans?: Array<{ id: string; title: string; status?: string; priority?: string }>;
-  crono?: Array<{ id: string; production_line?: string | null; product?: string | null; observation_date?: string | null }>;
+  crono?: Array<{
+    id: string;
+    production_line?: string | null;
+    product?: string | null;
+    observation_date?: string | null;
+  }>;
 };
 
 export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
@@ -71,8 +87,17 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
   const [scope, setScope] = useState(props.processDescription ?? "");
   const [notes, setNotes] = useState("");
   const [sections, setSections] = useState<Sections>({
-    cover: true, toc: true, general: true, matrix: true, bpmn: true, legend: true,
-    indicators: true, plans: true, crono: true, history: false, approval: true,
+    cover: true,
+    toc: true,
+    general: true,
+    matrix: true,
+    bpmn: true,
+    legend: true,
+    indicators: true,
+    plans: true,
+    crono: true,
+    history: false,
+    approval: true,
   });
 
   const issues = useMemo(
@@ -88,12 +113,16 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
     }
     setBusy(true);
     try {
-      const tpl = await getTemplateForCompany({ data: { company_id: props.companyId ?? null } }).catch(() => null);
+      const tpl = await getTemplateForCompany({
+        data: { company_id: props.companyId ?? null },
+      }).catch(() => null);
       const primary = tpl?.primary_color ?? "#0f172a";
       const accent = tpl?.accent_color ?? "#3b82f6";
       const header = tpl?.header_html ?? "";
       const footer = tpl?.footer_html ?? "Documento confidencial — uso interno";
-      const code = props.processCode ?? `${tpl?.code_prefix ?? "PRC"}-${String(tpl?.numbering_seed ?? 1).padStart(4, "0")}`;
+      const code =
+        props.processCode ??
+        `${tpl?.code_prefix ?? "PRC"}-${String(tpl?.numbering_seed ?? 1).padStart(4, "0")}`;
       const version = "1.0";
       const consultant = "Consultor responsável";
 
@@ -103,11 +132,16 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       if (sections.bpmn && props.activities.length > 0) {
         try {
           bpmnSvg = await renderBpmnSvg(
-            props.activities, props.connections, props.decisions,
-            props.processName, props.companyName ?? undefined,
+            props.activities,
+            props.connections,
+            props.decisions,
+            props.processName,
+            props.companyName ?? undefined,
           );
           bpmnAspect = measureSvgAspect(bpmnSvg);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       let effFormat: string | [number, number] = format === "auto" ? "a4" : format;
@@ -120,7 +154,6 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         else if (bpmnAspect > 1.75) effFormat = "a3";
         else effFormat = "a4";
       }
-
 
       const pdf = new jsPDF({ unit: "mm", format: effFormat as any, orientation: effOrientation });
 
@@ -148,7 +181,8 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         pdf.text(props.companyName ?? "", marginX, 55);
 
         const [consLogo, cliLogo] = await Promise.all([
-          loadImage(tpl?.consultancy_logo_url), loadImage(tpl?.client_logo_url),
+          loadImage(tpl?.consultancy_logo_url),
+          loadImage(tpl?.client_logo_url),
         ]);
         if (consLogo) safeAddImage(pdf, consLogo, pageW - marginX - 34, 8, 34, 17);
         if (cliLogo) safeAddImage(pdf, cliLogo, pageW - marginX - 34, 28, 34, 17);
@@ -205,7 +239,9 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         pdf.setTextColor("#475569");
         pdf.text(stripHtml(footer).slice(0, 90), marginX, pageH - 8);
         pdf.text(consultant, pageW / 2, pageH - 8, { align: "center" });
-        pdf.text(`Página ${pageNum} / ${totalPagesToken}`, pageW - marginX, pageH - 8, { align: "right" });
+        pdf.text(`Página ${pageNum} / ${totalPagesToken}`, pageW - marginX, pageH - 8, {
+          align: "right",
+        });
       }
 
       // Start content
@@ -262,8 +298,12 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       // -------- GENERAL --------
       if (sections.general) {
         heading("Dados Gerais");
-        if (objective) { paragraph(`Objetivo: ${objective}`); }
-        if (scope) { paragraph(`Escopo/Descrição: ${scope}`); }
+        if (objective) {
+          paragraph(`Objetivo: ${objective}`);
+        }
+        if (scope) {
+          paragraph(`Escopo/Descrição: ${scope}`);
+        }
         if (props.processResponsible) paragraph(`Responsável: ${props.processResponsible}`);
         if (props.processInputs) paragraph(`Entradas: ${props.processInputs}`);
         if (props.processOutputs) paragraph(`Saídas: ${props.processOutputs}`);
@@ -288,12 +328,26 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
           ]);
         autoTable(pdf, {
           startY: cursor,
-          head: [["ID", "Atividade", "Responsável", "Entradas", "Saídas", "Tempo", "Sistema", "Documentos"]],
+          head: [
+            [
+              "ID",
+              "Atividade",
+              "Responsável",
+              "Entradas",
+              "Saídas",
+              "Tempo",
+              "Sistema",
+              "Documentos",
+            ],
+          ],
           body: rows,
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: hexToRgb(primary), textColor: 255 },
           margin: { left: marginX, right: marginX },
-          didDrawPage: () => { drawHeader(); drawFooter(); },
+          didDrawPage: () => {
+            drawHeader();
+            drawFooter();
+          },
         });
         cursor = (pdf as any).lastAutoTable.finalY + 8;
       }
@@ -304,10 +358,15 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
       // customizada com dimensões proporcionais ao aspecto do fluxo.
       if (sections.bpmn && props.activities.length > 0) {
         try {
-          const svg = bpmnSvg ?? await renderBpmnSvg(
-            props.activities, props.connections, props.decisions,
-            props.processName, props.companyName ?? undefined,
-          );
+          const svg =
+            bpmnSvg ??
+            (await renderBpmnSvg(
+              props.activities,
+              props.connections,
+              props.decisions,
+              props.processName,
+              props.companyName ?? undefined,
+            ));
           const ratio = bpmnAspect;
 
           // Área útil na página padrão (após heading).
@@ -327,13 +386,18 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
             const availH = contentBottom - cursor;
             let drawW = availW;
             let drawH = drawW / ratio;
-            if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
+            if (drawH > availH) {
+              drawH = availH;
+              drawW = drawH * ratio;
+            }
             const png = await svgToPng(svg, 4000);
             pdf.addImage(
-              png.dataUrl, "PNG",
+              png.dataUrl,
+              "PNG",
               marginX + (availW - drawW) / 2,
               cursor + (availH - drawH) / 2,
-              drawW, drawH,
+              drawW,
+              drawH,
             );
           } else {
             // Página customizada: mantém altura base ~ A4 landscape (210mm)
@@ -359,9 +423,13 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
             pdf.text(stripHtml(header).slice(0, 60) || (props.companyName ?? ""), marginX, 11);
             pdf.setFont("helvetica", "normal");
             pdf.setTextColor(accent);
-            pdf.text("Diagrama BPMN 2.0 — " + title.slice(0, 60), customW / 2, 11, { align: "center" });
+            pdf.text("Diagrama BPMN 2.0 — " + title.slice(0, 60), customW / 2, 11, {
+              align: "center",
+            });
             pdf.setTextColor("#475569");
-            pdf.text(`${code} · v${version} · ${emissao}`, customW - marginX, 11, { align: "right" });
+            pdf.text(`${code} · v${version} · ${emissao}`, customW - marginX, 11, {
+              align: "right",
+            });
 
             // Título da seção
             pdf.setFont("helvetica", "bold");
@@ -374,15 +442,20 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
             const availH = customH - topBand - bottomBand;
             let drawW = availW;
             let drawH = drawW / ratio;
-            if (drawH > availH) { drawH = availH; drawW = drawH * ratio; }
+            if (drawH > availH) {
+              drawH = availH;
+              drawW = drawH * ratio;
+            }
             // Resolução alta o bastante para páginas muito largas.
             const targetPx = Math.max(4000, Math.round(customW * 12));
             const png = await svgToPng(svg, targetPx);
             pdf.addImage(
-              png.dataUrl, "PNG",
+              png.dataUrl,
+              "PNG",
               marginX + (availW - drawW) / 2,
               topBand + (availH - drawH) / 2,
-              drawW, drawH,
+              drawW,
+              drawH,
             );
 
             // Footer
@@ -393,23 +466,30 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
             pdf.setTextColor("#475569");
             pdf.text(stripHtml(footer).slice(0, 90), marginX, customH - 8);
             pdf.text(consultant, customW / 2, customH - 8, { align: "center" });
-            pdf.text(`Página ${pageNum} / ${totalPagesToken}`, customW - marginX, customH - 8, { align: "right" });
+            pdf.text(`Página ${pageNum} / ${totalPagesToken}`, customW - marginX, customH - 8, {
+              align: "right",
+            });
 
             // Volta para página padrão para o próximo bloco.
             addContentPage();
             cursor = contentTop;
           }
         } catch (e: any) {
-          if (cursor > contentBottom - 20) { addContentPage(); cursor = contentTop; }
+          if (cursor > contentBottom - 20) {
+            addContentPage();
+            cursor = contentTop;
+          }
           heading("Diagrama BPMN 2.0");
           paragraph(`[Falha ao renderizar BPMN: ${e?.message ?? "erro"}]`);
         }
       }
 
-
       // -------- LEGEND --------
       if (sections.legend) {
-        if (cursor > contentBottom - 60) { addContentPage(); cursor = contentTop; }
+        if (cursor > contentBottom - 60) {
+          addContentPage();
+          cursor = contentTop;
+        }
         heading("Legenda BPMN");
         const legend: [string, string][] = [
           ["Círculo fino", "Evento Inicial — início do processo"],
@@ -427,7 +507,10 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
           styles: { fontSize: 9, cellPadding: 2 },
           headStyles: { fillColor: hexToRgb(primary), textColor: 255 },
           margin: { left: marginX, right: marginX },
-          didDrawPage: () => { drawHeader(); drawFooter(); },
+          didDrawPage: () => {
+            drawHeader();
+            drawFooter();
+          },
         });
         cursor = (pdf as any).lastAutoTable.finalY + 8;
       }
@@ -438,11 +521,18 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         autoTable(pdf, {
           startY: cursor,
           head: [["Nome", "Unidade", "Meta"]],
-          body: props.indicators!.map((i) => [i.name, i.unit ?? "—", i.target != null ? String(i.target) : "—"]),
+          body: props.indicators!.map((i) => [
+            i.name,
+            i.unit ?? "—",
+            i.target != null ? String(i.target) : "—",
+          ]),
           styles: { fontSize: 9 },
           headStyles: { fillColor: hexToRgb(primary), textColor: 255 },
           margin: { left: marginX, right: marginX },
-          didDrawPage: () => { drawHeader(); drawFooter(); },
+          didDrawPage: () => {
+            drawHeader();
+            drawFooter();
+          },
         });
         cursor = (pdf as any).lastAutoTable.finalY + 8;
       }
@@ -457,7 +547,10 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
           styles: { fontSize: 9 },
           headStyles: { fillColor: hexToRgb(primary), textColor: 255 },
           margin: { left: marginX, right: marginX },
-          didDrawPage: () => { drawHeader(); drawFooter(); },
+          didDrawPage: () => {
+            drawHeader();
+            drawFooter();
+          },
         });
         cursor = (pdf as any).lastAutoTable.finalY + 8;
       }
@@ -468,18 +561,28 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         autoTable(pdf, {
           startY: cursor,
           head: [["Linha", "Produto", "Data"]],
-          body: props.crono!.map((c) => [c.production_line ?? "—", c.product ?? "—", c.observation_date ?? "—"]),
+          body: props.crono!.map((c) => [
+            c.production_line ?? "—",
+            c.product ?? "—",
+            c.observation_date ?? "—",
+          ]),
           styles: { fontSize: 9 },
           headStyles: { fillColor: hexToRgb(primary), textColor: 255 },
           margin: { left: marginX, right: marginX },
-          didDrawPage: () => { drawHeader(); drawFooter(); },
+          didDrawPage: () => {
+            drawHeader();
+            drawFooter();
+          },
         });
         cursor = (pdf as any).lastAutoTable.finalY + 8;
       }
 
       // -------- APPROVAL --------
       if (sections.approval) {
-        if (cursor > contentBottom - 50) { addContentPage(); cursor = contentTop; }
+        if (cursor > contentBottom - 50) {
+          addContentPage();
+          cursor = contentTop;
+        }
         heading("Aprovação");
         cursor += 18;
         const colW = (pageW - marginX * 2 - 20) / 2;
@@ -535,7 +638,8 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
 
         {blocked && (
           <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-            Existem erros críticos no fluxo. Corrija-os no painel de inconsistências antes de exportar.
+            Existem erros críticos no fluxo. Corrija-os no painel de inconsistências antes de
+            exportar.
           </div>
         )}
 
@@ -561,7 +665,9 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
             <div>
               <Label>Tamanho</Label>
               <Select value={format} onValueChange={(v) => setFormat(v as Format)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto">Auto (recomendado)</SelectItem>
                   <SelectItem value="a4">A4</SelectItem>
@@ -573,7 +679,9 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
             <div>
               <Label>Orientação</Label>
               <Select value={orientation} onValueChange={(v) => setOrientation(v as Orientation)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="portrait">Retrato</SelectItem>
                   <SelectItem value="landscape">Paisagem</SelectItem>
@@ -612,9 +720,15 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>
+            Cancelar
+          </Button>
           <Button onClick={generate} disabled={busy || blocked}>
-            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            {busy ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             Gerar PDF
           </Button>
         </DialogFooter>
@@ -630,7 +744,8 @@ function measureSvgAspect(svg: string): number {
   const hMatch = svg.match(/height="([\d.]+)"/);
   const vb = svg.match(/viewBox="([\d.\s-]+)"/);
   if (wMatch && hMatch) {
-    const w = parseFloat(wMatch[1]); const h = parseFloat(hMatch[1]);
+    const w = parseFloat(wMatch[1]);
+    const h = parseFloat(hMatch[1]);
     if (w > 0 && h > 0) return w / h;
   }
   if (vb) {
@@ -640,11 +755,21 @@ function measureSvgAspect(svg: string): number {
   return 16 / 9;
 }
 
-function stripHtml(s: string) { return s.replace(/<[^>]*>/g, "").trim(); }
+function stripHtml(s: string) {
+  return s.replace(/<[^>]*>/g, "").trim();
+}
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
-  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+  const n = parseInt(
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h,
+    16,
+  );
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
@@ -659,16 +784,29 @@ async function loadImage(url?: string | null): Promise<HTMLImageElement | null> 
   });
 }
 
-function safeAddImage(pdf: jsPDF, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+function safeAddImage(
+  pdf: jsPDF,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
   try {
     const c = document.createElement("canvas");
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
     c.getContext("2d")!.drawImage(img, 0, 0);
     pdf.addImage(c.toDataURL("image/png"), "PNG", x, y, w, h);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
-async function svgToPng(svg: string, targetWidthPx: number): Promise<{ dataUrl: string; width: number; height: number }> {
+async function svgToPng(
+  svg: string,
+  targetWidthPx: number,
+): Promise<{ dataUrl: string; width: number; height: number }> {
   // extract intrinsic w/h from SVG for aspect ratio
   const wMatch = svg.match(/width="([\d.]+)"/);
   const hMatch = svg.match(/height="([\d.]+)"/);

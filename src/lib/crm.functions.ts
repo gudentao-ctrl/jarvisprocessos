@@ -58,7 +58,14 @@ const leadSchema = z.object({
   notes: z.string().default(""),
   first_contact_date: z.string().nullable().optional(),
   responsible: z.string().default(""),
-  stage: z.enum(["nao_iniciado", "prospectado", "primeira_reuniao", "apresentacao", "orcamento", "fechamento"]),
+  stage: z.enum([
+    "nao_iniciado",
+    "prospectado",
+    "primeira_reuniao",
+    "apresentacao",
+    "orcamento",
+    "fechamento",
+  ]),
   classification: z.enum(["quente", "medio", "frio"]).default("frio"),
   is_hot: z.boolean().default(false),
   last_contact_at: z.string().nullable().optional(),
@@ -80,7 +87,13 @@ export const listLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
-    const [{ data: leads, error }, { data: acts }, { data: profile }, { data: memberships }, { data: companies }] = await Promise.all([
+    const [
+      { data: leads, error },
+      { data: acts },
+      { data: profile },
+      { data: memberships },
+      { data: companies },
+    ] = await Promise.all([
       sb
         .from("crm_leads")
         .select("*, companies:converted_company_id(id, name)")
@@ -91,16 +104,20 @@ export const listLeads = createServerFn({ method: "GET" })
       sb.from("companies").select("id, name, is_active, created_at").order("name"),
     ]);
     if (error) throw new Error(error.message);
-    const canViewFinance = !!profile?.is_superadmin || (memberships ?? []).some(
-      (m: any) => m.permissions?.financeiro === true,
+    const canViewFinance =
+      !!profile?.is_superadmin ||
+      (memberships ?? []).some((m: any) => m.permissions?.financeiro === true);
+    const safeLeads = (leads ?? []).map((lead: any) =>
+      canViewFinance
+        ? lead
+        : {
+            ...lead,
+            hourly_rate: null,
+            contract_total: null,
+            payment_day: null,
+            payment_due_date: null,
+          },
     );
-    const safeLeads = (leads ?? []).map((lead: any) => canViewFinance ? lead : {
-      ...lead,
-      hourly_rate: null,
-      contract_total: null,
-      payment_day: null,
-      payment_due_date: null,
-    });
     return { leads: safeLeads, activities: acts ?? [], companies: companies ?? [], canViewFinance };
   });
 
@@ -147,7 +164,12 @@ export const saveLead = createServerFn({ method: "POST" })
     let { data: row, error } = await tryDbOp(payload);
 
     // Fallback caso colunas novas ainda não estejam refletidas no cache do PostgREST
-    if (error && (error.code === "PGRST204" || error.message?.includes("column") || error.message?.includes("schema cache"))) {
+    if (
+      error &&
+      (error.code === "PGRST204" ||
+        error.message?.includes("column") ||
+        error.message?.includes("schema cache"))
+    ) {
       const fallbackPayload = { ...payload };
       delete fallbackPayload.origem;
       delete fallbackPayload.quem_indicou;
@@ -189,7 +211,9 @@ export const addLeadActivity = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    const { error } = await sb.from("crm_activities").insert({ ...data, created_by: context.userId });
+    const { error } = await sb
+      .from("crm_activities")
+      .insert({ ...data, created_by: context.userId });
     if (error) throw new Error(error.message);
     await sb.from("crm_leads").update({ last_contact_at: data.occurred_at }).eq("id", data.lead_id);
     return { ok: true };
@@ -209,20 +233,29 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
       sb.from("profiles").select("is_superadmin").eq("user_id", context.userId).maybeSingle(),
       sb.from("company_members").select("permissions").eq("user_id", context.userId),
     ]);
-    const canViewFinance = !!profile?.is_superadmin || (memberships ?? []).some(
-      (m: any) => m.permissions?.financeiro === true,
-    );
-    const [{ data: leads }, { data: dismissed }, { data: hours }, { data: invoices }, { data: payments }] =
-      await Promise.all([
-        sb.from("crm_leads").select("*"),
-        sb.from("alert_dismissals").select("alert_key").eq("dismissed_on", today),
-        sb
-          .from("work_hours")
-          .select("company_id, hours, work_date, billing_status, companies(name)")
-          .neq("billing_status", "faturado"),
-        canViewFinance ? sb.from("invoices").select("company_id, total_amount, companies(name)") : Promise.resolve({ data: [] }),
-        canViewFinance ? sb.from("payments").select("company_id, amount") : Promise.resolve({ data: [] }),
-      ]);
+    const canViewFinance =
+      !!profile?.is_superadmin ||
+      (memberships ?? []).some((m: any) => m.permissions?.financeiro === true);
+    const [
+      { data: leads },
+      { data: dismissed },
+      { data: hours },
+      { data: invoices },
+      { data: payments },
+    ] = await Promise.all([
+      sb.from("crm_leads").select("*"),
+      sb.from("alert_dismissals").select("alert_key").eq("dismissed_on", today),
+      sb
+        .from("work_hours")
+        .select("company_id, hours, work_date, billing_status, companies(name)")
+        .neq("billing_status", "faturado"),
+      canViewFinance
+        ? sb.from("invoices").select("company_id, total_amount, companies(name)")
+        : Promise.resolve({ data: [] }),
+      canViewFinance
+        ? sb.from("payments").select("company_id, amount")
+        : Promise.resolve({ data: [] }),
+    ]);
 
     const alerts: CrmAlert[] = [];
 
@@ -326,7 +359,10 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
     // Saldo devedor / recobrança
     const invByCompany = new Map<string, { name: string; total: number }>();
     for (const i of invoices ?? []) {
-      const cur = invByCompany.get(i.company_id) ?? { name: i.companies?.name ?? "Cliente", total: 0 };
+      const cur = invByCompany.get(i.company_id) ?? {
+        name: i.companies?.name ?? "Cliente",
+        total: 0,
+      };
       cur.total += Number(i.total_amount ?? 0);
       invByCompany.set(i.company_id, cur);
     }
@@ -339,7 +375,8 @@ export const getCrmAlerts = createServerFn({ method: "GET" })
     for (const l of leads ?? []) {
       if (l.converted_company_id && l.payment_due_date) {
         const cur = dueByCompany.get(l.converted_company_id);
-        if (!cur || l.payment_due_date < cur) dueByCompany.set(l.converted_company_id, l.payment_due_date);
+        if (!cur || l.payment_due_date < cur)
+          dueByCompany.set(l.converted_company_id, l.payment_due_date);
       }
     }
 

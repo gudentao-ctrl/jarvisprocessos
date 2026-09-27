@@ -11,7 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader, StatPill, accentBar } from "@/components/mapping/PageHeader";
@@ -22,7 +28,10 @@ export const Route = createFileRoute("/_authenticated/planos-acao/")({
   head: () => ({
     meta: [
       { title: "Planos de Ação — JARVIS" },
-      { name: "description", content: "Ranking de prioridade GUT dos planos de ação da consultoria operacional." },
+      {
+        name: "description",
+        content: "Ranking de prioridade GUT dos planos de ação da consultoria operacional.",
+      },
       { property: "og:title", content: "Planos de Ação — JARVIS" },
       { property: "og:description", content: "Ranking de prioridade GUT dos planos de ação." },
       { property: "og:type", content: "website" },
@@ -31,11 +40,24 @@ export const Route = createFileRoute("/_authenticated/planos-acao/")({
   }),
 });
 
-const STATUS_LABEL: any = { aberto: "Aberto", em_andamento: "Em andamento", concluido: "Concluído" };
+const STATUS_LABEL: any = {
+  aberto: "Aberto",
+  em_andamento: "Em andamento",
+  concluido: "Concluído",
+};
 
-const DEMAND_LABEL: Record<string, string> = { processo: "Processo", pessoas: "Pessoas", negocio: "Negócio" };
+const DEMAND_LABEL: Record<string, string> = {
+  processo: "Processo",
+  pessoas: "Pessoas",
+  negocio: "Negócio",
+};
 
-type Tier = { label: string; accent: "pain" | "time" | "process" | "info"; bar: string; chip: string };
+type Tier = {
+  label: string;
+  accent: "pain" | "time" | "process" | "info";
+  bar: string;
+  chip: string;
+};
 
 function gut(p: any) {
   const g = Number(p?.gravity ?? 0) || 0;
@@ -52,10 +74,33 @@ function priorityFromGut(score: number) {
 }
 
 function tierOf(score: number): Tier {
-  if (score >= 75) return { label: "Crítico", accent: "pain", bar: "bg-map-pain", chip: "bg-map-pain/10 text-map-pain border-map-pain/30" };
-  if (score >= 40) return { label: "Alto", accent: "time", bar: "bg-map-process", chip: "bg-map-process/10 text-map-process border-map-process/30" };
-  if (score >= 15) return { label: "Médio", accent: "info", bar: "bg-map-info", chip: "bg-map-info/10 text-map-info border-map-info/30" };
-  return { label: "Baixo", accent: "process", bar: "bg-muted-foreground/40", chip: "bg-muted text-muted-foreground border-border" };
+  if (score >= 75)
+    return {
+      label: "Crítico",
+      accent: "pain",
+      bar: "bg-map-pain",
+      chip: "bg-map-pain/10 text-map-pain border-map-pain/30",
+    };
+  if (score >= 40)
+    return {
+      label: "Alto",
+      accent: "time",
+      bar: "bg-map-process",
+      chip: "bg-map-process/10 text-map-process border-map-process/30",
+    };
+  if (score >= 15)
+    return {
+      label: "Médio",
+      accent: "info",
+      bar: "bg-map-info",
+      chip: "bg-map-info/10 text-map-info border-map-info/30",
+    };
+  return {
+    label: "Baixo",
+    accent: "process",
+    bar: "bg-muted-foreground/40",
+    chip: "bg-muted text-muted-foreground border-border",
+  };
 }
 
 type FormState = {
@@ -81,13 +126,29 @@ type FormState = {
   demand_type: string;
 };
 
-function GutStepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function GutStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
   const set = (v: number) => onChange(Math.min(5, Math.max(1, v)));
   return (
     <div>
       <Label className="text-xs">{label}</Label>
       <div className="flex items-stretch gap-1">
-        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => set(value - 1)} disabled={value <= 1} aria-label={`Diminuir ${label}`}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={() => set(value - 1)}
+          disabled={value <= 1}
+          aria-label={`Diminuir ${label}`}
+        >
           <Minus className="h-4 w-4" />
         </Button>
         <Input
@@ -98,7 +159,15 @@ function GutStepper({ label, value, onChange }: { label: string; value: number; 
           onChange={(e) => set(Number(e.target.value) || 1)}
           className="w-full text-center tabular-nums"
         />
-        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => set(value + 1)} disabled={value >= 5} aria-label={`Aumentar ${label}`}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={() => set(value + 1)}
+          disabled={value >= 5}
+          aria-label={`Aumentar ${label}`}
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -108,10 +177,25 @@ function GutStepper({ label, value, onChange }: { label: string; value: number; 
 
 function emptyForm(companyId: string | null): FormState {
   return {
-    title: "", description: "", problem: "", cause: "", responsible: "", sector: "", sector_id: "", root_cause_id: "", indicator_id: "",
-    company_id: companyId ?? "", status: "aberto", due_date: "",
-    gravity: 3, urgency: 3, trend: 3,
-    expected_result: "", observations: "", origin: "", demand_type: "processo",
+    title: "",
+    description: "",
+    problem: "",
+    cause: "",
+    responsible: "",
+    sector: "",
+    sector_id: "",
+    root_cause_id: "",
+    indicator_id: "",
+    company_id: companyId ?? "",
+    status: "aberto",
+    due_date: "",
+    gravity: 3,
+    urgency: 3,
+    trend: 3,
+    expected_result: "",
+    observations: "",
+    origin: "",
+    demand_type: "processo",
   };
 }
 
@@ -119,7 +203,11 @@ function PlanosPage() {
   const { companyId } = useActiveCompany();
   const [list, setList] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-  const [linkOptions, setLinkOptions] = useState<{ sectors: any[]; causes: any[]; indicators: any[] }>({ sectors: [], causes: [], indicators: [] });
+  const [linkOptions, setLinkOptions] = useState<{
+    sectors: any[];
+    causes: any[];
+    indicators: any[];
+  }>({ sectors: [], causes: [], indicators: [] });
   const [filter, setFilter] = useState<"all" | "aberto" | "em_andamento" | "concluido">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -130,14 +218,19 @@ function PlanosPage() {
       .then(setList)
       .catch(() => setList([]));
 
-  useEffect(() => { reload(); listCompanies().then(setCompanies); }, [companyId]);
+  useEffect(() => {
+    reload();
+    listCompanies().then(setCompanies);
+  }, [companyId]);
   useEffect(() => {
     if (companyId) setForm((f) => ({ ...f, company_id: f.company_id || companyId }));
   }, [companyId]);
   useEffect(() => {
     const selectedCompany = form.company_id || companyId;
     if (!selectedCompany) return setLinkOptions({ sectors: [], causes: [], indicators: [] });
-    getActionPlanLinkOptions({ data: { company_id: selectedCompany } }).then(setLinkOptions).catch(() => setLinkOptions({ sectors: [], causes: [], indicators: [] }));
+    getActionPlanLinkOptions({ data: { company_id: selectedCompany } })
+      .then(setLinkOptions)
+      .catch(() => setLinkOptions({ sectors: [], causes: [], indicators: [] }));
   }, [form.company_id, companyId]);
 
   function openNew() {
@@ -202,14 +295,19 @@ function PlanosPage() {
       setOpen(false);
       setForm(emptyForm(companyId));
       reload();
-    } catch (e: any) { console.error(e); toast.error(e?.message ?? "Erro ao salvar plano"); }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Erro ao salvar plano");
+    }
   }
 
   async function updateStatus(p: any, status: string) {
     try {
       await saveActionPlan({ data: { id: p.id, title: p.title, status: status as any } });
       reload();
-    } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
   }
 
   async function remove(p: any) {
@@ -218,7 +316,9 @@ function PlanosPage() {
       await deleteActionPlan({ data: { id: p.id } });
       toast.success("Excluído");
       reload();
-    } catch (e: any) { toast.error(e?.message ?? "Erro ao excluir"); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao excluir");
+    }
   }
 
   const ranked = useMemo(() => {
@@ -257,7 +357,11 @@ function PlanosPage() {
         subtitle="Priorização por matriz GUT (Gravidade × Urgência × Tendência)"
         icon={ClipboardList}
         accent="pain"
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo</Button>}
+        actions={
+          <Button onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" /> Novo
+          </Button>
+        }
         stats={
           <>
             <StatPill label="Em aberto" value={abertos} accent="process" />
@@ -268,73 +372,246 @@ function PlanosPage() {
         }
       />
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setForm(emptyForm(companyId)); }}>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) setForm(emptyForm(companyId));
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{isEdit ? "Editar plano de ação" : "Novo plano de ação"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 max-h-[70vh] overflow-y-auto">
-            <div><Label>Empresa *</Label>
-              <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v, sector: "", sector_id: "", root_cause_id: "", indicator_id: "" })}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{companies.filter((c) => c.is_active !== false).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            <div>
+              <Label>Empresa *</Label>
+              <Select
+                value={form.company_id}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    company_id: v,
+                    sector: "",
+                    sector_id: "",
+                    root_cause_id: "",
+                    indicator_id: "",
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies
+                    .filter((c) => c.is_active !== false)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>1. Setor responsável *</Label>
-              <Select value={form.sector_id} onValueChange={(v) => { const sector = linkOptions.sectors.find((item) => item.id === v); setForm({ ...form, sector_id: v, sector: sector?.name ?? "" }); }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a frente" /></SelectTrigger>
-                <SelectContent>{linkOptions.sectors.map((sector) => <SelectItem key={sector.id} value={sector.id}>{sector.name}</SelectItem>)}</SelectContent>
+            <div>
+              <Label>1. Setor responsável *</Label>
+              <Select
+                value={form.sector_id}
+                onValueChange={(v) => {
+                  const sector = linkOptions.sectors.find((item) => item.id === v);
+                  setForm({ ...form, sector_id: v, sector: sector?.name ?? "" });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a frente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {linkOptions.sectors.map((sector) => (
+                    <SelectItem key={sector.id} value={sector.id}>
+                      {sector.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>2. Ação *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="O que será feito?" /></div>
-            <div><Label>3. Vínculo com problema raiz</Label>
-              <Select value={form.root_cause_id || "none"} onValueChange={(v) => setForm({ ...form, root_cause_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent><SelectItem value="none">Sem vínculo</SelectItem>{linkOptions.causes.map((cause) => <SelectItem key={cause.id} value={cause.id}>{cause.problem}</SelectItem>)}</SelectContent>
+            <div>
+              <Label>2. Ação *</Label>
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="O que será feito?"
+              />
+            </div>
+            <div>
+              <Label>3. Vínculo com problema raiz</Label>
+              <Select
+                value={form.root_cause_id || "none"}
+                onValueChange={(v) => setForm({ ...form, root_cause_id: v === "none" ? "" : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem vínculo</SelectItem>
+                  {linkOptions.causes.map((cause) => (
+                    <SelectItem key={cause.id} value={cause.id}>
+                      {cause.problem}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Indicador relacionado</Label>
-              <Select value={form.indicator_id || "none"} onValueChange={(v) => setForm({ ...form, indicator_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent><SelectItem value="none">Sem vínculo</SelectItem>{linkOptions.indicators.map((indicator) => <SelectItem key={indicator.id} value={indicator.id}>{indicator.code ? `${indicator.code} · ` : ""}{indicator.name}</SelectItem>)}</SelectContent>
+            <div>
+              <Label>Indicador relacionado</Label>
+              <Select
+                value={form.indicator_id || "none"}
+                onValueChange={(v) => setForm({ ...form, indicator_id: v === "none" ? "" : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem vínculo</SelectItem>
+                  {linkOptions.indicators.map((indicator) => (
+                    <SelectItem key={indicator.id} value={indicator.id}>
+                      {indicator.code ? `${indicator.code} · ` : ""}
+                      {indicator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Origem</Label><Input placeholder="Entrevista, cronoanálise, indicador..." value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} /></div>
-            <div><Label>Tipo de demanda *</Label>
-              <Select value={form.demand_type} onValueChange={(v) => setForm({ ...form, demand_type: v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{Object.entries(DEMAND_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+            <div>
+              <Label>Origem</Label>
+              <Input
+                placeholder="Entrevista, cronoanálise, indicador..."
+                value={form.origin}
+                onChange={(e) => setForm({ ...form, origin: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Tipo de demanda *</Label>
+              <Select
+                value={form.demand_type}
+                onValueChange={(v) => setForm({ ...form, demand_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DEMAND_LABEL).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Problema</Label><Textarea rows={2} value={form.problem} onChange={(e) => setForm({ ...form, problem: e.target.value })} /></div>
-            <div><Label>Causa</Label><Textarea rows={2} value={form.cause} onChange={(e) => setForm({ ...form, cause: e.target.value })} /></div>
-            <div><Label>Descrição / Ação</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-            <div><Label>Resultado esperado</Label><Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} /></div>
+            <div>
+              <Label>Problema</Label>
+              <Textarea
+                rows={2}
+                value={form.problem}
+                onChange={(e) => setForm({ ...form, problem: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Causa</Label>
+              <Textarea
+                rows={2}
+                value={form.cause}
+                onChange={(e) => setForm({ ...form, cause: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Descrição / Ação</Label>
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Resultado esperado</Label>
+              <Textarea
+                rows={2}
+                value={form.expected_result}
+                onChange={(e) => setForm({ ...form, expected_result: e.target.value })}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Responsável</Label><Input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
-              <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+              <div>
+                <Label>Responsável</Label>
+                <Input
+                  value={form.responsible}
+                  onChange={(e) => setForm({ ...form, responsible: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Prazo</Label>
+                <Input
+                  type="date"
+                  value={form.due_date}
+                  onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                />
+              </div>
             </div>
             <div className="rounded-xl border p-3 bg-muted/30">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-semibold">Matriz GUT (1–5)</p>
-                <span className={cn("rounded-full border px-2 py-0.5 text-xs font-black tabular-nums", tierOf(form.gravity * form.urgency * form.trend).chip)}>
-                  {form.gravity * form.urgency * form.trend} · {tierOf(form.gravity * form.urgency * form.trend).label}
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-xs font-black tabular-nums",
+                    tierOf(form.gravity * form.urgency * form.trend).chip,
+                  )}
+                >
+                  {form.gravity * form.urgency * form.trend} ·{" "}
+                  {tierOf(form.gravity * form.urgency * form.trend).label}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <GutStepper label="Gravidade" value={form.gravity} onChange={(v) => setForm({ ...form, gravity: v })} />
-                <GutStepper label="Urgência" value={form.urgency} onChange={(v) => setForm({ ...form, urgency: v })} />
-                <GutStepper label="Tendência" value={form.trend} onChange={(v) => setForm({ ...form, trend: v })} />
+                <GutStepper
+                  label="Gravidade"
+                  value={form.gravity}
+                  onChange={(v) => setForm({ ...form, gravity: v })}
+                />
+                <GutStepper
+                  label="Urgência"
+                  value={form.urgency}
+                  onChange={(v) => setForm({ ...form, urgency: v })}
+                />
+                <GutStepper
+                  label="Tendência"
+                  value={form.trend}
+                  onChange={(v) => setForm({ ...form, trend: v })}
+                />
               </div>
             </div>
-            <div><Label>Status</Label>
+            <div>
+              <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>
+                      {v as string}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Observações</Label><Textarea rows={2} value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} /></div>
-            <Button onClick={submit} className="w-full min-h-11">{isEdit ? "Salvar alterações" : "Criar"}</Button>
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                rows={2}
+                value={form.observations}
+                onChange={(e) => setForm({ ...form, observations: e.target.value })}
+              />
+            </div>
+            <Button onClick={submit} className="w-full min-h-11">
+              {isEdit ? "Salvar alterações" : "Criar"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -356,7 +633,9 @@ function PlanosPage() {
               onClick={() => setFilter(f)}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                filter === f ? "border-primary bg-primary text-primary-foreground" : "hover:bg-secondary",
+                filter === f
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "hover:bg-secondary",
               )}
             >
               {f === "all" ? "Todos" : STATUS_LABEL[f]}
@@ -371,7 +650,11 @@ function PlanosPage() {
           accent="pain"
           title="Nenhum plano encontrado"
           description="Crie um plano de ação para começar a priorizar as melhorias."
-          action={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo plano</Button>}
+          action={
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-1" /> Novo plano
+            </Button>
+          }
         />
       ) : (
         <div className="space-y-2">
@@ -387,7 +670,12 @@ function PlanosPage() {
                   done && "opacity-70",
                 )}
               >
-                <span className={cn("absolute inset-y-0 left-0 w-1.5", done ? "bg-muted-foreground/30" : tier.bar)} />
+                <span
+                  className={cn(
+                    "absolute inset-y-0 left-0 w-1.5",
+                    done ? "bg-muted-foreground/30" : tier.bar,
+                  )}
+                />
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   <div className="flex shrink-0 items-center gap-3">
                     <div
@@ -397,7 +685,9 @@ function PlanosPage() {
                       )}
                       title={`GUT ${p._gut} · G${p.gravity ?? "-"} U${p.urgency ?? "-"} T${p.trend ?? "-"}`}
                     >
-                      <span className="text-base font-black leading-none tabular-nums">{p._gut || "—"}</span>
+                      <span className="text-base font-black leading-none tabular-nums">
+                        {p._gut || "—"}
+                      </span>
                       <span className="text-[9px] font-bold uppercase tracking-wide">GUT</span>
                     </div>
                     <div className="sm:hidden">
@@ -416,8 +706,14 @@ function PlanosPage() {
                           {top3 ? <Trophy className="h-3 w-3 text-map-time" /> : null}#{p._rank}
                         </span>
                       )}
-                      <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase", tier.chip)}>
-                        {p._gut >= 75 && <Flame className="h-3 w-3" />}{tier.label}
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                          tier.chip,
+                        )}
+                      >
+                        {p._gut >= 75 && <Flame className="h-3 w-3" />}
+                        {tier.label}
                       </span>
                       {p.demand_type && (
                         <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
@@ -426,28 +722,59 @@ function PlanosPage() {
                       )}
                       <p className={cn("font-semibold", done && "line-through")}>{p.title}</p>
                     </div>
-                    {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
+                    {p.description && (
+                      <p className="text-sm text-muted-foreground">{p.description}</p>
+                    )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       {p.companies?.name && `${p.companies.name} · `}
-                      {p.processes?.name && (<>Processo: <Link to="/processos/$id" params={{ id: p.process_id }} className="text-primary hover:underline">{p.processes.name}</Link> · </>)}
+                      {p.processes?.name && (
+                        <>
+                          Processo:{" "}
+                          <Link
+                            to="/processos/$id"
+                            params={{ id: p.process_id }}
+                            className="text-primary hover:underline"
+                          >
+                            {p.processes.name}
+                          </Link>{" "}
+                          ·{" "}
+                        </>
+                      )}
                       {p.sector && `${p.sector} · `}
                       {p.responsible && `${p.responsible} · `}
                       {p.due_date && `prazo ${p.due_date}`}
                     </p>
                     <div className="mt-2 flex items-center gap-3 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      <span>G <b className="text-foreground tabular-nums">{p.gravity ?? "—"}</b></span>
-                      <span>U <b className="text-foreground tabular-nums">{p.urgency ?? "—"}</b></span>
-                      <span>T <b className="text-foreground tabular-nums">{p.trend ?? "—"}</b></span>
+                      <span>
+                        G <b className="text-foreground tabular-nums">{p.gravity ?? "—"}</b>
+                      </span>
+                      <span>
+                        U <b className="text-foreground tabular-nums">{p.urgency ?? "—"}</b>
+                      </span>
+                      <span>
+                        T <b className="text-foreground tabular-nums">{p.trend ?? "—"}</b>
+                      </span>
                       <div className="hidden h-1.5 flex-1 overflow-hidden rounded-full bg-muted sm:block">
-                        <div className={cn("h-full rounded-full", tier.bar)} style={{ width: `${Math.min(100, (p._gut / 125) * 100)}%` }} />
+                        <div
+                          className={cn("h-full rounded-full", tier.bar)}
+                          style={{ width: `${Math.min(100, (p._gut / 125) * 100)}%` }}
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1">
                     <Select value={p.status} onValueChange={(v) => updateStatus(p, v)}>
-                      <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                      <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v as string}</SelectItem>)}</SelectContent>
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>
+                            {v as string}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                     <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Editar">
                       <Pencil className="h-4 w-4" />

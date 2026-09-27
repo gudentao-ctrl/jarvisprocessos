@@ -17,7 +17,10 @@ function condenseContext(ctx: unknown, max = 24000): string {
 
 /** Extrai o primeiro objeto JSON válido (tolera cercas/ruído). */
 function extractJson(raw: string): any {
-  const s = String(raw ?? "").replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const s = String(raw ?? "")
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
   try {
     return JSON.parse(s);
   } catch {
@@ -61,8 +64,6 @@ async function callAstraResponses(prompt: string) {
   return content;
 }
 
-
-
 /* ============================================================
  * ANÁLISE CRÍTICA DE PROCESSO → gera oportunidades
  * ============================================================ */
@@ -71,9 +72,17 @@ const FindingSchema = z.object({
   title: z.string(),
   description: z.string(),
   category: z.enum([
-    "desperdicio", "gargalo", "retrabalho", "nva", "aprovacao_excesso",
-    "transferencia_excesso", "conflito_responsabilidade", "ausencia_indicador",
-    "ausencia_responsavel", "dependencia_pessoa", "risco",
+    "desperdicio",
+    "gargalo",
+    "retrabalho",
+    "nva",
+    "aprovacao_excesso",
+    "transferencia_excesso",
+    "conflito_responsabilidade",
+    "ausencia_indicador",
+    "ausencia_responsavel",
+    "dependencia_pessoa",
+    "risco",
   ]),
   expected_benefit: z.string().default(""),
   effort: z.enum(["baixo", "medio", "alto"]).default("medio"),
@@ -87,17 +96,50 @@ export const analyzeProcessCritically = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ process_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: proc, error } = await context.supabase
-      .from("processes").select("*, companies(name)").eq("id", data.process_id).single();
+      .from("processes")
+      .select("*, companies(name)")
+      .eq("id", data.process_id)
+      .single();
     if (error) throw new Error(error.message);
 
-    const [{ data: acts }, { data: edges }, { data: inds }, { data: cronos }, { data: pains }, { data: info }, { data: dec }] = await Promise.all([
-      context.supabase.from("process_activities").select("type,title,responsible,area,time_minutes,description").eq("process_id", data.process_id).order("ordering"),
-      context.supabase.from("process_edges").select("source_id,target_id,label").eq("process_id", data.process_id),
-      context.supabase.from("indicators").select("name,target,unit,frequency").eq("process_id", data.process_id),
-      context.supabase.from("cronoanalysis_sessions").select("activity_name,observation_date").eq("process_id", data.process_id),
-      context.supabase.from("pain_points").select("description,category").eq("company_id", proc.company_id),
-      context.supabase.from("process_information_map").select("info_name,source,destination").eq("process_id", data.process_id),
-      context.supabase.from("process_decision_map").select("decision,criteria,responsible").eq("process_id", data.process_id),
+    const [
+      { data: acts },
+      { data: edges },
+      { data: inds },
+      { data: cronos },
+      { data: pains },
+      { data: info },
+      { data: dec },
+    ] = await Promise.all([
+      context.supabase
+        .from("process_activities")
+        .select("type,title,responsible,area,time_minutes,description")
+        .eq("process_id", data.process_id)
+        .order("ordering"),
+      context.supabase
+        .from("process_edges")
+        .select("source_id,target_id,label")
+        .eq("process_id", data.process_id),
+      context.supabase
+        .from("indicators")
+        .select("name,target,unit,frequency")
+        .eq("process_id", data.process_id),
+      context.supabase
+        .from("cronoanalysis_sessions")
+        .select("activity_name,observation_date")
+        .eq("process_id", data.process_id),
+      context.supabase
+        .from("pain_points")
+        .select("description,category")
+        .eq("company_id", proc.company_id),
+      context.supabase
+        .from("process_information_map")
+        .select("info_name,source,destination")
+        .eq("process_id", data.process_id),
+      context.supabase
+        .from("process_decision_map")
+        .select("decision,criteria,responsible")
+        .eq("process_id", data.process_id),
     ]);
 
     const ctx = {
@@ -123,7 +165,11 @@ Responda APENAS JSON: { "findings": [ { "title", "description", "category", "exp
 
     const raw = await callGateway(systemPrompt, condenseContext(ctx));
     let parsed;
-    try { parsed = AnalysisSchema.parse(extractJson(raw)); } catch { throw new Error("Resposta da IA inválida."); }
+    try {
+      parsed = AnalysisSchema.parse(extractJson(raw));
+    } catch {
+      throw new Error("Resposta da IA inválida.");
+    }
 
     // Persist as opportunities (status sugerida, source ia)
     const inserts = parsed.findings.map((f) => {
@@ -131,12 +177,22 @@ Responda APENAS JSON: { "findings": [ { "title", "description", "category", "exp
       const effortMap: Record<string, number> = { baixo: 3, medio: 2, alto: 1 };
       const score = impactMap[f.impact] * 3 + effortMap[f.effort] * 2;
       let priority: "baixa" | "media" | "alta" | "critica" = "media";
-      if (score >= 14) priority = "critica"; else if (score >= 11) priority = "alta"; else if (score < 7) priority = "baixa";
+      if (score >= 14) priority = "critica";
+      else if (score >= 11) priority = "alta";
+      else if (score < 7) priority = "baixa";
       return {
-        company_id: proc.company_id, process_id: proc.id,
-        title: f.title, description: f.description, category: f.category,
-        expected_benefit: f.expected_benefit, effort: f.effort, impact: f.impact,
-        priority_score: score, priority, status: "sugerida" as const, source: "ia" as const,
+        company_id: proc.company_id,
+        process_id: proc.id,
+        title: f.title,
+        description: f.description,
+        category: f.category,
+        expected_benefit: f.expected_benefit,
+        effort: f.effort,
+        impact: f.impact,
+        priority_score: score,
+        priority,
+        status: "sugerida" as const,
+        source: "ia" as const,
         created_by: context.userId,
       };
     });
@@ -152,15 +208,50 @@ export const generateExecutiveDiagnostic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const [{ data: comp }, { data: pains }, { data: procs }, { data: opps }, { data: rcas }, { data: cronos }, { data: interviews }, { data: previousDiagnostics }] = await Promise.all([
+    const [
+      { data: comp },
+      { data: pains },
+      { data: procs },
+      { data: opps },
+      { data: rcas },
+      { data: cronos },
+      { data: interviews },
+      { data: previousDiagnostics },
+    ] = await Promise.all([
       context.supabase.from("companies").select("name").eq("id", data.company_id).single(),
-      context.supabase.from("pain_points").select("description,category,severity").eq("company_id", data.company_id),
-      context.supabase.from("processes").select("name,level,kind").eq("company_id", data.company_id),
-      context.supabase.from("improvement_opportunities").select("title,description,category,priority,status,expected_benefit").eq("company_id", data.company_id),
-      context.supabase.from("root_cause_analyses").select("problem,method,conclusion").eq("company_id", data.company_id),
-      context.supabase.from("cronoanalysis_sessions").select("activity_name,total_observations").eq("company_id", data.company_id),
-      context.supabase.from("interviews").select("id,title,participant,interview_date,interview_analysis(summary,insights,critical_points,pains,problems,decisions,flows,systems)").eq("company_id", data.company_id).order("interview_date"),
-      context.supabase.from("executive_diagnostics").select("title,content,generated_at").eq("company_id", data.company_id).order("generated_at").limit(20),
+      context.supabase
+        .from("pain_points")
+        .select("description,category,severity")
+        .eq("company_id", data.company_id),
+      context.supabase
+        .from("processes")
+        .select("name,level,kind")
+        .eq("company_id", data.company_id),
+      context.supabase
+        .from("improvement_opportunities")
+        .select("title,description,category,priority,status,expected_benefit")
+        .eq("company_id", data.company_id),
+      context.supabase
+        .from("root_cause_analyses")
+        .select("problem,method,conclusion")
+        .eq("company_id", data.company_id),
+      context.supabase
+        .from("cronoanalysis_sessions")
+        .select("activity_name,total_observations")
+        .eq("company_id", data.company_id),
+      context.supabase
+        .from("interviews")
+        .select(
+          "id,title,participant,interview_date,interview_analysis(summary,insights,critical_points,pains,problems,decisions,flows,systems)",
+        )
+        .eq("company_id", data.company_id)
+        .order("interview_date"),
+      context.supabase
+        .from("executive_diagnostics")
+        .select("title,content,generated_at")
+        .eq("company_id", data.company_id)
+        .order("generated_at")
+        .limit(20),
     ]);
 
     const ctx = {
@@ -202,7 +293,11 @@ Os seis pilares são: Clareza dos objetivos da empresa; Relacionamento interpess
 Dados reais da empresa:
 ${condenseContext(ctx, 30000)}`;
 
-    const PillarSchema = z.object({ positivos: z.array(z.string()), problemas: z.array(z.string()), intervencoes: z.array(z.string()) });
+    const PillarSchema = z.object({
+      positivos: z.array(z.string()),
+      problemas: z.array(z.string()),
+      intervencoes: z.array(z.string()),
+    });
     const ExecutiveSchema = z.object({
       resumo: z.string(),
       pilares: z.object({
@@ -215,19 +310,24 @@ ${condenseContext(ctx, 30000)}`;
       }),
     });
     let content: z.infer<typeof ExecutiveSchema>;
-    try { content = ExecutiveSchema.parse(extractJson(await callAstraResponses(prompt))); }
-    catch (error) {
+    try {
+      content = ExecutiveSchema.parse(extractJson(await callAstraResponses(prompt)));
+    } catch (error) {
       if (error instanceof Error && !error.message.includes("JSON")) throw error;
       throw new Error("A resposta do diagnóstico não veio no formato esperado.");
     }
 
-    const { data: row, error } = await context.supabase.from("executive_diagnostics").insert({
-      company_id: data.company_id,
-      title: `Diagnóstico Executivo — ${comp?.name ?? ""}`,
-      content: content as never,
-      generated_at: new Date().toISOString(),
-      created_by: context.userId,
-    }).select().single();
+    const { data: row, error } = await context.supabase
+      .from("executive_diagnostics")
+      .insert({
+        company_id: data.company_id,
+        title: `Diagnóstico Executivo — ${comp?.name ?? ""}`,
+        content: content as never,
+        generated_at: new Date().toISOString(),
+        created_by: context.userId,
+      })
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -239,32 +339,48 @@ ${condenseContext(ctx, 30000)}`;
 const TobeSuggestionSchema = z.object({
   process_name: z.string(),
   description: z.string().default(""),
-  activities: z.array(z.object({
-    type: z.enum(["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"]),
-    title: z.string(),
-    responsible: z.string().default(""),
-    area: z.string().default(""),
-    time_minutes: z.number().default(0),
-    notes: z.string().default(""),
-  })),
-  changes: z.array(z.object({
-    change_type: z.enum(["added", "removed", "modified", "simplified"]),
-    target_ref: z.string(),
-    problem_addressed: z.string(),
-    expected_benefit: z.string(),
-  })).default([]),
+  activities: z.array(
+    z.object({
+      type: z.enum(["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"]),
+      title: z.string(),
+      responsible: z.string().default(""),
+      area: z.string().default(""),
+      time_minutes: z.number().default(0),
+      notes: z.string().default(""),
+    }),
+  ),
+  changes: z
+    .array(
+      z.object({
+        change_type: z.enum(["added", "removed", "modified", "simplified"]),
+        target_ref: z.string(),
+        problem_addressed: z.string(),
+        expected_benefit: z.string(),
+      }),
+    )
+    .default([]),
 });
 
 export const suggestTobeFromAsIs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ process_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: proc } = await context.supabase.from("processes").select("*").eq("id", data.process_id).single();
+    const { data: proc } = await context.supabase
+      .from("processes")
+      .select("*")
+      .eq("id", data.process_id)
+      .single();
     if (!proc) throw new Error("Processo não encontrado");
-    const { data: acts } = await context.supabase.from("process_activities")
-      .select("type,title,responsible,area,time_minutes,notes").eq("process_id", data.process_id).order("ordering");
-    const { data: opps } = await context.supabase.from("improvement_opportunities")
-      .select("title,description,category,expected_benefit").eq("process_id", data.process_id).in("status", ["sugerida", "aprovada"]);
+    const { data: acts } = await context.supabase
+      .from("process_activities")
+      .select("type,title,responsible,area,time_minutes,notes")
+      .eq("process_id", data.process_id)
+      .order("ordering");
+    const { data: opps } = await context.supabase
+      .from("improvement_opportunities")
+      .select("title,description,category,expected_benefit")
+      .eq("process_id", data.process_id)
+      .in("status", ["sugerida", "aprovada"]);
 
     const systemPrompt = `Você é um consultor de redesenho de processos. Proponha um TO BE para o processo a seguir, considerando as oportunidades já levantadas.
 
@@ -276,6 +392,22 @@ REGRAS:
 
 Responda APENAS JSON: { "process_name", "description", "activities": [...], "changes": [...] }`;
 
-    const raw = await callGateway(systemPrompt, condenseContext({ processo: { name: proc.name, objective: proc.objective, responsible: proc.responsible, description: condense(String(proc.description ?? ""), 3000) }, atividades_as_is: (acts ?? []).slice(0, 150), oportunidades: (opps ?? []).slice(0, 60) }));
-    try { return TobeSuggestionSchema.parse(extractJson(raw)); } catch { throw new Error("Resposta da IA inválida."); }
+    const raw = await callGateway(
+      systemPrompt,
+      condenseContext({
+        processo: {
+          name: proc.name,
+          objective: proc.objective,
+          responsible: proc.responsible,
+          description: condense(String(proc.description ?? ""), 3000),
+        },
+        atividades_as_is: (acts ?? []).slice(0, 150),
+        oportunidades: (opps ?? []).slice(0, 60),
+      }),
+    );
+    try {
+      return TobeSuggestionSchema.parse(extractJson(raw));
+    } catch {
+      throw new Error("Resposta da IA inválida.");
+    }
   });

@@ -5,9 +5,24 @@ import { ArrowRight, ClipboardList, BarChart3, Inbox } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/projetos/$id/execucao")({
   component: () => {
     const items = [
-      { label: "Planos de ação", description: "Ações em andamento e atrasadas", to: "/planos-acao", icon: ClipboardList },
-      { label: "Indicadores", description: "Indicadores e metas", to: "/indicadores", icon: BarChart3 },
-      { label: "Coletas", description: "Pendências e envios recentes", to: "/indicadores", icon: Inbox },
+      {
+        label: "Planos de ação",
+        description: "Ações em andamento e atrasadas",
+        to: "/planos-acao",
+        icon: ClipboardList,
+      },
+      {
+        label: "Indicadores",
+        description: "Indicadores e metas",
+        to: "/indicadores",
+        icon: BarChart3,
+      },
+      {
+        label: "Coletas",
+        description: "Pendências e envios recentes",
+        to: "/indicadores",
+        icon: Inbox,
+      },
     ];
     return (
       <div className="grid gap-3 sm:grid-cols-2">

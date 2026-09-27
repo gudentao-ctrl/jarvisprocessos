@@ -19,18 +19,50 @@ function compactContext(sb: any, from: string, to: string, company_id: string) {
   // We re-fetch here but with tighter projections to keep tokens small
   return Promise.all([
     sb.from("companies").select("name").eq("id", company_id).maybeSingle(),
-    sb.from("interviews").select("title,participant,interview_date,status").eq("company_id", company_id)
-      .gte("interview_date", from).lte("interview_date", to).limit(30),
+    sb
+      .from("interviews")
+      .select("title,participant,interview_date,status")
+      .eq("company_id", company_id)
+      .gte("interview_date", from)
+      .lte("interview_date", to)
+      .limit(30),
     sb.from("processes").select("name,status,objective").eq("company_id", company_id).limit(40),
-    sb.from("cronoanalysis_sessions").select("product,observation_date,machine").eq("company_id", company_id)
-      .gte("observation_date", from).lte("observation_date", to).limit(20),
-    sb.from("indicators").select("code,name,unit,target,direction").eq("company_id", company_id).limit(40),
-    sb.from("action_plans").select("title,status,priority,responsible,due_date").eq("company_id", company_id).limit(60),
-    sb.from("calendar_events").select("title,event_type,starts_at").eq("company_id", company_id)
-      .gte("starts_at", `${from}T00:00:00Z`).lte("starts_at", `${to}T23:59:59Z`).limit(40),
-    sb.from("work_hours").select("work_date,hours,activity_type,responsible").eq("company_id", company_id)
-      .gte("work_date", from).lte("work_date", to).limit(80),
-    sb.from("improvement_opportunities").select("title,category,status,expected_impact").eq("company_id", company_id).limit(40),
+    sb
+      .from("cronoanalysis_sessions")
+      .select("product,observation_date,machine")
+      .eq("company_id", company_id)
+      .gte("observation_date", from)
+      .lte("observation_date", to)
+      .limit(20),
+    sb
+      .from("indicators")
+      .select("code,name,unit,target,direction")
+      .eq("company_id", company_id)
+      .limit(40),
+    sb
+      .from("action_plans")
+      .select("title,status,priority,responsible,due_date")
+      .eq("company_id", company_id)
+      .limit(60),
+    sb
+      .from("calendar_events")
+      .select("title,event_type,starts_at")
+      .eq("company_id", company_id)
+      .gte("starts_at", `${from}T00:00:00Z`)
+      .lte("starts_at", `${to}T23:59:59Z`)
+      .limit(40),
+    sb
+      .from("work_hours")
+      .select("work_date,hours,activity_type,responsible")
+      .eq("company_id", company_id)
+      .gte("work_date", from)
+      .lte("work_date", to)
+      .limit(80),
+    sb
+      .from("improvement_opportunities")
+      .select("title,category,status,expected_impact")
+      .eq("company_id", company_id)
+      .limit(40),
   ]);
 }
 
@@ -86,7 +118,10 @@ Retorne JSON válido no formato:
             model,
             messages: [
               { role: "system", content: systemPrompt },
-              { role: "user", content: `Dados (JSON):\n${contextBlock}\n\nGere o relatório em JSON estrito.` },
+              {
+                role: "user",
+                content: `Dados (JSON):\n${contextBlock}\n\nGere o relatório em JSON estrito.`,
+              },
             ],
             response_format: { type: "json_object" },
           }),
@@ -100,7 +135,10 @@ Retorne JSON válido no formato:
         }
         const json = (await res.json()) as any;
         const content = json.choices?.[0]?.message?.content?.trim() ?? "";
-        if (!content) { lastErr = `[${model}] vazio`; continue; }
+        if (!content) {
+          lastErr = `[${model}] vazio`;
+          continue;
+        }
         try {
           const parsed = JSON.parse(content);
           return {
@@ -108,9 +146,15 @@ Retorne JSON válido no formato:
             resumo_executivo: String(parsed.resumo_executivo ?? ""),
             gargalos: Array.isArray(parsed.gargalos) ? parsed.gargalos.map(String) : [],
             riscos: Array.isArray(parsed.riscos) ? parsed.riscos.map(String) : [],
-            oportunidades: Array.isArray(parsed.oportunidades) ? parsed.oportunidades.map(String) : [],
-            proximos_passos: Array.isArray(parsed.proximos_passos) ? parsed.proximos_passos.map(String) : [],
-            recomendacoes: Array.isArray(parsed.recomendacoes) ? parsed.recomendacoes.map(String) : [],
+            oportunidades: Array.isArray(parsed.oportunidades)
+              ? parsed.oportunidades.map(String)
+              : [],
+            proximos_passos: Array.isArray(parsed.proximos_passos)
+              ? parsed.proximos_passos.map(String)
+              : [],
+            recomendacoes: Array.isArray(parsed.recomendacoes)
+              ? parsed.recomendacoes.map(String)
+              : [],
           };
         } catch {
           lastErr = `[${model}] JSON inválido`;

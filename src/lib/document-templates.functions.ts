@@ -29,20 +29,22 @@ export const getTemplateForCompany = createServerFn({ method: "POST" })
 export const saveTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      company_id: z.string().uuid().nullable(),
-      name: z.string().default("Template"),
-      consultancy_logo_url: z.string().nullable().default(null),
-      client_logo_url: z.string().nullable().default(null),
-      header_html: z.string().default(""),
-      footer_html: z.string().default(""),
-      primary_color: z.string().default("#0f172a"),
-      accent_color: z.string().default("#3b82f6"),
-      font_family: z.string().default("Inter, system-ui, sans-serif"),
-      code_prefix: z.string().default("DOC"),
-      numbering_seed: z.number().int().default(1),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        company_id: z.string().uuid().nullable(),
+        name: z.string().default("Template"),
+        consultancy_logo_url: z.string().nullable().default(null),
+        client_logo_url: z.string().nullable().default(null),
+        header_html: z.string().default(""),
+        footer_html: z.string().default(""),
+        primary_color: z.string().default("#0f172a"),
+        accent_color: z.string().default("#3b82f6"),
+        font_family: z.string().default("Inter, system-ui, sans-serif"),
+        code_prefix: z.string().default("DOC"),
+        numbering_seed: z.number().int().default(1),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;

@@ -29,10 +29,14 @@ function anchor(box: Box, port: Port, idx: number, count: number): Pt {
   const step = count > 1 ? usable / (count - 1) : 0;
   const off = count > 1 ? -usable / 2 + idx * step : 0;
   switch (port) {
-    case "L": return { x: box.x, y: box.y + box.h / 2 + off };
-    case "R": return { x: box.x + box.w, y: box.y + box.h / 2 + off };
-    case "T": return { x: box.x + box.w / 2 + off, y: box.y };
-    case "B": return { x: box.x + box.w / 2 + off, y: box.y + box.h };
+    case "L":
+      return { x: box.x, y: box.y + box.h / 2 + off };
+    case "R":
+      return { x: box.x + box.w, y: box.y + box.h / 2 + off };
+    case "T":
+      return { x: box.x + box.w / 2 + off, y: box.y };
+    case "B":
+      return { x: box.x + box.w / 2 + off, y: box.y + box.h };
   }
 }
 
@@ -62,12 +66,7 @@ function chooseSides(s: Box, t: Box, ctx: EdgeCtx): { sp: Port; tp: Port } {
   return { sp: "L", tp: "R" };
 }
 
-export function routeEdge(
-  source: Box,
-  target: Box,
-  ctx: EdgeCtx,
-  allBoxes: Box[],
-): Pt[] {
+export function routeEdge(source: Box, target: Box, ctx: EdgeCtx, allBoxes: Box[]): Pt[] {
   const { sp, tp } = chooseSides(source, target, ctx);
 
   const sPt = anchor(source, sp, ctx.sourceIndex, ctx.sourceCount);
@@ -75,11 +74,9 @@ export function routeEdge(
 
   // Back-edge / retorno: contorna por baixo de todo o desenho
   if (ctx.isReturn) {
-    const bottom = Math.max(
-      source.y + source.h,
-      target.y + target.h,
-      ...allBoxes.map((b) => b.y + b.h),
-    ) + RETURN_DROP;
+    const bottom =
+      Math.max(source.y + source.h, target.y + target.h, ...allBoxes.map((b) => b.y + b.h)) +
+      RETURN_DROP;
     return [sPt, { x: sPt.x, y: bottom }, { x: tPt.x, y: bottom }, tPt];
   }
 
@@ -101,7 +98,15 @@ export function routeEdge(
       sp === "B"
         ? Math.max(source.y + source.h, tPt.y) + CLEAR + Math.abs(channelOff)
         : Math.min(source.y, tPt.y) - CLEAR - Math.abs(channelOff);
-    const channelY = findFreeHorizontalY(rawChannelY, sPt.x, tPt.x - CLEAR, allBoxes, source, target, dropDir);
+    const channelY = findFreeHorizontalY(
+      rawChannelY,
+      sPt.x,
+      tPt.x - CLEAR,
+      allBoxes,
+      source,
+      target,
+      dropDir,
+    );
     return [
       sPt,
       { x: sPt.x, y: channelY },

@@ -4,9 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
-import {
-  FileBarChart2, Sparkles, Loader2, Plus, Building2,
-} from "lucide-react";
+import { FileBarChart2, Sparkles, Loader2, Plus, Building2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,16 +31,22 @@ export const Route = createFileRoute("/_authenticated/relatorio-acompanhamento/"
 // -------- helpers to compute auto info blocks --------
 function autoInfoText(kind: BlockType, d: any): string {
   const today = format(new Date(), "yyyy-MM-dd");
-  const proximo = new Date(); proximo.setDate(proximo.getDate() + 7);
+  const proximo = new Date();
+  proximo.setDate(proximo.getDate() + 7);
   const proximoISO = format(proximo, "yyyy-MM-dd");
   switch (kind) {
     case "actions_info": {
       const p = d.plans ?? [];
       const criados = p.length;
       const concluidos = p.filter((x: any) => x.status === "concluido").length;
-      const atrasados = p.filter((x: any) => x.status !== "concluido" && x.due_date && x.due_date < today).length;
+      const atrasados = p.filter(
+        (x: any) => x.status !== "concluido" && x.due_date && x.due_date < today,
+      ).length;
       const cancelados = p.filter((x: any) => x.status === "cancelado").length;
-      const proxVenc = p.filter((x: any) => x.status !== "concluido" && x.due_date && x.due_date >= today && x.due_date <= proximoISO).length;
+      const proxVenc = p.filter(
+        (x: any) =>
+          x.status !== "concluido" && x.due_date && x.due_date >= today && x.due_date <= proximoISO,
+      ).length;
       return [
         `**Total de planos:** ${criados}`,
         `**Concluídos:** ${concluidos}`,
@@ -56,13 +60,18 @@ function autoInfoText(kind: BlockType, d: any): string {
       const coll = d.collections ?? [];
       const withData = new Set(coll.map((c: any) => c.indicator_id));
       const semColeta = inds.filter((i: any) => !withData.has(i.id)).length;
-      let abaixo = 0, acima = 0;
+      let abaixo = 0,
+        acima = 0;
       for (const i of inds) {
         const cs = coll.filter((c: any) => c.indicator_id === i.id);
-        const last = cs.sort((a: any, b: any) => a.submitted_at.localeCompare(b.submitted_at)).pop();
+        const last = cs
+          .sort((a: any, b: any) => a.submitted_at.localeCompare(b.submitted_at))
+          .pop();
         if (!last || i.target == null) continue;
-        const below = i.direction === "lower_better" ? last.value > i.target : last.value < i.target;
-        if (below) abaixo++; else acima++;
+        const below =
+          i.direction === "lower_better" ? last.value > i.target : last.value < i.target;
+        if (below) abaixo++;
+        else acima++;
       }
       return [
         `**Indicadores acompanhados:** ${inds.length}`,
@@ -86,7 +95,9 @@ function autoInfoText(kind: BlockType, d: any): string {
       const h = d.hours ?? [];
       const total = h.reduce((s: number, x: any) => s + (x.hours ?? 0), 0);
       const porTipo: Record<string, number> = {};
-      for (const x of h) porTipo[x.activity_type || "outros"] = (porTipo[x.activity_type || "outros"] ?? 0) + (x.hours ?? 0);
+      for (const x of h)
+        porTipo[x.activity_type || "outros"] =
+          (porTipo[x.activity_type || "outros"] ?? 0) + (x.hours ?? 0);
       return [
         `**Total de horas:** ${total.toFixed(1)}h`,
         "",
@@ -96,11 +107,17 @@ function autoInfoText(kind: BlockType, d: any): string {
     }
     case "crono_info": {
       const obs = d.cronoObservations ?? [];
-      const va = obs.filter((o: any) => o.classification === "va").reduce((s: number, o: any) => s + o.time_minutes, 0);
-      const nva = obs.filter((o: any) => o.classification === "nva").reduce((s: number, o: any) => s + o.time_minutes, 0);
-      const nnva = obs.filter((o: any) => o.classification === "nnva").reduce((s: number, o: any) => s + o.time_minutes, 0);
+      const va = obs
+        .filter((o: any) => o.classification === "va")
+        .reduce((s: number, o: any) => s + o.time_minutes, 0);
+      const nva = obs
+        .filter((o: any) => o.classification === "nva")
+        .reduce((s: number, o: any) => s + o.time_minutes, 0);
+      const nnva = obs
+        .filter((o: any) => o.classification === "nnva")
+        .reduce((s: number, o: any) => s + o.time_minutes, 0);
       const total = va + nva + nnva;
-      const pct = (n: number) => total ? ((n / total) * 100).toFixed(0) + "%" : "0%";
+      const pct = (n: number) => (total ? ((n / total) * 100).toFixed(0) + "%" : "0%");
       return [
         `**Sessões de cronoanálise:** ${(d.cronoSessions ?? []).length}`,
         `**Tempo que agrega valor (VA):** ${va.toFixed(0)} min (${pct(va)})`,
@@ -130,30 +147,36 @@ function autoInfoText(kind: BlockType, d: any): string {
         `**Horas registradas:** ${(d.hours ?? []).reduce((s: number, x: any) => s + (x.hours ?? 0), 0).toFixed(1)}h`,
       ].join("\n");
     }
-    default: return "";
+    default:
+      return "";
   }
 }
 
 function defaultBlocks(): ReportBlock[] {
-  const mk = (id: string, type: BlockType, title: string, enabled = true, chartKey?: ChartKey): ReportBlock =>
-    ({ id, type, title, enabled, chartKey });
+  const mk = (
+    id: string,
+    type: BlockType,
+    title: string,
+    enabled = true,
+    chartKey?: ChartKey,
+  ): ReportBlock => ({ id, type, title, enabled, chartKey });
   return [
-    mk("summary",           "summary",           "Resumo Executivo"),
-    mk("kpis",              "kpis",              "Indicadores da Consultoria no Período"),
-    mk("actions_info",      "actions_info",      "Planos de Ação — Panorama"),
-    mk("chart-actions-status",   "chart", "Ações por Status", true, "actions_by_status"),
-    mk("chart-actions-evol",     "chart", "Evolução das Ações", true, "actions_evolution"),
-    mk("indicators_info",   "indicators_info",   "Indicadores — Panorama"),
-    mk("chart-ind-target",       "chart", "Meta × Realizado", true, "indicators_target_vs_actual"),
-    mk("chart-ind-evol",         "chart", "Evolução dos Indicadores", true, "indicators_evolution"),
-    mk("crono_info",        "crono_info",        "Cronoanálise — Resultados"),
-    mk("chart-crono",            "chart", "Tempo VA / NVA / NNVA", true, "crono_value_added"),
-    mk("hours_info",        "hours_info",        "Horas Trabalhadas"),
-    mk("chart-hours-week",       "chart", "Horas por Semana", true, "hours_by_week"),
-    mk("agenda_info",       "agenda_info",       "Agenda de Reuniões"),
+    mk("summary", "summary", "Resumo Executivo"),
+    mk("kpis", "kpis", "Indicadores da Consultoria no Período"),
+    mk("actions_info", "actions_info", "Planos de Ação — Panorama"),
+    mk("chart-actions-status", "chart", "Ações por Status", true, "actions_by_status"),
+    mk("chart-actions-evol", "chart", "Evolução das Ações", true, "actions_evolution"),
+    mk("indicators_info", "indicators_info", "Indicadores — Panorama"),
+    mk("chart-ind-target", "chart", "Meta × Realizado", true, "indicators_target_vs_actual"),
+    mk("chart-ind-evol", "chart", "Evolução dos Indicadores", true, "indicators_evolution"),
+    mk("crono_info", "crono_info", "Cronoanálise — Resultados"),
+    mk("chart-crono", "chart", "Tempo VA / NVA / NNVA", true, "crono_value_added"),
+    mk("hours_info", "hours_info", "Horas Trabalhadas"),
+    mk("chart-hours-week", "chart", "Horas por Semana", true, "hours_by_week"),
+    mk("agenda_info", "agenda_info", "Agenda de Reuniões"),
     mk("improvements_info", "improvements_info", "Melhorias"),
-    mk("chart-consulting",       "chart", "Atividade da Consultoria", true, "consulting_activity"),
-    mk("recommendations",   "recommendations",   "Recomendações e Próximos Passos"),
+    mk("chart-consulting", "chart", "Atividade da Consultoria", true, "consulting_activity"),
+    mk("recommendations", "recommendations", "Recomendações e Próximos Passos"),
   ];
 }
 
@@ -170,28 +193,45 @@ function RelatorioPage() {
 
   const dataQuery = useQuery({
     queryKey: ["report-data", companyId, period.from, period.to],
-    queryFn: () => fetchData({ data: { company_id: companyId!, from: period.from, to: period.to } }),
+    queryFn: () =>
+      fetchData({ data: { company_id: companyId!, from: period.from, to: period.to } }),
     enabled: !!companyId,
   });
 
   const aiMut = useMutation({
-    mutationFn: () => genNarrative({ data: { company_id: companyId!, from: period.from, to: period.to } }),
+    mutationFn: () =>
+      genNarrative({ data: { company_id: companyId!, from: period.from, to: period.to } }),
     onSuccess: (n) => {
       const patches = narrativeToBlocks(n);
-      setBlocks((bs) => bs.map((b) => {
-        if (b.type === "summary" && patches.summary) return { ...b, content: patches.summary };
-        if (b.type === "recommendations" && patches.recommendations) return { ...b, content: patches.recommendations };
-        return b;
-      }));
+      setBlocks((bs) =>
+        bs.map((b) => {
+          if (b.type === "summary" && patches.summary) return { ...b, content: patches.summary };
+          if (b.type === "recommendations" && patches.recommendations)
+            return { ...b, content: patches.recommendations };
+          return b;
+        }),
+      );
       // populate info blocks with data
       if (dataQuery.data) {
-        setBlocks((bs) => bs.map((b) => {
-          const t = b.type;
-          if (["kpis","actions_info","indicators_info","agenda_info","hours_info","crono_info","improvements_info"].includes(t)) {
-            return { ...b, content: autoInfoText(t, dataQuery.data) };
-          }
-          return b;
-        }));
+        setBlocks((bs) =>
+          bs.map((b) => {
+            const t = b.type;
+            if (
+              [
+                "kpis",
+                "actions_info",
+                "indicators_info",
+                "agenda_info",
+                "hours_info",
+                "crono_info",
+                "improvements_info",
+              ].includes(t)
+            ) {
+              return { ...b, content: autoInfoText(t, dataQuery.data) };
+            }
+            return b;
+          }),
+        );
       }
       toast.success(`Relatório gerado com ${n.model}`);
       setTab("preview");
@@ -201,7 +241,10 @@ function RelatorioPage() {
 
   function addBlock(type: BlockType) {
     const title = type === "text" ? "Observações" : type === "image" ? "Imagem" : "Tabela";
-    setBlocks((bs) => [...bs, { id: `${type}-${Date.now()}`, type, title, enabled: true, content: "" }]);
+    setBlocks((bs) => [
+      ...bs,
+      { id: `${type}-${Date.now()}`, type, title, enabled: true, content: "" },
+    ]);
   }
 
   if (!companyId) {
@@ -209,12 +252,14 @@ function RelatorioPage() {
       <Card className="p-8 text-center">
         <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
         <h1 className="text-lg font-semibold">Selecione uma empresa</h1>
-        <p className="mt-1 text-sm text-muted-foreground">O relatório é gerado com base nos dados da empresa ativa.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          O relatório é gerado com base nos dados da empresa ativa.
+        </p>
       </Card>
     );
   }
 
-  const editingBlock = editingId ? blocks.find((b) => b.id === editingId) ?? null : null;
+  const editingBlock = editingId ? (blocks.find((b) => b.id === editingId) ?? null) : null;
 
   return (
     <div className="space-y-4">
@@ -232,12 +277,16 @@ function RelatorioPage() {
             onClick={() => aiMut.mutate()}
             disabled={aiMut.isPending || !dataQuery.data}
           >
-            {aiMut.isPending
-              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              : <Sparkles className="mr-2 h-4 w-4" />}
+            {aiMut.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
             Gerar com IA
           </Button>
-          <ExportPdfButton filename={`relatorio-${company?.name?.replace(/\s+/g, "-").toLowerCase() ?? "empresa"}-${period.from}-a-${period.to}.pdf`} />
+          <ExportPdfButton
+            filename={`relatorio-${company?.name?.replace(/\s+/g, "-").toLowerCase() ?? "empresa"}-${period.from}-a-${period.to}.pdf`}
+          />
         </div>
       </header>
 
@@ -267,20 +316,38 @@ function RelatorioPage() {
               }, {}),
             ).map(([group, items]) => (
               <div key={group} className="mb-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group}</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group}
+                </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {items.map((c) => {
                     const existing = blocks.find((b) => b.chartKey === c.key);
                     const checked = !!existing?.enabled;
                     return (
-                      <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-muted/50">
+                      <label
+                        key={c.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-muted/50"
+                      >
                         <Checkbox
                           checked={checked}
                           onCheckedChange={(v) => {
                             const on = !!v;
                             setBlocks((bs) => {
-                              if (existing) return bs.map((b) => b.id === existing.id ? { ...b, enabled: on } : b);
-                              if (on) return [...bs, { id: `chart-${c.key}-${Date.now()}`, type: "chart", title: c.label, enabled: true, chartKey: c.key }];
+                              if (existing)
+                                return bs.map((b) =>
+                                  b.id === existing.id ? { ...b, enabled: on } : b,
+                                );
+                              if (on)
+                                return [
+                                  ...bs,
+                                  {
+                                    id: `chart-${c.key}-${Date.now()}`,
+                                    type: "chart",
+                                    title: c.label,
+                                    enabled: true,
+                                    chartKey: c.key,
+                                  },
+                                ];
                               return bs;
                             });
                           }}
@@ -310,13 +377,23 @@ function RelatorioPage() {
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Blocos do relatório</h2>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => addBlock("text")}><Plus className="mr-1 h-3 w-3" />Texto</Button>
-                <Button size="sm" variant="outline" onClick={() => addBlock("image")}><Plus className="mr-1 h-3 w-3" />Imagem</Button>
-                <Button size="sm" variant="outline" onClick={() => addBlock("table")}><Plus className="mr-1 h-3 w-3" />Tabela</Button>
+                <Button size="sm" variant="outline" onClick={() => addBlock("text")}>
+                  <Plus className="mr-1 h-3 w-3" />
+                  Texto
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => addBlock("image")}>
+                  <Plus className="mr-1 h-3 w-3" />
+                  Imagem
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => addBlock("table")}>
+                  <Plus className="mr-1 h-3 w-3" />
+                  Tabela
+                </Button>
               </div>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              Arraste para reordenar. Clique no título para editar o conteúdo. Use os ícones para ocultar ou remover.
+              Arraste para reordenar. Clique no título para editar o conteúdo. Use os ícones para
+              ocultar ou remover.
             </p>
             <BlockList blocks={blocks} onChange={setBlocks} onEdit={setEditingId} />
           </Card>
@@ -325,7 +402,7 @@ function RelatorioPage() {
             open={!!editingBlock}
             onClose={() => setEditingId(null)}
             onSave={(b) => {
-              setBlocks((bs) => bs.map((x) => x.id === b.id ? b : x));
+              setBlocks((bs) => bs.map((x) => (x.id === b.id ? b : x)));
               setEditingId(null);
             }}
           />

@@ -34,14 +34,34 @@ export const getProcess = createServerFn({ method: "GET" })
       .single();
     if (error) throw new Error(error.message);
 
-    const [{ data: activities }, { data: edges }, { data: infoMap }, { data: decisionMap }, { data: indicators }, { data: plans }, { data: cronos }] = await Promise.all([
-      context.supabase.from("process_activities").select("*").eq("process_id", data.id).order("ordering"),
+    const [
+      { data: activities },
+      { data: edges },
+      { data: infoMap },
+      { data: decisionMap },
+      { data: indicators },
+      { data: plans },
+      { data: cronos },
+    ] = await Promise.all([
+      context.supabase
+        .from("process_activities")
+        .select("*")
+        .eq("process_id", data.id)
+        .order("ordering"),
       context.supabase.from("process_edges").select("*").eq("process_id", data.id),
       context.supabase.from("process_information_map").select("*").eq("process_id", data.id),
       context.supabase.from("process_decision_map").select("*").eq("process_id", data.id),
       context.supabase.from("indicators").select("*").eq("process_id", data.id),
-      context.supabase.from("action_plans").select("*").eq("process_id", data.id).order("created_at", { ascending: false }),
-      context.supabase.from("cronoanalysis_sessions").select("*").eq("process_id", data.id).order("observation_date", { ascending: false }),
+      context.supabase
+        .from("action_plans")
+        .select("*")
+        .eq("process_id", data.id)
+        .order("created_at", { ascending: false }),
+      context.supabase
+        .from("cronoanalysis_sessions")
+        .select("*")
+        .eq("process_id", data.id)
+        .order("observation_date", { ascending: false }),
     ]);
 
     return {
@@ -59,16 +79,18 @@ export const getProcess = createServerFn({ method: "GET" })
 export const createProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      company_id: z.string().uuid(),
-      parent_id: z.string().uuid().nullable().optional(),
-      level: z.enum(["0", "1", "2"]),
-      name: z.string().min(1).max(200),
-      description: z.string().optional().default(""),
-      objective: z.string().optional().default(""),
-      responsible: z.string().optional().default(""),
-      source_interview_id: z.string().uuid().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        company_id: z.string().uuid(),
+        parent_id: z.string().uuid().nullable().optional(),
+        level: z.enum(["0", "1", "2"]),
+        name: z.string().min(1).max(200),
+        description: z.string().optional().default(""),
+        objective: z.string().optional().default(""),
+        responsible: z.string().optional().default(""),
+        source_interview_id: z.string().uuid().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -93,18 +115,20 @@ export const createProcess = createServerFn({ method: "POST" })
 export const updateProcess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid(),
-      name: z.string().optional(),
-      description: z.string().optional(),
-      objective: z.string().optional(),
-      responsible: z.string().optional(),
-      inputs: z.string().optional(),
-      outputs: z.string().optional(),
-      systems: z.array(z.string()).optional(),
-      parent_id: z.string().uuid().nullable().optional(),
-      level: z.enum(["0", "1", "2"]).optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        objective: z.string().optional(),
+        responsible: z.string().optional(),
+        inputs: z.string().optional(),
+        outputs: z.string().optional(),
+        systems: z.array(z.string()).optional(),
+        parent_id: z.string().uuid().nullable().optional(),
+        level: z.enum(["0", "1", "2"]).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
@@ -128,7 +152,9 @@ const ActivityInput = z.object({
   id: z.string().uuid().optional(),
   process_id: z.string().uuid(),
   ordering: z.number().int().default(0),
-  type: z.enum(["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"]).default("task"),
+  type: z
+    .enum(["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"])
+    .default("task"),
   title: z.string().min(1),
   description: z.string().optional().default(""),
   responsible: z.string().optional().default(""),
@@ -176,12 +202,14 @@ export const deleteActivity = createServerFn({ method: "POST" })
 export const saveEdge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      process_id: z.string().uuid(),
-      source_id: z.string().uuid(),
-      target_id: z.string().uuid(),
-      label: z.string().optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        process_id: z.string().uuid(),
+        source_id: z.string().uuid(),
+        target_id: z.string().uuid(),
+        label: z.string().optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -205,9 +233,11 @@ export const deleteEdge = createServerFn({ method: "POST" })
 export const saveCanvasLayout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      positions: z.array(z.object({ id: z.string().uuid(), x: z.number(), y: z.number() })),
-    }).parse(d),
+    z
+      .object({
+        positions: z.array(z.object({ id: z.string().uuid(), x: z.number(), y: z.number() })),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await Promise.all(
@@ -225,29 +255,38 @@ export const saveCanvasLayout = createServerFn({ method: "POST" })
 export const saveInformationItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      process_id: z.string().uuid(),
-      activity_id: z.string().uuid().nullable().optional(),
-      origin: z.string().optional().default(""),
-      destination: z.string().optional().default(""),
-      medium: z.string().optional().default(""),
-      responsible: z.string().optional().default(""),
-      document: z.string().optional().default(""),
-      loss_risk: z.boolean().optional().default(false),
-      notes: z.string().optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        process_id: z.string().uuid(),
+        activity_id: z.string().uuid().nullable().optional(),
+        origin: z.string().optional().default(""),
+        destination: z.string().optional().default(""),
+        medium: z.string().optional().default(""),
+        responsible: z.string().optional().default(""),
+        document: z.string().optional().default(""),
+        loss_risk: z.boolean().optional().default(false),
+        notes: z.string().optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
-        .from("process_information_map").update(rest).eq("id", id).select().single();
+        .from("process_information_map")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
     const { data: row, error } = await context.supabase
-      .from("process_information_map").insert(data).select().single();
+      .from("process_information_map")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -256,7 +295,10 @@ export const deleteInformationItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("process_information_map").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("process_information_map")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -264,27 +306,36 @@ export const deleteInformationItem = createServerFn({ method: "POST" })
 export const saveDecisionItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      process_id: z.string().uuid(),
-      activity_id: z.string().uuid().nullable().optional(),
-      decider: z.string().optional().default(""),
-      decision: z.string().optional().default(""),
-      approval_required: z.boolean().optional().default(false),
-      reported_delay: z.string().optional().default(""),
-      notes: z.string().optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        process_id: z.string().uuid(),
+        activity_id: z.string().uuid().nullable().optional(),
+        decider: z.string().optional().default(""),
+        decision: z.string().optional().default(""),
+        approval_required: z.boolean().optional().default(false),
+        reported_delay: z.string().optional().default(""),
+        notes: z.string().optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
-        .from("process_decision_map").update(rest).eq("id", id).select().single();
+        .from("process_decision_map")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
     const { data: row, error } = await context.supabase
-      .from("process_decision_map").insert(data).select().single();
+      .from("process_decision_map")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -293,7 +344,10 @@ export const deleteDecisionItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("process_decision_map").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("process_decision_map")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -307,14 +361,20 @@ export const getCompanyMaps = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: procs } = await context.supabase
-      .from("processes").select("id, name").eq("company_id", data.company_id);
+      .from("processes")
+      .select("id, name")
+      .eq("company_id", data.company_id);
     const ids = (procs ?? []).map((p) => p.id);
     if (ids.length === 0) return { information: [], decision: [], pains: [] };
 
     const [{ data: information }, { data: decision }, { data: pains }] = await Promise.all([
       context.supabase.from("process_information_map").select("*").in("process_id", ids),
       context.supabase.from("process_decision_map").select("*").in("process_id", ids),
-      context.supabase.from("pain_points").select("*").eq("company_id", data.company_id).order("category"),
+      context.supabase
+        .from("pain_points")
+        .select("*")
+        .eq("company_id", data.company_id)
+        .order("category"),
     ]);
 
     return { information: information ?? [], decision: decision ?? [], pains: pains ?? [] };
@@ -338,26 +398,46 @@ export const listPains = createServerFn({ method: "GET" })
 export const savePain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      company_id: z.string().uuid().nullable().optional(),
-      source: z.enum(["interview", "process", "cronoanalysis", "manual"]).default("manual"),
-      source_id: z.string().uuid().nullable().optional(),
-      category: z.enum(["processo", "informacao", "governanca", "pessoas", "tecnologia", "planejamento", "qualidade", "producao", "compras", "logistica"]),
-      description: z.string().min(1),
-      severity: z.number().int().min(1).max(5).default(3),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        company_id: z.string().uuid().nullable().optional(),
+        source: z.enum(["interview", "process", "cronoanalysis", "manual"]).default("manual"),
+        source_id: z.string().uuid().nullable().optional(),
+        category: z.enum([
+          "processo",
+          "informacao",
+          "governanca",
+          "pessoas",
+          "tecnologia",
+          "planejamento",
+          "qualidade",
+          "producao",
+          "compras",
+          "logistica",
+        ]),
+        description: z.string().min(1),
+        severity: z.number().int().min(1).max(5).default(3),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
-        .from("pain_points").update(rest).eq("id", id).select().single();
+        .from("pain_points")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
     const { data: row, error } = await context.supabase
-      .from("pain_points").insert(data).select().single();
+      .from("pain_points")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -379,7 +459,9 @@ export const listIndicators = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
-      .from("indicators").select("*, companies(name), processes(name)").order("created_at", { ascending: false });
+      .from("indicators")
+      .select("*, companies(name), processes(name)")
+      .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -387,27 +469,36 @@ export const listIndicators = createServerFn({ method: "GET" })
 export const saveIndicator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      company_id: z.string().uuid().nullable().optional(),
-      process_id: z.string().uuid().nullable().optional(),
-      name: z.string().min(1),
-      description: z.string().optional().default(""),
-      unit: z.string().optional().default(""),
-      target: z.number().nullable().optional(),
-      frequency: z.string().optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        company_id: z.string().uuid().nullable().optional(),
+        process_id: z.string().uuid().nullable().optional(),
+        name: z.string().min(1),
+        description: z.string().optional().default(""),
+        unit: z.string().optional().default(""),
+        target: z.number().nullable().optional(),
+        frequency: z.string().optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
-        .from("indicators").update(rest).eq("id", id).select().single();
+        .from("indicators")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
     const { data: row, error } = await context.supabase
-      .from("indicators").insert(data).select().single();
+      .from("indicators")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -444,52 +535,59 @@ export const listActionPlans = createServerFn({ method: "GET" })
 export const saveActionPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      company_id: z.string().uuid().nullable().optional(),
-      process_id: z.string().uuid().nullable().optional(),
-      interview_id: z.string().uuid().nullable().optional(),
-      cronoanalysis_id: z.string().uuid().nullable().optional(),
-      pain_point_id: z.string().uuid().nullable().optional(),
-      indicator_id: z.string().uuid().nullable().optional(),
-      root_cause_id: z.string().uuid().nullable().optional(),
-      sector_id: z.string().uuid().nullable().optional(),
-      title: z.string().min(1),
-      description: z.string().optional().default(""),
-      responsible: z.string().optional().default(""),
-      due_date: z.string().nullable().optional(),
-      status: z.enum(["aberto", "em_andamento", "concluido"]).default("aberto"),
-      priority: z.enum(["baixa", "media", "alta", "critica"]).optional(),
-      sector: z.string().nullable().optional(),
-      // Extended fields (GUT + details)
-      problem: z.string().nullable().optional(),
-      cause: z.string().nullable().optional(),
-      category: z.string().nullable().optional(),
-      demand_type: z.enum(["processo", "pessoas", "negocio"]).nullable().optional(),
-      gravity: z.number().int().min(1).max(5).nullable().optional(),
-      urgency: z.number().int().min(1).max(5).nullable().optional(),
-      trend: z.number().int().min(1).max(5).nullable().optional(),
-      new_due_date: z.string().nullable().optional(),
-      expected_result: z.string().nullable().optional(),
-      observations: z.string().nullable().optional(),
-      origin: z.string().nullable().optional(),
-      parent_id: z.string().uuid().nullable().optional(),
-      item_type: z.string().nullable().optional(),
-      progress_pct: z.number().int().min(0).max(100).nullable().optional(),
-      custom_pillar: z.string().nullable().optional(),
-      order_index: z.number().int().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        company_id: z.string().uuid().nullable().optional(),
+        process_id: z.string().uuid().nullable().optional(),
+        interview_id: z.string().uuid().nullable().optional(),
+        cronoanalysis_id: z.string().uuid().nullable().optional(),
+        pain_point_id: z.string().uuid().nullable().optional(),
+        indicator_id: z.string().uuid().nullable().optional(),
+        root_cause_id: z.string().uuid().nullable().optional(),
+        sector_id: z.string().uuid().nullable().optional(),
+        title: z.string().min(1),
+        description: z.string().optional().default(""),
+        responsible: z.string().optional().default(""),
+        due_date: z.string().nullable().optional(),
+        status: z.enum(["aberto", "em_andamento", "concluido"]).default("aberto"),
+        priority: z.enum(["baixa", "media", "alta", "critica"]).optional(),
+        sector: z.string().nullable().optional(),
+        // Extended fields (GUT + details)
+        problem: z.string().nullable().optional(),
+        cause: z.string().nullable().optional(),
+        category: z.string().nullable().optional(),
+        demand_type: z.enum(["processo", "pessoas", "negocio"]).nullable().optional(),
+        gravity: z.number().int().min(1).max(5).nullable().optional(),
+        urgency: z.number().int().min(1).max(5).nullable().optional(),
+        trend: z.number().int().min(1).max(5).nullable().optional(),
+        new_due_date: z.string().nullable().optional(),
+        expected_result: z.string().nullable().optional(),
+        observations: z.string().nullable().optional(),
+        origin: z.string().nullable().optional(),
+        parent_id: z.string().uuid().nullable().optional(),
+        item_type: z.string().nullable().optional(),
+        progress_pct: z.number().int().min(0).max(100).nullable().optional(),
+        custom_pillar: z.string().nullable().optional(),
+        order_index: z.number().int().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await (context.supabase.from("action_plans") as any)
-        .update(rest).eq("id", id).select().single();
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
     const { data: row, error } = await (context.supabase.from("action_plans") as any)
-      .insert({ ...data, created_by: context.userId }).select().single();
+      .insert({ ...data, created_by: context.userId })
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -528,33 +626,42 @@ export const getCronoSession = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: session, error } = await context.supabase
-      .from("cronoanalysis_sessions").select("*, companies(name), processes(id, name)").eq("id", data.id).single();
+      .from("cronoanalysis_sessions")
+      .select("*, companies(name), processes(id, name)")
+      .eq("id", data.id)
+      .single();
     if (error) throw new Error(error.message);
     const { data: observations } = await context.supabase
-      .from("cronoanalysis_observations").select("*").eq("session_id", data.id).order("ordering");
+      .from("cronoanalysis_observations")
+      .select("*")
+      .eq("session_id", data.id)
+      .order("ordering");
     return { session, observations: observations ?? [] };
   });
 
 export const createCronoSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      company_id: z.string().uuid().nullable().optional(),
-      process_id: z.string().uuid().nullable().optional(),
-      production_line: z.string().optional().default(""),
-      machine: z.string().optional().default(""),
-      product: z.string().optional().default(""),
-      observer: z.string().optional().default(""),
-      observation_date: z.string().min(1),
-      takt_time: z.number().nullable().optional(),
-      notes: z.string().optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        company_id: z.string().uuid().nullable().optional(),
+        process_id: z.string().uuid().nullable().optional(),
+        production_line: z.string().optional().default(""),
+        machine: z.string().optional().default(""),
+        product: z.string().optional().default(""),
+        observer: z.string().optional().default(""),
+        observation_date: z.string().min(1),
+        takt_time: z.number().nullable().optional(),
+        notes: z.string().optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("cronoanalysis_sessions")
       .insert({ ...data, created_by: context.userId })
-      .select().single();
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -563,7 +670,10 @@ export const deleteCronoSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("cronoanalysis_sessions").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("cronoanalysis_sessions")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -571,26 +681,35 @@ export const deleteCronoSession = createServerFn({ method: "POST" })
 export const saveCronoObservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      session_id: z.string().uuid(),
-      ordering: z.number().int().default(0),
-      activity: z.string().min(1),
-      time_minutes: z.number().min(0),
-      classification: z.enum(["VA", "NVA", "NNVA"]),
-      notes: z.string().optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        session_id: z.string().uuid(),
+        ordering: z.number().int().default(0),
+        activity: z.string().min(1),
+        time_minutes: z.number().min(0),
+        classification: z.enum(["VA", "NVA", "NNVA"]),
+        notes: z.string().optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
-        .from("cronoanalysis_observations").update(rest).eq("id", id).select().single();
+        .from("cronoanalysis_observations")
+        .update(rest)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       return row;
     }
     const { data: row, error } = await context.supabase
-      .from("cronoanalysis_observations").insert(data).select().single();
+      .from("cronoanalysis_observations")
+      .insert(data)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -599,7 +718,10 @@ export const deleteCronoObservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("cronoanalysis_observations").delete().eq("id", data.id);
+    const { error } = await context.supabase
+      .from("cronoanalysis_observations")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -611,33 +733,52 @@ export const deleteCronoObservation = createServerFn({ method: "POST" })
 const ProcessSuggestionSchema = z.object({
   process_name: z.string(),
   process_objective: z.string(),
-  activities: z.array(z.object({
-    title: z.string(),
-    type: z.enum(["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"]),
-    responsible: z.string().default(""),
-    area: z.string().default(""),
-    systems: z.array(z.string()).default([]),
-    time_minutes: z.number().default(0),
-    notes: z.string().default(""),
-  })),
-  information_map: z.array(z.object({
-    origin: z.string().default(""),
-    destination: z.string().default(""),
-    medium: z.string().default(""),
-    responsible: z.string().default(""),
-    document: z.string().default(""),
-    loss_risk: z.boolean().default(false),
-  })),
-  decision_map: z.array(z.object({
-    decider: z.string().default(""),
-    decision: z.string().default(""),
-    approval_required: z.boolean().default(false),
-    reported_delay: z.string().default(""),
-  })),
-  pains: z.array(z.object({
-    description: z.string(),
-    category: z.enum(["processo", "informacao", "governanca", "pessoas", "tecnologia", "planejamento", "qualidade", "producao", "compras", "logistica"]),
-  })),
+  activities: z.array(
+    z.object({
+      title: z.string(),
+      type: z.enum(["start", "task", "decision", "wait", "approval", "end", "info_in", "info_out"]),
+      responsible: z.string().default(""),
+      area: z.string().default(""),
+      systems: z.array(z.string()).default([]),
+      time_minutes: z.number().default(0),
+      notes: z.string().default(""),
+    }),
+  ),
+  information_map: z.array(
+    z.object({
+      origin: z.string().default(""),
+      destination: z.string().default(""),
+      medium: z.string().default(""),
+      responsible: z.string().default(""),
+      document: z.string().default(""),
+      loss_risk: z.boolean().default(false),
+    }),
+  ),
+  decision_map: z.array(
+    z.object({
+      decider: z.string().default(""),
+      decision: z.string().default(""),
+      approval_required: z.boolean().default(false),
+      reported_delay: z.string().default(""),
+    }),
+  ),
+  pains: z.array(
+    z.object({
+      description: z.string(),
+      category: z.enum([
+        "processo",
+        "informacao",
+        "governanca",
+        "pessoas",
+        "tecnologia",
+        "planejamento",
+        "qualidade",
+        "producao",
+        "compras",
+        "logistica",
+      ]),
+    }),
+  ),
 });
 
 export type ProcessSuggestion = z.infer<typeof ProcessSuggestionSchema>;
@@ -652,7 +793,10 @@ const MODEL_FALLBACKS = [
 function stripCodeFences(s: string): string {
   const t = s.trim();
   if (t.startsWith("```")) {
-    return t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    return t
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
   }
   return t;
 }
@@ -677,7 +821,6 @@ function looseJson(raw: string): any {
   }
 }
 
-
 export const suggestProcessFromInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
@@ -686,7 +829,10 @@ export const suggestProcessFromInterview = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
     const { data: t } = await context.supabase
-      .from("transcripts").select("content").eq("interview_id", data.interview_id).maybeSingle();
+      .from("transcripts")
+      .select("content")
+      .eq("interview_id", data.interview_id)
+      .maybeSingle();
     const content = condenseText(t?.content ?? "", 18000);
     if (!content) throw new Error("Sem transcrição. Transcreva a entrevista primeiro.");
 
@@ -721,13 +867,17 @@ Responda APENAS um objeto JSON válido com as chaves: process_name, process_obje
         if (!res.ok) {
           const txt = await res.text().catch(() => "");
           lastErr = `[${model}] ${res.status}: ${txt.slice(0, 200)}`;
-          if (res.status === 429) throw new Error("Limite de IA atingido. Tente novamente em alguns minutos.");
-          if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos na área de billing.");
+          if (res.status === 429)
+            throw new Error("Limite de IA atingido. Tente novamente em alguns minutos.");
+          if (res.status === 402)
+            throw new Error("Créditos de IA esgotados. Adicione créditos na área de billing.");
           continue;
         }
         const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
         try {
-          return ProcessSuggestionSchema.parse(looseJson(json.choices?.[0]?.message?.content ?? "{}"));
+          return ProcessSuggestionSchema.parse(
+            looseJson(json.choices?.[0]?.message?.content ?? "{}"),
+          );
         } catch (e: any) {
           lastErr = `[${model}] resposta inválida: ${e?.message ?? "parse error"}`;
           continue;
@@ -738,19 +888,20 @@ Responda APENAS um objeto JSON válido com as chaves: process_name, process_obje
       }
     }
     throw new Error(`Nenhum modelo respondeu válido. ${lastErr}`);
-
   });
 
 export const applyProcessSuggestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      interview_id: z.string().uuid(),
-      company_id: z.string().uuid(),
-      level: z.enum(["0", "1", "2"]).default("1"),
-      parent_id: z.string().uuid().nullable().optional(),
-      suggestion: ProcessSuggestionSchema,
-    }).parse(d),
+    z
+      .object({
+        interview_id: z.string().uuid(),
+        company_id: z.string().uuid(),
+        level: z.enum(["0", "1", "2"]).default("1"),
+        parent_id: z.string().uuid().nullable().optional(),
+        suggestion: ProcessSuggestionSchema,
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: process, error } = await context.supabase
@@ -764,7 +915,8 @@ export const applyProcessSuggestion = createServerFn({ method: "POST" })
         source_interview_id: data.interview_id,
         created_by: context.userId,
       })
-      .select().single();
+      .select()
+      .single();
     if (error) throw new Error(error.message);
 
     // Activities — layout vertical simples
@@ -784,26 +936,33 @@ export const applyProcessSuggestion = createServerFn({ method: "POST" })
     let created: { id: string }[] = [];
     if (activitiesRows.length) {
       const { data: insAct, error: aErr } = await context.supabase
-        .from("process_activities").insert(activitiesRows).select("id");
+        .from("process_activities")
+        .insert(activitiesRows)
+        .select("id");
       if (aErr) throw new Error(aErr.message);
       created = insAct ?? [];
       // Sequential edges
       const edges = [];
       for (let i = 0; i < created.length - 1; i++) {
-        edges.push({ process_id: process.id, source_id: created[i].id, target_id: created[i + 1].id, label: "" });
+        edges.push({
+          process_id: process.id,
+          source_id: created[i].id,
+          target_id: created[i + 1].id,
+          label: "",
+        });
       }
       if (edges.length) await context.supabase.from("process_edges").insert(edges);
     }
 
     if (data.suggestion.information_map.length) {
-      await context.supabase.from("process_information_map").insert(
-        data.suggestion.information_map.map((i) => ({ ...i, process_id: process.id })),
-      );
+      await context.supabase
+        .from("process_information_map")
+        .insert(data.suggestion.information_map.map((i) => ({ ...i, process_id: process.id })));
     }
     if (data.suggestion.decision_map.length) {
-      await context.supabase.from("process_decision_map").insert(
-        data.suggestion.decision_map.map((i) => ({ ...i, process_id: process.id })),
-      );
+      await context.supabase
+        .from("process_decision_map")
+        .insert(data.suggestion.decision_map.map((i) => ({ ...i, process_id: process.id })));
     }
     if (data.suggestion.pains.length) {
       await context.supabase.from("pain_points").insert(
@@ -824,13 +983,28 @@ export const applyProcessSuggestion = createServerFn({ method: "POST" })
  * Métricas de cronoanálise
  * ============================================================ */
 
-export function computeCronoMetrics(observations: Array<{ time_minutes: number; classification: "VA" | "NVA" | "NNVA"; activity: string }>, taktTime?: number | null) {
+export function computeCronoMetrics(
+  observations: Array<{
+    time_minutes: number;
+    classification: "VA" | "NVA" | "NNVA";
+    activity: string;
+  }>,
+  taktTime?: number | null,
+) {
   const total = observations.reduce((s, o) => s + Number(o.time_minutes ?? 0), 0);
-  const va = observations.filter((o) => o.classification === "VA").reduce((s, o) => s + Number(o.time_minutes), 0);
-  const nva = observations.filter((o) => o.classification === "NVA").reduce((s, o) => s + Number(o.time_minutes), 0);
-  const nnva = observations.filter((o) => o.classification === "NNVA").reduce((s, o) => s + Number(o.time_minutes), 0);
+  const va = observations
+    .filter((o) => o.classification === "VA")
+    .reduce((s, o) => s + Number(o.time_minutes), 0);
+  const nva = observations
+    .filter((o) => o.classification === "NVA")
+    .reduce((s, o) => s + Number(o.time_minutes), 0);
+  const nnva = observations
+    .filter((o) => o.classification === "NNVA")
+    .reduce((s, o) => s + Number(o.time_minutes), 0);
   const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
-  const top = [...observations].sort((a, b) => Number(b.time_minutes) - Number(a.time_minutes)).slice(0, 5);
+  const top = [...observations]
+    .sort((a, b) => Number(b.time_minutes) - Number(a.time_minutes))
+    .slice(0, 5);
   const capacity = total > 0 ? 60 / total : 0; // peças/hora estimadas
   const taktGap = taktTime && taktTime > 0 ? total - taktTime : null;
   return {

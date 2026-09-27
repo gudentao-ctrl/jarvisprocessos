@@ -14,15 +14,17 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
-  head: () => ({ meta: [
-    { title: "Entrar | JARVIS" },
-    { name: "description", content: "Acesso seguro à plataforma JARVIS." },
-    { property: "og:title", content: "Entrar | JARVIS" },
-    { property: "og:description", content: "Acesso seguro à plataforma JARVIS." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-    { name: "robots", content: "noindex" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Entrar | JARVIS" },
+      { name: "description", content: "Acesso seguro à plataforma JARVIS." },
+      { property: "og:title", content: "Entrar | JARVIS" },
+      { property: "og:description", content: "Acesso seguro à plataforma JARVIS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: AuthPage,
 });
 
@@ -97,12 +99,18 @@ export function AuthPage() {
       const cpfDigits = cpf.replace(/\D/g, "");
       const whatsappDigits = whatsapp.replace(/\D/g, "");
       if (cpfDigits.length !== 11) throw new Error("Informe um CPF válido com 11 números.");
-      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) throw new Error("Informe um WhatsApp válido.");
+      if (whatsappDigits.length < 10 || whatsappDigits.length > 13)
+        throw new Error("Informe um WhatsApp válido.");
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName, cpf: cpfDigits, birth_date: birthDate, whatsapp: whatsappDigits },
+          data: {
+            full_name: fullName,
+            cpf: cpfDigits,
+            birth_date: birthDate,
+            whatsapp: whatsappDigits,
+          },
           emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
@@ -124,7 +132,6 @@ export function AuthPage() {
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">JARVIS</h1>
           <p className="mt-1 text-sm text-muted-foreground">Consultoria Operacional</p>
-
         </div>
 
         <Tabs defaultValue="entrar">
@@ -138,21 +145,33 @@ export function AuthPage() {
               <div>
                 <Label htmlFor="email">E-mail</Label>
                 <Input
-                  id="email" type="email" required autoComplete="email"
-                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="mt-1.5 h-12"
                 />
               </div>
               <div>
                 <Label htmlFor="password">Senha</Label>
                 <Input
-                  id="password" type="password" required minLength={6}
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
                   autoComplete="current-password"
-                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="mt-1.5 h-12"
                 />
               </div>
-              <Button type="submit" disabled={loading} className="h-12 w-full text-base font-medium">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-12 w-full text-base font-medium"
+              >
                 {loading ? "Aguarde..." : "Entrar"}
               </Button>
             </form>
@@ -163,7 +182,9 @@ export function AuthPage() {
               <div>
                 <Label htmlFor="name">Nome completo</Label>
                 <Input
-                  id="name" required value={fullName}
+                  id="name"
+                  required
+                  value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="mt-1.5 h-12"
                 />
@@ -171,8 +192,12 @@ export function AuthPage() {
               <div>
                 <Label htmlFor="email2">E-mail</Label>
                 <Input
-                  id="email2" type="email" required autoComplete="email"
-                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  id="email2"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="mt-1.5 h-12"
                 />
               </div>
@@ -180,16 +205,23 @@ export function AuthPage() {
                 <div>
                   <Label htmlFor="cpf">CPF</Label>
                   <Input
-                    id="cpf" required inputMode="numeric" maxLength={14}
-                    value={cpf} onChange={(e) => setCpf(e.target.value)}
+                    id="cpf"
+                    required
+                    inputMode="numeric"
+                    maxLength={14}
+                    value={cpf}
+                    onChange={(e) => setCpf(e.target.value)}
                     className="mt-1.5 h-12"
                   />
                 </div>
                 <div>
                   <Label htmlFor="birth-date">Data de nascimento</Label>
                   <Input
-                    id="birth-date" type="date" required
-                    value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
+                    id="birth-date"
+                    type="date"
+                    required
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
                     className="mt-1.5 h-12"
                   />
                 </div>
@@ -197,21 +229,33 @@ export function AuthPage() {
               <div>
                 <Label htmlFor="whatsapp">WhatsApp</Label>
                 <Input
-                  id="whatsapp" required inputMode="tel" maxLength={16}
-                  value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)}
+                  id="whatsapp"
+                  required
+                  inputMode="tel"
+                  maxLength={16}
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
                   className="mt-1.5 h-12"
                 />
               </div>
               <div>
                 <Label htmlFor="password2">Senha</Label>
                 <Input
-                  id="password2" type="password" required minLength={6}
+                  id="password2"
+                  type="password"
+                  required
+                  minLength={6}
                   autoComplete="new-password"
-                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="mt-1.5 h-12"
                 />
               </div>
-              <Button type="submit" disabled={loading} className="h-12 w-full text-base font-medium">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-12 w-full text-base font-medium"
+              >
                 {loading ? "Aguarde..." : "Solicitar acesso"}
               </Button>
             </form>
@@ -221,8 +265,7 @@ export function AuthPage() {
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            O acesso é liberado somente após aprovação do administrador, que define a empresa e as
-            ferramentas permitidas.
+            Novos acessos são liberados somente após aprovação do administrador.
           </span>
         </div>
       </Card>

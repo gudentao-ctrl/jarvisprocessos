@@ -4,13 +4,22 @@ import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { isUnknown, type PopContent } from "@/lib/pop-types";
 
 const SECTIONS: Array<{ label: string; get: (p: PopContent) => boolean }> = [
-  { label: "Identificação", get: (p) => Boolean(p.identification.process_name && p.identification.code && p.identification.process_owner) },
+  {
+    label: "Identificação",
+    get: (p) =>
+      Boolean(
+        p.identification.process_name && p.identification.code && p.identification.process_owner,
+      ),
+  },
   { label: "Objetivo", get: (p) => p.objective.trim().length > 80 && !isUnknown(p.objective) },
   { label: "Escopo", get: (p) => p.scope.trim().length > 40 && !isUnknown(p.scope) },
   { label: "Definições", get: (p) => p.definitions.length > 0 },
   { label: "Responsabilidades", get: (p) => p.responsibilities.length > 0 },
   { label: "Entradas", get: (p) => p.inputs.length > 0 },
-  { label: "Procedimento", get: (p) => p.steps.length >= 3 && p.steps.every((s) => s.title && s.description) },
+  {
+    label: "Procedimento",
+    get: (p) => p.steps.length >= 3 && p.steps.every((s) => s.title && s.description),
+  },
   { label: "Regras de negócio", get: (p) => p.business_rules.length > 0 },
   { label: "Pontos de controle", get: (p) => p.control_points.length > 0 },
   { label: "Riscos", get: (p) => p.risks.length > 0 },
@@ -37,7 +46,10 @@ export function PopQuality({ pop }: { pop: PopContent }) {
         <span className="text-2xl font-bold text-primary">{pct}%</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <div className="flex flex-wrap gap-1.5">
         {results.map((r) => (

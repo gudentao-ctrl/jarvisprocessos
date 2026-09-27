@@ -47,8 +47,12 @@ export function StatPill({
 }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-sm">
-      <p className={cn("text-lg font-black leading-none tabular-nums", accentText[accent])}>{value}</p>
-      <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("text-lg font-black leading-none tabular-nums", accentText[accent])}>
+        {value}
+      </p>
+      <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
     </div>
   );
 }
@@ -97,14 +101,14 @@ export function PageHeader({
           )}
           <div className="min-w-0">
             <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">{title}</h1>
-            {subtitle && <p className="truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</p>}
+            {subtitle && (
+              <p className="truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
+            )}
           </div>
         </div>
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
-      {stats && (
-        <div className="relative mt-4 flex flex-wrap gap-2">{stats}</div>
-      )}
+      {stats && <div className="relative mt-4 flex flex-wrap gap-2">{stats}</div>}
     </header>
   );
 }

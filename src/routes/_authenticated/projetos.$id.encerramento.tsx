@@ -5,9 +5,24 @@ import { ArrowRight, FileText, Trophy, BarChart3 } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/projetos/$id/encerramento")({
   component: () => {
     const items = [
-      { label: "Diagnóstico executivo", description: "Consolidação final de dores, causas e ganhos", to: "/diagnostico", icon: FileText },
-      { label: "Roadmap concluído", description: "Marcos entregues e pendentes", to: "/roadmap", icon: Trophy },
-      { label: "Indicadores finais", description: "Resultado × meta ao fim do projeto", to: "/indicadores", icon: BarChart3 },
+      {
+        label: "Diagnóstico executivo",
+        description: "Consolidação final de dores, causas e ganhos",
+        to: "/diagnostico",
+        icon: FileText,
+      },
+      {
+        label: "Roadmap concluído",
+        description: "Marcos entregues e pendentes",
+        to: "/roadmap",
+        icon: Trophy,
+      },
+      {
+        label: "Indicadores finais",
+        description: "Resultado × meta ao fim do projeto",
+        to: "/indicadores",
+        icon: BarChart3,
+      },
     ];
     return (
       <div className="grid gap-3 sm:grid-cols-2">
