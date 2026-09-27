@@ -2,7 +2,19 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { PillarMeta, MapaItem, MapaCompanyInfo } from "./mapa.functions";
 
-/* ─── helpers ─── */
+/* ─── Dimensões e Cores Globais (A4 Paisagem) ─── */
+const PAGE_W = 297;
+const PAGE_H = 210;
+const MARGIN_X = 14;
+const CONTENT_BOTTOM = 194;
+
+const COLOR_PRIMARY: [number, number, number] = [15, 23, 42]; // Slate-900
+const COLOR_SECONDARY: [number, number, number] = [51, 65, 85]; // Slate-700
+const COLOR_ACCENT: [number, number, number] = [37, 99, 235]; // Blue-600
+const COLOR_MUTED: [number, number, number] = [100, 116, 139]; // Slate-500
+const COLOR_BORDER: [number, number, number] = [226, 232, 240]; // Slate-200
+
+/* ─── Helpers ─── */
 
 function statusLabel(s: string): string {
   const map: Record<string, string> = {
@@ -14,6 +26,14 @@ function statusLabel(s: string): string {
   return map[s] || s;
 }
 
+function criticidade(gutScore?: number | null): string {
+  if (!gutScore) return "—";
+  if (gutScore >= 75) return "Crítico";
+  if (gutScore >= 40) return "Alto";
+  if (gutScore >= 20) return "Médio";
+  return "Baixo";
+}
+
 function fmtDate(d?: string | null): string {
   if (!d) return "—";
   try {
@@ -23,387 +43,720 @@ function fmtDate(d?: string | null): string {
   }
 }
 
-function safeAddImage(
+/**
+ * Desenha um container elegante e insere o logo com proporções preservadas.
+ * Se o logo falhar ou não existir, exibe o nome institucional no container.
+ */
+function drawLogoBox(
   pdf: jsPDF,
-  dataUrl: string,
+  dataUrl: string | null | undefined,
   x: number,
   y: number,
-  w: number,
-  h: number,
+  maxW: number,
+  maxH: number,
+  fallbackText: string,
 ) {
-  try {
-    pdf.addImage(dataUrl, "PNG", x, y, w, h);
-  } catch {
-    /* logo inválido — ignora */
+  pdf.setFillColor(255, 255, 255);
+  pdf.setDrawColor(...COLOR_BORDER);
+  pdf.setLineWidth(0.3);
+  pdf.roundedRect(x, y, maxW, maxH, 2, 2, "FD");
+
+  if (dataUrl) {
+    try {
+      pdf.addImage(
+        dataUrl,
+        "PNG",
+        x + 1.5,
+        y + 1.5,
+        maxW - 3,
+        maxH - 3,
+        undefined,
+        "FAST",
+      );
+      return;
+    } catch {
+      /* fallback se imagem corrompida */
+    }
   }
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...COLOR_MUTED);
+  const truncated = pdf.splitTextToSize(fallbackText, maxW - 4);
+  pdf.text(truncated, x + maxW / 2, y + maxH / 2 + 1, { align: "center" });
 }
 
-/* ─── constantes ─── */
-const PRIMARY = "#0f172a";
-const ACCENT = "#3b82f6";
-const GRAY_BG = "#f1f5f9";
-const MUTED = "#64748b";
+/**
+ * Cabeçalho compacto para as páginas de conteúdo interno (Pág 2..N)
+ */
+function drawContentHeader(
+  pdf: jsPDF,
+  company: MapaCompanyInfo,
+  pillarName?: string,
+) {
+  // Container branco do cabeçalho
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(0, 0, PAGE_W, 20, "F");
 
-/* ─── exportação principal ─── */
+  // Logo consultoria à esquerda
+  drawLogoBox(
+    pdf,
+    company.consultancy_logo,
+    MARGIN_X,
+    3,
+    28,
+    11,
+    "MAIA",
+  );
+
+  // Logo empresa à direita
+  drawLogoBox(
+    pdf,
+    company.company_logo,
+    PAGE_W - MARGIN_X - 28,
+    3,
+    28,
+    11,
+    company.name,
+  );
+
+  // Textos centrais
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(...COLOR_PRIMARY);
+  pdf.text(
+    `MAPA ESTRATÉGICO  |  ${company.name.toUpperCase()}${pillarName ? `  |  PILAR: ${pillarName.toUpperCase()}` : ""}`,
+    PAGE_W / 2,
+    9,
+    { align: "center" },
+  );
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...COLOR_MUTED);
+  pdf.text(
+    `Desdobramento Executivo de Ações e Diretrizes  ·  Emissão: ${new Date().toLocaleDateString("pt-BR")}`,
+    PAGE_W / 2,
+    14,
+    { align: "center" },
+  );
+
+  // Linha divisória
+  pdf.setDrawColor(...COLOR_ACCENT);
+  pdf.setLineWidth(0.5);
+  pdf.line(MARGIN_X, 17, PAGE_W - MARGIN_X, 17);
+}
+
+/* ─── Exportação Principal ─── */
 export async function exportMapaPdf(opts: {
   company: MapaCompanyInfo;
   pillars: PillarMeta[];
   treeByPillar: Record<string, MapaItem[]>;
   items: MapaItem[];
 }): Promise<void> {
-  const { company, pillars, treeByPillar } = opts;
+  const { company, pillars, treeByPillar, items } = opts;
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
-  const pageW = pdf.internal.pageSize.getWidth(); // ~297
-  const pageH = pdf.internal.pageSize.getHeight(); // ~210
-  const marginX = 14;
-  const contentTop = 26;
-  const contentBottom = pageH - 16;
-
   const now = new Date();
   const dateStr = now.toLocaleDateString("pt-BR");
 
-  let pageNum = 1;
+  /* ══════════════════════════════════════════════════════
+     PÁGINA 1: DASHBOARD EXECUTIVO CONSOLIDADO
+  ══════════════════════════════════════════════════════ */
 
-  /* ── header / footer ── */
-  function drawHeader() {
-    pdf.setDrawColor(PRIMARY);
-    pdf.setLineWidth(0.4);
-    pdf.line(marginX, 18, pageW - marginX, 18);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
-    pdf.setTextColor(PRIMARY);
-    pdf.text(company.name.slice(0, 60), marginX, 13);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(ACCENT);
-    pdf.text("Mapa Estratégico", pageW / 2, 13, { align: "center" });
-    pdf.setTextColor(MUTED);
-    pdf.text(dateStr, pageW - marginX, 13, { align: "right" });
+  // Cabeçalho Institucional Superior (Branco/Sleek)
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(0, 0, PAGE_W, 35, "F");
 
-    if (company.consultancy_logo) {
-      safeAddImage(pdf, company.consultancy_logo, marginX, 2, 30, 10);
-    }
-    if (company.company_logo) {
-      safeAddImage(pdf, company.company_logo, pageW - marginX - 30, 2, 30, 10);
-    }
-  }
+  // Barra de acento topo
+  pdf.setFillColor(...COLOR_PRIMARY);
+  pdf.rect(0, 0, PAGE_W, 3, "F");
 
-  function drawFooter() {
-    pdf.setDrawColor("#cbd5e1");
-    pdf.setLineWidth(0.2);
-    pdf.line(marginX, pageH - 12, pageW - marginX, pageH - 12);
-    pdf.setFontSize(7);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(MUTED);
-    pdf.text("Mapa Estratégico — Confidencial", marginX, pageH - 8);
-    pdf.text(`Pág ${pageNum}`, pageW - marginX, pageH - 8, { align: "right" });
-  }
+  // Logos com containers seguros e não sobrepostos
+  drawLogoBox(
+    pdf,
+    company.consultancy_logo,
+    MARGIN_X,
+    6,
+    42,
+    16,
+    "MAIA CONSULTORIA",
+  );
+  drawLogoBox(
+    pdf,
+    company.company_logo,
+    PAGE_W - MARGIN_X - 42,
+    6,
+    42,
+    16,
+    company.name,
+  );
 
-  function addContentPage(): number {
-    pdf.addPage();
-    pageNum++;
-    drawHeader();
-    drawFooter();
-    return contentTop;
-  }
-
-  function ensureSpace(cursorY: number, needed: number): number {
-    if (cursorY + needed > contentBottom) {
-      return addContentPage();
-    }
-    return cursorY;
-  }
-
-  /* ════════ CAPA ════════ */
-  // Faixa escura no topo
-  pdf.setFillColor(PRIMARY);
-  pdf.rect(0, 0, pageW, 58, "F");
-
-  // Logos na capa
-  if (company.consultancy_logo) {
-    safeAddImage(pdf, company.consultancy_logo, marginX, 6, 36, 14);
-  }
-  if (company.company_logo) {
-    safeAddImage(pdf, company.company_logo, pageW - marginX - 36, 6, 36, 14);
-  }
-
-  // Título na faixa
-  pdf.setTextColor("#ffffff");
+  // Título e Metadados Centrais
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(24);
-  pdf.text("MAPA ESTRATÉGICO", pageW / 2, 28, { align: "center" });
-  pdf.setFontSize(13);
+  pdf.setFontSize(16);
+  pdf.setTextColor(...COLOR_PRIMARY);
+  pdf.text("MAPA ESTRATÉGICO CORPORATIVO", PAGE_W / 2, 14, { align: "center" });
+
   pdf.setFont("helvetica", "normal");
-  pdf.text(company.name, pageW / 2, 40, { align: "center" });
-  pdf.setFontSize(10);
-  pdf.text(dateStr, pageW / 2, 50, { align: "center" });
+  pdf.setFontSize(8.5);
+  pdf.setTextColor(...COLOR_MUTED);
+  pdf.text(
+    "Painel Executivo de Diretrizes e Desdobramentos Estratégicos",
+    PAGE_W / 2,
+    19.5,
+    { align: "center" },
+  );
 
-  // ── Resumo dos pilares na capa ──
-  pdf.setTextColor(PRIMARY);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.text("Pilares Estratégicos", marginX, 70);
+  pdf.setFontSize(9);
+  pdf.setTextColor(...COLOR_SECONDARY);
+  pdf.text(
+    `Empresa: ${company.name}    |    Data de Emissão: ${dateStr}`,
+    PAGE_W / 2,
+    25.5,
+    { align: "center" },
+  );
 
-  const gap = 8;
-  const cols = Math.min(pillars.length, 3);
-  const boxW = (pageW - 2 * marginX - (cols - 1) * gap) / cols;
-  const boxH = 38;
-  let startY = 76;
+  // Linha divisória
+  pdf.setDrawColor(...COLOR_ACCENT);
+  pdf.setLineWidth(0.6);
+  pdf.line(MARGIN_X, 29, PAGE_W - MARGIN_X, 29);
 
-  pillars.forEach((p, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = marginX + col * (boxW + gap);
-    const y = startY + row * (boxH + gap);
+  // Cálculo de Métricas Globais
+  const totalDiretrizes = items.filter((i) => i.item_type === "diretriz").length;
+  const acoes = items.filter((i) => i.item_type !== "diretriz");
+  const totalAcoes = acoes.length;
+  const concTotal = acoes.filter((i) => i.status === "concluido").length;
+  const andaTotal = acoes.filter((i) => i.status === "em_andamento").length;
+  const inicTotal = acoes.filter((i) => i.status === "aberto").length;
+  const naoTotal = acoes.filter((i) => i.status === "nao_sera_feito").length;
 
-    // Background
-    pdf.setFillColor(GRAY_BG);
-    pdf.roundedRect(x, y, boxW, boxH, 2, 2, "F");
+  const activeAcoes = acoes.filter((i) => i.status !== "nao_sera_feito");
+  const globalProgress =
+    activeAcoes.length > 0
+      ? Math.round(
+          activeAcoes.reduce((acc, a) => acc + (a.progress_pct || 0), 0) /
+            activeAcoes.length,
+        )
+      : 0;
 
-    // Pillar name
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.setTextColor(PRIMARY);
-    pdf.text(p.name, x + 4, y + 8);
+  // ── Card de Resumo Geral (Avanço Global) ──
+  const summaryY = 32;
+  const summaryH = 22;
+  pdf.setFillColor(248, 250, 252);
+  pdf.setDrawColor(...COLOR_BORDER);
+  pdf.setLineWidth(0.4);
+  pdf.roundedRect(MARGIN_X, summaryY, PAGE_W - 2 * MARGIN_X, summaryH, 2, 2, "FD");
 
-    // Progress %
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.setTextColor(ACCENT);
-    pdf.text(`${p.progress_pct}%`, x + boxW - 6, y + 10, { align: "right" });
+  // Bloco Avanço Global
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...COLOR_MUTED);
+  pdf.text("AVANÇO GLOBAL DO MAPA", MARGIN_X + 6, summaryY + 6);
 
-    // Progress bar
-    const barX = x + 4;
-    const barY = y + 13;
-    const barW = boxW - 8;
-    const barH = 3;
-    pdf.setFillColor("#e2e8f0");
-    pdf.roundedRect(barX, barY, barW, barH, 1, 1, "F");
-    if (p.progress_pct > 0) {
-      pdf.setFillColor(ACCENT);
-      pdf.roundedRect(barX, barY, barW * Math.min(p.progress_pct, 100) / 100, barH, 1, 1, "F");
-    }
+  pdf.setFontSize(18);
+  pdf.setTextColor(...COLOR_ACCENT);
+  pdf.text(`${globalProgress}%`, MARGIN_X + 6, summaryY + 14);
 
-    // Counts
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(7);
-    pdf.setTextColor(MUTED);
-    const counts = [
-      `${p.concluidas} Concluídas`,
-      `${p.em_andamento} Em andamento`,
-      `${p.a_iniciar} A iniciar`,
-      `${p.nao_sera_feito} Não fará`,
-    ];
-    counts.forEach((txt, ci) => {
-      pdf.text(txt, x + 4, y + 22 + ci * 4);
-    });
-
-    pdf.setFontSize(7);
-    pdf.setTextColor("#475569");
-    pdf.text(
-      `${p.total_diretrizes} dir. · ${p.total_desdobramentos} ações`,
-      x + boxW - 6,
-      y + boxH - 4,
-      { align: "right" },
+  // Barra de progresso global
+  const barW = 48;
+  pdf.setFillColor(226, 232, 240);
+  pdf.roundedRect(MARGIN_X + 6, summaryY + 16, barW, 2.5, 1, 1, "F");
+  if (globalProgress > 0) {
+    pdf.setFillColor(...COLOR_ACCENT);
+    pdf.roundedRect(
+      MARGIN_X + 6,
+      summaryY + 16,
+      (barW * Math.min(globalProgress, 100)) / 100,
+      2.5,
+      1,
+      1,
+      "F",
     );
+  }
+
+  // Divisor vertical
+  pdf.setDrawColor(...COLOR_BORDER);
+  pdf.line(MARGIN_X + 60, summaryY + 3, MARGIN_X + 60, summaryY + summaryH - 3);
+
+  // 4 Caixas de Métricas Rápidas
+  const kpiX = MARGIN_X + 66;
+  const kpiW = (PAGE_W - 2 * MARGIN_X - 66) / 4;
+
+  const kpis = [
+    {
+      title: "ESTRUTURA",
+      val: `${totalDiretrizes} Dir. · ${totalAcoes} Ações`,
+      color: COLOR_PRIMARY,
+    },
+    {
+      title: "CONCLUÍDAS",
+      val: `${concTotal} ações (${totalAcoes > 0 ? Math.round((concTotal / totalAcoes) * 100) : 0}%)`,
+      color: [22, 101, 52] as [number, number, number],
+    },
+    {
+      title: "EM ANDAMENTO",
+      val: `${andaTotal} ações (${totalAcoes > 0 ? Math.round((andaTotal / totalAcoes) * 100) : 0}%)`,
+      color: [37, 99, 235] as [number, number, number],
+    },
+    {
+      title: "A INICIAR / NÃO FARÁ",
+      val: `${inicTotal} a iniciar · ${naoTotal} não fará`,
+      color: [180, 83, 9] as [number, number, number],
+    },
+  ];
+
+  kpis.forEach((kpi, idx) => {
+    const xPos = kpiX + idx * kpiW;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7);
+    pdf.setTextColor(...COLOR_MUTED);
+    pdf.text(kpi.title, xPos, summaryY + 7);
+
+    pdf.setFontSize(10);
+    pdf.setTextColor(...kpi.color);
+    pdf.text(kpi.val, xPos, summaryY + 15);
   });
 
-  /* ════════ PÁGINAS POR PILAR ════════ */
+  // ── Cards dos Pilares Estratégicos ──
+  const pilarHeaderY = 59;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.setTextColor(...COLOR_PRIMARY);
+  pdf.text("INDICADORES CONSOLIDADOS POR PILAR", MARGIN_X, pilarHeaderY);
+
+  const cols = Math.min(pillars.length, 3);
+  const cardGap = 6;
+  const cardW = (PAGE_W - 2 * MARGIN_X - (cols - 1) * cardGap) / cols;
+  const cardH = 126;
+  const cardStartY = 63;
+
+  pillars.slice(0, 3).forEach((pilar, idx) => {
+    const cardX = MARGIN_X + idx * (cardW + cardGap);
+    const cardY = cardStartY;
+
+    // Fundo do card
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(...COLOR_BORDER);
+    pdf.setLineWidth(0.4);
+    pdf.roundedRect(cardX, cardY, cardW, cardH, 2.5, 2.5, "FD");
+
+    // Banner de cabeçalho do pilar
+    let headerColor: [number, number, number] = COLOR_PRIMARY;
+    if (pilar.key === "pessoas") headerColor = [124, 58, 237]; // Violet
+    else if (pilar.key === "processo") headerColor = [37, 99, 235]; // Blue
+    else if (pilar.key === "negocio") headerColor = [5, 150, 105]; // Emerald
+    else headerColor = [217, 119, 6]; // Amber
+
+    pdf.setFillColor(...headerColor);
+    pdf.roundedRect(cardX, cardY, cardW, 14, 2.5, 2.5, "F");
+    pdf.rect(cardX, cardY + 10, cardW, 4, "F"); // remove arredondamento inferior
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(pilar.name, cardX + cardW / 2, cardY + 7, { align: "center" });
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(6.5);
+    pdf.text(
+      `${pilar.total_diretrizes} Diretrizes  ·  ${pilar.total_desdobramentos} Ações`,
+      cardX + cardW / 2,
+      cardY + 11.5,
+      { align: "center" },
+    );
+
+    // Destaque de Avanço %
+    const metricY = cardY + 20;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(...COLOR_MUTED);
+    pdf.text("PERCENTUAL DE AVANÇO", cardX + 6, metricY + 4);
+
+    pdf.setFontSize(20);
+    pdf.setTextColor(...headerColor);
+    pdf.text(`${pilar.progress_pct}%`, cardX + cardW - 6, metricY + 6, {
+      align: "right",
+    });
+
+    // Barra de progresso visual do pilar
+    const pBarW = cardW - 12;
+    pdf.setFillColor(241, 245, 249);
+    pdf.roundedRect(cardX + 6, metricY + 10, pBarW, 3.5, 1, 1, "F");
+    if (pilar.progress_pct > 0) {
+      pdf.setFillColor(...headerColor);
+      pdf.roundedRect(
+        cardX + 6,
+        metricY + 10,
+        (pBarW * Math.min(pilar.progress_pct, 100)) / 100,
+        3.5,
+        1,
+        1,
+        "F",
+      );
+    }
+
+    // Status breakdown (4 mini-cards)
+    const breakdownY = metricY + 18;
+    const statusItems = [
+      {
+        label: "Concluídas",
+        count: pilar.concluidas,
+        color: [22, 101, 52] as [number, number, number],
+        bg: [240, 253, 244] as [number, number, number],
+      },
+      {
+        label: "Em andamento",
+        count: pilar.em_andamento,
+        color: [30, 64, 175] as [number, number, number],
+        bg: [239, 246, 255] as [number, number, number],
+      },
+      {
+        label: "A iniciar",
+        count: pilar.a_iniciar,
+        color: [71, 85, 105] as [number, number, number],
+        bg: [248, 250, 252] as [number, number, number],
+      },
+      {
+        label: "Não será feito",
+        count: pilar.nao_sera_feito,
+        color: [153, 27, 27] as [number, number, number],
+        bg: [254, 242, 242] as [number, number, number],
+      },
+    ];
+
+    statusItems.forEach((st, sIdx) => {
+      const rowY = breakdownY + sIdx * 8.5;
+      pdf.setFillColor(...st.bg);
+      pdf.setDrawColor(...COLOR_BORDER);
+      pdf.setLineWidth(0.2);
+      pdf.roundedRect(cardX + 6, rowY, cardW - 12, 7, 1, 1, "FD");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.setTextColor(...st.color);
+      pdf.text(st.label, cardX + 9, rowY + 4.5);
+      pdf.text(
+        `${st.count} ${st.count === 1 ? "ação" : "ações"}`,
+        cardX + cardW - 9,
+        rowY + 4.5,
+        { align: "right" },
+      );
+    });
+
+    // Diretrizes deste pilar (prévia)
+    const previewY = breakdownY + 39;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(...COLOR_PRIMARY);
+    pdf.text("DIRETRIZES DO PILAR:", cardX + 6, previewY);
+
+    const pillarRoots = treeByPillar[pilar.key] || [];
+    if (pillarRoots.length === 0) {
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(...COLOR_MUTED);
+      pdf.text("Nenhuma diretriz cadastrada.", cardX + 6, previewY + 6);
+    } else {
+      let dCursorY = previewY + 4.5;
+      pillarRoots.slice(0, 4).forEach((dir, dIdx) => {
+        if (dCursorY > cardY + cardH - 5) return;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(...headerColor);
+        pdf.text(`${dIdx + 1}.`, cardX + 6, dCursorY);
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(...COLOR_SECONDARY);
+        const dirTitle = pdf.splitTextToSize(dir.title, cardW - 18) as string[];
+        pdf.text(dirTitle[0] || "", cardX + 10, dCursorY);
+        dCursorY += 4.5;
+      });
+      if (pillarRoots.length > 4) {
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(6);
+        pdf.setTextColor(...COLOR_MUTED);
+        pdf.text(
+          `+ ${pillarRoots.length - 4} diretrizes no detalhamento...`,
+          cardX + 6,
+          cardY + cardH - 3,
+        );
+      }
+    }
+  });
+
+  /* ══════════════════════════════════════════════════════
+     PÁGINAS SEGUINTES: DETALHAMENTO COMPLETO POR PILAR
+  ══════════════════════════════════════════════════════ */
+
   for (const pilar of pillars) {
     const roots = treeByPillar[pilar.key] || [];
     if (roots.length === 0) continue;
 
-    let cursorY = addContentPage();
+    // Nova página dedicada para o pilar
+    pdf.addPage();
+    drawContentHeader(pdf, company, pilar.name);
 
-    // Section title
+    let cursorY = 22;
+
+    // Banner do Pilar
+    let pillarBg: [number, number, number] = COLOR_PRIMARY;
+    if (pilar.key === "pessoas") pillarBg = [124, 58, 237];
+    else if (pilar.key === "processo") pillarBg = [37, 99, 235];
+    else if (pilar.key === "negocio") pillarBg = [5, 150, 105];
+    else pillarBg = [217, 119, 6];
+
+    pdf.setFillColor(...pillarBg);
+    pdf.roundedRect(MARGIN_X, cursorY, PAGE_W - 2 * MARGIN_X, 8, 1.5, 1.5, "F");
+
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(PRIMARY);
-    pdf.text(pilar.name, marginX, cursorY);
-    cursorY += 5;
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.setTextColor(MUTED);
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(255, 255, 255);
     pdf.text(
-      `${pilar.total_diretrizes} diretrizes · ${pilar.total_desdobramentos} ações · ${pilar.progress_pct}% avanço`,
-      marginX,
-      cursorY,
+      `PILAR: ${pilar.name.toUpperCase()}`,
+      MARGIN_X + 4,
+      cursorY + 5.2,
     );
-    cursorY += 8;
+    pdf.text(
+      `${pilar.total_diretrizes} Diretrizes  ·  ${pilar.total_desdobramentos} Ações de Desdobramento  ·  ${pilar.progress_pct}% de Avanço Consolidado`,
+      PAGE_W - MARGIN_X - 4,
+      cursorY + 5.2,
+      { align: "right" },
+    );
+
+    cursorY += 12;
 
     for (let dIdx = 0; dIdx < roots.length; dIdx++) {
       const diretriz = roots[dIdx];
       const children = diretriz.children || [];
 
-      const titleLines = pdf.splitTextToSize(`${dIdx + 1}. ${diretriz.title}`, pageW - 2 * marginX - 70) as string[];
-      const directiveHeight = Math.max(14, titleLines.length * 4.5 + 7);
-      cursorY = ensureSpace(cursorY, directiveHeight + 8);
-
-      // Diretriz block
-      pdf.setFillColor(GRAY_BG);
-      pdf.roundedRect(marginX, cursorY - 3, pageW - 2 * marginX, directiveHeight, 1.5, 1.5, "F");
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(10);
-      pdf.setTextColor(PRIMARY);
-      pdf.text(titleLines, marginX + 4, cursorY + 4);
-
-      // Status + progress
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      pdf.setTextColor(MUTED);
-      const dirInfo = `${statusLabel(diretriz.status)} · ${diretriz.progress_pct}% · ${children.length} ${children.length === 1 ? "ação" : "ações"}`;
-      pdf.text(dirInfo, pageW - marginX - 4, cursorY + 4, { align: "right" });
-
-      cursorY += directiveHeight;
-
-      const directiveFields: [string, string | null | undefined][] = [
-        ["Problema", diretriz.problem],
-        ["Causa", diretriz.cause],
-        ["Descrição", diretriz.description],
-        ["Resultado esperado", diretriz.expected_result],
-        ["Origem", diretriz.origin],
-        ["Observações", diretriz.observations],
-      ];
-      for (const [fieldLabel, fieldValue] of directiveFields) {
-        if (!fieldValue) continue;
-        cursorY = ensureSpace(cursorY, 8);
-        pdf.setFont("helvetica", "italic");
-        pdf.setFontSize(7);
-        pdf.setTextColor("#475569");
-        const descLines = pdf.splitTextToSize(`${fieldLabel}: ${fieldValue}`, pageW - 2 * marginX - 12) as string[];
-        for (const line of descLines) {
-          cursorY = ensureSpace(cursorY, 5);
-          pdf.text(line, marginX + 6, cursorY);
-          cursorY += 3.5;
-        }
-        cursorY += 2;
+      // Quebra de página se não houver espaço suficiente para o cabeçalho da diretriz + 1 linha da tabela
+      if (cursorY + 36 > CONTENT_BOTTOM) {
+        pdf.addPage();
+        drawContentHeader(pdf, company, pilar.name);
+        cursorY = 24;
       }
 
-      // Children table
-      if (children.length > 0) {
-        const tableData = children.map((sub, si) => [
-          `${dIdx + 1}.${si + 1}`,
-          sub.title || "",
-          sub.responsible || "—",
-          sub.sector || "—",
+      // Bloco da Diretriz (Mãe)
+      const dirBoxH = diretriz.observations ? 14 : 10;
+      pdf.setFillColor(241, 245, 249);
+      pdf.setDrawColor(...COLOR_BORDER);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(
+        MARGIN_X,
+        cursorY,
+        PAGE_W - 2 * MARGIN_X,
+        dirBoxH,
+        1.5,
+        1.5,
+        "FD",
+      );
+
+      // Indicador vertical colorido à esquerda
+      pdf.setFillColor(...pillarBg);
+      pdf.roundedRect(MARGIN_X, cursorY, 2.5, dirBoxH, 1, 1, "F");
+
+      // Título da Diretriz
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...COLOR_PRIMARY);
+      pdf.text(
+        `DIRETRIZ ${dIdx + 1}: ${diretriz.title}`,
+        MARGIN_X + 6,
+        cursorY + 6,
+      );
+
+      // Metadados à direita
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(...COLOR_ACCENT);
+      pdf.text(
+        `Avanço: ${diretriz.progress_pct}%  ·  Status: ${statusLabel(diretriz.status)}  ·  (${children.length} ${children.length === 1 ? "ação" : "ações"})`,
+        PAGE_W - MARGIN_X - 6,
+        cursorY + 6,
+        { align: "right" },
+      );
+
+      // Descrição breve se existir
+      if (diretriz.observations) {
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(7);
+        pdf.setTextColor(...COLOR_MUTED);
+        const desc = pdf.splitTextToSize(
+          diretriz.observations,
+          PAGE_W - 2 * MARGIN_X - 12,
+        );
+        pdf.text(desc[0] || "", MARGIN_X + 6, cursorY + 11);
+      }
+
+      cursorY += dirBoxH + 2;
+
+      // Se a diretriz não tem ações cadastradas
+      if (children.length === 0) {
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(7);
+        pdf.setTextColor(...COLOR_MUTED);
+        pdf.text(
+          "Nenhuma ação de desdobramento cadastrada para esta diretriz.",
+          MARGIN_X + 8,
+          cursorY + 4,
+        );
+        cursorY += 8;
+        continue;
+      }
+
+      // Preparação dos dados da tabela de ações de desdobramento
+      const tableData = children.map((sub, sIdx) => {
+        // Título + Detalhamento Completo (Sem corte de informações)
+        let actionCell = sub.title;
+        const details: string[] = [];
+        if (sub.problem) details.push(`• Problema: ${sub.problem}`);
+        if (sub.cause) details.push(`• Causa: ${sub.cause}`);
+        if (sub.description) details.push(`• Descrição: ${sub.description}`);
+        if (sub.expected_result) details.push(`• Resultado Esperado: ${sub.expected_result}`);
+        if (details.length > 0) {
+          actionCell += "\n" + details.join("\n");
+        }
+
+        // Responsável, Setor e Origem
+        let respCell = sub.responsible || "—";
+        if (sub.sector) respCell += `\nSetor: ${sub.sector}`;
+        if (sub.origin) respCell += `\nOrigem: ${sub.origin}`;
+
+        // Matriz GUT
+        let gutCell = "—";
+        if (sub.gut_score) {
+          gutCell = `GUT: ${sub.gut_score}\n(${criticidade(sub.gut_score)})\nG:${sub.gravity || "-"} U:${sub.urgency || "-"} T:${sub.trend || "-"}`;
+        }
+
+        return [
+          `${dIdx + 1}.${sIdx + 1}`,
+          actionCell,
+          respCell,
           fmtDate(sub.due_date),
           statusLabel(sub.status),
           `${sub.progress_pct}%`,
-          sub.gut_score ? String(sub.gut_score) : "—",
-        ]);
+          gutCell,
+        ];
+      });
 
-        autoTable(pdf, {
-          startY: cursorY,
-          head: [["#", "Ação / Desdobramento", "Responsável", "Setor", "Prazo", "Status", "Avanço", "GUT"]],
-          body: tableData,
-          theme: "grid",
-          headStyles: {
-            fillColor: PRIMARY,
-            textColor: "#ffffff",
-            fontSize: 7,
-            fontStyle: "bold",
-            cellPadding: 1.5,
-          },
-          styles: {
-            fontSize: 7,
-            cellPadding: 1.5,
-            textColor: "#1e293b",
-            lineColor: "#e2e8f0",
-            lineWidth: 0.2,
-          },
-          alternateRowStyles: { fillColor: "#f8fafc" },
-          columnStyles: {
-            0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
-            1: { cellWidth: "auto" },
-            2: { cellWidth: 26 },
-            3: { cellWidth: 22 },
-            4: { cellWidth: 20 },
-            5: { cellWidth: 22 },
-            6: { cellWidth: 16, halign: "center" },
-            7: { cellWidth: 14, halign: "center" },
-          },
-          margin: { left: marginX + 6, right: marginX },
-          didDrawPage: () => {
-            drawHeader();
-            drawFooter();
-          },
-        });
-
-        cursorY = (pdf as any).lastAutoTable?.finalY ?? cursorY + 20;
-        cursorY += 3;
-
-        // Detail subsections for children with extra info
-        const detailed = children.filter(
-          (c) => c.problem || c.cause || c.description || c.expected_result || c.origin || c.observations,
-        );
-
-        if (detailed.length > 0) {
-          cursorY = ensureSpace(cursorY, 10);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(7);
-          pdf.setTextColor(ACCENT);
-          pdf.text("Detalhamentos das ações:", marginX + 6, cursorY);
-          cursorY += 4;
-
-          for (const child of detailed) {
-            cursorY = ensureSpace(cursorY, 16);
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(7);
-            pdf.setTextColor(PRIMARY);
-            const childTitleLines = pdf.splitTextToSize(`Ação: ${child.title}`, pageW - 2 * marginX - 18) as string[];
-            pdf.text(childTitleLines, marginX + 8, cursorY);
-            cursorY += Math.max(0, childTitleLines.length - 1) * 3.5;
-            cursorY += 3.5;
-
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(6.5);
-            pdf.setTextColor("#475569");
-
-            const fields: [string, string | null | undefined][] = [
-              ["Problema", child.problem],
-              ["Causa", child.cause],
-              ["Descrição", child.description],
-              ["Resultado Esperado", child.expected_result],
-              ["Origem", child.origin],
-              ["Observações", child.observations],
-            ];
-
-            for (const [label, value] of fields) {
-              if (!value) continue;
-              cursorY = ensureSpace(cursorY, 8);
-              const lines = pdf.splitTextToSize(
-                `${label}: ${value}`,
-                pageW - 2 * marginX - 22,
-              ) as string[];
-              for (const line of lines) {
-                cursorY = ensureSpace(cursorY, 4.5);
-                pdf.text(line, marginX + 12, cursorY);
-                cursorY += 3;
-              }
-              cursorY += 1;
+      // Tabela de Desdobramentos com jspdf-autotable
+      autoTable(pdf, {
+        startY: cursorY,
+        head: [
+          [
+            "#",
+            "Ação de Desdobramento & Detalhamento",
+            "Responsável / Setor",
+            "Prazo",
+            "Status",
+            "Avanço",
+            "Matriz GUT",
+          ],
+        ],
+        body: tableData,
+        theme: "grid",
+        margin: { top: 22, bottom: 16, left: MARGIN_X, right: MARGIN_X },
+        headStyles: {
+          fillColor: COLOR_PRIMARY,
+          textColor: [255, 255, 255],
+          fontSize: 7.5,
+          fontStyle: "bold",
+          cellPadding: 2,
+        },
+        styles: {
+          fontSize: 7,
+          cellPadding: 2,
+          textColor: [30, 41, 59],
+          lineColor: [226, 232, 240],
+          lineWidth: 0.2,
+          valign: "top",
+          overflow: "linebreak",
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
+          1: { cellWidth: 116 }, // Amplo espaço para texto e detalhes completos
+          2: { cellWidth: 42 },
+          3: { cellWidth: 20, halign: "center" },
+          4: { cellWidth: 26, halign: "center", fontStyle: "bold" },
+          5: { cellWidth: 17, halign: "center", fontStyle: "bold" },
+          6: { cellWidth: 24, halign: "center" },
+        },
+        didParseCell: (data) => {
+          // Destacar células de status com cores profissionais
+          if (data.section === "body" && data.column.index === 4) {
+            const rawStatus = children[data.row.index]?.status;
+            if (rawStatus === "concluido") {
+              data.cell.styles.textColor = [22, 101, 52];
+              data.cell.styles.fillColor = [240, 253, 244];
+            } else if (rawStatus === "em_andamento") {
+              data.cell.styles.textColor = [30, 64, 175];
+              data.cell.styles.fillColor = [239, 246, 255];
+            } else if (rawStatus === "nao_sera_feito") {
+              data.cell.styles.textColor = [153, 27, 27];
+              data.cell.styles.fillColor = [254, 242, 242];
+            } else {
+              data.cell.styles.textColor = [71, 85, 105];
+              data.cell.styles.fillColor = [248, 250, 252];
             }
-
-            cursorY += 2;
           }
-        }
-      }
+          // Destacar criticidade GUT
+          if (data.section === "body" && data.column.index === 6) {
+            const gut = children[data.row.index]?.gut_score;
+            if (gut && gut >= 75) {
+              data.cell.styles.textColor = [185, 28, 28];
+              data.cell.styles.fontStyle = "bold";
+            }
+          }
+        },
+        didDrawPage: () => {
+          // Garante que páginas criadas automaticamente pela quebra da tabela tenham o cabeçalho correto
+          drawContentHeader(pdf, company, pilar.name);
+        },
+      });
 
-      cursorY += 4;
+      cursorY = ((pdf as any).lastAutoTable?.finalY ?? cursorY) + 6;
     }
   }
 
-  /* ── salvar ── */
+  /* ══════════════════════════════════════════════════════
+     PASSAGEM FINAL: RODAPÉS E NUMERAÇÃO DE TODAS AS PÁGINAS
+  ══════════════════════════════════════════════════════ */
   const totalPages = pdf.getNumberOfPages();
-  for (let index = 1; index <= totalPages; index++) {
-    pdf.setPage(index);
-    if (index > 1) {
-      pdf.setFontSize(7);
-      pdf.setTextColor(MUTED);
-      pdf.text(`Pág ${index} de ${totalPages}`, pageW - marginX, pageH - 8, { align: "right" });
-    }
+  for (let pNum = 1; pNum <= totalPages; pNum++) {
+    pdf.setPage(pNum);
+
+    // Linha divisória do rodapé
+    pdf.setDrawColor(...COLOR_BORDER);
+    pdf.setLineWidth(0.3);
+    pdf.line(MARGIN_X, PAGE_H - 10, PAGE_W - MARGIN_X, PAGE_H - 10);
+
+    // Textos do rodapé
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7);
+    pdf.setTextColor(...COLOR_MUTED);
+    pdf.text(
+      `JARVIS Gestão Estratégica  |  ${company.name}  |  Documento Confidencial`,
+      MARGIN_X,
+      PAGE_H - 6,
+    );
+    pdf.text(
+      `Página ${pNum} de ${totalPages}`,
+      PAGE_W - MARGIN_X,
+      PAGE_H - 6,
+      { align: "right" },
+    );
   }
-  const safeName = company.name.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").replace(/\s+/g, "_");
-  pdf.save(`Mapa_Estrategico_${safeName}_${now.toISOString().slice(0, 10)}.pdf`);
+
+  /* ── Download do arquivo ── */
+  const safeName = company.name
+    .replace(/[^a-zA-Z0-9À-ÿ\s]/g, "")
+    .replace(/\s+/g, "_");
+  pdf.save(
+    `Mapa_Estrategico_${safeName}_${now.toISOString().slice(0, 10)}.pdf`,
+  );
 }

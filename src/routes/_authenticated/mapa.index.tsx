@@ -289,21 +289,35 @@ function MapaPage() {
   function handleExpandAll() {
     if (!mapaData) return;
     const exp: Record<string, boolean> = {};
-    mapaData.items.forEach((item) => {
+    mapaData.items?.forEach((item) => {
       exp[item.id] = true;
     });
-    mapaData.pillars.forEach((p) => {
+    mapaData.pillars?.forEach((p) => {
       exp[`pilar_${p.key}`] = true;
     });
     setExpandedNodes(exp);
   }
 
   function handleCollapseAll() {
-    setExpandedNodes({});
+    if (!mapaData) return;
+    const col: Record<string, boolean> = {};
+    mapaData.items?.forEach((item) => {
+      col[item.id] = false;
+    });
+    mapaData.pillars?.forEach((p) => {
+      col[`pilar_${p.key}`] = false;
+    });
+    Object.keys(expandedNodes).forEach((k) => {
+      col[k] = false;
+    });
+    setExpandedNodes(col);
   }
 
   function toggleNode(key: string) {
-    setExpandedNodes((prev) => ({ ...prev, [key]: !prev[key] }));
+    setExpandedNodes((prev) => {
+      const current = prev[key] !== false;
+      return { ...prev, [key]: !current };
+    });
   }
 
   // Mutations
@@ -816,7 +830,7 @@ function MapaPage() {
           <div className="space-y-4">
             {filteredPillars.map((pilar) => {
               const pilarKey = `pilar_${pilar.key}`;
-              const isPilarOpen = expandedNodes[pilarKey] ?? true;
+              const isPilarOpen = expandedNodes[pilarKey] !== false;
               const roots = treeByPillar[pilar.key] || [];
 
               return (
@@ -890,7 +904,7 @@ function MapaPage() {
                         </div>
                       ) : (
                         roots.map((diretriz, dirIdx) => {
-                          const isDirOpen = expandedNodes[diretriz.id] ?? true;
+                          const isDirOpen = expandedNodes[diretriz.id] !== false;
                           const children = diretriz.children || [];
                           const completedChildren = children.filter((c) => c.status === "concluido").length;
                           const dirStatus = statusInfo(diretriz.status);
