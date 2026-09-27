@@ -258,13 +258,21 @@ export async function exportMapaPdf(opts: {
 
       cursorY += directiveHeight;
 
-      // Description (if any)
-      if (diretriz.observations) {
+      const directiveFields: [string, string | null | undefined][] = [
+        ["Problema", diretriz.problem],
+        ["Causa", diretriz.cause],
+        ["Descrição", diretriz.description],
+        ["Resultado esperado", diretriz.expected_result],
+        ["Origem", diretriz.origin],
+        ["Observações", diretriz.observations],
+      ];
+      for (const [fieldLabel, fieldValue] of directiveFields) {
+        if (!fieldValue) continue;
         cursorY = ensureSpace(cursorY, 8);
         pdf.setFont("helvetica", "italic");
         pdf.setFontSize(7);
         pdf.setTextColor("#475569");
-        const descLines = pdf.splitTextToSize(diretriz.observations, pageW - 2 * marginX - 12) as string[];
+        const descLines = pdf.splitTextToSize(`${fieldLabel}: ${fieldValue}`, pageW - 2 * marginX - 12) as string[];
         for (const line of descLines) {
           cursorY = ensureSpace(cursorY, 5);
           pdf.text(line, marginX + 6, cursorY);
@@ -328,7 +336,7 @@ export async function exportMapaPdf(opts: {
 
         // Detail subsections for children with extra info
         const detailed = children.filter(
-          (c) => c.problem || c.cause || c.description || c.expected_result,
+          (c) => c.problem || c.cause || c.description || c.expected_result || c.origin || c.observations,
         );
 
         if (detailed.length > 0) {
@@ -358,6 +366,8 @@ export async function exportMapaPdf(opts: {
               ["Causa", child.cause],
               ["Descrição", child.description],
               ["Resultado Esperado", child.expected_result],
+              ["Origem", child.origin],
+              ["Observações", child.observations],
             ];
 
             for (const [label, value] of fields) {
