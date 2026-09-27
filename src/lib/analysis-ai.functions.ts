@@ -28,101 +28,40 @@ function extractJson(raw: string): any {
   }
 }
 
+import { chatAi } from "@/lib/ai-gateway.server";
+
 async function callModel(model: string, systemPrompt: string, userPrompt: string) {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Lovable-API-Key": apiKey,
-      "Content-Type": "application/json",
-      "X-Lovable-AIG-SDK": "fetch",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 8000,
-    }),
+  const { content } = await chatAi({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    model,
+    jsonMode: true,
+    maxRetries: 3,
   });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    if (res.status === 429) throw new Error("Limite de IA atingido. Tente novamente em instantes.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados.");
-    throw new Error(`Falha IA (${res.status}): ${txt.slice(0, 200)}`);
-  }
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return json.choices?.[0]?.message?.content ?? "{}";
+  return content;
 }
 
 /** Modelo rápido primeiro, com fallback caso a resposta falhe. */
 async function callGateway(systemPrompt: string, userPrompt: string) {
-  const models = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
-  let lastErr: unknown;
-  for (const m of models) {
-    try {
-      return await callModel(m, systemPrompt, userPrompt);
-    } catch (e) {
-      lastErr = e;
-      if (/Limite de IA|Créditos/.test((e as Error)?.message ?? "")) throw e;
-    }
-  }
-  throw lastErr ?? new Error("Falha IA");
+  return await callModel("gpt-4o", systemPrompt, userPrompt);
 }
 
 async function callAstraResponses(prompt: string) {
-  const apiKey = process.env['LOVABLE_API_KEY'];
-  if (!apiKey) throw new Error("A geração inteligente não está configurada.");
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
-    method: "POST",
-    headers: {
-      "Lovable-API-Key": apiKey,
-      "Content-Type": "application/json",
-      "X-Lovable-AIG-SDK": "fetch",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-6-astra",
-      stream: true,
-      store: false,
-      reasoning: { effort: "medium", summary: "auto" },
-      include: ["reasoning.encrypted_content"],
-      input: [{ role: "user", content: [{ type: "input_text", text: prompt }] }],
-    }),
+  const { content } = await chatAi({
+    messages: [
+      { role: "system", content: "Você é um consultor executivo sênior. Responda em JSON válido." },
+      { role: "user", content: prompt },
+    ],
+    model: "gpt-4o",
+    jsonMode: true,
+    maxRetries: 3,
   });
-  if (!response.ok) {
-    const safeMessage = (await response.text().catch(() => "")).slice(0, 500);
-    if (response.status === 402) throw new Error(safeMessage || "Créditos de IA insuficientes.");
-    if (response.status === 403) throw new Error(safeMessage || "A geração inteligente não está liberada.");
-    if (response.status === 429) throw new Error(safeMessage || "Limite temporário de IA atingido. Tente novamente mais tarde.");
-    throw new Error(safeMessage || "Não foi possível gerar o diagnóstico executivo.");
-  }
-  if (!response.body) throw new Error("A geração não retornou conteúdo.");
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let text = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const payload = line.slice(6);
-      if (payload === "[DONE]") continue;
-      try {
-        const event = JSON.parse(payload);
-        if (event.type === "response.output_text.delta") text += event.delta ?? "";
-      } catch { /* event incompleto */ }
-    }
-  }
-  if (!text.trim()) throw new Error("A geração terminou sem conteúdo disponível.");
-  return text;
+  return content;
 }
+
+
 
 /* ============================================================
  * ANÁLISE CRÍTICA DE PROCESSO → gera oportunidades

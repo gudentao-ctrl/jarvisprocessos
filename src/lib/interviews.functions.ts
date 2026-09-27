@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { transcribeAudioAi, chatAi, getAiConfig } from "@/lib/ai-gateway.server";
 
 /* ============================================================
  * COMPANIES & SECTORS
@@ -271,7 +272,7 @@ export const deleteInterview = createServerFn({ method: "POST" })
   });
 
 /* ============================================================
- * TRANSCRIPTION (Lovable AI Gateway STT)
+ * TRANSCRIPTION (BYOK OpenAI Whisper / Fallback)
  * ============================================================ */
 
 export const transcribeInterview = createServerFn({ method: "POST" })
@@ -286,9 +287,6 @@ export const transcribeInterview = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
-
     const { data: interview, error: ie } = await context.supabase
       .from("interviews")
       .select("id, audio_path, audio_mime, audio_parts")
@@ -307,29 +305,25 @@ export const transcribeInterview = createServerFn({ method: "POST" })
         .download(path);
       if (dlErr || !blob) throw new Error("Falha ao baixar áudio: " + (dlErr?.message ?? ""));
 
-      const mime = path.endsWith(".wav") ? "audio/wav" : interview!.audio_mime || blob.type || "audio/webm";
-      const ext = mime.includes("wav") ? "wav" : mime.includes("mp4") ? "mp4" : mime.includes("mpeg") ? "mp3" : "webm";
+      const mime = path.endsWith(".wav")
+        ? "audio/wav"
+        : path.endsWith(".mp3")
+          ? "audio/mpeg"
+          : path.endsWith(".m4a")
+            ? "audio/mp4"
+            : interview!.audio_mime || blob.type || "audio/webm";
+      const ext = path.split(".").pop() || (mime.includes("wav") ? "wav" : mime.includes("mp4") ? "m4a" : "mp3");
 
-      const form = new FormData();
-      form.append("file", blob, `audio.${ext}`);
-      form.append("model", "openai/gpt-4o-mini-transcribe");
-      form.append("language", "pt");
-
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: form,
+      const result = await transcribeAudioAi({
+        fileBlob: blob,
+        fileName: `audio.${ext}`,
+        mimeType: mime,
+        language: "pt",
+        supabase: context.supabase,
+        maxRetries: 3,
       });
 
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        if (res.status === 429) throw new Error("Limite de requisições atingido. Tente novamente em instantes.");
-        if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos ao workspace.");
-        throw new Error(`Falha na transcrição (${res.status}): ${txt.slice(0, 200)}`);
-      }
-
-      const json = (await res.json()) as { text?: string };
-      return (json.text ?? "").trim();
+      return result.text;
     }
 
     const single = typeof data.part_index === "number";
@@ -418,9 +412,6 @@ export const analyzeInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
-
     const { data: t } = await context.supabase
       .from("transcripts")
       .select("content")
@@ -453,32 +444,15 @@ Responda APENAS um JSON com exatamente esses campos.`;
 
     const userPrompt = `Transcrição:\n\n${content}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    const { content: raw } = await chatAi({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      jsonMode: true,
+      supabase: context.supabase,
+      maxRetries: 3,
     });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Limite de IA atingido. Tente novamente em instantes.");
-      if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos ao workspace.");
-      throw new Error(`Falha na análise (${res.status}): ${txt.slice(0, 200)}`);
-    }
-
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = json.choices?.[0]?.message?.content ?? "{}";
     let parsed: z.infer<typeof AnalysisSchema>;
     try {
       parsed = AnalysisSchema.parse(JSON.parse(raw));
@@ -689,4 +663,150 @@ export const exportInterviewPdf = createServerFn({ method: "POST" })
     }
     const base64 = btoa(binary);
     return { filename: `entrevista-${interview.id}.pdf`, base64 };
+  });
+
+/* ============================================================
+ * BYOK AI STATUS & CONFIGURATION
+ * Permite que a equipe e superadmins verifiquem a chave ativa
+ * e configurem a operação ilimitada sem travas de créditos.
+ * ============================================================ */
+
+export const getAiProviderStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const config = await getAiConfig(context.supabase);
+    return {
+      provider: config.provider,
+      hasByok: config.hasByok,
+      hasLovableFallback: Boolean(config.lovableApiKey),
+      chatModel: config.chatModel,
+      transcribeModel: config.transcribeModel,
+      openAiBaseUrl: config.openAiBaseUrl,
+    };
+  });
+
+export const saveAiProviderKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        openai_api_key: z.string().min(1, "Chave OpenAI obrigatória"),
+        model_chat: z.string().optional(),
+        model_transcribe: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperadmin(context.supabase, context.userId);
+
+    await context.supabase.from("system_settings").upsert(
+      [
+        {
+          key: "openai_api_key",
+          value: data.openai_api_key.trim(),
+          is_secret: true,
+          updated_at: new Date().toISOString(),
+          updated_by: context.userId,
+        },
+        {
+          key: "ai_provider",
+          value: "openai",
+          is_secret: false,
+          updated_at: new Date().toISOString(),
+          updated_by: context.userId,
+        },
+        ...(data.model_chat
+          ? [
+              {
+                key: "openai_model_chat",
+                value: data.model_chat.trim(),
+                is_secret: false,
+                updated_at: new Date().toISOString(),
+                updated_by: context.userId,
+              },
+            ]
+          : []),
+        ...(data.model_transcribe
+          ? [
+              {
+                key: "openai_model_transcribe",
+                value: data.model_transcribe.trim(),
+                is_secret: false,
+                updated_at: new Date().toISOString(),
+                updated_by: context.userId,
+              },
+            ]
+          : []),
+      ],
+      { onConflict: "key" },
+    );
+
+    return { ok: true, message: "Chave OpenAI salva com sucesso no sistema!" };
+  });
+
+export const chunkAudioIfNeeded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ interview_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: interview, error: ie } = await context.supabase
+      .from("interviews")
+      .select("id, audio_path, audio_parts, audio_mime")
+      .eq("id", data.interview_id)
+      .single();
+
+    if (ie || !interview?.audio_path) throw new Error("Áudio não encontrado");
+
+    // Se já foi fatiado em múltiplos blocos, retorna
+    if ((interview.audio_parts as string[] | null)?.length && (interview.audio_parts as string[]).length > 1) {
+      return { parts: interview.audio_parts as string[], total: (interview.audio_parts as string[]).length };
+    }
+
+    // Baixa o áudio mestre para checagem de tamanho
+    const { data: blob, error: dlErr } = await context.supabase.storage
+      .from("interview-audio")
+      .download(interview.audio_path);
+
+    if (dlErr || !blob) throw new Error("Falha ao baixar áudio mestre: " + dlErr?.message);
+
+    // Se arquivo for menor que 20MB, pode ser transcrito diretamente sem fatiar
+    if (blob.size <= 20 * 1024 * 1024) {
+      const parts = [interview.audio_path];
+      await context.supabase
+        .from("interviews")
+        .update({ audio_parts: parts })
+        .eq("id", interview.id);
+      return { parts, total: 1 };
+    }
+
+    // Fatiamento de áudio binário
+    const arrayBuffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const CHUNK_SIZE = 18 * 1024 * 1024; // 18 MB por bloco
+    const folder = interview.audio_path.includes("/") ? interview.audio_path.split("/")[0] : interview.id;
+    const ext = interview.audio_path.split(".").pop() || "mp3";
+    const contentType = interview.audio_mime || blob.type || "audio/mpeg";
+
+    const parts: string[] = [];
+    let partIdx = 0;
+
+    for (let offset = 0; offset < bytes.byteLength; offset += CHUNK_SIZE) {
+      const chunkBytes = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.byteLength));
+      const partPath = `${folder}/part-${String(partIdx).padStart(3, "0")}.${ext}`;
+
+      const { error: upErr } = await context.supabase.storage
+        .from("interview-audio")
+        .upload(partPath, chunkBytes, { contentType, upsert: true });
+
+      if (upErr) throw new Error(`Falha ao salvar bloco ${partIdx + 1}: ${upErr.message}`);
+
+      parts.push(partPath);
+      partIdx++;
+    }
+
+    await context.supabase
+      .from("interviews")
+      .update({ audio_parts: parts })
+      .eq("id", interview.id);
+
+    return { parts, total: parts.length };
   });

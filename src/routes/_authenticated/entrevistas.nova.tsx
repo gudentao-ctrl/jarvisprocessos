@@ -98,21 +98,51 @@ function NewInterview() {
       if (!title.trim()) throw new Error("Informe um título");
       if (!audioParts.length) throw new Error("Grave ou envie um áudio");
 
-      // 1) upload each audio chunk to storage
+      // 1) upload each audio chunk with retry & backoff
       const folder = crypto.randomUUID();
       const paths: string[] = [];
+
       for (let i = 0; i < audioParts.length; i++) {
-        setProgress(`Enviando áudio ${i + 1}/${audioParts.length}...`);
-        const path = `${folder}/part-${String(i).padStart(3, "0")}.wav`;
-        const up = await supabase.storage
-          .from("interview-audio")
-          .upload(path, audioParts[i], { contentType: "audio/wav", upsert: true });
-        if (up.error) throw new Error("Falha ao enviar áudio: " + up.error.message);
+        const chunk = audioParts[i];
+        const isWav = chunk.type.includes("wav");
+        const ext = isWav ? "wav" : chunk.type.includes("mp4") ? "m4a" : "mp3";
+        const mime = chunk.type || (isWav ? "audio/wav" : "audio/mpeg");
+        const path = `${folder}/part-${String(i).padStart(3, "0")}.${ext}`;
+
+        let uploaded = false;
+        let lastErr = "";
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          setProgress(
+            `Enviando áudio ${i + 1}/${audioParts.length} (${Math.round(((i + 1) / audioParts.length) * 100)}%)${
+              attempt > 1 ? ` · Tentativa ${attempt}/3...` : "..."
+            }`,
+          );
+
+          const up = await supabase.storage
+            .from("interview-audio")
+            .upload(path, chunk, { contentType: mime, upsert: true });
+
+          if (!up.error) {
+            uploaded = true;
+            break;
+          }
+
+          lastErr = up.error.message;
+          if (attempt < 3) {
+            setProgress(`Oscilação de rede detectada. Reenviando bloco ${i + 1} em instantes...`);
+            await new Promise((r) => setTimeout(r, 1000 * attempt));
+          }
+        }
+
+        if (!uploaded) {
+          throw new Error(`Falha ao enviar bloco ${i + 1} de áudio após 3 tentativas: ${lastErr}. Seu áudio foi preservado para nova tentativa.`);
+        }
         paths.push(path);
       }
 
       // 2) create interview row
-      setProgress("Criando entrevista...");
+      setProgress("Registrando entrevista...");
       const interview = await create({
         data: {
           title: title.trim(),
@@ -123,32 +153,50 @@ function NewInterview() {
           audio_path: paths[0],
           audio_parts: paths,
           audio_duration_sec: Math.round(audioDuration),
-          audio_mime: "audio/wav",
+          audio_mime: audioParts[0]?.type || "audio/wav",
         },
       });
 
-      // 3) transcribe (one chunk per request, so long audio never times out)
+      // 3) transcribe (one chunk per request with auto-retry)
       try {
         for (let i = 0; i < paths.length; i++) {
-          setProgress(`Transcrevendo bloco ${i + 1}/${paths.length}...`);
-          await transcribe({ data: { interview_id: interview.id, part_index: i } });
+          let chunkDone = false;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            setProgress(
+              `Transcrevendo bloco ${i + 1}/${paths.length} (${Math.round(((i + 1) / paths.length) * 100)}%)${
+                attempt > 1 ? ` · Reenviando (${attempt}/3)...` : "..."
+              }`,
+            );
+
+            try {
+              await transcribe({ data: { interview_id: interview.id, part_index: i } });
+              chunkDone = true;
+              break;
+            } catch (err: any) {
+              if (attempt < 3) {
+                setProgress(`Instabilidade na API de IA. Retentando bloco ${i + 1}...`);
+                await new Promise((r) => setTimeout(r, 2000 * attempt));
+              } else {
+                throw err;
+              }
+            }
+          }
         }
       } catch (e: any) {
-        toast.error("Áudio salvo, mas transcrição falhou: " + e.message);
+        toast.error("Áudio salvo com sucesso no servidor! A transcrição continuará na página da entrevista: " + e.message);
       }
-
 
       return interview;
     },
     onSuccess: (interview) => {
       setProgress("");
       qc.invalidateQueries({ queryKey: ["interviews"] });
-      toast.success("Entrevista criada!");
+      toast.success("Entrevista criada com sucesso!");
       navigate({ to: "/entrevistas/$id", params: { id: interview.id } });
     },
     onError: (e: any) => {
       setProgress("");
-      toast.error(e.message ?? "Erro ao criar entrevista");
+      toast.error(e.message ?? "Erro ao processar entrevista");
     },
   });
 

@@ -130,17 +130,36 @@ function InterviewDetail() {
 
   const runTranscribe = useMutation({
     mutationFn: async () => {
-      // Transcribes chunk by chunk so long interviews (up to 60 min) never time out.
+      // Transcreve bloco por bloco com retentativa automática (suporte a áudios de 2+ horas)
       let i = 0;
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const r: any = await transcribe({ data: { interview_id: id, part_index: i } });
+        let r: any = null;
+        let lastErr = "";
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            r = await transcribe({ data: { interview_id: id, part_index: i } });
+            break;
+          } catch (err: any) {
+            lastErr = err?.message ?? "Falha na transcrição";
+            if (attempt < 3) {
+              toast.info(`Instabilidade na API. Retentando bloco ${i + 1} (${attempt}/3)...`);
+              await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+            }
+          }
+        }
+
+        if (!r) {
+          throw new Error(`Falha no bloco ${i + 1} após 3 tentativas: ${lastErr}. A transcrição já realizada foi salva.`);
+        }
+
         if (r?.done || i >= (r?.parts_total ?? 1) - 1) break;
         i++;
-        toast.info(`Transcrevendo bloco ${i + 1}/${r.parts_total}...`);
+        toast.info(`Transcrevendo bloco ${i + 1}/${r.parts_total} (${Math.round(((i + 1) / r.parts_total) * 100)}%)...`);
       }
     },
-    onSuccess: () => { toast.success("Transcrição gerada"); refetch(); },
+    onSuccess: () => { toast.success("Transcrição concluída com sucesso!"); refetch(); },
     onError: (e: any) => toast.error(e.message),
   });
 

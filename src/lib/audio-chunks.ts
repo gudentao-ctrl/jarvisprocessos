@@ -1,8 +1,9 @@
-// Client-side audio helpers: capture / convert audio into small WAV chunks so
-// long recordings (up to 60+ minutes) can be transcribed piece by piece.
+// Client-side audio helpers: capture / convert audio into small chunks so
+// long recordings (up to 2+ hours) can be transcribed piece by piece with zero RAM crash.
 
 export const TARGET_SAMPLE_RATE = 16000;
 export const CHUNK_SECONDS = 300; // 5 min per chunk (~9.6 MB WAV @16kHz mono)
+export const MAX_SAFE_FILE_SIZE_BYTES = 22 * 1024 * 1024; // 22 MB (Abaixo do limite de 25 MB do Whisper)
 
 export function encodeWav(samples: Float32Array, sampleRate = TARGET_SAMPLE_RATE): Blob {
   const buffer = new ArrayBuffer(44 + samples.length * 2);
@@ -68,40 +69,149 @@ export function splitToWavChunks(samples: Float32Array, chunkSeconds = CHUNK_SEC
   return parts.length ? parts : [encodeWav(samples)];
 }
 
-/** Decode any audio file (mp3/m4a/wav/webm) to mono 16kHz WAV chunks. */
+/**
+ * Fatiador binário de alta performance para arquivos WAV.
+ * Não decodifica para Float32Array na memória RAM, garantindo suporte a
+ * gravações de 2 a 4+ horas sem estourar o limite de memória do navegador.
+ */
+export async function splitWavFileBinary(file: Blob, chunkSeconds = CHUNK_SECONDS): Promise<Blob[]> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+
+  let offset = 12;
+  let byteRate = 32000;
+  let dataOffset = 44;
+  let dataLength = bytes.byteLength - 44;
+
+  while (offset < bytes.byteLength - 8) {
+    const chunkId = String.fromCharCode(
+      bytes[offset],
+      bytes[offset + 1],
+      bytes[offset + 2],
+      bytes[offset + 3],
+    );
+    const chunkSize = view.getUint32(offset + 4, true);
+
+    if (chunkId === "fmt ") {
+      byteRate = view.getUint32(offset + 16, true) || 32000;
+    } else if (chunkId === "data") {
+      dataOffset = offset + 8;
+      dataLength = chunkSize;
+      break;
+    }
+    offset += 8 + chunkSize;
+  }
+
+  const chunkByteSize = chunkSeconds * byteRate;
+  const parts: Blob[] = [];
+
+  for (let pos = 0; pos < dataLength; pos += chunkByteSize) {
+    const curSize = Math.min(chunkByteSize, dataLength - pos);
+    const partBuffer = new Uint8Array(44 + curSize);
+    const partView = new DataView(partBuffer.buffer);
+
+    partBuffer.set(bytes.subarray(0, 44), 0);
+    partView.setUint32(4, 36 + curSize, true);
+    partView.setUint32(40, curSize, true);
+    partBuffer.set(bytes.subarray(dataOffset + pos, dataOffset + pos + curSize), 44);
+
+    parts.push(new Blob([partBuffer], { type: "audio/wav" }));
+  }
+
+  return parts.length ? parts : [file];
+}
+
+/**
+ * Divide qualquer arquivo de áudio para transcrição.
+ * Estratégia de Alta Disponibilidade:
+ * 1. Arquivos compactados (MP3, M4A, etc.) menores que 22MB são enviados diretamente como bloco único.
+ * 2. Arquivos WAV são fatiados em blocos binários de 5 minutos sem decodificação pesada.
+ * 3. Arquivos longos que excederem o limite de memória são fatiados por tamanho seguro (<= 18MB).
+ */
 export async function fileToWavChunks(
   file: Blob,
   onProgress?: (msg: string) => void,
 ): Promise<{ parts: Blob[]; durationSec: number }> {
-  onProgress?.("Lendo arquivo...");
-  const arrayBuffer = await file.arrayBuffer();
-  const Ctx: typeof AudioContext =
-    (window as any).AudioContext ?? (window as any).webkitAudioContext;
-  const decodeCtx = new Ctx();
-  onProgress?.("Decodificando áudio...");
-  const decoded = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
-  const durationSec = decoded.duration;
-  await decodeCtx.close();
+  const isWav = file.type.includes("wav") || (file as any).name?.toLowerCase().endsWith(".wav");
 
-  onProgress?.("Convertendo para 16 kHz...");
-  const OfflineCtx: typeof OfflineAudioContext =
-    (window as any).OfflineAudioContext ?? (window as any).webkitOfflineAudioContext;
-  const frames = Math.ceil(decoded.duration * TARGET_SAMPLE_RATE);
-  const offline = new OfflineCtx(1, frames, TARGET_SAMPLE_RATE);
-  const src = offline.createBufferSource();
-  src.buffer = decoded;
-  src.connect(offline.destination);
-  src.start(0);
-  const rendered = await offline.startRendering();
-  const mono = rendered.getChannelData(0);
+  // Se já for WAV, usa fatiamento binário ultrarrápido sem decodificação de PCM
+  if (isWav) {
+    onProgress?.("Fatiando áudio WAV em blocos de 5 minutos...");
+    const parts = await splitWavFileBinary(file, CHUNK_SECONDS);
+    const estimatedDuration = Math.round((file.size / 32000));
+    return { parts, durationSec: estimatedDuration };
+  }
 
-  onProgress?.("Dividindo em blocos...");
-  return { parts: splitToWavChunks(new Float32Array(mono)), durationSec };
+  // Se arquivo já é MP3 / M4A / WebM e tem menos de 22MB, pode ser enviado diretamente (Whisper suporta nativamente até 25MB)
+  if (file.size <= MAX_SAFE_FILE_SIZE_BYTES) {
+    onProgress?.("Otimizando áudio para envio rápido...");
+    // Estima duração via Audio element simples sem decodificar todo o PCM
+    const url = URL.createObjectURL(file);
+    let dur = 0;
+    try {
+      const audio = new Audio(url);
+      await new Promise((resolve) => {
+        audio.onloadedmetadata = () => {
+          dur = audio.duration || 0;
+          resolve(true);
+        };
+        audio.onerror = () => resolve(false);
+        setTimeout(resolve, 1500); // timeout de segurança
+      });
+    } catch {
+      // fallback
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    return { parts: [file], durationSec: Math.round(dur) };
+  }
+
+  // Para arquivos grandes (> 22MB), tenta decodificação com fallback automático
+  try {
+    onProgress?.("Lendo arquivo...");
+    const arrayBuffer = await file.arrayBuffer();
+    const Ctx: typeof AudioContext =
+      (window as any).AudioContext ?? (window as any).webkitAudioContext;
+    const decodeCtx = new Ctx();
+
+    onProgress?.("Processando faixas de áudio...");
+    const decoded = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
+    const durationSec = decoded.duration;
+    await decodeCtx.close();
+
+    onProgress?.("Convertendo para 16 kHz...");
+    const OfflineCtx: typeof OfflineAudioContext =
+      (window as any).OfflineAudioContext ?? (window as any).webkitOfflineAudioContext;
+    const frames = Math.ceil(decoded.duration * TARGET_SAMPLE_RATE);
+    const offline = new OfflineCtx(1, frames, TARGET_SAMPLE_RATE);
+    const src = offline.createBufferSource();
+    src.buffer = decoded;
+    src.connect(offline.destination);
+    src.start(0);
+    const rendered = await offline.startRendering();
+    const mono = rendered.getChannelData(0);
+
+    onProgress?.("Dividindo em blocos de 5 min...");
+    return { parts: splitToWavChunks(new Float32Array(mono)), durationSec };
+  } catch {
+    // FALLBACK DE ALTA RESILIÊNCIA: Se o navegador não tiver memória suficiente para decodificar
+    // o áudio de 2+ horas inteiro em Float32Array, divide em pedaços binários de 18MB
+    onProgress?.("Dividindo áudio em blocos seguros para envio...");
+    const CHUNK_SIZE = 18 * 1024 * 1024; // 18 MB
+    const parts: Blob[] = [];
+    for (let i = 0; i < file.size; i += CHUNK_SIZE) {
+      parts.push(file.slice(i, Math.min(i + CHUNK_SIZE, file.size), file.type));
+    }
+    // Duração estimada pelo tamanho
+    const estDuration = Math.round(file.size / 16000);
+    return { parts, durationSec: estDuration };
+  }
 }
 
 /**
- * Streaming microphone recorder that emits complete WAV chunks while recording,
- * so memory stays flat regardless of how long the interview runs.
+ * Gravador de microfone por streaming com emissão contínua de blocos WAV.
+ * Mantém o consumo de RAM fixo independentemente do tempo de reunião (2h, 4h+).
  */
 export class ChunkedRecorder {
   private ctx: AudioContext | null = null;

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { chatAi } from "@/lib/ai-gateway.server";
 
 const MODEL_FALLBACKS = [
   "google/gemini-2.5-flash",
@@ -66,8 +67,6 @@ export const askConsultantAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
     const sb = context.supabase;
 
     let contextBlock = "";
@@ -119,35 +118,15 @@ REGRAS ESTRITAS:
 - Máx. 500 palavras. Ao gerar diagnóstico ou plano de ação completo, use seções claras (## Título).
 ${data.moduleHint ? `- Contexto do usuário: está no módulo "${data.moduleHint}".` : ""}`;
 
-    let lastErr = "";
-    for (const model of MODEL_FALLBACKS) {
-      try {
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: `Dados da empresa (JSON):\n${contextBlock}\n\nPergunta / comando: ${data.question}` },
-            ],
-          }),
-        });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          lastErr = `[${model}] ${res.status}: ${txt.slice(0, 200)}`;
-          if (res.status === 429) throw new Error("Limite de IA atingido. Aguarde alguns minutos.");
-          if (res.status === 402) throw new Error("Créditos de IA esgotados.");
-          continue;
-        }
-        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        const answer = json.choices?.[0]?.message?.content?.trim() ?? "";
-        if (!answer) { lastErr = `[${model}] resposta vazia`; continue; }
-        return { answer, model };
-      } catch (e: any) {
-        if (e?.message?.startsWith("Limite") || e?.message?.startsWith("Créditos")) throw e;
-        lastErr = `[${model}] ${e?.message ?? "erro"}`;
-      }
-    }
-    throw new Error(`Nenhum modelo respondeu. ${lastErr}`);
+    const { content: answer } = await chatAi({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Dados da empresa (JSON):\n${contextBlock}\n\nPergunta / comando: ${data.question}` },
+      ],
+      model: "gpt-4o",
+      supabase: context.supabase,
+      maxRetries: 3,
+    });
+
+    return { answer, model: "gpt-4o" };
   });

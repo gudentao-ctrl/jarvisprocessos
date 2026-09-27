@@ -62,30 +62,15 @@ function extractJson(raw: string): any {
   }
 }
 
-async function callModel(model: string, user: string): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("LOVABLE_API_KEY ausente");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Lovable-API-Key": key, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 6000,
-    }),
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    if (res.status === 429) throw new Error("Limite de IA atingido. Aguarde alguns instantes.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados.");
-    throw new Error(`Falha IA (${res.status}): ${t.slice(0, 200)}`);
-  }
-  const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return j.choices?.[0]?.message?.content ?? "{}";
+import { chatAi } from "@/lib/ai-gateway.server";
+
+/** Wrapper using BYOK chat AI helper */
+async function callModel(_model: string, user: string): Promise<string> {
+  // Model argument ignored; chatAi resolves the appropriate provider/config.
+  return await chatAi(user);
+}
+// Removed obsolete Lovable fetch block. `callModel` now simply forwards to `chatAi`,
+// which already handles provider selection (OpenAI, Ollama, Lovable). No additional fetch logic is needed here.
 }
 
 async function callAi(user: string): Promise<string> {

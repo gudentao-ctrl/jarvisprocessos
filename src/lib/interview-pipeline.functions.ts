@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { runAiPipeline } from "@/lib/ai-gateway.server";
 
 /* ============================================================
  * PIPELINE IA pós-entrevista
@@ -198,7 +199,7 @@ function hashString(s: string): string {
   return String(h);
 }
 
-function condenseText(s: string, max = 18000): string {
+function condenseText(s: string, max = 120000): string {
   const t = (s ?? "").trim();
   if (t.length <= max) return t;
   const head = t.slice(0, Math.floor(max * 0.6));
@@ -217,59 +218,6 @@ function looseJson(raw: string): any {
     throw new Error("Resposta da IA não é um JSON válido.");
   }
 }
-
-async function callAstra(systemPrompt: string, userPrompt: string) {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
-    method: "POST",
-    headers: {
-      "Lovable-API-Key": apiKey,
-      "Content-Type": "application/json",
-      "X-Lovable-AIG-SDK": "fetch",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-6-astra",
-      stream: true,
-      reasoning: { effort: "medium", summary: "auto" },
-      include: ["reasoning.encrypted_content"],
-      input: [
-        { role: "developer", content: [{ type: "input_text", text: systemPrompt }] },
-        { role: "user", content: [{ type: "input_text", text: userPrompt }] },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    if (res.status === 429) throw new Error("Limite de IA atingido. Tente novamente em instantes.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados.");
-    throw new Error(`Falha IA (${res.status}): ${txt.slice(0, 300)}`);
-  }
-  if (!res.body) throw new Error("Resposta da IA sem conteúdo.");
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let content = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const payload = line.slice(6);
-      if (payload === "[DONE]") continue;
-      try {
-        const event = JSON.parse(payload);
-        if (event.type === "response.output_text.delta") content += event.delta ?? "";
-      } catch { /* aguarda evento completo */ }
-    }
-  }
-  if (!content.trim()) throw new Error("Resposta da IA vazia.");
-  return content;
-}
-
 
 export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -307,7 +255,11 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
 
     let parsed: z.infer<typeof PipelineSchema>;
     try {
-      const raw = await callAstra(SYSTEM_PROMPT, `Transcrição:\n\n${condenseText(content)}`);
+      const raw = await runAiPipeline({
+        systemPrompt: SYSTEM_PROMPT,
+        userPrompt: `Transcrição:\n\n${condenseText(content)}`,
+        supabase,
+      });
       parsed = PipelineSchema.parse(looseJson(raw));
     } catch (e: any) {
       await supabase
