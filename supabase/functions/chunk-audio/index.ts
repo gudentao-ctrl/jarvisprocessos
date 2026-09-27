@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Supabase Edge Function: chunk-audio
 // Fatiamento programático de áudios longos (acima de 2 horas) em blocos de até 5 minutos
 // para garantir alta disponibilidade e processamento contínuo no Whisper.

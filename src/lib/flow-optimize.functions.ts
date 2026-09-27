@@ -66,11 +66,10 @@ import { chatAi } from "@/lib/ai-gateway.server";
 
 /** Wrapper using BYOK chat AI helper */
 async function callModel(_model: string, user: string): Promise<string> {
-  // Model argument ignored; chatAi resolves the appropriate provider/config.
-  return await chatAi(user);
-}
-// Removed obsolete Lovable fetch block. `callModel` now simply forwards to `chatAi`,
-// which already handles provider selection (OpenAI, Ollama, Lovable). No additional fetch logic is needed here.
+  const { content } = await chatAi({
+    messages: [{ role: "user", content: user }],
+  });
+  return content;
 }
 
 async function callAi(user: string): Promise<string> {

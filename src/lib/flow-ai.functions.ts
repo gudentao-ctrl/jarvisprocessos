@@ -86,9 +86,11 @@ function extractJson(raw: string): any {
 import { chatAi } from "@/lib/ai-gateway.server";
 
 /** Wrapper using BYOK chat AI helper */
-async function callModel(_model: string, user: string) {
-  // The model parameter is ignored; chatAi resolves the appropriate provider/config.
-  return await chatAi(user);
+async function callModel(_model: string, user: string): Promise<string> {
+  const { content } = await chatAi({
+    messages: [{ role: "user", content: user }],
+  });
+  return content;
 }
 
 /** Modelo rápido primeiro (evita estouro de tempo com contextos grandes),

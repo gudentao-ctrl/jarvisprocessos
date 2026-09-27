@@ -18,6 +18,7 @@ export interface ResolvedAiConfig {
   openAiBaseUrl: string;
   lovableApiKey?: string;
   chatModel: string;
+  transcribeModel: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
   hasByok: boolean;
@@ -108,7 +109,136 @@ export interface TranscribeAudioOptions {
   maxRetries?: number;
 }
 
-// ... (transcribe implementation unchanged) ...
+/**
+ * Executa transcrição de áudio via OpenAI Whisper nativo ou Lovable Gateway como fallback.
+ */
+export async function transcribeAudioAi(
+  options: TranscribeAudioOptions,
+): Promise<{ text: string; provider: string }> {
+  const {
+    fileBlob,
+    fileName = "audio.mp3",
+    mimeType = "audio/mpeg",
+    language = "pt",
+    prompt,
+    supabase,
+    maxRetries = 3,
+  } = options;
+
+  const config = await getAiConfig(supabase);
+
+  // ---------- OpenAI Whisper (BYOK) ----------
+  if (config.openAiApiKey) {
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const formData = new FormData();
+        const file = new File([fileBlob], fileName, { type: mimeType });
+        formData.append("file", file);
+        formData.append("model", config.transcribeModel || "whisper-1");
+        if (language) formData.append("language", language);
+        if (prompt) formData.append("prompt", prompt);
+
+        const res = await fetch(`${config.openAiBaseUrl}/audio/transcriptions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.openAiApiKey}`,
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          if (res.status === 429 && attempt < maxRetries) {
+            await sleep(attempt * 2000);
+            continue;
+          }
+          throw new Error(`OpenAI Whisper falhou (${res.status}): ${errText.slice(0, 300)}`);
+        }
+
+        const json = (await res.json()) as { text?: string };
+        const text = (json.text ?? "").trim();
+
+        if (supabase) {
+          const now = new Date().toISOString();
+          await supabase
+            .from("system_settings")
+            .upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
+        }
+
+        return { text, provider: "openai" };
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < maxRetries) await sleep(attempt * 1500);
+      }
+    }
+    if (!config.lovableApiKey) {
+      throw lastError || new Error("Falha na transcrição de áudio com OpenAI Whisper.");
+    }
+  }
+
+  // ---------- Lovable Fallback ----------
+  if (config.lovableApiKey) {
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const formData = new FormData();
+        const file = new File([fileBlob], fileName, { type: mimeType });
+        formData.append("file", file);
+        formData.append("model", "openai/whisper-1");
+        if (language) formData.append("language", language);
+        if (prompt) formData.append("prompt", prompt);
+
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.lovableApiKey}`,
+            "X-Lovable-AIG-SDK": "fetch",
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          if (res.status === 402) {
+            throw new Error(
+              "Créditos de IA esgotados na plataforma Lovable. Adicione uma chave própria OPENAI_API_KEY no painel para continuar transcrevendo.",
+            );
+          }
+          if (res.status === 429 && attempt < maxRetries) {
+            await sleep(attempt * 2000);
+            continue;
+          }
+          throw new Error(`Falha na transcrição (${res.status}): ${errText.slice(0, 200)}`);
+        }
+
+        const json = (await res.json()) as { text?: string };
+        const text = (json.text ?? "").trim();
+
+        if (supabase) {
+          const now = new Date().toISOString();
+          await supabase
+            .from("system_settings")
+            .upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
+        }
+
+        return { text, provider: "lovable" };
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < maxRetries && !/Créditos de IA esgotados/.test(err?.message ?? "")) {
+          await sleep(attempt * 1500);
+        } else {
+          throw err;
+        }
+      }
+    }
+    throw lastError || new Error("Falha na transcrição de áudio via Lovable.");
+  }
+
+  throw new Error(
+    "Nenhuma chave de IA configurada para transcrição. Defina OPENAI_API_KEY nas variáveis de ambiente ou no painel SuperAdmin.",
+  );
+}
 
 /* ============================================================
  * CHAT & ANÁLISE ESTRUTURADA (GPT-4o / FALLBACK)
@@ -126,9 +256,18 @@ export interface ChatAiOptions {
 
 /**
  * Executa chamadas de Chat / Análise utilizando prioritariamente OpenAI GPT (BYOK).
- * Inclui auto-retry e fallback automático.
+ * Inclui auto-retry e fallback automático. Suporta string direta ou objeto ChatAiOptions.
  */
-export async function chatAi(options: ChatAiOptions): Promise<{ content: string; provider: string }> {
+export async function chatAi(prompt: string): Promise<string>;
+export async function chatAi(options: ChatAiOptions): Promise<{ content: string; provider: string }>;
+export async function chatAi(
+  optionsOrPrompt: ChatAiOptions | string,
+): Promise<{ content: string; provider: string } | string> {
+  const isString = typeof optionsOrPrompt === "string";
+  const options: ChatAiOptions = isString
+    ? { messages: [{ role: "user", content: optionsOrPrompt }] }
+    : optionsOrPrompt;
+
   const {
     messages,
     model,
@@ -183,7 +322,7 @@ export async function chatAi(options: ChatAiOptions): Promise<{ content: string;
           const now = new Date().toISOString();
           await supabase.from("system_settings").upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
         }
-        return { content: content.trim(), provider: "openai" };
+        return isString ? (content.trim() as any) : { content: content.trim(), provider: "openai" };
       } catch (err: any) {
         lastError = err;
         if (attempt < maxRetries) await sleep(attempt * 1500);
@@ -232,7 +371,7 @@ export async function chatAi(options: ChatAiOptions): Promise<{ content: string;
           const now = new Date().toISOString();
           await supabase.from("system_settings").upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
         }
-        return { content: content.trim(), provider: "ollama" };
+        return isString ? (content.trim() as any) : { content: content.trim(), provider: "ollama" };
       } catch (err: any) {
         lastError = err;
         if (attempt < maxRetries) await sleep(attempt * 1500);
@@ -274,7 +413,7 @@ export async function chatAi(options: ChatAiOptions): Promise<{ content: string;
       const now = new Date().toISOString();
       await supabase.from("system_settings").upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
     }
-    return { content: content.trim(), provider: "lovable" };
+    return isString ? (content.trim() as any) : { content: content.trim(), provider: "lovable" };
   }
 
   throw new Error(
