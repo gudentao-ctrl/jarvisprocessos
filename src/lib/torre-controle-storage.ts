@@ -65,7 +65,7 @@ export const PILARES_MATURIDADE = [
       {
         id: 8,
         texto:
-          "A infraestrutura, organização, segurança e condições de trabalho são adequadas?",
+          "A infraestrutura física, organização, segurança e condições de trabalho são adequadas?",
       },
     ],
   },
@@ -644,6 +644,101 @@ export function getDefaultRoadmapCockpitData(
   };
 }
 
+export function enrichCockpitWithTorreInputs(
+  companyId: string,
+  baseData: RoadmapCockpitData
+): RoadmapCockpitData {
+  const result: RoadmapCockpitData = {
+    ...baseData,
+    kpis: { ...baseData.kpis },
+    radar_360: {
+      ...baseData.radar_360,
+      pilars: baseData.radar_360.pilars.map((p) => ({ ...p })),
+    },
+    roi_timeline: [...baseData.roi_timeline],
+  };
+
+  // 1. Sincronização automática da Maturidade da Empresa
+  const maturityRecords = getMaturityRecordsFromStorage(companyId).sort((a, b) =>
+    a.month_year.localeCompare(b.month_year)
+  );
+
+  if (maturityRecords.length > 0) {
+    const earliest = maturityRecords[0];
+    const latest = maturityRecords[maturityRecords.length - 1];
+
+    result.radar_360.initial_month_label = `Diagnóstico (${earliest.month_year})`;
+    result.radar_360.current_month_label = `Mês Atual (${latest.month_year})`;
+
+    result.radar_360.pilars = result.radar_360.pilars.map((p, idx) => {
+      const pilarId = idx + 1;
+      const initialScore = earliest.pilar_averages[pilarId] ?? p.mes_inicial;
+      const currentScore = latest.pilar_averages[pilarId] ?? p.mes_atual;
+      return {
+        ...p,
+        mes_inicial: initialScore,
+        mes_atual: currentScore,
+      };
+    });
+
+    const initAvg = earliest.global_average || 1;
+    const currAvg = latest.global_average || 1;
+    const growth = Number((((currAvg - initAvg) / initAvg) * 100).toFixed(1));
+    result.kpis.maturity_growth_pct = Math.max(0, growth);
+    result.kpis.maturity_growth_note = `Evolução de ${initAvg.toFixed(1)}/5 para ${currAvg.toFixed(1)}/5 no Sincronismo 360°`;
+  }
+
+  // 2. Sincronização automática da DRE Gerencial
+  const dreRecords = getDRERecordsFromStorage(companyId)
+    .filter((r) => r.mode === "realizado")
+    .sort((a, b) => a.month_year.localeCompare(b.month_year));
+
+  if (dreRecords.length > 0) {
+    const earliest = dreRecords[0];
+    const latest = dreRecords[dreRecords.length - 1];
+
+    if (earliest.total_receita_bruta > 0 && dreRecords.length > 1) {
+      const revGrowth = Number(
+        (
+          ((latest.total_receita_bruta - earliest.total_receita_bruta) /
+            earliest.total_receita_bruta) *
+          100
+        ).toFixed(1)
+      );
+      result.kpis.revenue_growth_pct = revGrowth;
+      const diff = latest.total_receita_bruta - earliest.total_receita_bruta;
+      result.kpis.revenue_growth_note = `${diff >= 0 ? "+" : ""}R$ ${Math.abs(diff).toLocaleString("pt-BR")} no faturamento mensal frente ao diagnóstico`;
+
+      const initialCosts = earliest.total_custos_variaveis + earliest.total_custos_fixos;
+      const currentCosts = latest.total_custos_variaveis + latest.total_custos_fixos;
+      if (initialCosts > 0) {
+        const costDiffPct = Number((((initialCosts - currentCosts) / initialCosts) * 100).toFixed(1));
+        result.kpis.cost_reduction_pct = Math.max(0, costDiffPct);
+      }
+    }
+
+    // Se houver registros DRE, alimenta o timeline de ROI
+    if (dreRecords.length >= 2) {
+      result.roi_timeline = dreRecords.map((dre, idx) => {
+        const existingPin = baseData.roi_timeline[idx]?.intervention_pin;
+        return {
+          period: dre.month_year,
+          revenue: dre.total_receita_bruta,
+          costs: dre.total_custos_variaveis + dre.total_custos_fixos,
+          profit: dre.lucro_operacional,
+          intervention_pin: existingPin || {
+            title: `Fechamento ${dre.month_year}`,
+            front: "Financeiro",
+            description: `Margem de Contribuição: ${dre.margem_contribuicao_pct}%`,
+          },
+        };
+      });
+    }
+  }
+
+  return result;
+}
+
 export function getRoadmapCockpitFromStorage(
   companyId: string,
   companyName: string = "Empresa"
@@ -651,12 +746,15 @@ export function getRoadmapCockpitFromStorage(
   if (typeof window === "undefined") return getDefaultRoadmapCockpitData(companyId, companyName);
   try {
     const raw = localStorage.getItem(`${STORAGE_KEYS.ROADMAP}_${companyId}`);
+    let parsed: RoadmapCockpitData;
     if (!raw) {
-      const defaultData = getDefaultRoadmapCockpitData(companyId, companyName);
-      localStorage.setItem(`${STORAGE_KEYS.ROADMAP}_${companyId}`, JSON.stringify(defaultData));
-      return defaultData;
+      parsed = getDefaultRoadmapCockpitData(companyId, companyName);
+    } else {
+      parsed = JSON.parse(raw);
     }
-    return JSON.parse(raw);
+    // Enriquece com os dados reais da Torre de Controle
+    const enriched = enrichCockpitWithTorreInputs(companyId, parsed);
+    return enriched;
   } catch (err) {
     console.error("Error reading roadmap cockpit storage:", err);
     return getDefaultRoadmapCockpitData(companyId, companyName);
