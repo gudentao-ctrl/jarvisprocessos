@@ -19,6 +19,8 @@ import {
   ListTodo,
   Trophy,
   FileBarChart2,
+  Calculator,
+  TrendingUp,
 } from "lucide-react";
 import { PHASES, PHASE_TOOLS, type PhaseSlug } from "@/lib/phases";
 import { PhaseMenu, useVisiblePhaseTools } from "@/components/PhaseMenu";
@@ -41,6 +43,8 @@ const ICONS: Record<string, any> = {
   ListTodo,
   Trophy,
   FileBarChart2,
+  Calculator,
+  TrendingUp,
 };
 
 export const Route = createFileRoute("/_authenticated/fase/$slug")({
@@ -70,8 +74,13 @@ function FasePage() {
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((i) => {
           const Icon = ICONS[i.icon] ?? ArrowRight;
+          const [pathname, searchStr] = i.to.split("?");
+          const searchParams = searchStr
+            ? Object.fromEntries(new URLSearchParams(searchStr))
+            : undefined;
+
           return (
-            <Link key={i.label} to={i.to as any}>
+            <Link key={i.label} to={pathname as any} search={searchParams as any}>
               <Card className="flex items-start gap-3 p-4 transition-colors hover:bg-secondary/50 active:bg-secondary">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="h-5 w-5" />

@@ -37,7 +37,29 @@ import {
   Trash2,
   Copy,
   Gauge,
+  Calculator,
+  TrendingUp,
+  Target,
+  LayoutDashboard,
+  ArrowUpRight,
+  DollarSign,
+  PieChart,
+  Calendar,
+  CheckCircle2,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 import { PhaseMenu, PhaseGrid } from "@/components/PhaseMenu";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
@@ -58,11 +80,14 @@ import {
 } from "@/lib/torre-controle-storage";
 
 export const Route = createFileRoute("/_authenticated/controle/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : "painel",
+  }),
   component: ControlePage,
 });
 
 // ===========================================================
-// SEVERITY & ICON MAPS (existing)
+// SEVERITY & ICON MAPS
 // ===========================================================
 const SEV: Record<string, { dot: string; bg: string; text: string }> = {
   critical: { dot: "bg-destructive", bg: "bg-destructive/10", text: "text-destructive" },
@@ -117,10 +142,24 @@ const SCORE_LABELS: Record<number, string> = {
 };
 
 // ===========================================================
-// MAIN PAGE
+// MAIN PAGE: TORRE DE CONTROLE
 // ===========================================================
 function ControlePage() {
   const { company, companyId, companies } = useActiveCompany();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [activeTab, setActiveTab] = useState(search.tab || "painel");
+
+  useEffect(() => {
+    if (search.tab && search.tab !== activeTab) {
+      setActiveTab(search.tab);
+    }
+  }, [search.tab]);
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val);
+    navigate({ search: { tab: val } as any, replace: true });
+  };
 
   if (!companyId) {
     return (
@@ -152,11 +191,24 @@ function ControlePage() {
         <PhaseMenu current="controle" />
       </div>
 
-      <Tabs defaultValue="painel" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="painel">Painel de Controle</TabsTrigger>
-          <TabsTrigger value="maturidade">Maturidade da Empresa</TabsTrigger>
-          <TabsTrigger value="dre">Evolução Financeira (DRE)</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          <TabsTrigger value="painel" className="gap-1.5 text-xs sm:text-sm">
+            <LayoutDashboard className="h-4 w-4" />
+            Painel Geral
+          </TabsTrigger>
+          <TabsTrigger value="maturidade" className="gap-1.5 text-xs sm:text-sm">
+            <Target className="h-4 w-4" />
+            Maturidade da Empresa
+          </TabsTrigger>
+          <TabsTrigger value="dre" className="gap-1.5 text-xs sm:text-sm">
+            <Calculator className="h-4 w-4" />
+            DRE Gerencial
+          </TabsTrigger>
+          <TabsTrigger value="evolucao" className="gap-1.5 text-xs sm:text-sm">
+            <TrendingUp className="h-4 w-4" />
+            Evolução Financeira
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="painel" className="space-y-4 mt-4">
@@ -170,13 +222,17 @@ function ControlePage() {
         <TabsContent value="dre" className="space-y-4 mt-4">
           <DRETab companyId={companyId} />
         </TabsContent>
+
+        <TabsContent value="evolucao" className="space-y-4 mt-4">
+          <EvolucaoFinanceiraTab companyId={companyId} />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
 
 // ===========================================================
-// TAB 1: PAINEL DE CONTROLE (existing alerts)
+// TAB 1: PAINEL DE CONTROLE (Alertas & Atividades)
 // ===========================================================
 function PainelDeControleTab({
   companyId,
@@ -364,7 +420,7 @@ function PainelDeControleTab({
 }
 
 // ===========================================================
-// TAB 2: MATURIDADE DA EMPRESA
+// TAB 2: MATURIDADE DA EMPRESA (12 Perguntas nos 6 Pilares)
 // ===========================================================
 function MaturidadeTab({ companyId }: { companyId: string }) {
   const monthOptions = useMemo(() => generateMonthOptions(), []);
@@ -562,7 +618,7 @@ function MaturidadeTab({ companyId }: { companyId: string }) {
 }
 
 // ===========================================================
-// TAB 3: EVOLUÇÃO FINANCEIRA (DRE)
+// TAB 3: DRE GERENCIAL (Tabela Estruturada & Inputs)
 // ===========================================================
 function DRETab({ companyId }: { companyId: string }) {
   const monthOptions = useMemo(() => generateMonthOptions(), []);
@@ -680,10 +736,9 @@ function DRETab({ companyId }: { companyId: string }) {
       <Card className="overflow-hidden">
         <div className="border-b bg-muted/30 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-primary" />
+            <Calculator className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold">
-              DRE Gerencial —{" "}
-              {mode === "realizado" ? "Realizado" : "Orçado"}
+              DRE Gerencial — {mode === "realizado" ? "Realizado" : "Orçado"} ({selectedMonth})
             </p>
           </div>
         </div>
@@ -808,6 +863,382 @@ function DRETab({ companyId }: { companyId: string }) {
         </Button>
       </div>
     </>
+  );
+}
+
+// ===========================================================
+// TAB 4: EVOLUÇÃO FINANCEIRA (Tendências, Gráficos & Orçado vs Realizado)
+// ===========================================================
+function EvolucaoFinanceiraTab({ companyId }: { companyId: string }) {
+  const [records, setRecords] = useState<MonthlyDRERecord[]>(() => {
+    const list = getDRERecordsFromStorage(companyId);
+    if (list.length >= 2) return list;
+    // Se não tiver pelo menos 2 meses, gera histórico base para análise
+    const d1 = getDefaultDRERecord(companyId, "2026-01", "realizado");
+    const d2 = getDefaultDRERecord(companyId, "2026-02", "realizado");
+    d2.receita_bruta_items[0].amount = 160000;
+    d2.custos_variaveis_items[0].amount = 64000;
+    d2.custos_fixos_items[0].amount = 51000;
+    const m2 = calculateDREMetrics(d2.receita_bruta_items, d2.deducoes_items, d2.custos_variaveis_items, d2.custos_fixos_items);
+    Object.assign(d2, m2);
+
+    const d3 = getDefaultDRERecord(companyId, "2026-03", "realizado");
+    d3.receita_bruta_items[0].amount = 185000;
+    d3.custos_variaveis_items[0].amount = 68000;
+    d3.custos_fixos_items[0].amount = 49500;
+    const m3 = calculateDREMetrics(d3.receita_bruta_items, d3.deducoes_items, d3.custos_variaveis_items, d3.custos_fixos_items);
+    Object.assign(d3, m3);
+
+    const initial = [d1, d2, d3];
+    initial.forEach(saveDRERecord);
+    return initial;
+  });
+
+  useEffect(() => {
+    const stored = getDRERecordsFromStorage(companyId);
+    if (stored.length > 0) setRecords(stored);
+  }, [companyId]);
+
+  const realizados = useMemo(
+    () =>
+      records
+        .filter((r) => r.mode === "realizado")
+        .sort((a, b) => a.month_year.localeCompare(b.month_year)),
+    [records]
+  );
+
+  const orcados = useMemo(
+    () =>
+      records
+        .filter((r) => r.mode === "orcado")
+        .sort((a, b) => a.month_year.localeCompare(b.month_year)),
+    [records]
+  );
+
+  // Totais & Métricas Consolidadas
+  const totalFaturamento = useMemo(
+    () => realizados.reduce((acc, r) => acc + r.total_receita_bruta, 0),
+    [realizados]
+  );
+
+  const totalLucro = useMemo(
+    () => realizados.reduce((acc, r) => acc + r.lucro_operacional, 0),
+    [realizados]
+  );
+
+  const avgMargemContribuicao = useMemo(() => {
+    if (realizados.length === 0) return 0;
+    const sum = realizados.reduce((acc, r) => acc + r.margem_contribuicao_pct, 0);
+    return Number((sum / realizados.length).toFixed(1));
+  }, [realizados]);
+
+  const avgCustosTotais = useMemo(() => {
+    if (realizados.length === 0) return 0;
+    const sum = realizados.reduce(
+      (acc, r) => acc + (r.total_custos_variaveis + r.total_custos_fixos),
+      0
+    );
+    return Math.round(sum / realizados.length);
+  }, [realizados]);
+
+  // Dados para Gráficos Recharts
+  const chartData = useMemo(() => {
+    return realizados.map((r) => {
+      const orcadoMatch = orcados.find((o) => o.month_year === r.month_year);
+      return {
+        mes: r.month_year,
+        receita_bruta: r.total_receita_bruta,
+        receita_liquida: r.receita_liquida,
+        custos_totais: r.total_custos_variaveis + r.total_custos_fixos,
+        lucro_operacional: r.lucro_operacional,
+        margem_contribuicao_pct: r.margem_contribuicao_pct,
+        lucro_pct: r.lucro_operacional_pct,
+        receita_orcada: orcadoMatch ? orcadoMatch.total_receita_bruta : undefined,
+        lucro_orcado: orcadoMatch ? orcadoMatch.lucro_operacional : undefined,
+      };
+    });
+  }, [realizados, orcados]);
+
+  return (
+    <div className="space-y-6">
+      {/* 4 Cards de Métricas Consolidadas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-4 border-l-4 border-l-emerald-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">
+              Faturamento Acumulado
+            </span>
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-bold text-emerald-600 tabular-nums">
+            {brl(totalFaturamento)}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Total bruto em {realizados.length} {realizados.length === 1 ? "mês" : "meses"}
+          </p>
+        </Card>
+
+        <Card className="p-4 border-l-4 border-l-indigo-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">
+              Margem de Contribuição Média
+            </span>
+            <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600">
+              <PieChart className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-bold text-indigo-600 tabular-nums">
+            {avgMargemContribuicao}%
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Média da receita líquida livre após custos variáveis
+          </p>
+        </Card>
+
+        <Card className="p-4 border-l-4 border-l-amber-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">
+              Custos Mensais Médios
+            </span>
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600">
+              <TrendingDown className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-bold text-amber-600 tabular-nums">
+            {brl(avgCustosTotais)}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Fixos + Variáveis médios por mês
+          </p>
+        </Card>
+
+        <Card
+          className={`p-4 border-l-4 ${
+            totalLucro >= 0 ? "border-l-primary" : "border-l-destructive"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">
+              Lucro Operacional Acumulado
+            </span>
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+              <DollarSign className="h-4 w-4" />
+            </div>
+          </div>
+          <p
+            className={`mt-2 text-2xl font-bold tabular-nums ${
+              totalLucro >= 0 ? "text-primary" : "text-destructive"
+            }`}
+          >
+            {brl(totalLucro)}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {totalLucro >= 0 ? "Superávit acumulado no período" : "Déficit acumulado no período"}
+          </p>
+        </Card>
+      </div>
+
+      {/* Gráficos Recharts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico 1: Faturamento vs Custos vs Lucro */}
+        <Card className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Tendência Financeira Mensal
+              </p>
+              <h3 className="text-sm font-semibold text-foreground">
+                Faturamento Bruto, Custos Totais e Lucro Operacional
+              </h3>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              Evolução Temporal
+            </Badge>
+          </div>
+
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`}
+                />
+                <RechartsTooltip formatter={(val: any) => [brl(Number(val)), ""]} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Area
+                  type="monotone"
+                  dataKey="receita_bruta"
+                  name="Faturamento Bruto"
+                  fill="#10b981"
+                  fillOpacity={0.15}
+                  stroke="#10b981"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="custos_totais"
+                  name="Custos Totais"
+                  fill="#f43f5e"
+                  fillOpacity={0.1}
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="lucro_operacional"
+                  name="Lucro Operacional"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#2563eb" }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        {/* Gráfico 2: Evolução das Margens % */}
+        <Card className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Eficiência Operacional
+              </p>
+              <h3 className="text-sm font-semibold text-foreground">
+                Margem de Contribuição (%) e Margem Operacional (%)
+              </h3>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              Percentuais
+            </Badge>
+          </div>
+
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
+                <RechartsTooltip formatter={(val: any) => [`${Number(val).toFixed(1)}%`, ""]} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Bar
+                  dataKey="margem_contribuicao_pct"
+                  name="Margem Contribuição %"
+                  fill="#6366f1"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="lucro_pct"
+                  name="Margem de Lucro %"
+                  fill="#0ea5e9"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      {/* Tabela de Histórico Consolidado Mês a Mês */}
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Histórico Financeiro Consolidado (Mês a Mês)</p>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {realizados.length} períodos registrados
+          </Badge>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b bg-muted/40 font-semibold text-muted-foreground">
+                <th className="p-2.5 text-left">Linha do DRE</th>
+                {realizados.map((r) => (
+                  <th key={r.id} className="p-2.5 text-right">
+                    {r.month_year}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              <tr>
+                <td className="p-2.5 font-bold text-emerald-700 dark:text-emerald-400">
+                  (+) Faturamento Bruto
+                </td>
+                {realizados.map((r) => (
+                  <td key={r.id} className="p-2.5 text-right font-semibold tabular-nums">
+                    {brl(r.total_receita_bruta)}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="p-2.5 text-muted-foreground">(–) Deduções e Impostos</td>
+                {realizados.map((r) => (
+                  <td key={r.id} className="p-2.5 text-right tabular-nums text-muted-foreground">
+                    ({brl(r.total_deducoes)})
+                  </td>
+                ))}
+              </tr>
+              <tr className="bg-sky-50/50 dark:bg-sky-950/20 font-semibold">
+                <td className="p-2.5 text-sky-800 dark:text-sky-300">(=) Receita Líquida</td>
+                {realizados.map((r) => (
+                  <td key={r.id} className="p-2.5 text-right tabular-nums text-sky-800 dark:text-sky-300">
+                    {brl(r.receita_liquida)}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="p-2.5 text-muted-foreground">(–) Custos Variáveis / CMV</td>
+                {realizados.map((r) => (
+                  <td key={r.id} className="p-2.5 text-right tabular-nums text-muted-foreground">
+                    ({brl(r.total_custos_variaveis)})
+                  </td>
+                ))}
+              </tr>
+              <tr className="bg-indigo-50/50 dark:bg-indigo-950/20 font-semibold">
+                <td className="p-2.5 text-indigo-800 dark:text-indigo-300">
+                  (=) Margem de Contribuição
+                </td>
+                {realizados.map((r) => (
+                  <td key={r.id} className="p-2.5 text-right tabular-nums text-indigo-800 dark:text-indigo-300">
+                    {brl(r.margem_contribuicao)} ({r.margem_contribuicao_pct}%)
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="p-2.5 text-muted-foreground">(–) Custos Fixos e Pessoal</td>
+                {realizados.map((r) => (
+                  <td key={r.id} className="p-2.5 text-right tabular-nums text-muted-foreground">
+                    ({brl(r.total_custos_fixos)})
+                  </td>
+                ))}
+              </tr>
+              <tr className="bg-emerald-50 dark:bg-emerald-950/30 font-bold">
+                <td className="p-2.5 text-emerald-800 dark:text-emerald-300">
+                  (=) LUCRO OPERACIONAL
+                </td>
+                {realizados.map((r) => (
+                  <td
+                    key={r.id}
+                    className={`p-2.5 text-right tabular-nums ${
+                      r.lucro_operacional >= 0 ? "text-emerald-700" : "text-destructive"
+                    }`}
+                  >
+                    {brl(r.lucro_operacional)} ({r.lucro_operacional_pct}%)
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
   );
 }
 

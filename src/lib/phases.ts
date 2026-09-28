@@ -112,6 +112,24 @@ export const PHASE_TOOLS: Record<Exclude<PhaseSlug, "controle">, PhaseTool[]> = 
       icon: "BarChart3",
     },
     {
+      label: "DRE Gerencial",
+      description: "Demonstrativo de resultado e custos mensais",
+      to: "/controle?tab=dre",
+      icon: "Calculator",
+    },
+    {
+      label: "Evolução Financeira",
+      description: "Histórico consolidado, tendências e orçado vs realizado",
+      to: "/controle?tab=evolucao",
+      icon: "TrendingUp",
+    },
+    {
+      label: "Maturidade da Empresa",
+      description: "Avaliação padrão mensal nos 6 pilares",
+      to: "/controle?tab=maturidade",
+      icon: "Target",
+    },
+    {
       label: "Relatório de Acompanhamento",
       description: "Relatório executivo periódico gerado pela IA",
       to: "/relatorio-acompanhamento",
