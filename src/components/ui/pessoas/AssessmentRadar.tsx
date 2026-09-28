@@ -1,4 +1,11 @@
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+} from "recharts";
 
 interface AssessmentRadarProps {
   data: { name: string; value: number }[]; // e.g. [{name: "Comunicação", value: 78}, ...]

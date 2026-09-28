@@ -49,6 +49,7 @@ import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authentic
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
 import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
 import { Route as AuthenticatedPessoasAssessmentRouteImport } from './routes/_authenticated/pessoas/assessment'
+import { Route as AuthenticatedPessoasDashboardRouteImport } from './routes/_authenticated/pessoas/dashboard'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
 import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
 import { Route as AuthenticatedPopIdRouteImport } from './routes/_authenticated/pop.$id'
@@ -63,6 +64,7 @@ import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
 import { Route as AuthenticatedIndicadoresIdColetarRouteImport } from './routes/_authenticated/indicadores.$id.coletar'
+import { Route as AuthenticatedPessoasAssessmentIndexRouteImport } from './routes/_authenticated/pessoas/assessment/index'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
 import { Route as AuthenticatedProjetosIdIndexRouteImport } from './routes/_authenticated/projetos.$id.index'
 import { Route as AuthenticatedProjetosIdDiagnosticoRouteImport } from './routes/_authenticated/projetos.$id.diagnostico'
@@ -298,6 +300,12 @@ const AuthenticatedPessoasAssessmentRoute =
     path: '/pessoas/assessment',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPessoasDashboardRoute =
+  AuthenticatedPessoasDashboardRouteImport.update({
+    id: '/pessoas/dashboard',
+    path: '/pessoas/dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlanosAcaoIndexRoute =
   AuthenticatedPlanosAcaoIndexRouteImport.update({
     id: '/planos-acao/',
@@ -377,6 +385,12 @@ const AuthenticatedIndicadoresIdColetarRoute =
     id: '/indicadores/$id/coletar',
     path: '/indicadores/$id/coletar',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPessoasAssessmentIndexRoute =
+  AuthenticatedPessoasAssessmentIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPessoasAssessmentRoute,
   } as any)
 const AuthenticatedProcessosSugerirInterviewIdRoute =
   AuthenticatedProcessosSugerirInterviewIdRouteImport.update({
@@ -467,6 +481,7 @@ export interface FileRoutesByFullPath {
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
+  '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
@@ -506,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
+  '/pessoas/assessment/': typeof AuthenticatedPessoasAssessmentIndexRoute
   '/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
   '/pessoas/assessment/detail/$id': typeof AuthenticatedPessoasAssessmentDetailIdRoute
   '/pessoas/assessment/portal/$uuid': typeof AuthenticatedPessoasAssessmentPortalUuidRoute
@@ -532,7 +548,7 @@ export interface FileRoutesByTo {
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
-  '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
+  '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -571,6 +587,7 @@ export interface FileRoutesByTo {
   '/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
+  '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentIndexRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdIndexRoute
   '/pessoas/assessment/detail/$id': typeof AuthenticatedPessoasAssessmentDetailIdRoute
   '/pessoas/assessment/portal/$uuid': typeof AuthenticatedPessoasAssessmentPortalUuidRoute
@@ -600,6 +617,7 @@ export interface FileRoutesById {
   '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/_authenticated/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
+  '/_authenticated/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
@@ -639,6 +657,7 @@ export interface FileRoutesById {
   '/_authenticated/projetos/$id/mapeamento': typeof AuthenticatedProjetosIdMapeamentoRoute
   '/_authenticated/projetos/$id/melhorias': typeof AuthenticatedProjetosIdMelhoriasRoute
   '/api/public/planos/$token': typeof ApiPublicPlanosTokenRoute
+  '/_authenticated/pessoas/assessment/': typeof AuthenticatedPessoasAssessmentIndexRoute
   '/_authenticated/projetos/$id/': typeof AuthenticatedProjetosIdIndexRoute
   '/_authenticated/pessoas/assessment/detail/$id': typeof AuthenticatedPessoasAssessmentDetailIdRoute
   '/_authenticated/pessoas/assessment/portal/$uuid': typeof AuthenticatedPessoasAssessmentPortalUuidRoute
@@ -668,6 +687,7 @@ export interface FileRouteTypes {
     | '/mapas/dores'
     | '/mapas/informacao'
     | '/pessoas/assessment'
+    | '/pessoas/dashboard'
     | '/pop/$id'
     | '/processos/$id'
     | '/projetos/$id'
@@ -707,6 +727,7 @@ export interface FileRouteTypes {
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
     | '/api/public/planos/$token'
+    | '/pessoas/assessment/'
     | '/projetos/$id/'
     | '/pessoas/assessment/detail/$id'
     | '/pessoas/assessment/portal/$uuid'
@@ -733,7 +754,7 @@ export interface FileRouteTypes {
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
-    | '/pessoas/assessment'
+    | '/pessoas/dashboard'
     | '/pop/$id'
     | '/processos/$id'
     | '/admin'
@@ -772,6 +793,7 @@ export interface FileRouteTypes {
     | '/projetos/$id/mapeamento'
     | '/projetos/$id/melhorias'
     | '/api/public/planos/$token'
+    | '/pessoas/assessment'
     | '/projetos/$id'
     | '/pessoas/assessment/detail/$id'
     | '/pessoas/assessment/portal/$uuid'
@@ -800,6 +822,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mapas/dores'
     | '/_authenticated/mapas/informacao'
     | '/_authenticated/pessoas/assessment'
+    | '/_authenticated/pessoas/dashboard'
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
@@ -839,6 +862,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projetos/$id/mapeamento'
     | '/_authenticated/projetos/$id/melhorias'
     | '/api/public/planos/$token'
+    | '/_authenticated/pessoas/assessment/'
     | '/_authenticated/projetos/$id/'
     | '/_authenticated/pessoas/assessment/detail/$id'
     | '/_authenticated/pessoas/assessment/portal/$uuid'
@@ -1137,6 +1161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPessoasAssessmentRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pessoas/dashboard': {
+      id: '/_authenticated/pessoas/dashboard'
+      path: '/pessoas/dashboard'
+      fullPath: '/pessoas/dashboard'
+      preLoaderRoute: typeof AuthenticatedPessoasDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planos-acao/': {
       id: '/_authenticated/planos-acao/'
       path: '/planos-acao'
@@ -1235,6 +1266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndicadoresIdColetarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pessoas/assessment/': {
+      id: '/_authenticated/pessoas/assessment/'
+      path: '/'
+      fullPath: '/pessoas/assessment/'
+      preLoaderRoute: typeof AuthenticatedPessoasAssessmentIndexRouteImport
+      parentRoute: typeof AuthenticatedPessoasAssessmentRoute
+    }
     '/_authenticated/processos/sugerir/$interviewId': {
       id: '/_authenticated/processos/sugerir/$interviewId'
       path: '/processos/sugerir/$interviewId'
@@ -1316,12 +1354,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedPessoasAssessmentRouteChildren {
+  AuthenticatedPessoasAssessmentIndexRoute: typeof AuthenticatedPessoasAssessmentIndexRoute
   AuthenticatedPessoasAssessmentDetailIdRoute: typeof AuthenticatedPessoasAssessmentDetailIdRoute
   AuthenticatedPessoasAssessmentPortalUuidRoute: typeof AuthenticatedPessoasAssessmentPortalUuidRoute
 }
 
 const AuthenticatedPessoasAssessmentRouteChildren: AuthenticatedPessoasAssessmentRouteChildren =
   {
+    AuthenticatedPessoasAssessmentIndexRoute:
+      AuthenticatedPessoasAssessmentIndexRoute,
     AuthenticatedPessoasAssessmentDetailIdRoute:
       AuthenticatedPessoasAssessmentDetailIdRoute,
     AuthenticatedPessoasAssessmentPortalUuidRoute:
@@ -1380,6 +1421,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
   AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
   AuthenticatedPessoasAssessmentRoute: typeof AuthenticatedPessoasAssessmentRouteWithChildren
+  AuthenticatedPessoasDashboardRoute: typeof AuthenticatedPessoasDashboardRoute
   AuthenticatedPopIdRoute: typeof AuthenticatedPopIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRouteWithChildren
@@ -1432,6 +1474,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,
   AuthenticatedPessoasAssessmentRoute:
     AuthenticatedPessoasAssessmentRouteWithChildren,
+  AuthenticatedPessoasDashboardRoute: AuthenticatedPessoasDashboardRoute,
   AuthenticatedPopIdRoute: AuthenticatedPopIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRouteWithChildren,

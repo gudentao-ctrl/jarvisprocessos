@@ -31,6 +31,7 @@ export function permissionForPath(pathname: string): ToolKey | null {
     pathname.startsWith("/diagnostico") ||
     pathname.startsWith("/roadmap") ||
     pathname.startsWith("/template-documentos") ||
+    pathname.startsWith("/pessoas") ||
     pathname.startsWith("/projetos")
   )
     return "gestao";

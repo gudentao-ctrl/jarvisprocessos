@@ -23,6 +23,7 @@ import {
   LifeBuoy,
   Menu,
   User,
+  Users,
   Landmark,
   Map,
 } from "lucide-react";
@@ -46,6 +47,11 @@ import {
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
+    // Candidate assessment portal is accessible via link without consultant login
+    if (location.pathname.startsWith("/pessoas/assessment/portal")) {
+      return {};
+    }
+
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth", search: { redirect: undefined } });
 
@@ -88,6 +94,7 @@ const NAV = [
   { to: "/mapa", icon: Map, label: "Mapa", permission: "gestao" },
   { to: "/controle", icon: Radar, label: "Controle", permission: "gestao" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
+  { to: "/pessoas/dashboard", icon: Users, label: "Pessoas", permission: "gestao" },
   { to: "/horas", icon: Clock, label: "Horas", permission: "horas" },
   { to: "/financeiro", icon: Wallet, label: "Financeiro Cliente", permission: "financeiro" },
   { to: "/financeiro-maia", icon: Landmark, label: "Financeiro Maia", permission: "financeiro" },
