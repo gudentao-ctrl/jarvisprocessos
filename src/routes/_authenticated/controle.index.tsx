@@ -79,8 +79,6 @@ import {
   type DREItem,
 } from "@/lib/torre-controle-storage";
 
-import { CompanySwitcher } from "@/components/CompanySwitcher";
-
 export const Route = createFileRoute("/_authenticated/controle/")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: typeof search.tab === "string" ? search.tab : "painel",
@@ -185,21 +183,12 @@ function ControlePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Torre de Controle</p>
-          <div className="flex items-center gap-2 mt-0.5">
-            <h1 className="truncate text-2xl font-bold">{company?.name}</h1>
-            <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
-              <Building2 className="h-3 w-3 mr-1" />
-              Empresa Filtrada
-            </Badge>
-          </div>
+          <h1 className="truncate text-2xl font-bold">{company?.name}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <CompanySwitcher />
-          <PhaseMenu current="controle" />
-        </div>
+        <PhaseMenu current="controle" />
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -482,17 +471,9 @@ function MaturidadeTab({ companyId, companyName }: { companyId: string; companyN
       {/* Header: Período + Score Global */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         <Card className="p-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Período da Avaliação
-            </Label>
-            {companyName && (
-              <Badge variant="outline" className="text-[11px] font-normal border-primary/30 text-primary">
-                <Building2 className="h-3 w-3 mr-1" />
-                {companyName}
-              </Badge>
-            )}
-          </div>
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+            Período da Avaliação
+          </Label>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="mt-1 w-full max-w-xs">
               <SelectValue />
@@ -749,15 +730,6 @@ function DRETab({ companyId, companyName }: { companyId: string; companyName?: s
           <Copy className="h-3.5 w-3.5" />
           Clonar Mês Anterior
         </Button>
-
-        {companyName && (
-          <div className="ml-auto">
-            <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
-              <Building2 className="h-3 w-3 mr-1" />
-              {companyName}
-            </Badge>
-          </div>
-        )}
       </div>
 
       {/* DRE Table */}
@@ -991,20 +963,12 @@ function EvolucaoFinanceiraTab({ companyId, companyName }: { companyId: string; 
 
   return (
     <div className="space-y-6">
-      {/* Header com badge da empresa filtrada */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/30 p-3 rounded-lg border">
-        <div>
-          <h2 className="text-sm font-bold text-foreground">Painel de Evolução Financeira</h2>
-          <p className="text-xs text-muted-foreground">
-            Acompanhamento histórico de faturamento, margens e resultados ao longo dos meses.
-          </p>
-        </div>
-        {companyName && (
-          <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
-            <Building2 className="h-3 w-3 mr-1" />
-            {companyName}
-          </Badge>
-        )}
+      {/* Header */}
+      <div className="bg-muted/30 p-3 rounded-lg border">
+        <h2 className="text-sm font-bold text-foreground">Painel de Evolução Financeira</h2>
+        <p className="text-xs text-muted-foreground">
+          Acompanhamento histórico de faturamento, margens e resultados ao longo dos meses.
+        </p>
       </div>
 
       {/* 4 Cards de Métricas Consolidadas */}

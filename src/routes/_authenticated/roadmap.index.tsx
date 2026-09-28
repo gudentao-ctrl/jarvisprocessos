@@ -73,8 +73,6 @@ import { exportRoadmapExecutivePdf } from "@/lib/roadmap-pdf";
 
 export const Route = createFileRoute("/_authenticated/roadmap/")({ component: Page });
 
-import { CompanySwitcher } from "@/components/CompanySwitcher";
-
 const HORIZON_LABELS = {
   curto: "Curto prazo",
   medio: "Médio prazo",
@@ -90,7 +88,7 @@ function Page() {
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header com Navegação, Seletor de Empresa e Controles */}
+      {/* Header com Navegação e Controles */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -105,15 +103,12 @@ function Page() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <CompanySwitcher />
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-auto">
-            <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="cockpit">Cockpit Executivo</TabsTrigger>
-              <TabsTrigger value="iniciativas">Iniciativas por Horizonte</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-auto">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="cockpit">Cockpit Executivo</TabsTrigger>
+            <TabsTrigger value="iniciativas">Iniciativas por Horizonte</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {activeTab === "cockpit" ? (
