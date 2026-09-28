@@ -79,6 +79,8 @@ import {
   type DREItem,
 } from "@/lib/torre-controle-storage";
 
+import { CompanySwitcher } from "@/components/CompanySwitcher";
+
 export const Route = createFileRoute("/_authenticated/controle/")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: typeof search.tab === "string" ? search.tab : "painel",
@@ -183,12 +185,21 @@ function ControlePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Torre de Controle</p>
-          <h1 className="truncate text-2xl font-bold">{company?.name}</h1>
+          <div className="flex items-center gap-2 mt-0.5">
+            <h1 className="truncate text-2xl font-bold">{company?.name}</h1>
+            <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
+              <Building2 className="h-3 w-3 mr-1" />
+              Empresa Filtrada
+            </Badge>
+          </div>
         </div>
-        <PhaseMenu current="controle" />
+        <div className="flex items-center gap-2">
+          <CompanySwitcher />
+          <PhaseMenu current="controle" />
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -212,19 +223,19 @@ function ControlePage() {
         </TabsList>
 
         <TabsContent value="painel" className="space-y-4 mt-4">
-          <PainelDeControleTab companyId={companyId} company={company} />
+          <PainelDeControleTab key={companyId} companyId={companyId} company={company} />
         </TabsContent>
 
         <TabsContent value="maturidade" className="space-y-4 mt-4">
-          <MaturidadeTab companyId={companyId} />
+          <MaturidadeTab key={companyId} companyId={companyId} companyName={company?.name} />
         </TabsContent>
 
         <TabsContent value="dre" className="space-y-4 mt-4">
-          <DRETab companyId={companyId} />
+          <DRETab key={companyId} companyId={companyId} companyName={company?.name} />
         </TabsContent>
 
         <TabsContent value="evolucao" className="space-y-4 mt-4">
-          <EvolucaoFinanceiraTab companyId={companyId} />
+          <EvolucaoFinanceiraTab key={companyId} companyId={companyId} companyName={company?.name} />
         </TabsContent>
       </Tabs>
     </div>
@@ -422,7 +433,7 @@ function PainelDeControleTab({
 // ===========================================================
 // TAB 2: MATURIDADE DA EMPRESA (12 Perguntas nos 6 Pilares)
 // ===========================================================
-function MaturidadeTab({ companyId }: { companyId: string }) {
+function MaturidadeTab({ companyId, companyName }: { companyId: string; companyName?: string }) {
   const monthOptions = useMemo(() => generateMonthOptions(), []);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthYear());
 
@@ -471,11 +482,19 @@ function MaturidadeTab({ companyId }: { companyId: string }) {
       {/* Header: Período + Score Global */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         <Card className="p-4">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-            Período da Avaliação
-          </Label>
+          <div className="flex items-center justify-between mb-1.5">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+              Período da Avaliação
+            </Label>
+            {companyName && (
+              <Badge variant="outline" className="text-[11px] font-normal border-primary/30 text-primary">
+                <Building2 className="h-3 w-3 mr-1" />
+                {companyName}
+              </Badge>
+            )}
+          </div>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="mt-1.5 w-full max-w-xs">
+            <SelectTrigger className="mt-1 w-full max-w-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -620,7 +639,7 @@ function MaturidadeTab({ companyId }: { companyId: string }) {
 // ===========================================================
 // TAB 3: DRE GERENCIAL (Tabela Estruturada & Inputs)
 // ===========================================================
-function DRETab({ companyId }: { companyId: string }) {
+function DRETab({ companyId, companyName }: { companyId: string; companyName?: string }) {
   const monthOptions = useMemo(() => generateMonthOptions(), []);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthYear());
   const [mode, setMode] = useState<"realizado" | "orcado">("realizado");
@@ -730,6 +749,15 @@ function DRETab({ companyId }: { companyId: string }) {
           <Copy className="h-3.5 w-3.5" />
           Clonar Mês Anterior
         </Button>
+
+        {companyName && (
+          <div className="ml-auto">
+            <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
+              <Building2 className="h-3 w-3 mr-1" />
+              {companyName}
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* DRE Table */}
@@ -869,11 +897,12 @@ function DRETab({ companyId }: { companyId: string }) {
 // ===========================================================
 // TAB 4: EVOLUÇÃO FINANCEIRA (Tendências, Gráficos & Orçado vs Realizado)
 // ===========================================================
-function EvolucaoFinanceiraTab({ companyId }: { companyId: string }) {
-  const [records, setRecords] = useState<MonthlyDRERecord[]>(() => {
+function EvolucaoFinanceiraTab({ companyId, companyName }: { companyId: string; companyName?: string }) {
+  const loadRecordsForCompany = useCallback(() => {
     const list = getDRERecordsFromStorage(companyId);
     if (list.length >= 2) return list;
-    // Se não tiver pelo menos 2 meses, gera histórico base para análise
+
+    // Se não tiver pelo menos 2 meses, gera histórico base específico para esta empresa
     const d1 = getDefaultDRERecord(companyId, "2026-01", "realizado");
     const d2 = getDefaultDRERecord(companyId, "2026-02", "realizado");
     d2.receita_bruta_items[0].amount = 160000;
@@ -892,12 +921,13 @@ function EvolucaoFinanceiraTab({ companyId }: { companyId: string }) {
     const initial = [d1, d2, d3];
     initial.forEach(saveDRERecord);
     return initial;
-  });
+  }, [companyId]);
+
+  const [records, setRecords] = useState<MonthlyDRERecord[]>(loadRecordsForCompany);
 
   useEffect(() => {
-    const stored = getDRERecordsFromStorage(companyId);
-    if (stored.length > 0) setRecords(stored);
-  }, [companyId]);
+    setRecords(loadRecordsForCompany());
+  }, [companyId, loadRecordsForCompany]);
 
   const realizados = useMemo(
     () =>
@@ -961,6 +991,22 @@ function EvolucaoFinanceiraTab({ companyId }: { companyId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Header com badge da empresa filtrada */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/30 p-3 rounded-lg border">
+        <div>
+          <h2 className="text-sm font-bold text-foreground">Painel de Evolução Financeira</h2>
+          <p className="text-xs text-muted-foreground">
+            Acompanhamento histórico de faturamento, margens e resultados ao longo dos meses.
+          </p>
+        </div>
+        {companyName && (
+          <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
+            <Building2 className="h-3 w-3 mr-1" />
+            {companyName}
+          </Badge>
+        )}
+      </div>
+
       {/* 4 Cards de Métricas Consolidadas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="p-4 border-l-4 border-l-emerald-500">
