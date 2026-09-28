@@ -1,147 +1,92 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
 import AssessmentFilter from "@/components/ui/pessoas/AssessmentFilter";
 import TeamScatterChart from "@/components/ui/pessoas/TeamScatterChart";
 import AssessmentFormModal from "@/components/ui/pessoas/AssessmentFormModal";
-import { Plus, Copy, ExternalLink, MessageCircle, FileText, ArrowLeft } from "lucide-react";
+import { Plus, Copy, MessageCircle, FileText, ArrowLeft, Building2, User, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getCandidatesList, Candidate } from "@/lib/assessment-storage";
 
 export const Route = createFileRoute("/_authenticated/pessoas/assessment/")({
   component: AssessmentList,
 });
 
-interface Candidate {
-  id: string;
-  full_name: string;
-  cpf: string;
-  birth_date?: string;
-  current_role?: string;
-  desired_role?: string;
-  status: string;
-  company_id?: string;
-  profile_data?: any;
-  ai_summary?: any;
-  created_at?: string;
-}
-
-// Sample fallback data in case database table is not populated yet
-const MOCK_CANDIDATES: Candidate[] = [
-  {
-    id: "demo-cand-1",
-    full_name: "Mariana Souza",
-    cpf: "12345678901",
-    birth_date: "1992-05-14",
-    current_role: "Gerente de Operações",
-    desired_role: "Diretoria de Operações",
-    status: "concluido",
-    profile_data: {
-      radar: [
-        { name: "Execução", value: 85 },
-        { name: "Comunicação", value: 72 },
-        { name: "Planejamento", value: 80 },
-        { name: "Análise", value: 78 },
-      ],
-    },
-    ai_summary: {
-      natural: "Orientação para resultados com alta capacidade de liderança operacional.",
-      strengths: "Tomada de decisão rápida, pragmatismo e engajamento da equipe.",
-      ideal_env: "Projetos estratégicos e gestão de múltiplos processos.",
-      blind_spots: "Pode acelerar processos antes de ouvir todas as partes.",
-    },
-  },
-  {
-    id: "demo-cand-2",
-    full_name: "Lucas Ribeiro",
-    cpf: "23456789012",
-    birth_date: "1995-10-22",
-    current_role: "Analista de Processos Sênior",
-    desired_role: "Especialista BPM",
-    status: "em_teste",
-    profile_data: {
-      radar: [
-        { name: "Execução", value: 65 },
-        { name: "Comunicação", value: 55 },
-        { name: "Planejamento", value: 90 },
-        { name: "Análise", value: 95 },
-      ],
-    },
-  },
-  {
-    id: "demo-cand-3",
-    full_name: "Camila Fernandes",
-    cpf: "34567890123",
-    birth_date: "1998-03-30",
-    current_role: "Consultora de Negócios",
-    desired_role: "Líder de Projetos",
-    status: "aguardando",
-  },
-];
-
 function AssessmentList() {
   const navigate = useNavigate();
-  const { companyId, company } = useCompanyFilter();
+  const { companies } = useCompanyFilter();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  // Filtro de vínculo independente do filtro global de empresas
+  const [vinculoFilter, setVinculoFilter] = useState("todos");
 
-  const loadCandidates = async () => {
+  const loadCandidates = useCallback(async () => {
     try {
       setLoading(true);
-      let query = supabase.from("candidates").select("*").order("created_at", { ascending: false });
-      if (companyId) {
-        query = query.eq("company_id", companyId);
-      }
-      const { data, error } = await query;
-      if (error) {
-        console.warn("Could not query candidates from supabase, using fallbacks:", error);
-        setCandidates(MOCK_CANDIDATES);
-      } else if (data && data.length > 0) {
-        setCandidates(data as Candidate[]);
-      } else {
-        // If table exists but is empty for this company, show mock candidates as starting demonstration
-        setCandidates(MOCK_CANDIDATES);
-      }
+      const list = await getCandidatesList(vinculoFilter);
+      setCandidates(list);
     } catch (err) {
-      console.error(err);
-      setCandidates(MOCK_CANDIDATES);
+      console.error("Error loading candidates:", err);
+      toast.error("Erro ao carregar lista de assessments.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [vinculoFilter]);
 
   useEffect(() => {
     loadCandidates();
-  }, [companyId]);
+  }, [loadCandidates]);
 
-  const handleCopyLink = (id: string) => {
+  const handleCandidateCreated = (newCand?: Candidate) => {
+    // Recarrega lista
+    loadCandidates();
+    // Se o candidato criado tiver um vínculo que seria ocultado pelo filtro atual, muda para "todos"
+    if (newCand && vinculoFilter !== "todos") {
+      const match = newCand.external ? vinculoFilter === "externo" : vinculoFilter === newCand.company_id;
+      if (!match) {
+        setVinculoFilter("todos");
+      }
+    }
+  };
+
+  const handleCopyLink = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const link = `${window.location.origin}/pessoas/assessment/portal/${id}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link do Portal do Candidato copiado!");
     });
   };
 
-  const handleWhatsApp = (candidate: Candidate) => {
+  const handleWhatsApp = (candidate: Candidate, e: React.MouseEvent) => {
+    e.stopPropagation();
     const portalLink = `${window.location.origin}/pessoas/assessment/portal/${candidate.id}`;
     const message = encodeURIComponent(
-      `Olá ${candidate.full_name}, seu assessment do Jarvis Processos está disponível. Acesse o portal no link: ${portalLink}`,
+      `Olá ${candidate.full_name}, seu assessment comportamental (Big Five) do Jarvis Processos está disponível. Acesse o portal no link para responder o teste: ${portalLink}`,
     );
-    const cleanCpf = candidate.cpf?.replace(/\D/g, "") ?? "";
     const url = `https://wa.me/?text=${message}`;
     window.open(url, "_blank");
   };
 
-  const handleOpenDetail = (id: string) => {
+  const handleOpenDetail = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     navigate({
       to: "/pessoas/assessment/detail/$id",
       params: { id },
     });
   };
+
+  // Label amigável do vínculo selecionado para exibição nos títulos e no gráfico
+  const vinculoLabel = useMemo(() => {
+    if (vinculoFilter === "todos") return "Todos os Vínculos (Geral)";
+    if (vinculoFilter === "externo") return "Candidatos Externos";
+    const comp = companies?.find((c) => c.id === vinculoFilter);
+    return comp ? `Empresa: ${comp.name}` : "Empresa Selecionada";
+  }, [vinculoFilter, companies]);
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter((c) => {
@@ -149,7 +94,8 @@ function AssessmentList() {
         search === "" ||
         c.full_name.toLowerCase().includes(search.toLowerCase()) ||
         c.cpf.includes(search.replace(/\D/g, "")) ||
-        (c.current_role && c.current_role.toLowerCase().includes(search.toLowerCase()));
+        (c.current_role && c.current_role.toLowerCase().includes(search.toLowerCase())) ||
+        (c.company_name && c.company_name.toLowerCase().includes(search.toLowerCase()));
 
       const matchStatus =
         statusFilter === "todos" ||
@@ -197,11 +143,9 @@ function AssessmentList() {
               <ArrowLeft className="h-3 w-3" /> Hub de Pessoas
             </Link>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Assessments Comportamentais</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Análise de Perfil (Assessment)</h1>
           <p className="text-sm text-muted-foreground">
-            {company
-              ? `Empresa: ${company.name}`
-              : "Mapeamento comportamental e dossiês de colaboradores"}
+            Mapeamento comportamental Big Five (OCEAN), cadastro prévio, links do portal e dossiês
           </p>
         </div>
 
@@ -211,12 +155,15 @@ function AssessmentList() {
         </Button>
       </div>
 
-      {/* Filter Component */}
+      {/* Independent Vínculo & Search Filter */}
       <AssessmentFilter
         search={search}
         onSearchChange={setSearch}
         status={statusFilter}
         onStatusChange={setStatusFilter}
+        vinculo={vinculoFilter}
+        onVinculoChange={setVinculoFilter}
+        companies={companies}
         totalCount={filteredCandidates.length}
       />
 
@@ -227,6 +174,7 @@ function AssessmentList() {
             <thead className="bg-muted/50 border-b text-muted-foreground font-medium text-xs">
               <tr>
                 <th className="p-3 text-left">Colaborador / Candidato</th>
+                <th className="p-3 text-left">Vínculo Corporativo</th>
                 <th className="p-3 text-left">Cargo</th>
                 <th className="p-3 text-left">CPF</th>
                 <th className="p-3 text-left">Status</th>
@@ -236,25 +184,60 @@ function AssessmentList() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
                     Carregando assessments...
                   </td>
                 </tr>
               ) : filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                    Nenhum assessment encontrado para os filtros selecionados.
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground space-y-2">
+                    <p>Nenhum assessment encontrado para os filtros selecionados.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsModalOpen(true)}
+                      className="text-xs"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Criar Primeiro Teste
+                    </Button>
                   </td>
                 </tr>
               ) : (
                 filteredCandidates.map((c) => (
-                  <tr key={c.id} className="hover:bg-muted/30 transition-colors">
+                  <tr
+                    key={c.id}
+                    onClick={() => handleOpenDetail(c.id)}
+                    className="hover:bg-muted/40 transition-colors cursor-pointer group"
+                    title="Clique para ver as informações e o dossiê do colaborador"
+                  >
                     <td className="p-3 font-medium">
-                      <div>{c.full_name}</div>
-                      {c.desired_role && (
-                        <div className="text-xs text-muted-foreground font-normal">
-                          Alvo: {c.desired_role}
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                          {c.full_name?.charAt(0) || "C"}
                         </div>
+                        <div>
+                          <div className="group-hover:text-primary transition-colors flex items-center gap-1 font-semibold">
+                            {c.full_name}
+                            <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                          </div>
+                          {c.desired_role && (
+                            <div className="text-xs text-muted-foreground font-normal">
+                              Alvo: {c.desired_role}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-xs">
+                      {c.external ? (
+                        <Badge variant="outline" className="text-muted-foreground font-normal">
+                          Externo
+                        </Badge>
+                      ) : (
+                        <span className="flex items-center gap-1 text-foreground font-medium">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                          {c.company_name || "Empresa Vinculada"}
+                        </span>
                       )}
                     </td>
                     <td className="p-3 text-muted-foreground">{c.current_role || "—"}</td>
@@ -266,19 +249,19 @@ function AssessmentList() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleCopyLink(c.id)}
+                        onClick={(e) => handleCopyLink(c.id, e)}
                         title="Copiar link do portal"
-                        className="h-8 px-2.5"
+                        className="h-8 px-2.5 text-xs"
                       >
                         <Copy className="h-3.5 w-3.5 mr-1" />
-                        <span className="hidden sm:inline">Link</span>
+                        <span className="hidden sm:inline">Copiar Link</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleWhatsApp(c)}
-                        title="Enviar por WhatsApp"
-                        className="h-8 px-2.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                        onClick={(e) => handleWhatsApp(c, e)}
+                        title="Enviar link via WhatsApp"
+                        className="h-8 px-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                       >
                         <MessageCircle className="h-3.5 w-3.5 mr-1" />
                         <span className="hidden sm:inline">WhatsApp</span>
@@ -286,8 +269,8 @@ function AssessmentList() {
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => handleOpenDetail(c.id)}
-                        className="h-8 px-2.5"
+                        onClick={(e) => handleOpenDetail(c.id, e)}
+                        className="h-8 px-2.5 text-xs"
                       >
                         <FileText className="h-3.5 w-3.5 mr-1" />
                         Dossiê
@@ -301,16 +284,16 @@ function AssessmentList() {
         </div>
       </div>
 
-      {/* Team Scatter Chart Section */}
+      {/* Team Scatter Chart Section - Vinculo label & filter synced */}
       <section className="pt-2">
-        <TeamScatterChart candidates={filteredCandidates} />
+        <TeamScatterChart candidates={filteredCandidates} vinculoLabel={vinculoLabel} />
       </section>
 
       {/* Modal for creating a new candidate assessment */}
       <AssessmentFormModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        onCreated={loadCandidates}
+        onCreated={handleCandidateCreated}
       />
     </div>
   );

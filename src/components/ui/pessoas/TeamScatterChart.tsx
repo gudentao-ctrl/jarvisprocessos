@@ -11,47 +11,51 @@ import {
   Cell,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
-interface Candidate {
-  id: string;
-  full_name: string;
-  cpf: string;
-  birth_date?: string;
-  status: string;
-  company_id?: string;
-  current_role?: string;
-  profile_data?: any;
-}
+import { Candidate } from "@/lib/assessment-storage";
+import { Building2, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface TeamScatterChartProps {
   candidates: Candidate[];
+  vinculoLabel?: string;
 }
 
-export function TeamScatterChart({ candidates }: TeamScatterChartProps) {
-  // Extract or compute coordinates for each candidate
+export function TeamScatterChart({ candidates, vinculoLabel = "Todos os Vínculos" }: TeamScatterChartProps) {
+  // Extract or compute coordinates for each candidate based on Big Five or radar values
   const chartData = (candidates ?? []).map((c, idx) => {
-    let x = 50;
-    let y = 50;
-    const radar = c.profile_data?.radar as Array<{ name: string; value: number }> | undefined;
+    let x = 50; // Relacionamento / Comunicação (Extroversão & Amabilidade)
+    let y = 50; // Execução / Conscienciosidade / Foco em Resultados
+
+    const radar = c.profile_data?.radar as Array<{ name: string; factor?: string; value: number }> | undefined;
 
     if (Array.isArray(radar) && radar.length > 0) {
-      const relItem = radar.find((r) =>
-        /comunicação|influência|relacionamento|pessoas/i.test(r.name),
-      );
-      const execItem = radar.find((r) => /execução|dominância|resultado|foco/i.test(r.name));
-      if (relItem) x = relItem.value;
-      if (execItem) y = execItem.value;
+      // Find Big Five factors or legacy names
+      const extItem = radar.find((r) => r.factor === "E" || /extroversão/i.test(r.name));
+      const amabItem = radar.find((r) => r.factor === "M" || /amabilidade|relacionamento|comunicação/i.test(r.name));
+      const conscItem = radar.find((r) => r.factor === "C" || /conscienciosidade|planejamento|execução/i.test(r.name));
+      const stabItem = radar.find((r) => r.factor === "N" || /estabilidade|análise/i.test(r.name));
+
+      const relValues = [extItem?.value, amabItem?.value].filter((v): v is number => typeof v === "number");
+      if (relValues.length > 0) {
+        x = Math.round(relValues.reduce((a, b) => a + b, 0) / relValues.length);
+      }
+
+      const execValues = [conscItem?.value, stabItem?.value].filter((v): v is number => typeof v === "number");
+      if (execValues.length > 0) {
+        y = Math.round(execValues.reduce((a, b) => a + b, 0) / execValues.length);
+      }
     } else {
-      // Deterministic spread for visualization if profile_data is not completed yet
+      // Deterministic spread for visualization if answers not completed yet
       const hash = c.id.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) + idx * 17;
-      x = 30 + (hash % 55);
-      y = 25 + ((hash * 3) % 60);
+      x = 35 + (hash % 45);
+      y = 35 + ((hash * 3) % 45);
     }
 
     return {
       id: c.id,
       name: c.full_name,
       role: c.current_role || "Colaborador",
+      vinculo: c.external ? "Externo" : c.company_name || "Vinculado",
       status: c.status,
       x,
       y,
@@ -76,54 +80,51 @@ export function TeamScatterChart({ candidates }: TeamScatterChartProps) {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-popover text-popover-foreground p-3 rounded-md shadow-md border text-xs space-y-1">
-          <p className="font-semibold text-sm">{data.name}</p>
+        <div className="bg-popover text-popover-foreground p-3 rounded-md shadow-md border text-xs space-y-1.5 min-w-[200px]">
+          <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-1">
+            <span className="font-semibold text-sm">{data.name}</span>
+            <Badge variant="outline" className="text-[10px] py-0">
+              {data.status}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">{data.role}</p>
-          <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+          <div className="flex items-center gap-1.5 text-[11px] text-primary font-medium">
+            <Building2 className="h-3 w-3" />
+            <span>Vínculo: {data.vinculo}</span>
+          </div>
+          <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
             <span>
               Relacionamento (X): <strong>{data.x}%</strong>
             </span>
-            <span>·</span>
             <span>
               Execução (Y): <strong>{data.y}%</strong>
             </span>
           </div>
-          <p className="capitalize text-[10px] text-muted-foreground">
-            Status: <span className="font-medium">{data.status}</span>
-          </p>
         </div>
       );
     }
     return null;
   };
 
-  if (!candidates || candidates.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mapeamento da Equipe</CardTitle>
-          <CardDescription>
-            Nenhum colaborador avaliado para compor o mapa de dispersão comportamental.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
+    <Card className="border shadow-xs">
       <CardHeader className="pb-2">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">
-              Dispersão Comportamental da Equipe
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Mapeamento de perfil: Eixo X (Relacionamento/Comunicação) vs Eixo Y
-              (Execução/Resultados)
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">
+                Dispersão Comportamental da Equipe
+              </CardTitle>
+              <Badge variant="secondary" className="text-xs font-normal">
+                {vinculoLabel}
+              </Badge>
+            </div>
+            <CardDescription className="text-xs mt-0.5">
+              Mapeamento de quadrantes: Eixo X (Relacionamento / Extroversão / Amabilidade) vs Eixo Y (Execução / Conscienciosidade / Foco em Metas)
             </CardDescription>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />
               Concluído
@@ -136,47 +137,61 @@ export function TeamScatterChart({ candidates }: TeamScatterChartProps) {
               <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block" />
               Aguardando
             </span>
+            <span className="text-xs font-medium text-foreground ml-1">
+              ({candidates.length} colaboradores no filtro)
+            </span>
           </div>
         </div>
       </CardHeader>
+
       <CardContent className="pt-2">
-        <div className="h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis
-                type="number"
-                dataKey="x"
-                name="Relacionamento"
-                domain={[0, 100]}
-                unit="%"
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis
-                type="number"
-                dataKey="y"
-                name="Execução"
-                domain={[0, 100]}
-                unit="%"
-                tick={{ fontSize: 11 }}
-              />
-              <ZAxis type="number" dataKey="z" range={[80, 80]} />
-              <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine x={50} stroke="#94a3b8" strokeDasharray="2 2" />
-              <ReferenceLine y={50} stroke="#94a3b8" strokeDasharray="2 2" />
-              <Scatter name="Colaboradores" data={chartData}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={getStatusColor(entry.status)}
-                    stroke="#ffffff"
-                    strokeWidth={1.5}
-                  />
-                ))}
-              </Scatter>
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
+        {candidates.length === 0 ? (
+          <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 text-muted-foreground border border-dashed rounded-lg">
+            <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
+            <p className="font-medium text-sm">Nenhum colaborador encontrado para o vínculo selecionado</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Selecione outro vínculo ou crie um novo assessment para visualizar a dispersão neste grupo.
+            </p>
+          </div>
+        ) : (
+          <div className="h-[320px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis
+                  type="number"
+                  dataKey="x"
+                  name="Relacionamento"
+                  domain={[0, 100]}
+                  unit="%"
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="y"
+                  name="Execução"
+                  domain={[0, 100]}
+                  unit="%"
+                  tick={{ fontSize: 11 }}
+                />
+                <ZAxis type="number" dataKey="z" range={[90, 90]} />
+                <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine x={50} stroke="#94a3b8" strokeDasharray="2 2" />
+                <ReferenceLine y={50} stroke="#94a3b8" strokeDasharray="2 2" />
+                <Scatter name="Colaboradores" data={chartData}>
+                  {chartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={getStatusColor(entry.status)}
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
+                    />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
