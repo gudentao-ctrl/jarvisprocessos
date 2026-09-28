@@ -15,8 +15,14 @@ export default function PessoasDashboard() {
   useEffect(() => {
     async function loadSummary() {
       // TODO: replace with real queries
-      const { data: people } = await supabase.from("candidates").select("id", { count: "exact", head: true }).eq("company_id", selectedCompanyId);
-      const { data: mentors } = await supabase.from("mentorias").select("id", { count: "exact", head: true }).eq("company_id", selectedCompanyId);
+      const { data: people } = await supabase
+        .from("candidates")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", selectedCompanyId);
+      const { data: mentors } = await supabase
+        .from("mentorias")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", selectedCompanyId);
       // placeholder alert count
       const alerts = 0;
       setSummary({
@@ -33,15 +39,24 @@ export default function PessoasDashboard() {
       <h1 className="text-2xl font-bold mb-6">Hub de Pessoas</h1>
       {/* Quick‑access cards */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <Card className="p-6 flex flex-col items-center justify-center cursor-pointer" onClick={() => navigate({ to: "/pessoas/assessment" })}>
+        <Card
+          className="p-6 flex flex-col items-center justify-center cursor-pointer"
+          onClick={() => navigate({ to: "/pessoas/assessment" })}
+        >
           <ShieldAlert className="h-8 w-8 mb-2" />
           <span className="font-medium">Análise de Perfil</span>
         </Card>
-        <Card className="p-6 flex flex-col items-center justify-center cursor-pointer" onClick={() => navigate({ to: "/pessoas/entrevistas" })}>
+        <Card
+          className="p-6 flex flex-col items-center justify-center cursor-pointer"
+          onClick={() => navigate({ to: "/pessoas/entrevistas" })}
+        >
           <ShieldAlert className="h-8 w-8 mb-2" />
           <span className="font-medium">Entrevistas</span>
         </Card>
-        <Card className="p-6 flex flex-col items-center justify-center cursor-pointer" onClick={() => navigate({ to: "/pessoas/mentorias" })}>
+        <Card
+          className="p-6 flex flex-col items-center justify-center cursor-pointer"
+          onClick={() => navigate({ to: "/pessoas/mentorias" })}
+        >
           <ShieldAlert className="h-8 w-8 mb-2" />
           <span className="font-medium">Mentorias</span>
         </Card>

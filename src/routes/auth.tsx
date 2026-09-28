@@ -264,9 +264,7 @@ export function AuthPage() {
 
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>
-            Novos acessos são liberados somente após aprovação do administrador.
-          </span>
+          <span>Novos acessos são liberados somente após aprovação do administrador.</span>
         </div>
       </Card>
     </div>

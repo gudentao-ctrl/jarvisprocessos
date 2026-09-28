@@ -43,7 +43,6 @@ export function ActiveCompanyProvider({ children }: { children: ReactNode }) {
     if (companyId && companies.length > 0 && !companies.find((c: any) => c.id === companyId)) {
       setCompanyId(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companies]);
 
   function setCompanyId(id: string | null) {

@@ -138,7 +138,6 @@ export function BpmnRenderer({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputHash]);
 
   useEffect(() => {

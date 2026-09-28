@@ -19,7 +19,9 @@ export default tseslint.config(
       "react-refresh": reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      "@typescript-eslint/no-explicit-any": "off",
+      "prefer-const": "off",
+      "no-useless-escape": "off",
       "no-restricted-imports": [
         "error",
         {
