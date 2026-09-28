@@ -2,7 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import ConsultantReport from "@/components/assessment/ConsultantReport";
 import { getCandidateById } from "@/lib/assessment-storage";
-import { CandidatePsychometricResult, MOCK_CONSULTANT_REPORT_STATE } from "@/utils/psychometrics";
+import {
+  CandidatePsychometricResult,
+  MOCK_CONSULTANT_REPORT_STATE,
+  buildReportForCandidate,
+} from "@/utils/psychometrics";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,19 +24,11 @@ export default function DetailPage() {
       try {
         setLoading(true);
         const cand = await getCandidateById(id);
-        if (cand && cand.profile_data?.psychometrics) {
-          setReportData(cand.profile_data.psychometrics);
-        } else if (cand) {
-          // Utiliza o estado do mock enriquecido com os dados do candidato encontrado
-          setReportData({
-            ...MOCK_CONSULTANT_REPORT_STATE,
-            candidato: {
-              ...MOCK_CONSULTANT_REPORT_STATE.candidato,
-              id: cand.id,
-              nome: cand.full_name,
-              cargoPretendido: cand.desired_role || cand.current_role || "Operações",
-            },
-          });
+        if (cand) {
+          const report = buildReportForCandidate(cand);
+          setReportData(report);
+        } else {
+          setReportData(MOCK_CONSULTANT_REPORT_STATE);
         }
       } catch (err) {
         console.error("Error loading candidate assessment:", err);

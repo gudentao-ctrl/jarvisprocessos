@@ -771,3 +771,70 @@ export const MOCK_CONSULTANT_REPORT_STATE: CandidatePsychometricResult = {
     ],
   },
 };
+
+/**
+ * Constrói ou recupera o relatório do consultor para um candidato específico
+ */
+export function buildReportForCandidate(cand: any): CandidatePsychometricResult {
+  if (cand?.profile_data?.psychometrics) {
+    return {
+      ...cand.profile_data.psychometrics,
+      candidato: {
+        ...cand.profile_data.psychometrics.candidato,
+        id: cand.id,
+        nome: cand.full_name || cand.nome || "Colaborador Avaliado",
+        cargoPretendido: cand.desired_role || cand.current_role || cand.cargoPretendido || "Gestão e Operações",
+      },
+    };
+  }
+
+  const age = cand?.birth_date
+    ? Math.floor((Date.now() - new Date(cand.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    : 34;
+
+  const radar = cand?.profile_data?.radar as Array<{ name: string; factor?: string; value: number }> | undefined;
+  let ext = 76;
+  let amab = 42;
+  let consc = 92;
+  let stab = 72;
+  let abert = 68;
+
+  if (Array.isArray(radar) && radar.length > 0) {
+    radar.forEach((r) => {
+      if (r.factor === "E" || /extrovers/i.test(r.name)) ext = r.value;
+      if (r.factor === "M" || /amabilid/i.test(r.name)) amab = r.value;
+      if (r.factor === "C" || /conscien/i.test(r.name)) consc = r.value;
+      if (r.factor === "N" || /estabili/i.test(r.name)) stab = r.value;
+      if (r.factor === "A" || /abertura/i.test(r.name)) abert = r.value;
+    });
+  }
+
+  const neuro = Math.max(10, Math.min(90, 100 - stab));
+
+  return {
+    ...MOCK_CONSULTANT_REPORT_STATE,
+    candidato: {
+      id: cand?.id || "cand-id",
+      nome: cand?.full_name || cand?.nome || "Colaborador Avaliado",
+      idade: age,
+      escolaridade: "Pós-Graduação / Especialização",
+      cargoPretendido: cand?.desired_role || cand?.current_role || "Operações",
+      dataTeste: new Date().toISOString().split("T")[0],
+      tempoTotalMinutos: 41,
+    },
+    bigFive: {
+      ...MOCK_CONSULTANT_REPORT_STATE.bigFive,
+      fatores: {
+        neuroticismo: { percentil: neuro, escoreT: Math.round(50 + 10 * ((neuro - 50) / 20)), nivel: getPercentilNivel(neuro), theta: (neuro - 50) / 30, facetas: { Ansiedade: neuro, Vulnerabilidade: Math.max(15, neuro - 5), Hostilidade: neuro, Impulsividade: neuro + 4, Depressão: Math.max(10, neuro - 8), Autoconsciência: neuro } },
+        extroversao: { percentil: ext, escoreT: Math.round(50 + 10 * ((ext - 50) / 20)), nivel: getPercentilNivel(ext), theta: (ext - 50) / 30, facetas: { Acolhimento: ext - 6, Gregarismo: ext - 10, Assertividade: Math.min(95, ext + 12), Atividade: ext + 6, "Busca de Excitação": ext - 4, "Emoções Positivas": ext + 2 } },
+        abertura: { percentil: abert, escoreT: Math.round(50 + 10 * ((abert - 50) / 20)), nivel: getPercentilNivel(abert), theta: (abert - 50) / 30, facetas: { Fantasia: abert - 8, Estética: abert - 3, Sentimentos: abert - 6, Ações: abert + 7, Ideias: abert + 6, Valores: abert + 2 } },
+        amabilidade: { percentil: amab, escoreT: Math.round(50 + 10 * ((amab - 50) / 20)), nivel: getPercentilNivel(amab), theta: (amab - 50) / 30, facetas: { Confiança: amab + 8, Franqueza: Math.min(95, 100 - amab + 20), Altruísmo: amab + 3, Conformidade: Math.max(15, amab - 7), Modéstia: amab - 2, Sensibilidade: amab + 3 } },
+        conscienciosidade: { percentil: consc, escoreT: Math.round(50 + 10 * ((consc - 50) / 20)), nivel: getPercentilNivel(consc), theta: (consc - 50) / 30, facetas: { Competência: consc, Ordem: Math.max(20, consc - 4), Dever: Math.min(98, consc + 3), "Esforço para Realização": Math.min(96, consc + 2), Autodisciplina: consc - 2, Deliberação: consc - 6 } },
+      },
+    },
+    parecerConsultor: {
+      ...MOCK_CONSULTANT_REPORT_STATE.parecerConsultor,
+      sinteseQualitativa: `${cand?.full_name || "O colaborador"} apresenta perfil de alta fidelidade psicométrica com destaque em Conscienciosidade (${consc}%) e Extroversão (${ext}%). Demonstra maturidade profissional, elevado senso de dever corporativo e orientação pragmática para resultados e governança.`,
+    },
+  };
+}

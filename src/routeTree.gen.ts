@@ -64,7 +64,6 @@ import { Route as AuthenticatedRelatorioExecutivoMensalIndexRouteImport } from '
 import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
-import { Route as AuthenticatedDashboardAvaliacoesIdRouteImport } from './routes/_authenticated/dashboard.avaliacoes.$id'
 import { Route as AuthenticatedIndicadoresIdColetarRouteImport } from './routes/_authenticated/indicadores.$id.coletar'
 import { Route as AuthenticatedPessoasAssessmentIndexRouteImport } from './routes/_authenticated/pessoas/assessment/index'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
@@ -387,12 +386,6 @@ const AuthenticatedTobeIndexRoute = AuthenticatedTobeIndexRouteImport.update({
   path: '/tobe/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDashboardAvaliacoesIdRoute =
-  AuthenticatedDashboardAvaliacoesIdRouteImport.update({
-    id: '/avaliacoes/$id',
-    path: '/avaliacoes/$id',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
 const AuthenticatedIndicadoresIdColetarRoute =
   AuthenticatedIndicadoresIdColetarRouteImport.update({
     id: '/indicadores/$id/coletar',
@@ -475,7 +468,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acesso-pendente': typeof AcessoPendenteRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/google-callback': typeof AuthenticatedGoogleCallbackRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -526,7 +519,6 @@ export interface FileRoutesByFullPath {
   '/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/tobe/': typeof AuthenticatedTobeIndexRoute
-  '/dashboard/avaliacoes/$id': typeof AuthenticatedDashboardAvaliacoesIdRoute
   '/indicadores/$id/coletar': typeof AuthenticatedIndicadoresIdColetarRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
@@ -545,7 +537,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acesso-pendente': typeof AcessoPendenteRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/google-callback': typeof AuthenticatedGoogleCallbackRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -594,7 +586,6 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosIndexRoute
   '/roadmap': typeof AuthenticatedRoadmapIndexRoute
   '/tobe': typeof AuthenticatedTobeIndexRoute
-  '/dashboard/avaliacoes/$id': typeof AuthenticatedDashboardAvaliacoesIdRoute
   '/indicadores/$id/coletar': typeof AuthenticatedIndicadoresIdColetarRoute
   '/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
@@ -615,7 +606,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/acesso-pendente': typeof AcessoPendenteRoute
   '/auth': typeof AuthRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/_authenticated/google-callback': typeof AuthenticatedGoogleCallbackRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -666,7 +657,6 @@ export interface FileRoutesById {
   '/_authenticated/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
   '/_authenticated/roadmap/': typeof AuthenticatedRoadmapIndexRoute
   '/_authenticated/tobe/': typeof AuthenticatedTobeIndexRoute
-  '/_authenticated/dashboard/avaliacoes/$id': typeof AuthenticatedDashboardAvaliacoesIdRoute
   '/_authenticated/indicadores/$id/coletar': typeof AuthenticatedIndicadoresIdColetarRoute
   '/_authenticated/processos/sugerir/$interviewId': typeof AuthenticatedProcessosSugerirInterviewIdRoute
   '/_authenticated/projetos/$id/diagnostico': typeof AuthenticatedProjetosIdDiagnosticoRoute
@@ -738,7 +728,6 @@ export interface FileRouteTypes {
     | '/relatorios/'
     | '/roadmap/'
     | '/tobe/'
-    | '/dashboard/avaliacoes/$id'
     | '/indicadores/$id/coletar'
     | '/processos/sugerir/$interviewId'
     | '/projetos/$id/diagnostico'
@@ -806,7 +795,6 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/roadmap'
     | '/tobe'
-    | '/dashboard/avaliacoes/$id'
     | '/indicadores/$id/coletar'
     | '/processos/sugerir/$interviewId'
     | '/projetos/$id/diagnostico'
@@ -877,7 +865,6 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios/'
     | '/_authenticated/roadmap/'
     | '/_authenticated/tobe/'
-    | '/_authenticated/dashboard/avaliacoes/$id'
     | '/_authenticated/indicadores/$id/coletar'
     | '/_authenticated/processos/sugerir/$interviewId'
     | '/_authenticated/projetos/$id/diagnostico'
@@ -1292,13 +1279,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTobeIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/dashboard/avaliacoes/$id': {
-      id: '/_authenticated/dashboard/avaliacoes/$id'
-      path: '/avaliacoes/$id'
-      fullPath: '/dashboard/avaliacoes/$id'
-      preLoaderRoute: typeof AuthenticatedDashboardAvaliacoesIdRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
     '/_authenticated/indicadores/$id/coletar': {
       id: '/_authenticated/indicadores/$id/coletar'
       path: '/indicadores/$id/coletar'
@@ -1393,21 +1373,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedDashboardRouteChildren {
-  AuthenticatedDashboardAvaliacoesIdRoute: typeof AuthenticatedDashboardAvaliacoesIdRoute
-}
-
-const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
-  {
-    AuthenticatedDashboardAvaliacoesIdRoute:
-      AuthenticatedDashboardAvaliacoesIdRoute,
-  }
-
-const AuthenticatedDashboardRouteWithChildren =
-  AuthenticatedDashboardRoute._addFileChildren(
-    AuthenticatedDashboardRouteChildren,
-  )
-
 interface AuthenticatedPessoasAssessmentRouteChildren {
   AuthenticatedPessoasAssessmentIndexRoute: typeof AuthenticatedPessoasAssessmentIndexRoute
   AuthenticatedPessoasAssessmentDetailIdRoute: typeof AuthenticatedPessoasAssessmentDetailIdRoute
@@ -1460,7 +1425,7 @@ const AuthenticatedProjetosIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
   AuthenticatedGoogleCallbackRoute: typeof AuthenticatedGoogleCallbackRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
@@ -1512,7 +1477,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
   AuthenticatedGoogleCallbackRoute: AuthenticatedGoogleCallbackRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,

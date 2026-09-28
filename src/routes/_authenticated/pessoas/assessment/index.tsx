@@ -75,7 +75,7 @@ function AssessmentList() {
   const handleOpenDetail = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     navigate({
-      to: "/dashboard/avaliacoes/$id",
+      to: "/pessoas/assessment/detail/$id",
       params: { id },
     });
   };
