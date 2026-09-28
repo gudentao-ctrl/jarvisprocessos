@@ -56,17 +56,17 @@ function AssessmentList() {
 
   const handleCopyLink = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const link = `${window.location.origin}/pessoas/assessment/portal/${id}`;
+    const link = `${window.location.origin}/teste/${id}`;
     navigator.clipboard.writeText(link).then(() => {
-      toast.success("Link do Portal do Candidato copiado!");
+      toast.success("Link do Teste do Candidato (/teste/:id) copiado!");
     });
   };
 
   const handleWhatsApp = (candidate: Candidate, e: React.MouseEvent) => {
     e.stopPropagation();
-    const portalLink = `${window.location.origin}/pessoas/assessment/portal/${candidate.id}`;
+    const portalLink = `${window.location.origin}/teste/${candidate.id}`;
     const message = encodeURIComponent(
-      `Olá ${candidate.full_name}, seu assessment comportamental (Big Five) do Jarvis Processos está disponível. Acesse o portal no link para responder o teste: ${portalLink}`,
+      `Olá ${candidate.full_name}, sua avaliação psicométrica e comportamental do Jarvis Processos está disponível. Acesse o link para responder o teste: ${portalLink}`,
     );
     const url = `https://wa.me/?text=${message}`;
     window.open(url, "_blank");
@@ -75,7 +75,7 @@ function AssessmentList() {
   const handleOpenDetail = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     navigate({
-      to: "/pessoas/assessment/detail/$id",
+      to: "/dashboard/avaliacoes/$id",
       params: { id },
     });
   };

@@ -1,16 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import ConsultantReport from "@/components/assessment/ConsultantReport";
 import { getCandidateById } from "@/lib/assessment-storage";
 import { CandidatePsychometricResult, MOCK_CONSULTANT_REPORT_STATE } from "@/utils/psychometrics";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/pessoas/assessment/detail/$id")({
-  component: DetailPage,
+export const Route = createFileRoute("/_authenticated/dashboard/avaliacoes/$id")({
+  component: DashboardAvaliacaoDetalhePage,
 });
 
-export default function DetailPage() {
+export default function DashboardAvaliacaoDetalhePage() {
   const { id } = Route.useParams();
   const [reportData, setReportData] = useState<CandidatePsychometricResult>(MOCK_CONSULTANT_REPORT_STATE);
   const [loading, setLoading] = useState(true);
@@ -53,16 +52,7 @@ export default function DetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-4">
-      <div className="flex items-center gap-2">
-        <Link
-          to="/pessoas/assessment"
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-        >
-          <ArrowLeft className="h-3 w-3" /> Voltar para Análise de Perfil (Assessments)
-        </Link>
-      </div>
-
+    <div className="p-6">
       <ConsultantReport data={reportData} />
     </div>
   );
