@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,7 +8,7 @@ import {
   saveDecisionItem,
   deleteDecisionItem,
 } from "@/lib/processes.functions";
-import { listCompanies } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,22 +59,16 @@ const EMPTY: Item = {
 
 function MapaDec() {
   const qc = useQueryClient();
-  const [companyId, setCompanyId] = useState("");
+  const { companyId } = useActiveCompany();
   const [editing, setEditing] = useState<Item | null>(null);
   const [open, setOpen] = useState(false);
 
-  const comp = useServerFn(listCompanies);
   const proc = useServerFn(listProcesses);
   const maps = useServerFn(getCompanyMaps);
   const save = useServerFn(saveDecisionItem);
   const del = useServerFn(deleteDecisionItem);
 
-  const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: () => comp() });
   const { data: processes = [] } = useQuery({ queryKey: ["processes"], queryFn: () => proc() });
-
-  useEffect(() => {
-    if (!companyId && companies[0]) setCompanyId(companies[0].id);
-  }, [companies, companyId]);
 
   const { data } = useQuery({
     queryKey: ["maps", companyId, "decision"],
@@ -120,18 +114,6 @@ function MapaDec() {
 
   const actions = (
     <>
-      <Select value={companyId} onValueChange={setCompanyId}>
-        <SelectTrigger className="h-10 w-40 sm:w-52">
-          <SelectValue placeholder="Empresa" />
-        </SelectTrigger>
-        <SelectContent>
-          {companies.map((c: any) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button onClick={openNew} disabled={companyProcesses.length === 0} className="min-h-10">
@@ -227,7 +209,9 @@ function MapaDec() {
         }
       />
 
-      {companyProcesses.length === 0 && (
+      {!companyId ? (
+        <EmptyState icon={GitBranch} accent="decision" title="Selecione uma empresa" description="Use o filtro de empresa no topo para visualizar os dados." />
+      ) : companyProcesses.length === 0 && (
         <Card className="p-6 text-center text-sm text-muted-foreground">
           Cadastre processos nesta empresa primeiro.
         </Card>

@@ -386,13 +386,15 @@ export const getCompanyMaps = createServerFn({ method: "GET" })
 
 export const listPains = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ company_id: z.string().uuid().optional() }).parse(d ?? {}),
+  )
   .handler(async ({ data: input, context }) => {
-    const { data, error } = await context.supabase
+    let query = context.supabase
       .from("pain_points")
-      .select("*, companies(name)")
-      .eq("company_id", input.company_id)
-      .order("category");
+      .select("*, companies(name)");
+    if (input.company_id) query = query.eq("company_id", input.company_id);
+    const { data, error } = await query.order("category");
     if (error) throw new Error(error.message);
     return data ?? [];
   });

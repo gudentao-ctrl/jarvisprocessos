@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 /* ============================================================
@@ -33,7 +34,7 @@ function computePriority(effort: string, impact: string, weights?: Record<string
 }
 
 async function syncFlowOpportunities(
-  supabase: Parameters<typeof requireSupabaseAuth>[0] extends never ? never : any,
+  supabase: SupabaseClient,
   companyId: string,
   userId: string,
 ) {
