@@ -386,10 +386,12 @@ export const getCompanyMaps = createServerFn({ method: "GET" })
 
 export const listPains = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data: input, context }) => {
     const { data, error } = await context.supabase
       .from("pain_points")
       .select("*, companies(name)")
+      .eq("company_id", input.company_id)
       .order("category");
     if (error) throw new Error(error.message);
     return data ?? [];

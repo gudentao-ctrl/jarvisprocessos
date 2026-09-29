@@ -13,3 +13,6 @@
 - **Sempre validar o build** (`npm run build`) antes de finalizar tarefas de código para garantir que o preview do Lovable não quebre.
 - **Sempre realizar commit e push automático** (`git push origin main`) ao concluir qualquer alteração de código ou configuração.
 - O usuário deve apenas abrir a interface do Lovable e clicar em "Publicar", sem necessidade de comandos git manuais.
+
+## Matriz de Oportunidades
+- Itens derivados dos fluxos guardam origem única; ao reverter uma aprovação, a ação é preservada e apenas desvinculada para evitar perda de trabalho.

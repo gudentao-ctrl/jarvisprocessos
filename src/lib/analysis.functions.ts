@@ -8,7 +8,14 @@ import { z } from "zod";
 
 const EffortEnum = z.enum(["baixo", "medio", "alto"]);
 const ImpactEnum = z.enum(["baixo", "medio", "alto"]);
-const StatusEnum = z.enum(["sugerida", "aprovada", "rejeitada", "em_andamento", "implementada"]);
+const StatusEnum = z.enum([
+  "sugerida",
+  "em_analise",
+  "aprovada",
+  "rejeitada",
+  "em_andamento",
+  "implementada",
+]);
 const PrioEnum = z.enum(["baixa", "media", "alta", "critica"]);
 
 function computePriority(effort: string, impact: string, weights?: Record<string, number>) {
@@ -27,12 +34,14 @@ function computePriority(effort: string, impact: string, weights?: Record<string
 
 export const listOpportunities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
     const { data, error } = await context.supabase
       .from("improvement_opportunities")
       .select(
         "*, processes!process_id(name), companies(name), pain_points(description), indicators(name)",
       )
+      .eq("company_id", data.company_id)
       .order("priority_score", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -93,6 +102,7 @@ export const updateOpportunity = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
+        company_id: z.string().uuid(),
         patch: z.object({
           title: z.string().optional(),
           description: z.string().optional(),
@@ -113,7 +123,28 @@ export const updateOpportunity = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    const { data: current, error: currentError } = await context.supabase
+      .from("improvement_opportunities")
+      .select("company_id, action_plan_id")
+      .eq("id", data.id)
+      .eq("company_id", data.company_id)
+      .single();
+    if (currentError || !current) throw new Error("Oportunidade não encontrada nesta empresa.");
+
     const patch: Record<string, unknown> = { ...data.patch };
+    const detaching =
+      data.patch.status === "sugerida" ||
+      data.patch.status === "em_analise" ||
+      data.patch.status === "rejeitada";
+    if (detaching && current.action_plan_id) {
+      const { error: detachError } = await context.supabase
+        .from("action_plans")
+        .update({ opportunity_id: null })
+        .eq("id", current.action_plan_id)
+        .eq("company_id", data.company_id);
+      if (detachError) throw new Error(detachError.message);
+      patch.action_plan_id = null;
+    }
     if (patch.effort && patch.impact) {
       const { score, priority } = computePriority(patch.effort as string, patch.impact as string);
       patch.priority_score = score;
@@ -122,19 +153,23 @@ export const updateOpportunity = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("improvement_opportunities")
       .update(patch as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("company_id", data.company_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const deleteOpportunity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), company_id: z.string().uuid() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("improvement_opportunities")
       .delete()
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("company_id", data.company_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -145,6 +180,7 @@ export const approveOpportunityAsPlan = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
+        company_id: z.string().uuid(),
         responsible: z.string().default(""),
         due_date: z.string().nullable().optional(),
       })
@@ -155,8 +191,10 @@ export const approveOpportunityAsPlan = createServerFn({ method: "POST" })
       .from("improvement_opportunities")
       .select("*")
       .eq("id", data.id)
+      .eq("company_id", data.company_id)
       .single();
     if (eOpp) throw new Error(eOpp.message);
+    if (opp.action_plan_id) throw new Error("Esta oportunidade já possui uma ação vinculada.");
 
     const { data: plan, error } = await context.supabase
       .from("action_plans")
@@ -191,12 +229,15 @@ export const approveOpportunityAsPlan = createServerFn({ method: "POST" })
 
 export const rejectOpportunity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), company_id: z.string().uuid() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("improvement_opportunities")
       .update({ status: "rejeitada" })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("company_id", data.company_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
