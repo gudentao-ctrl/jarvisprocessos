@@ -4,7 +4,7 @@ import { Trash2, Plus, HeartCrack } from "lucide-react";
 import { PageHeader, StatPill } from "@/components/mapping/PageHeader";
 import { EmptyState } from "@/components/mapping/EmptyState";
 import { listPains, savePain, deletePain } from "@/lib/processes.functions";
-import { listCompanies } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -55,31 +55,33 @@ const CAT_LABEL: any = {
 };
 
 function MapaDores() {
+  const { companyId } = useActiveCompany();
   const [list, setList] = useState<any[]>([]);
-  const [companies, setCompanies] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    company_id: "",
     category: "processo",
     description: "",
     severity: 3,
   });
-  const reload = () => listPains().then(setList);
+  const reload = () => {
+    if (!companyId) return setList([]);
+    return listPains({ data: { company_id: companyId } }).then(setList);
+  };
   useEffect(() => {
     reload();
-    listCompanies().then(setCompanies);
-  }, []);
+  }, [companyId]);
 
   const grouped = CATEGORIES.map((c) => ({ cat: c, items: list.filter((p) => p.category === c) }));
 
   async function submit() {
+    if (!companyId) return toast.error("Selecione uma empresa no topo.");
     if (!form.description) return toast.error("Descrição obrigatória");
     try {
       await savePain({
-        data: { ...form, company_id: form.company_id || null, category: form.category as any },
+        data: { ...form, company_id: companyId, category: form.category as any },
       });
       setOpen(false);
-      setForm({ company_id: "", category: "processo", description: "", severity: 3 });
+      setForm({ category: "processo", description: "", severity: 3 });
       reload();
     } catch (e: any) {
       toast.error(e?.message);
@@ -120,7 +122,7 @@ function MapaDores() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div>
             <div>
               <Label>Categoria</Label>
               <Select
@@ -134,24 +136,6 @@ function MapaDores() {
                   {CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {CAT_LABEL[c]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Empresa</Label>
-              <Select
-                value={form.company_id}
-                onValueChange={(v) => setForm({ ...form, company_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -183,7 +167,9 @@ function MapaDores() {
         }
       />
 
-      {list.length === 0 ? (
+      {!companyId ? (
+        <EmptyState icon={HeartCrack} accent="pain" title="Selecione uma empresa" description="Use o filtro de empresa no topo para visualizar os dados." />
+      ) : list.length === 0 ? (
         <EmptyState
           icon={HeartCrack}
           accent="pain"

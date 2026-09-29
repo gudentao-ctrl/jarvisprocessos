@@ -183,6 +183,12 @@ const InfoMapSchema = z.object({
   document: str(),
   loss_risk: str(),
   notes: str(),
+  system: str(),
+  periodicity: str(),
+  is_automated: bool(false),
+  is_digital: bool(false),
+  has_rework: bool(false),
+  time_minutes: num(0),
 });
 
 const DecisionMapSchema = z.object({
@@ -192,6 +198,10 @@ const DecisionMapSchema = z.object({
   approval_required: bool(false),
   reported_delay: str(),
   notes: str(),
+  financial_impact: num(0),
+  frequency: str(),
+  criteria: str(),
+  data_used: str(),
 });
 
 const PipelineSchema = z.object({
@@ -222,10 +232,11 @@ ESTRUTURA OBRIGATÓRIA:
   "pains": [{ "ref", "category", "description", "severity" }],
   "indicators": [{ "ref", "name", "description", "unit", "target", "frequency", "process_ref" }],
   "opportunities": [{ "title", "description", "category", "expected_benefit", "effort", "impact", "process_ref", "sector", "pain_ref", "indicator_ref" }],
-  "information_map": [{ "process_ref", "origin", "destination", "medium", "responsible", "document", "loss_risk", "notes" }],
-  "decision_map": [{ "process_ref", "decider", "decision", "approval_required", "reported_delay", "notes" }]
+  "information_map": [{ "process_ref", "origin", "destination", "medium", "responsible", "document", "loss_risk", "notes", "system", "periodicity", "is_automated", "is_digital", "has_rework", "time_minutes" }],
+  "decision_map": [{ "process_ref", "decider", "decision", "approval_required", "reported_delay", "notes", "financial_impact", "frequency", "criteria", "data_used" }]
 }
 
+Classifique os achados nos três fluxos: dores incluem gargalos, problemas estruturais, atritos e reclamações; decisões incluem responsáveis, critérios, aprovações e centralização; informações incluem comunicação, sistemas, perda de dados e ruídos entre setores.
 Responda APENAS este JSON, sem cercas de código.`;
 
 function hashString(s: string): string {
@@ -576,6 +587,12 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           document: m.document,
           loss_risk: !["", "nao", "baixo", "nenhum", "false", "0"].includes(norm(m.loss_risk)),
           notes: m.notes,
+          system: m.system,
+          periodicity: m.periodicity,
+          is_automated: m.is_automated,
+          is_digital: m.is_digital,
+          has_rework: m.has_rework,
+          time_minutes: m.time_minutes,
           generated_by_ai: true,
           source_interview_id: interview.id,
         }));
@@ -602,6 +619,10 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
           approval_required: m.approval_required,
           reported_delay: m.reported_delay,
           notes: m.notes,
+          financial_impact: m.financial_impact,
+          frequency: m.frequency,
+          criteria: m.criteria,
+          data_used: m.data_used,
           generated_by_ai: true,
           source_interview_id: interview.id,
         }));

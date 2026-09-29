@@ -999,7 +999,9 @@ export type Database = {
           sector: string | null
           sector_id: string | null
           source: Database["public"]["Enums"]["opportunity_source"]
+          source_bucket: string | null
           source_interview_id: string | null
+          source_item_id: string | null
           status: Database["public"]["Enums"]["opportunity_status"]
           title: string
           tobe_process_id: string | null
@@ -1030,7 +1032,9 @@ export type Database = {
           sector?: string | null
           sector_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
+          source_bucket?: string | null
           source_interview_id?: string | null
+          source_item_id?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title: string
           tobe_process_id?: string | null
@@ -1061,7 +1065,9 @@ export type Database = {
           sector?: string | null
           sector_id?: string | null
           source?: Database["public"]["Enums"]["opportunity_source"]
+          source_bucket?: string | null
           source_interview_id?: string | null
+          source_item_id?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title?: string
           tobe_process_id?: string | null
@@ -3157,6 +3163,7 @@ export type Database = {
       opportunity_source: "ia" | "manual"
       opportunity_status:
         | "sugerida"
+        | "em_analise"
         | "aprovada"
         | "rejeitada"
         | "em_andamento"
@@ -3335,6 +3342,7 @@ export const Constants = {
       opportunity_source: ["ia", "manual"],
       opportunity_status: [
         "sugerida",
+        "em_analise",
         "aprovada",
         "rejeitada",
         "em_andamento",
