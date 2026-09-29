@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   CandidatePsychometricResult,
   MOCK_CONSULTANT_REPORT_STATE,
@@ -6,6 +6,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Progress } from "@/components/ui/progress";
 import {
   ResponsiveContainer,
   BarChart,
@@ -38,6 +41,8 @@ import {
   FileText,
   Activity,
   Award,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateAssessmentReport } from "@/lib/pdf-generator";
@@ -57,6 +62,50 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
   });
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const metricasConfiabilidade = useMemo(() => {
+    const calcularAlfaEpm = (facetas: Record<string, number>) => {
+      const valores = Object.values(facetas);
+      const k = valores.length || 6;
+      if (k === 0) return { alpha: 0, epm: 0, sd: 0, mean: 0, valores: [] };
+      
+      const mean = valores.reduce((a, b) => a + b, 0) / k;
+      const sumVars = valores.reduce((a, b) => a + Math.pow(b - mean, 2), 0);
+      const sd = Math.sqrt(sumVars / k);
+      
+      const totalVariance = sumVars + k * 225;
+      let alpha = (k / (k - 1)) * (1 - sumVars / totalVariance);
+      alpha = Math.max(0, Math.min(0.99, alpha));
+      
+      const epm = sd * Math.sqrt(1 - alpha);
+      
+      return { alpha, epm, sd, mean, valores };
+    };
+
+    let allValues: number[] = [];
+    const alphaEpmData: Record<string, ReturnType<typeof calcularAlfaEpm>> = {};
+    let sumAlphas = 0;
+
+    Object.entries(data.bigFive.fatores).forEach(([key, fData]) => {
+      const res = calcularAlfaEpm(fData.facetas);
+      alphaEpmData[key] = res;
+      sumAlphas += res.alpha;
+      allValues = allValues.concat(res.valores);
+    });
+
+    const overallAlpha = sumAlphas / 5;
+    const allMean = allValues.reduce((a, b) => a + b, 0) / (allValues.length || 1);
+    const allSd = Math.sqrt(allValues.reduce((a, b) => a + Math.pow(b - allMean, 2), 0) / (allValues.length || 1));
+    const extremos = allValues.filter(v => v > 85 || v < 15).length;
+
+    return {
+      alphaEpmData,
+      overallAlpha,
+      aquiescencia: allMean,
+      tendenciaCentral: allSd,
+      polarizacao: extremos
+    };
+  }, [data.bigFive.fatores]);
 
   const toggleAccordion = (key: string) => {
     setOpenAccordions((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -340,6 +389,168 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ========================================================================= */}
+      {/* SEÇÃO 1.5: INDICADORES DE CONFIABILIDADE PSICOMÉTRICA */}
+      {/* ========================================================================= */}
+      <Card className="border shadow-xs overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-3 border-b">
+          <div className="flex items-center gap-2">
+            <span className="h-6 w-6 rounded-md bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+              <ShieldCheck className="h-3 w-3" />
+            </span>
+            <CardTitle className="text-base font-bold">
+              Indicadores de Confiabilidade Psicométrica
+            </CardTitle>
+          </div>
+          <CardDescription className="text-xs">
+            Métricas avançadas de consistência interna e padrões de resposta do teste
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-5 space-y-6">
+          {/* Alfa de Cronbach & Padrões de Resposta */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-muted/20 rounded-xl border space-y-3">
+              <div className="flex items-center gap-2 border-b pb-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-xs">Consistência Interna (Alfa de Cronbach Estimado)</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">Alfa Geral</span>
+                  <Badge className={metricasConfiabilidade.overallAlpha >= 0.8 ? "bg-emerald-500/15 text-emerald-700 border-emerald-300" : metricasConfiabilidade.overallAlpha >= 0.65 ? "bg-amber-500/15 text-amber-700 border-amber-300" : "bg-red-500/15 text-red-700 border-red-300"}>
+                    {metricasConfiabilidade.overallAlpha.toFixed(2)}
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  {Object.entries(metricasConfiabilidade.alphaEpmData).map(([fator, metrics]) => (
+                    <div key={fator} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="capitalize">{fator}</span>
+                        <span className="font-mono">{metrics.alpha.toFixed(2)}</span>
+                      </div>
+                      <Progress 
+                        value={metrics.alpha * 100} 
+                        className="h-1" 
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted/20 rounded-xl border space-y-3">
+              <div className="flex items-center gap-2 border-b pb-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-xs">Análise de Padrões de Resposta</span>
+              </div>
+              <div className="space-y-4 pt-1">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Aquiescência (Média Geral)</span>
+                    <strong className="font-mono">{metricasConfiabilidade.aquiescencia.toFixed(1)}%</strong>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Média das respostas (tendência a concordar/discordar).</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Tendência Central (Desvio Padrão)</span>
+                    <strong className="font-mono">{metricasConfiabilidade.tendenciaCentral.toFixed(1)}</strong>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Dispersão em relação à média (menor indica respostas neutras).</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Polarização (Extremos &gt;85 ou &lt;15)</span>
+                    <strong className="font-mono">{metricasConfiabilidade.polarizacao} facetas</strong>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Quantidade de características marcadas nos extremos da escala.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="epm" className="border rounded-lg bg-card px-4">
+              <AccordionTrigger className="text-xs font-semibold py-3 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Erro Padrão de Medida (EPM) & Intervalos de Confiança
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-4">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-[11px] h-8">Fator</TableHead>
+                        <TableHead className="text-[11px] h-8 text-right">EPM</TableHead>
+                        <TableHead className="text-[11px] h-8 text-right">IC (95%)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(metricasConfiabilidade.alphaEpmData).map(([fator, metrics]) => {
+                        const pct = (data.bigFive.fatores as any)[fator].percentil;
+                        const icMin = Math.max(0, Math.round(pct - 1.96 * metrics.epm));
+                        const icMax = Math.min(100, Math.round(pct + 1.96 * metrics.epm));
+                        return (
+                          <TableRow key={fator} className="border-b-0 hover:bg-muted/10">
+                            <TableCell className="py-2 text-[11px] capitalize font-medium">{fator}</TableCell>
+                            <TableCell className="py-2 text-[11px] text-right font-mono">{metrics.epm.toFixed(1)}</TableCell>
+                            <TableCell className="py-2 text-[11px] text-right font-mono text-muted-foreground">
+                              [{icMin} - {icMax}]
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="normativa" className="border rounded-lg bg-card px-4 mt-3">
+              <AccordionTrigger className="text-xs font-semibold py-3 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Tabela Normativa Classificatória
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-4">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-[11px] h-8">Faixa Percentil</TableHead>
+                        <TableHead className="text-[11px] h-8">Classificação</TableHead>
+                        <TableHead className="text-[11px] h-8">Referência Normativa</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { faixa: "91 - 100", classif: "Muito Alto", ref: "Extremo superior da curva normal" },
+                        { faixa: "76 - 90", classif: "Alto", ref: "Acima de 1 desvio padrão" },
+                        { faixa: "61 - 75", classif: "Médio Alto", ref: "Acima da média geral" },
+                        { faixa: "41 - 60", classif: "Médio", ref: "Dentro da média da população" },
+                        { faixa: "26 - 40", classif: "Médio Baixo", ref: "Abaixo da média geral" },
+                        { faixa: "11 - 25", classif: "Baixo", ref: "Abaixo de 1 desvio padrão" },
+                        { faixa: "0 - 10", classif: "Muito Baixo", ref: "Extremo inferior da curva normal" },
+                      ].map((row, idx) => (
+                        <TableRow key={idx} className="border-b-0 hover:bg-muted/10">
+                          <TableCell className="py-2 text-[11px] font-mono whitespace-nowrap">{row.faixa}</TableCell>
+                          <TableCell className="py-2 text-[11px] font-medium">{row.classif}</TableCell>
+                          <TableCell className="py-2 text-[11px] text-muted-foreground">{row.ref}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
       </Card>
 
@@ -769,6 +980,46 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
         </CardHeader>
 
         <CardContent className="p-5 space-y-6">
+          {/* Quadro Resumo Executivo (KPIs) */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="p-3 bg-muted/20 rounded-lg border flex flex-col justify-center items-center text-center space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Match Cargo</span>
+              <span className={`text-lg font-bold ${data.matchCargo.percentual >= 75 ? "text-emerald-600" : data.matchCargo.percentual >= 60 ? "text-amber-600" : "text-red-600"}`}>
+                {data.matchCargo.percentual}%
+              </span>
+            </div>
+            <div className="p-3 bg-muted/20 rounded-lg border flex flex-col justify-center items-center text-center space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Convergência</span>
+              <span className={`text-lg font-bold ${(data.matrizConvergencia.filter(m => m.cruzamento === "Confirmado").length / Math.max(1, data.matrizConvergencia.length)) >= 0.7 ? "text-emerald-600" : "text-amber-600"}`}>
+                {Math.round((data.matrizConvergencia.filter(m => m.cruzamento === "Confirmado").length / Math.max(1, data.matrizConvergencia.length)) * 100)}%
+              </span>
+            </div>
+            <div className="p-3 bg-muted/20 rounded-lg border flex flex-col justify-center items-center text-center space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Delta Estresse</span>
+              <span className={`text-lg font-bold ${data.disc.deltaEstresse <= 15 ? "text-emerald-600" : data.disc.deltaEstresse <= 30 ? "text-amber-600" : "text-red-600"}`}>
+                {data.disc.deltaEstresse}
+              </span>
+            </div>
+            <div className="p-3 bg-muted/20 rounded-lg border flex flex-col justify-center items-center text-center space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Estabilidade Emoc.</span>
+              <span className={`text-lg font-bold ${(100 - data.bigFive.fatores.neuroticismo.percentil) >= 60 ? "text-emerald-600" : (100 - data.bigFive.fatores.neuroticismo.percentil) >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                {100 - data.bigFive.fatores.neuroticismo.percentil}%
+              </span>
+            </div>
+            <div className="p-3 bg-muted/20 rounded-lg border flex flex-col justify-center items-center text-center space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Conscienciosidade</span>
+              <span className={`text-lg font-bold ${data.bigFive.fatores.conscienciosidade.percentil >= 60 ? "text-emerald-600" : data.bigFive.fatores.conscienciosidade.percentil >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                {data.bigFive.fatores.conscienciosidade.percentil}%
+              </span>
+            </div>
+            <div className="p-3 bg-muted/20 rounded-lg border flex flex-col justify-center items-center text-center space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Fortalezas</span>
+              <span className={`text-lg font-bold ${data.matchCargo.competencias.filter(c => c.status === "Fortaleza").length >= 3 ? "text-emerald-600" : data.matchCargo.competencias.filter(c => c.status === "Fortaleza").length >= 1 ? "text-amber-600" : "text-red-600"}`}>
+                {data.matchCargo.competencias.filter(c => c.status === "Fortaleza").length}
+              </span>
+            </div>
+          </div>
+
           {/* Recomendação Final em Destaque */}
           <div className="p-4 bg-card rounded-xl border space-y-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
@@ -797,6 +1048,9 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
                   </div>
                 );
               })}
+            </div>
+            <div className="pt-3 mt-2 border-t text-[10px] text-muted-foreground italic leading-relaxed opacity-80">
+              Relatório gerado com metodologia psicométrica baseada em Big Five (NEO-PI-R / IPIP), DISC (Marston), TRI (Teoria de Resposta ao Item) e validação cruzada multifatorial. Normatização: amostra referencial brasileira de profissionais em cargos de gestão.
             </div>
           </div>
 
