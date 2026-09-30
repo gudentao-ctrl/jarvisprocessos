@@ -265,6 +265,7 @@ export const saveInformationItem = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid().optional(),
+        company_id: z.string().uuid(),
         process_id: z.string().uuid(),
         activity_id: z.string().uuid().nullable().optional(),
         origin: z.string().optional().default(""),
@@ -273,20 +274,28 @@ export const saveInformationItem = createServerFn({ method: "POST" })
         responsible: z.string().optional().default(""),
         document: z.string().optional().default(""),
         loss_risk: z.boolean().optional().default(false),
+        system: z.string().optional().default(""),
+        periodicity: z.string().optional().default(""),
+        is_automated: z.boolean().optional().default(false),
+        is_digital: z.boolean().optional().default(false),
+        has_rework: z.boolean().optional().default(false),
+        time_minutes: z.number().min(0).optional().default(0),
         notes: z.string().optional().default(""),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const processId = data.process_id;
+    const { company_id: companyId, ...record } = data;
+    const processId = record.process_id;
     const { data: process } = await context.supabase
       .from("processes")
       .select("id")
       .eq("id", processId)
+      .eq("company_id", companyId)
       .maybeSingle();
-    if (!process) throw new Error("Processo não encontrado ou sem acesso.");
-    if (data.id) {
-      const { id, ...rest } = data;
+    if (!process) throw new Error("Processo não pertence à empresa selecionada.");
+    if (record.id) {
+      const { id, ...rest } = record;
       const { data: row, error } = await context.supabase
         .from("process_information_map")
         .update(rest)
@@ -298,7 +307,7 @@ export const saveInformationItem = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("process_information_map")
-      .insert(data)
+      .insert(record)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -323,19 +332,32 @@ export const saveDecisionItem = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid().optional(),
+        company_id: z.string().uuid(),
         process_id: z.string().uuid(),
         activity_id: z.string().uuid().nullable().optional(),
         decider: z.string().optional().default(""),
         decision: z.string().optional().default(""),
         approval_required: z.boolean().optional().default(false),
         reported_delay: z.string().optional().default(""),
+        financial_impact: z.number().min(0).optional().default(0),
+        frequency: z.string().optional().default(""),
+        criteria: z.string().optional().default(""),
+        data_used: z.string().optional().default(""),
         notes: z.string().optional().default(""),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    if (data.id) {
-      const { id, ...rest } = data;
+    const { company_id: companyId, ...record } = data;
+    const { data: process } = await context.supabase
+      .from("processes")
+      .select("id")
+      .eq("id", record.process_id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (!process) throw new Error("Processo não pertence à empresa selecionada.");
+    if (record.id) {
+      const { id, ...rest } = record;
       const { data: row, error } = await context.supabase
         .from("process_decision_map")
         .update(rest)
@@ -347,7 +369,7 @@ export const saveDecisionItem = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("process_decision_map")
-      .insert(data)
+      .insert(record)
       .select()
       .single();
     if (error) throw new Error(error.message);

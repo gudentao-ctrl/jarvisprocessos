@@ -45,6 +45,10 @@ type Item = {
   decision: string;
   approval_required: boolean;
   reported_delay: string;
+  financial_impact: number;
+  frequency: string;
+  criteria: string;
+  data_used: string;
   notes: string;
 };
 
@@ -54,6 +58,10 @@ const EMPTY: Item = {
   decision: "",
   approval_required: false,
   reported_delay: "",
+  financial_impact: 0,
+  frequency: "",
+  criteria: "",
+  data_used: "",
   notes: "",
 };
 
@@ -78,7 +86,7 @@ function MapaDec() {
   const items: any[] = data?.decision ?? [];
 
   const saveMut = useMutation({
-    mutationFn: (payload: Item) => save({ data: payload as any }),
+    mutationFn: (payload: Item) => save({ data: { ...payload, company_id: companyId } as any }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["maps", companyId, "decision"] });
       setOpen(false);
@@ -167,6 +175,12 @@ function MapaDec() {
                   placeholder="ex.: 2 dias"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Frequência</Label><Input value={editing.frequency} onChange={(e) => setEditing({ ...editing, frequency: e.target.value })} /></div>
+                <div><Label>Impacto financeiro</Label><Input type="number" min="0" value={editing.financial_impact} onChange={(e) => setEditing({ ...editing, financial_impact: Number(e.target.value) || 0 })} /></div>
+              </div>
+              <div><Label>Critérios</Label><Input value={editing.criteria} onChange={(e) => setEditing({ ...editing, criteria: e.target.value })} /></div>
+              <div><Label>Dados utilizados</Label><Input value={editing.data_used} onChange={(e) => setEditing({ ...editing, data_used: e.target.value })} /></div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -254,6 +268,7 @@ function MapaDec() {
                           <Clock className="h-3 w-3" /> {i.reported_delay}
                         </span>
                       )}
+                      {i.frequency && <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{i.frequency}</span>}
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">

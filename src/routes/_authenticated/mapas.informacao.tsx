@@ -57,6 +57,12 @@ type Item = {
   responsible: string;
   document: string;
   loss_risk: boolean;
+  system: string;
+  periodicity: string;
+  is_automated: boolean;
+  is_digital: boolean;
+  has_rework: boolean;
+  time_minutes: number;
   notes: string;
 };
 
@@ -68,6 +74,12 @@ const EMPTY: Item = {
   responsible: "",
   document: "",
   loss_risk: false,
+  system: "",
+  periodicity: "",
+  is_automated: false,
+  is_digital: false,
+  has_rework: false,
+  time_minutes: 0,
   notes: "",
 };
 
@@ -101,7 +113,7 @@ function MapaInfo() {
   const items: any[] = data?.information ?? [];
 
   const saveMut = useMutation({
-    mutationFn: (payload: Item) => save({ data: payload as any }),
+    mutationFn: (payload: Item) => save({ data: { ...payload, company_id: companyId } as any }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["maps", companyId, "information"] });
       setOpen(false);
@@ -201,15 +213,14 @@ function MapaInfo() {
                     onChange={(e) => setEditing({ ...editing, document: e.target.value })}
                   />
                 </div>
+                <div><Label>Sistema</Label><Input value={editing.system} onChange={(e) => setEditing({ ...editing, system: e.target.value })} /></div>
+                <div><Label>Periodicidade</Label><Input value={editing.periodicity} onChange={(e) => setEditing({ ...editing, periodicity: e.target.value })} /></div>
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editing.loss_risk}
-                  onChange={(e) => setEditing({ ...editing, loss_risk: e.target.checked })}
-                />
-                Risco de perda da informação
-              </label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[["loss_risk", "Risco de perda"], ["is_automated", "Fluxo automatizado"], ["is_digital", "Fluxo digital"], ["has_rework", "Possui retrabalho"]].map(([field, label]) => (
+                  <label key={field} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editing[field as keyof Item])} onChange={(e) => setEditing({ ...editing, [field]: e.target.checked })} />{label}</label>
+                ))}
+              </div>
               <div>
                 <Label>Notas</Label>
                 <Textarea
@@ -283,6 +294,10 @@ function MapaInfo() {
                       {i.medium && <Chip icon={Share2}>{i.medium}</Chip>}
                       {i.responsible && <Chip icon={User}>{i.responsible}</Chip>}
                       {i.document && <Chip icon={FileText}>{i.document}</Chip>}
+                      {i.system && <Chip>{i.system}</Chip>}
+                      {i.periodicity && <Chip>{i.periodicity}</Chip>}
+                      {i.is_automated && <Chip>automatizado</Chip>}
+                      {i.has_rework && <Chip>retrabalho</Chip>}
                       {i.loss_risk && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-map-pain/12 px-2 py-0.5 text-[11px] font-semibold text-map-pain">
                           <AlertTriangle className="h-3 w-3" /> risco de perda
