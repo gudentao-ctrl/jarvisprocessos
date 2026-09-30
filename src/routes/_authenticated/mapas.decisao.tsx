@@ -211,13 +211,13 @@ function MapaDec() {
 
       {!companyId ? (
         <EmptyState icon={GitBranch} accent="decision" title="Selecione uma empresa" description="Use o filtro de empresa no topo para visualizar os dados." />
-      ) : companyProcesses.length === 0 && (
+      ) : companyProcesses.length === 0 ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">
           Cadastre processos nesta empresa primeiro.
         </Card>
-      )}
+      ) : null}
 
-      {items.length === 0 ? (
+      {companyId && companyProcesses.length > 0 && (items.length === 0 ? (
         <EmptyState
           icon={GitBranch}
           accent="decision"
@@ -274,7 +274,7 @@ function MapaDec() {
             );
           })}
         </div>
-      )}
+      ))}
     </div>
   );
 }

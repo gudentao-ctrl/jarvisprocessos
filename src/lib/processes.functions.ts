@@ -170,6 +170,13 @@ export const saveActivity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ActivityInput.parse(d))
   .handler(async ({ data, context }) => {
+    const processId = data.process_id;
+    const { data: process } = await context.supabase
+      .from("processes")
+      .select("id")
+      .eq("id", processId)
+      .maybeSingle();
+    if (!process) throw new Error("Processo não encontrado ou sem acesso.");
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
@@ -271,6 +278,13 @@ export const saveInformationItem = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    const processId = data.process_id;
+    const { data: process } = await context.supabase
+      .from("processes")
+      .select("id")
+      .eq("id", processId)
+      .maybeSingle();
+    if (!process) throw new Error("Processo não encontrado ou sem acesso.");
     if (data.id) {
       const { id, ...rest } = data;
       const { data: row, error } = await context.supabase
