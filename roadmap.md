@@ -27,4 +27,4 @@
 - [x] Relatório Executivo: cruzar diagnósticos das entrevistas por empresa, estruturar pelos 6 pilares informados e permitir edição do PDF
 - [x] Relatório Executivo: incluir logos do cliente e da consultoria, pontos positivos, problemas e propostas de intervenção por pilar
 - [x] Mapa Estratégico: ajustar o relatório ao PDF de referência sem agrupar diretrizes ou ações e preservar todas as descrições
-- [ ] Bloco 14: automatizar Dores, Decisões e Informações, aplicar empresa global e refinar a Matriz
+- [x] Bloco 14: automatizar Dores, Decisões e Informações, aplicar empresa global e refinar a Matriz

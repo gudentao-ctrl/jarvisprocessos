@@ -12,12 +12,14 @@ import {
   type MapAccent,
 } from "@/components/mapping/PageHeader";
 import { cn } from "@/lib/utils";
+import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id/mapeamento")({
   component: MapeamentoHub,
 });
 
 function MapeamentoHub() {
+  const { companyId } = useActiveCompany();
   const procFn = useServerFn(listProcesses);
   const cronoFn = useServerFn(listCronoSessions);
   const painsFn = useServerFn(listPains);
@@ -27,7 +29,10 @@ function MapeamentoHub() {
     queryKey: ["crono-sessions"],
     queryFn: () => cronoFn({ data: {} }),
   });
-  const { data: pains = [] } = useQuery({ queryKey: ["pains"], queryFn: () => painsFn() });
+  const { data: pains = [] } = useQuery({
+    queryKey: ["pains", companyId],
+    queryFn: () => painsFn({ data: { company_id: companyId ?? undefined } }),
+  });
 
   const items: {
     label: string;

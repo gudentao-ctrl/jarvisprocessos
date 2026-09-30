@@ -34,10 +34,20 @@ import { Label } from "@/components/ui/label";
 import { Plus, Check, X, Trash2, Edit3, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { listProcesses } from "@/lib/processes.functions";
-import { listCompanies } from "@/lib/interviews.functions";
+import { useActiveCompany } from "@/lib/active-company";
 
 export const Route = createFileRoute("/_authenticated/oportunidades/")({
   component: Page,
+  head: () => ({
+    meta: [
+      { title: "Matriz de Oportunidades | Jarvis" },
+      { name: "description", content: "Mesa de análise e aprovação das oportunidades de melhoria." },
+      { property: "og:title", content: "Matriz de Oportunidades | Jarvis" },
+      { property: "og:description", content: "Mesa de análise e aprovação das oportunidades de melhoria." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const PRIO_COLOR: Record<string, string> = {
@@ -48,24 +58,37 @@ const PRIO_COLOR: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  sugerida: "Sugerida",
+  sugerida: "Pendente",
+  em_analise: "Em análise",
   aprovada: "Aprovada",
   rejeitada: "Rejeitada",
   em_andamento: "Em andamento",
   implementada: "Implementada",
 };
 
+const ORIGIN_LABEL: Record<string, string> = {
+  pain: "Dor",
+  decision: "Decisão",
+  information: "Informação",
+};
+
 function Page() {
+  const { companyId, company } = useActiveCompany();
   const list = useServerFn(listOpportunities);
   const upd = useServerFn(updateOpportunity);
   const del = useServerFn(deleteOpportunity);
   const approve = useServerFn(approveOpportunityAsPlan);
   const reject = useServerFn(rejectOpportunity);
-  const { data = [], isLoading } = useQuery({ queryKey: ["opportunities"], queryFn: () => list() });
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["opportunities", companyId],
+    queryFn: () => list({ data: { company_id: companyId as string } }),
+    enabled: Boolean(companyId),
+  });
   const qc = useQueryClient();
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPrio, setFilterPrio] = useState<string>("all");
+  const [filterOrigin, setFilterOrigin] = useState<string>("all");
   const [editId, setEditId] = useState<string | null>(null);
 
   const filtered = useMemo(
@@ -73,9 +96,10 @@ function Page() {
       data.filter(
         (o) =>
           (filterStatus === "all" || o.status === filterStatus) &&
-          (filterPrio === "all" || o.priority === filterPrio),
+          (filterPrio === "all" || o.priority === filterPrio) &&
+          (filterOrigin === "all" || (o.source_bucket ?? o.source) === filterOrigin),
       ),
-    [data, filterStatus, filterPrio],
+    [data, filterStatus, filterPrio, filterOrigin],
   );
 
   function mutate(fn: (id: string) => Promise<unknown>, msg: string) {
@@ -88,12 +112,19 @@ function Page() {
         .catch((e: Error) => toast.error(e.message));
   }
 
-  const doDelete = mutate((id) => del({ data: { id } }), "Excluída");
-  const doReject = mutate((id) => reject({ data: { id } }), "Rejeitada");
+  const doDelete = mutate(
+    (id) => del({ data: { id, company_id: companyId as string } }),
+    "Excluída",
+  );
+  const doReject = mutate(
+    (id) => reject({ data: { id, company_id: companyId as string } }),
+    "Rejeitada",
+  );
 
   async function doApprove(id: string) {
     try {
-      await approve({ data: { id, responsible: "" } });
+      if (!companyId) return;
+      await approve({ data: { id, company_id: companyId, responsible: "" } });
       toast.success("Aprovada — plano de ação criado");
       qc.invalidateQueries({ queryKey: ["opportunities"] });
     } catch (e) {
@@ -102,8 +133,19 @@ function Page() {
   }
 
   async function changeStatus(id: string, status: string) {
-    await upd({ data: { id, patch: { status: status as never } } });
-    qc.invalidateQueries({ queryKey: ["opportunities"] });
+    if (!companyId) return;
+    try {
+      if (status === "aprovada") {
+        await approve({ data: { id, company_id: companyId, responsible: "" } });
+        toast.success("Aprovada — plano de ação criado");
+      } else {
+        await upd({ data: { id, company_id: companyId, patch: { status: status as never } } });
+        toast.success("Status atualizado");
+      }
+      qc.invalidateQueries({ queryKey: ["opportunities", companyId] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   return (
@@ -111,9 +153,12 @@ function Page() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Matriz de Oportunidades</h1>
-          <p className="text-muted-foreground mt-1">Aprove, ajuste e converta em planos de ação.</p>
+          <p className="text-muted-foreground mt-1">
+            {company ? `${company.name} · ` : ""}Analise os fluxos e converta oportunidades em ações.
+          </p>
         </div>
         <NewOpportunityDialog
+          companyId={companyId}
           onCreated={() => qc.invalidateQueries({ queryKey: ["opportunities"] })}
         />
       </div>
@@ -145,8 +190,22 @@ function Page() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterOrigin} onValueChange={setFilterOrigin}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Origem" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas origens</SelectItem>
+            <SelectItem value="pain">Dor</SelectItem>
+            <SelectItem value="decision">Decisão</SelectItem>
+            <SelectItem value="information">Informação</SelectItem>
+            <SelectItem value="manual">Manual</SelectItem>
+            <SelectItem value="ia">IA</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      {!companyId && <p className="text-muted-foreground">Selecione uma empresa no topo.</p>}
       {isLoading && <p className="text-muted-foreground">Carregando...</p>}
 
       <div className="grid gap-3">
@@ -160,8 +219,20 @@ function Page() {
                     <Badge variant="outline" className={PRIO_COLOR[o.priority]}>
                       {o.priority}
                     </Badge>
-                    <Badge variant="secondary">{STATUS_LABEL[o.status]}</Badge>
+                    <Select value={o.status} onValueChange={(status) => changeStatus(o.id, status)}>
+                      <SelectTrigger className="h-7 w-auto min-w-28 border-0 bg-secondary px-2 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(STATUS_LABEL).map(([status, label]) => (
+                          <SelectItem key={status} value={status}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Badge variant="outline">{o.category}</Badge>
+                    <Badge variant="outline">
+                      {ORIGIN_LABEL[o.source_bucket ?? ""] ?? (o.source === "manual" ? "Manual" : "IA")}
+                    </Badge>
                     {o.source === "ia" && (
                       <Badge
                         variant="outline"
@@ -195,7 +266,7 @@ function Page() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1 shrink-0">
-                  {o.status === "sugerida" && (
+                  {(o.status === "sugerida" || o.status === "em_analise") && (
                     <>
                       <Button size="sm" onClick={() => doApprove(o.id)}>
                         <Check className="h-3.5 w-3.5 mr-1" />
@@ -263,16 +334,16 @@ function Page() {
   );
 }
 
-function NewOpportunityDialog({ onCreated }: { onCreated: () => void }) {
+function NewOpportunityDialog({
+  companyId,
+  onCreated,
+}: {
+  companyId: string | null;
+  onCreated: () => void;
+}) {
   const [open, setOpen] = useState(false);
-  const companiesFn = useServerFn(listCompanies);
   const processesFn = useServerFn(listProcesses);
   const create = useServerFn(createOpportunity);
-  const { data: companies = [] } = useQuery({
-    queryKey: ["companies"],
-    queryFn: () => companiesFn(),
-    enabled: open,
-  });
   const { data: processes = [] } = useQuery({
     queryKey: ["processes"],
     queryFn: () => processesFn(),
@@ -280,7 +351,6 @@ function NewOpportunityDialog({ onCreated }: { onCreated: () => void }) {
   });
 
   const [form, setForm] = useState({
-    company_id: "",
     process_id: "",
     title: "",
     description: "",
@@ -291,12 +361,12 @@ function NewOpportunityDialog({ onCreated }: { onCreated: () => void }) {
   });
 
   async function submit() {
-    if (!form.company_id || !form.title) {
-      toast.error("Empresa e título obrigatórios");
+    if (!companyId || !form.title) {
+      toast.error("Selecione uma empresa e informe o título");
       return;
     }
     try {
-      await create({ data: { ...form, process_id: form.process_id || null } });
+      await create({ data: { ...form, company_id: companyId, process_id: form.process_id || null } });
       toast.success("Oportunidade criada");
       setOpen(false);
       setForm({ ...form, title: "", description: "", expected_benefit: "" });
@@ -320,24 +390,6 @@ function NewOpportunityDialog({ onCreated }: { onCreated: () => void }) {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Empresa</Label>
-            <Select
-              value={form.company_id}
-              onValueChange={(v) => setForm({ ...form, company_id: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
             <Label>Processo (opcional)</Label>
             <Select
               value={form.process_id}
@@ -348,7 +400,7 @@ function NewOpportunityDialog({ onCreated }: { onCreated: () => void }) {
               </SelectTrigger>
               <SelectContent>
                 {processes
-                  .filter((p) => !form.company_id || p.company_id === form.company_id)
+                  .filter((p) => p.company_id === companyId)
                   .map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
@@ -440,6 +492,7 @@ function EditDialog({
   };
   onClose: () => void;
 }) {
+  const { companyId } = useActiveCompany();
   const upd = useServerFn(updateOpportunity);
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -451,7 +504,8 @@ function EditDialog({
   });
   async function save() {
     try {
-      await upd({ data: { id, patch: form } });
+      if (!companyId) return;
+      await upd({ data: { id, company_id: companyId, patch: form } });
       toast.success("Salvo");
       qc.invalidateQueries({ queryKey: ["opportunities"] });
       onClose();
