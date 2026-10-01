@@ -12,6 +12,7 @@ export interface Candidate {
   company_id?: string | null;
   company_name?: string | null;
   profile_data?: {
+    psychometrics?: unknown;
     radar?: Array<{
       name: string;
       factor?: "A" | "C" | "E" | "M" | "N" | "D" | "I" | "S";
