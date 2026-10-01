@@ -1,6 +1,6 @@
 // src/lib/set-reload-timestamp.functions.ts
-import { createServerFn } from "@supabase/auth-helpers-nextjs";
-import { requireSupabaseAuth } from "@/lib/supabase-middleware";
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * Atualiza o registro `ui_reload_timestamp` em `system_settings` com a data/hora atual.
@@ -11,7 +11,8 @@ export const setReloadTimestamp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const now = new Date().toISOString();
-    const { error } = await context.supabase
+    const database = context.supabase as any;
+    const { error } = await database
       .from("system_settings")
       .upsert({ key: "ui_reload_timestamp", value: now }, { onConflict: "key" });
     if (error) {

@@ -220,7 +220,7 @@ export function processAssessmentResults(
     statusGeralValidade = "TESTE_INVALIDO";
     alertasValidade.push(`TMI crítico de ${tmi.toFixed(1)}s/item. Preenchimento incompatível com leitura humana.`);
   } else if (tmi < 2.5) {
-    if (statusGeralValidade !== "TESTE_INVALIDO") statusGeralValidade = "VALIDO_COM_RESSALVAS";
+    statusGeralValidade = "VALIDO_COM_RESSALVAS";
     alertasValidade.push(`TMI de ${tmi.toFixed(1)}s/item abaixo da média recomendada.`);
   }
 

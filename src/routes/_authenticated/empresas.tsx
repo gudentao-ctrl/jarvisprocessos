@@ -127,7 +127,7 @@ function CompaniesPage() {
 
   function openCompany(id: string) {
     setCompanyId(id);
-    navigate({ to: "/controle" });
+    navigate({ to: "/controle", search: { tab: "painel" } });
   }
 
   return (
