@@ -732,7 +732,8 @@ export const saveAiProviderKey = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperadmin(context.supabase, context.userId);
 
-    await context.supabase.from("system_settings").upsert(
+    const database = context.supabase as any;
+    await database.from("system_settings").upsert(
       [
         {
           key: "openai_api_key",

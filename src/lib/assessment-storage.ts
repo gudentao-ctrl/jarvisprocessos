@@ -14,7 +14,7 @@ export interface Candidate {
   profile_data?: {
     radar?: Array<{
       name: string;
-      factor?: "A" | "C" | "E" | "M" | "N";
+      factor?: "A" | "C" | "E" | "M" | "N" | "D" | "I" | "S";
       value: number;
       description?: string;
       classification?: string;
@@ -145,7 +145,8 @@ export async function getCandidatesList(vinculoFilter: string = "todos"): Promis
   let serverList: Candidate[] = [];
 
   try {
-    const { data, error } = await supabase
+    const database = supabase as any;
+    const { data, error } = await database
       .from("candidates")
       .select("*")
       .order("created_at", { ascending: false });
@@ -219,7 +220,8 @@ export async function createCandidate(payload: Omit<Candidate, "id"> & { id?: st
       created_at: candidate.created_at,
     };
 
-    const { error } = await supabase.from("candidates").upsert([dbPayload]);
+    const database = supabase as any;
+    const { error } = await database.from("candidates").upsert([dbPayload]);
     if (error) {
       console.warn("Supabase candidates upsert warning (stored in local database):", error);
     }
@@ -248,7 +250,8 @@ export async function updateCandidateRecord(id: string, updates: Partial<Candida
   setStoredLocalCandidates(updatedList);
 
   try {
-    await supabase.from("candidates").update(updates as any).eq("id", id);
+    const database = supabase as any;
+    await database.from("candidates").update(updates).eq("id", id);
   } catch (err) {
     console.warn("Supabase candidate update warning:", err);
   }
@@ -262,7 +265,8 @@ export async function updateCandidateRecord(id: string, updates: Partial<Candida
 export async function getCandidateById(id: string): Promise<Candidate | null> {
   // 1. Tenta buscar no Supabase
   try {
-    const { data, error } = await supabase
+    const database = supabase as any;
+    const { data, error } = await database
       .from("candidates")
       .select("*")
       .eq("id", id)

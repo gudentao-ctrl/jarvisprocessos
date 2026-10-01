@@ -45,7 +45,7 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
               type="button"
               onClick={() => {
                 setOpen(false);
-                if (p.slug === "controle") navigate({ to: "/controle" });
+                if (p.slug === "controle") navigate({ to: "/controle", search: { tab: "painel" } });
                 else navigate({ to: "/fase/$slug", params: { slug: p.slug } });
               }}
               className={cn(

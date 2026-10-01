@@ -1,11 +1,12 @@
 // src/lib/reload-timestamp.functions.ts
-import { createServerFn } from "@supabase/auth-helpers-nextjs";
-import { requireSupabaseAuth } from "@/lib/supabase-middleware";
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const getReloadTimestamp = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const database = context.supabase as any;
+    const { data, error } = await database
       .from("system_settings")
       .select("value")
       .eq("key", "ui_reload_timestamp")

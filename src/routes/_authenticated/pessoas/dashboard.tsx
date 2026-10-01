@@ -23,7 +23,8 @@ export default function PessoasDashboard() {
         let candCount = 0;
         let mentorCount = 0;
 
-        let candQuery = supabase.from("candidates").select("id", { count: "exact", head: true });
+        const database = supabase as any;
+        let candQuery = database.from("candidates").select("id", { count: "exact", head: true });
         if (companyId) {
           candQuery = candQuery.eq("company_id", companyId);
         }
@@ -34,7 +35,7 @@ export default function PessoasDashboard() {
           candCount = 3; // Fallback mock count for demo
         }
 
-        let mentorQuery = supabase.from("mentorias").select("id", { count: "exact", head: true });
+        let mentorQuery = database.from("mentorias").select("id", { count: "exact", head: true });
         if (companyId) {
           mentorQuery = mentorQuery.eq("company_id", companyId);
         }
