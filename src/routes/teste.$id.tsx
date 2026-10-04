@@ -1,12 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CheckCircle2, Shield, ArrowRight, ArrowLeft, Check, Clock } from "lucide-react";
 import { bancoQuestoes, LIKERT_OPTIONS } from "@/data/bancoQuestoes";
-import { processAssessmentResults } from "@/utils/psychometrics";
-import { getCandidateById, updateCandidateRecord } from "@/lib/assessment-storage";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getPublicAssessment, startPublicAssessment, savePublicAssessment, completePublicAssessment } from "@/lib/assessment.functions";
 
 export const Route = createFileRoute("/teste/$id")({
   component: CandidatoTestePage,
@@ -17,31 +20,59 @@ const TOTAL_PAGES = Math.ceil(bancoQuestoes.length / ITEMS_PER_PAGE); // 24 pág
 
 export default function CandidatoTestePage() {
   const { id } = Route.useParams();
+  const loadAssessment = useServerFn(getPublicAssessment);
+  const startAssessment = useServerFn(startPublicAssessment);
+  const saveAssessment = useServerFn(savePublicAssessment);
+  const completeAssessment = useServerFn(completePublicAssessment);
   const [candidate, setCandidate] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [startTime] = useState<number>(Date.now());
+  const [startTime, setStartTime] = useState<number>(Date.now());
   const [isCompleted, setIsCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    async function loadCand() {
-      try {
-        const cand = await getCandidateById(id);
-        if (cand) {
-          setCandidate(cand);
-          if (cand.status === "concluido") {
-            setIsCompleted(true);
-          }
-        } else {
-          setCandidate({ id, full_name: "Candidato Convidado" });
-        }
-      } catch (err) {
-        console.warn("Could not load candidate for teste:", err);
-      }
+    loadAssessment({ data: { token: id } })
+      .then((cand) => {
+        setCandidate(cand);
+        setFullName(cand.full_name ?? "");
+        setEmail(cand.email ?? "");
+        setBirthDate(cand.birth_date ?? "");
+        setAnswers(cand.answers ?? {});
+        setHasStarted(Boolean(cand.started_at));
+        setIsCompleted(Boolean(cand.completed_at) || cand.status === "concluido");
+        setStartTime(cand.started_at ? new Date(cand.started_at).getTime() : Date.now());
+      })
+      .catch(() => setLoadError("Este convite não está disponível."))
+      .finally(() => setLoading(false));
+  }, [id, loadAssessment]);
+
+  const handleStart = async () => {
+    const cpfDigits = cpf.replace(/\D/g, "");
+    if (fullName.trim().length < 2 || !email.includes("@") || cpfDigits.length !== 11 || !birthDate || !consent) {
+      toast.error("Preencha todos os dados e confirme o aceite antes de iniciar.");
+      return;
     }
-    loadCand();
-  }, [id]);
+    setIsSubmitting(true);
+    try {
+      const row = await startAssessment({ data: { token: id, fullName: fullName.trim(), email: email.trim(), cpf: cpfDigits, birthDate, consentAccepted: true } });
+      setCandidate(row);
+      setHasStarted(true);
+      setStartTime(row.started_at ? new Date(row.started_at).getTime() : Date.now());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a avaliação.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const currentQuestions = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -59,12 +90,17 @@ export default function CandidatoTestePage() {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const persistProgress = useCallback(async (nextAnswers: Record<number, number>) => {
+    try { await saveAssessment({ data: { token: id, answers: nextAnswers } }); } catch { toast.error("Não foi possível salvar seu progresso."); }
+  }, [id, saveAssessment]);
+
   const handleNextPage = () => {
     if (!isCurrentPageComplete) {
       toast.error("Por favor, responda todas as afirmações desta tela antes de prosseguir.");
       return;
     }
     if (currentPage < TOTAL_PAGES) {
+      void persistProgress(answers);
       setCurrentPage((p) => p + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -87,29 +123,7 @@ export default function CandidatoTestePage() {
     try {
       const elapsedSeconds = Math.max(60, Math.round((Date.now() - startTime) / 1000));
 
-      const psychometricResults = processAssessmentResults(answers, elapsedSeconds, {
-        id,
-        nome: candidate?.full_name || "Colaborador Avaliado",
-        cargoPretendido: candidate?.desired_role || candidate?.current_role || "Operações",
-      });
-
-      // Salva no banco de dados / storage com todas as métricas psicométricas calculadas para o consultor
-      await updateCandidateRecord(id, {
-        status: "concluido",
-        profile_data: {
-          psychometrics: psychometricResults,
-          answers,
-          radar: psychometricResults.disc.adaptado.map((d) => ({
-            name: d.nome,
-            value: d.valor,
-            factor: d.fator,
-          })),
-          dominant_factor: psychometricResults.disc.estiloLideranca,
-        },
-        ai_summary: {
-          natural: psychometricResults.parecerConsultor.sinteseQualitativa,
-        },
-      });
+      await completeAssessment({ data: { token: id, answers, elapsedSeconds } });
 
       // Regra de Ouro Psicométrica: O candidato NUNCA vê gráficos, escores ou relatórios.
       setIsCompleted(true);
@@ -121,6 +135,40 @@ export default function CandidatoTestePage() {
       setIsSubmitting(false);
     }
   };
+
+
+  if (loading) return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Carregando convite...</div>;
+  if (loadError) return <div className="min-h-screen grid place-items-center p-6"><Card className="max-w-md p-8 text-center"><h1 className="text-xl font-bold">Convite indisponível</h1><p className="mt-2 text-sm text-muted-foreground">{loadError}</p></Card></div>;
+
+  if (!hasStarted && !isCompleted) {
+    const instructions = [
+      "Leia atentamente as instruções antes do preenchimento.",
+      "Você só pode clicar uma vez em iniciar.",
+      "Responda em um momento sereno, sem interferências externas.",
+      "Uma vez iniciada, a avaliação deve ser concluída; seu progresso será preservado em caso de falha técnica.",
+      "Preferencialmente utilize um computador ou tablet.",
+      "Não existem respostas certas ou erradas.",
+      "Seja você mesmo(a): sua sinceridade faz diferença na análise.",
+      "O uso é simples, rápido e intuitivo.",
+    ];
+    return (
+      <div className="min-h-screen bg-muted/30 p-4 sm:p-8 grid place-items-center">
+        <Card className="w-full max-w-3xl"><CardContent className="p-5 sm:p-8 space-y-6">
+          <div><div className="flex items-center gap-2 text-primary text-xs font-semibold"><Shield className="h-4 w-4" /> JARVIS HUB DE PESSOAS</div><h1 className="mt-2 text-2xl font-bold">Antes de iniciar sua avaliação</h1><p className="mt-1 text-sm text-muted-foreground">Confirme seus dados e leia todas as orientações.</p></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><Label htmlFor="name">Nome completo</Label><Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={150} /></div>
+            <div><Label htmlFor="email">E-mail</Label><Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} /></div>
+            <div><Label htmlFor="cpf">CPF</Label><Input id="cpf" inputMode="numeric" value={cpf} onChange={(e) => setCpf(e.target.value)} maxLength={14} placeholder="000.000.000-00" /></div>
+            <div><Label htmlFor="birth">Data de nascimento</Label><Input id="birth" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} /></div>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-4"><h2 className="font-semibold">Instruções</h2><ul className="mt-3 space-y-2 text-sm text-muted-foreground">{instructions.map((item) => <li key={item} className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />{item}</li>)}</ul></div>
+          <label className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer"><Checkbox checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><span className="text-sm">Eu li as instruções e concordo com o tratamento dos meus dados para esta avaliação, conforme a Política de Privacidade.</span></label>
+          <Button className="w-full h-11" onClick={handleStart} disabled={isSubmitting || !consent}>{isSubmitting ? "Iniciando..." : "Iniciar avaliação"}<ArrowRight className="h-4 w-4 ml-2" /></Button>
+          <p className="text-xs text-muted-foreground text-center">Instrumento de apoio à análise profissional. Não substitui avaliação psicológica regulamentada.</p>
+        </CardContent></Card>
+      </div>
+    );
+  }
 
   // =========================================================================
   // TELA DE CONCLUSÃO DO CANDIDATO (REGRA DE OURO PSICOMÉTRICA)
