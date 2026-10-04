@@ -56,7 +56,8 @@ function AssessmentList() {
 
   const handleCopyLink = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const link = `${window.location.origin}/teste/${id}`;
+    const candidate = candidates.find((item) => item.id === id);
+    const link = `${window.location.origin}/teste/${candidate?.public_token ?? id}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link do Teste do Candidato (/teste/:id) copiado!");
     });
@@ -64,7 +65,7 @@ function AssessmentList() {
 
   const handleWhatsApp = (candidate: Candidate, e: React.MouseEvent) => {
     e.stopPropagation();
-    const portalLink = `${window.location.origin}/teste/${candidate.id}`;
+    const portalLink = `${window.location.origin}/teste/${candidate.public_token ?? candidate.id}`;
     const message = encodeURIComponent(
       `Olá ${candidate.full_name}, sua avaliação psicométrica e comportamental do Jarvis Processos está disponível. Acesse o link para responder o teste: ${portalLink}`,
     );

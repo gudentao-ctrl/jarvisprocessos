@@ -22,6 +22,7 @@ export default function AssessmentFormModal({
   const { companies } = useCompanyFilter();
   const [fullName, setFullName] = useState("");
   const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [currentRole, setCurrentRole] = useState("");
   const [desiredRole, setDesiredRole] = useState("");
@@ -40,6 +41,7 @@ export default function AssessmentFormModal({
   const resetForm = () => {
     setFullName("");
     setCpf("");
+    setEmail("");
     setBirthDate("");
     setCurrentRole("");
     setDesiredRole("");
@@ -66,6 +68,7 @@ export default function AssessmentFormModal({
 
       const newCand = await createCandidate({
         full_name: fullName.trim(),
+        email: email.trim().toLowerCase(),
         cpf: cpfDigits,
         birth_date: birthDate || undefined,
         current_role: currentRole.trim(),
@@ -84,7 +87,7 @@ export default function AssessmentFormModal({
           ],
         },
         ai_summary: {
-          natural: "Aguardando preenchimento do questionário Big Five de 50 perguntas para consolidação do diagnóstico comportamental.",
+          natural: "Aguardando preenchimento da avaliação de perfil de 240 itens.",
         },
       });
 
@@ -126,6 +129,10 @@ export default function AssessmentFormModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="email" className="text-xs font-medium">E-mail *</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} className="mt-1" required />
+            </div>
             <div>
               <Label htmlFor="cpf" className="text-xs font-medium">CPF (11 dígitos) *</Label>
               <Input

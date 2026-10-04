@@ -16,3 +16,6 @@
 
 ## Matriz de Oportunidades
 - Itens derivados dos fluxos guardam origem única; ao reverter uma aprovação, a ação é preservada e apenas desvinculada para evitar perda de trabalho.
+
+## Avaliação de Pessoas
+- Dados pessoais, respostas e resultados de candidatos ficam somente no banco protegido; links públicos usam token e funções validadas para impedir exposição e repetição da tentativa.

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Candidate {
   id: string;
   full_name: string;
+  email?: string;
   cpf: string;
   birth_date?: string;
   current_role?: string;
@@ -31,9 +32,12 @@ export interface Candidate {
   };
   created_at?: string;
   updated_at?: string;
+  public_token?: string;
+  started_at?: string;
+  completed_at?: string;
 }
 
-const LOCAL_STORAGE_KEY = "jarvis_candidates_db_v2";
+const LOCAL_STORAGE_KEY = "jarvis_candidates_db_v3";
 
 export const INITIAL_MOCK_CANDIDATES: Candidate[] = [
   {
@@ -142,7 +146,7 @@ function setStoredLocalCandidates(candidates: Candidate[]): void {
  * garantindo que qualquer candidato recém-criado apareça imediatamente.
  */
 export async function getCandidatesList(vinculoFilter: string = "todos"): Promise<Candidate[]> {
-  const localList = getStoredLocalCandidates();
+  const localList: Candidate[] = [];
   let serverList: Candidate[] = [];
 
   try {
@@ -171,9 +175,6 @@ export async function getCandidatesList(vinculoFilter: string = "todos"): Promis
     return tB - tA;
   });
 
-  // Atualiza cache local
-  setStoredLocalCandidates(allMerged);
-
   // Aplicação do filtro independente de vínculo
   if (!vinculoFilter || vinculoFilter === "todos") {
     return allMerged;
@@ -199,16 +200,12 @@ export async function createCandidate(payload: Omit<Candidate, "id"> & { id?: st
     updated_at: new Date().toISOString(),
   };
 
-  // 1. Salva imediatamente no localStorage
-  const current = getStoredLocalCandidates();
-  const updated = [candidate, ...current.filter((c) => c.id !== newId)];
-  setStoredLocalCandidates(updated);
-
-  // 2. Tenta persistir no Supabase
+  // Persiste apenas no banco protegido; CPF e respostas não ficam no navegador.
   try {
     const dbPayload: any = {
       id: candidate.id,
       full_name: candidate.full_name,
+      email: candidate.email,
       cpf: candidate.cpf,
       birth_date: candidate.birth_date || null,
       current_role: candidate.current_role || null,
@@ -223,11 +220,9 @@ export async function createCandidate(payload: Omit<Candidate, "id"> & { id?: st
 
     const database = supabase as any;
     const { error } = await database.from("candidates").upsert([dbPayload]);
-    if (error) {
-      console.warn("Supabase candidates upsert warning (stored in local database):", error);
-    }
+    if (error) throw new Error(error.message);
   } catch (err) {
-    console.warn("Supabase candidate insert error (safe local fallback active):", err);
+    throw err;
   }
 
   return candidate;
@@ -237,27 +232,15 @@ export async function createCandidate(payload: Omit<Candidate, "id"> & { id?: st
  * Atualiza um candidato existente
  */
 export async function updateCandidateRecord(id: string, updates: Partial<Candidate>): Promise<Candidate | null> {
-  const current = getStoredLocalCandidates();
-  const existing = current.find((c) => c.id === id);
-  if (!existing) return null;
-
-  const merged: Candidate = {
-    ...existing,
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
-
-  const updatedList = current.map((c) => (c.id === id ? merged : c));
-  setStoredLocalCandidates(updatedList);
-
   try {
     const database = supabase as any;
-    await database.from("candidates").update(updates).eq("id", id);
+    const { data, error } = await database.from("candidates").update(updates).eq("id", id).select().maybeSingle();
+    if (error) throw error;
+    return data as Candidate | null;
   } catch (err) {
-    console.warn("Supabase candidate update warning:", err);
+    console.warn("Candidate update warning:", err);
+    return null;
   }
-
-  return merged;
 }
 
 /**
@@ -279,11 +262,6 @@ export async function getCandidateById(id: string): Promise<Candidate | null> {
   } catch (err) {
     console.warn("Supabase fetch candidate error:", err);
   }
-
-  // 2. Busca no localStorage
-  const localList = getStoredLocalCandidates();
-  const found = localList.find((c) => c.id === id);
-  if (found) return found;
 
   return null;
 }
