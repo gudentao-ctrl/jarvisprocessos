@@ -532,6 +532,80 @@ export type Database = {
           },
         ]
       }
+      candidates: {
+        Row: {
+          ai_summary: Json
+          birth_date: string
+          company_id: string | null
+          completed_at: string | null
+          consent_version: string | null
+          cpf: string
+          created_at: string
+          current_role: string | null
+          desired_role: string | null
+          email: string
+          external: boolean
+          full_name: string
+          id: string
+          privacy_consent_at: string | null
+          profile_data: Json
+          public_token: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: Json
+          birth_date: string
+          company_id?: string | null
+          completed_at?: string | null
+          consent_version?: string | null
+          cpf: string
+          created_at?: string
+          current_role?: string | null
+          desired_role?: string | null
+          email: string
+          external?: boolean
+          full_name: string
+          id?: string
+          privacy_consent_at?: string | null
+          profile_data?: Json
+          public_token?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: Json
+          birth_date?: string
+          company_id?: string | null
+          completed_at?: string | null
+          consent_version?: string | null
+          cpf?: string
+          created_at?: string
+          current_role?: string | null
+          desired_role?: string | null
+          email?: string
+          external?: boolean
+          full_name?: string
+          id?: string
+          privacy_consent_at?: string | null
+          profile_data?: Json
+          public_token?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
