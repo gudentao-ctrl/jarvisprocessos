@@ -44,7 +44,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(203, 213, 225);
-  doc.text("HUB DE PESSOAS - DOSSIE COMPORTAMENTAL (BIG FIVE / OCEAN)", margin, 19);
+  doc.text("HUB DE PESSOAS - RELATORIO INTEGRADO DE PERFIL PROFISSIONAL", margin, 19);
 
   const dateStr = new Date().toLocaleDateString("pt-BR");
   doc.text(`Emissao: ${dateStr}`, pageWidth - margin - 35, 19);
@@ -87,7 +87,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...NAVY);
-  doc.text("1. Mapeamento Cientifico dos 5 Fatores (Modelo OCEAN)", margin, y);
+  doc.text("1. Tendencias nos 5 Fatores (Modelo Big Five)", margin, y);
   y += 4;
 
   const tableData = radarItems.map((r: any) => {
@@ -178,6 +178,13 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     y += splitText.length * 4.5 + 4;
   });
 
+  if (y > pageHeight - 35) { doc.addPage(); y = 20; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...NAVY);
+  doc.text("Nota de uso e limites", margin, y); y += 5;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...SLATE);
+  const limits = doc.splitTextToSize("Este relatorio apoia entrevistas e desenvolvimento profissional. Nao equivale a instrumento psicologico licenciado, nao possui norma populacional propria e nao deve ser usado isoladamente para diagnostico ou decisao de contratacao.", pageWidth - margin * 2);
+  doc.text(limits, margin, y);
+
   // Footer on all pages
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
@@ -186,7 +193,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.text(
-      `Jarvis Processos - Dossie Confidencial Big Five - Pagina ${i} de ${totalPages}`,
+      `Jarvis Processos - Relatorio Confidencial de Apoio Profissional - Pagina ${i} de ${totalPages}`,
       margin,
       pageHeight - 8,
     );

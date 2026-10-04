@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   CandidatePsychometricResult,
   MOCK_CONSULTANT_REPORT_STATE,
@@ -41,8 +41,6 @@ import {
   FileText,
   Activity,
   Award,
-  TrendingUp,
-  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateAssessmentReport } from "@/lib/pdf-generator";
@@ -62,50 +60,6 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
   });
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
-
-  const metricasConfiabilidade = useMemo(() => {
-    const calcularAlfaEpm = (facetas: Record<string, number>) => {
-      const valores = Object.values(facetas);
-      const k = valores.length || 6;
-      if (k === 0) return { alpha: 0, epm: 0, sd: 0, mean: 0, valores: [] };
-      
-      const mean = valores.reduce((a, b) => a + b, 0) / k;
-      const sumVars = valores.reduce((a, b) => a + Math.pow(b - mean, 2), 0);
-      const sd = Math.sqrt(sumVars / k);
-      
-      const totalVariance = sumVars + k * 225;
-      let alpha = (k / (k - 1)) * (1 - sumVars / totalVariance);
-      alpha = Math.max(0, Math.min(0.99, alpha));
-      
-      const epm = sd * Math.sqrt(1 - alpha);
-      
-      return { alpha, epm, sd, mean, valores };
-    };
-
-    let allValues: number[] = [];
-    const alphaEpmData: Record<string, ReturnType<typeof calcularAlfaEpm>> = {};
-    let sumAlphas = 0;
-
-    Object.entries(data.bigFive.fatores).forEach(([key, fData]) => {
-      const res = calcularAlfaEpm(fData.facetas);
-      alphaEpmData[key] = res;
-      sumAlphas += res.alpha;
-      allValues = allValues.concat(res.valores);
-    });
-
-    const overallAlpha = sumAlphas / 5;
-    const allMean = allValues.reduce((a, b) => a + b, 0) / (allValues.length || 1);
-    const allSd = Math.sqrt(allValues.reduce((a, b) => a + Math.pow(b - allMean, 2), 0) / (allValues.length || 1));
-    const extremos = allValues.filter(v => v > 85 || v < 15).length;
-
-    return {
-      alphaEpmData,
-      overallAlpha,
-      aquiescencia: allMean,
-      tendenciaCentral: allSd,
-      polarizacao: extremos
-    };
-  }, [data.bigFive.fatores]);
 
   const toggleAccordion = (key: string) => {
     setOpenAccordions((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -199,15 +153,15 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-              Módulo Psicométrico 240 Itens
+              Avaliação Integrada • 240 Itens
             </Badge>
             <Badge variant="outline" className="text-xs">
-              IGFP-5 Big Five + DISC + TRI
+              Big Five + estilos comportamentais
             </Badge>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Relatório Técnico do Consultor</h1>
           <p className="text-xs text-muted-foreground">
-            Dossiê executivo e psicométrico de alta fidelidade para tomada de decisão e contratação
+            Relatório integrado de apoio à entrevista, desenvolvimento e decisões profissionais
           </p>
         </div>
 
@@ -248,7 +202,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Checagem estatística de Desejabilidade Social, Inconsistência (VRIN) e Latência de Tempo (TMI)
+            Checagem observável de desejabilidade, inconsistência e ritmo de resposta
           </CardDescription>
         </CardHeader>
 
@@ -393,164 +347,13 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
       </Card>
 
       {/* ========================================================================= */}
-      {/* SEÇÃO 1.5: INDICADORES DE CONFIABILIDADE PSICOMÉTRICA */}
-      {/* ========================================================================= */}
       <Card className="border shadow-xs overflow-hidden">
         <CardHeader className="bg-muted/30 pb-3 border-b">
-          <div className="flex items-center gap-2">
-            <span className="h-6 w-6 rounded-md bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-              <ShieldCheck className="h-3 w-3" />
-            </span>
-            <CardTitle className="text-base font-bold">
-              Indicadores de Confiabilidade Psicométrica
-            </CardTitle>
-          </div>
-          <CardDescription className="text-xs">
-            Métricas avançadas de consistência interna e padrões de resposta do teste
-          </CardDescription>
+          <CardTitle className="text-base font-bold flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />Qualidade do protocolo</CardTitle>
+          <CardDescription className="text-xs">Indicadores observáveis de atenção, coerência e ritmo de resposta.</CardDescription>
         </CardHeader>
-
-        <CardContent className="p-5 space-y-6">
-          {/* Alfa de Cronbach & Padrões de Resposta */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-muted/20 rounded-xl border space-y-3">
-              <div className="flex items-center gap-2 border-b pb-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-xs">Consistência Interna (Alfa de Cronbach Estimado)</span>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">Alfa Geral</span>
-                  <Badge className={metricasConfiabilidade.overallAlpha >= 0.8 ? "bg-emerald-500/15 text-emerald-700 border-emerald-300" : metricasConfiabilidade.overallAlpha >= 0.65 ? "bg-amber-500/15 text-amber-700 border-amber-300" : "bg-red-500/15 text-red-700 border-red-300"}>
-                    {metricasConfiabilidade.overallAlpha.toFixed(2)}
-                  </Badge>
-                </div>
-                <div className="space-y-1.5 pt-1">
-                  {Object.entries(metricasConfiabilidade.alphaEpmData).map(([fator, metrics]) => (
-                    <div key={fator} className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="capitalize">{fator}</span>
-                        <span className="font-mono">{metrics.alpha.toFixed(2)}</span>
-                      </div>
-                      <Progress 
-                        value={metrics.alpha * 100} 
-                        className="h-1" 
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-muted/20 rounded-xl border space-y-3">
-              <div className="flex items-center gap-2 border-b pb-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-xs">Análise de Padrões de Resposta</span>
-              </div>
-              <div className="space-y-4 pt-1">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Aquiescência (Média Geral)</span>
-                    <strong className="font-mono">{metricasConfiabilidade.aquiescencia.toFixed(1)}%</strong>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Média das respostas (tendência a concordar/discordar).</p>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Tendência Central (Desvio Padrão)</span>
-                    <strong className="font-mono">{metricasConfiabilidade.tendenciaCentral.toFixed(1)}</strong>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Dispersão em relação à média (menor indica respostas neutras).</p>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Polarização (Extremos &gt;85 ou &lt;15)</span>
-                    <strong className="font-mono">{metricasConfiabilidade.polarizacao} facetas</strong>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Quantidade de características marcadas nos extremos da escala.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="epm" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="text-xs font-semibold py-3 hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-primary" />
-                  Erro Padrão de Medida (EPM) & Intervalos de Confiança
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-1 pb-4">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-[11px] h-8">Fator</TableHead>
-                        <TableHead className="text-[11px] h-8 text-right">EPM</TableHead>
-                        <TableHead className="text-[11px] h-8 text-right">IC (95%)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Object.entries(metricasConfiabilidade.alphaEpmData).map(([fator, metrics]) => {
-                        const pct = (data.bigFive.fatores as any)[fator].percentil;
-                        const icMin = Math.max(0, Math.round(pct - 1.96 * metrics.epm));
-                        const icMax = Math.min(100, Math.round(pct + 1.96 * metrics.epm));
-                        return (
-                          <TableRow key={fator} className="border-b-0 hover:bg-muted/10">
-                            <TableCell className="py-2 text-[11px] capitalize font-medium">{fator}</TableCell>
-                            <TableCell className="py-2 text-[11px] text-right font-mono">{metrics.epm.toFixed(1)}</TableCell>
-                            <TableCell className="py-2 text-[11px] text-right font-mono text-muted-foreground">
-                              [{icMin} - {icMax}]
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="normativa" className="border rounded-lg bg-card px-4 mt-3">
-              <AccordionTrigger className="text-xs font-semibold py-3 hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Tabela Normativa Classificatória
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-1 pb-4">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-[11px] h-8">Faixa Percentil</TableHead>
-                        <TableHead className="text-[11px] h-8">Classificação</TableHead>
-                        <TableHead className="text-[11px] h-8">Referência Normativa</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[
-                        { faixa: "91 - 100", classif: "Muito Alto", ref: "Extremo superior da curva normal" },
-                        { faixa: "76 - 90", classif: "Alto", ref: "Acima de 1 desvio padrão" },
-                        { faixa: "61 - 75", classif: "Médio Alto", ref: "Acima da média geral" },
-                        { faixa: "41 - 60", classif: "Médio", ref: "Dentro da média da população" },
-                        { faixa: "26 - 40", classif: "Médio Baixo", ref: "Abaixo da média geral" },
-                        { faixa: "11 - 25", classif: "Baixo", ref: "Abaixo de 1 desvio padrão" },
-                        { faixa: "0 - 10", classif: "Muito Baixo", ref: "Extremo inferior da curva normal" },
-                      ].map((row, idx) => (
-                        <TableRow key={idx} className="border-b-0 hover:bg-muted/10">
-                          <TableCell className="py-2 text-[11px] font-mono whitespace-nowrap">{row.faixa}</TableCell>
-                          <TableCell className="py-2 text-[11px] font-medium">{row.classif}</TableCell>
-                          <TableCell className="py-2 text-[11px] text-muted-foreground">{row.ref}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+        <CardContent className="p-5 text-xs text-muted-foreground leading-relaxed">
+          Estes indicadores ajudam o consultor a identificar respostas apressadas, contraditórias ou excessivamente idealizadas. Eles não representam diagnóstico clínico, validação normativa ou coeficiente de confiabilidade do instrumento.
         </CardContent>
       </Card>
 
@@ -660,7 +463,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
                 3
               </span>
               <CardTitle className="text-base font-bold">
-                Perfil Big Five (IGFP-5 Expandido — Mapa de Personalidade)
+                Perfil Big Five — Mapa de Tendências de Personalidade
               </CardTitle>
             </div>
             <Badge variant="outline" className="text-xs font-normal">
@@ -668,7 +471,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            150 itens avaliados sob Teoria de Resposta ao Item (TRI) e 30 facetas de personalidade
+            150 afirmações organizadas em cinco fatores e 30 facetas comportamentais
           </CardDescription>
         </CardHeader>
 
@@ -1050,7 +853,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
               })}
             </div>
             <div className="pt-3 mt-2 border-t text-[10px] text-muted-foreground italic leading-relaxed opacity-80">
-              Relatório gerado com metodologia psicométrica baseada em Big Five (NEO-PI-R / IPIP), DISC (Marston), TRI (Teoria de Resposta ao Item) e validação cruzada multifatorial. Normatização: amostra referencial brasileira de profissionais em cargos de gestão.
+              Relatório interno de apoio profissional baseado nas respostas do participante e em modelos descritivos Big Five e DISC. Não equivale a instrumentos psicológicos licenciados, não possui norma populacional própria e deve ser interpretado junto com entrevista e evidências do contexto.
             </div>
           </div>
 

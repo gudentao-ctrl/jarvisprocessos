@@ -95,7 +95,7 @@ function erf(x: number): number {
 }
 
 /**
- * Converte Z-Score em Percentil Normativo (0 a 100%)
+ * Converte Z-Score em Índice Descritivo (0 a 100%)
  */
 export function zToPercentil(z: number): number {
   const p = 0.5 * (1 + erf(z / Math.SQRT2)) * 100;
@@ -111,7 +111,7 @@ export function zToTScore(z: number): number {
 }
 
 /**
- * Classificação textual baseada no percentil normativo
+ * Classificação textual baseada no índice descritivo
  */
 export function getPercentilNivel(p: number): string {
   if (p >= 90) return "Muito Alto";
@@ -132,7 +132,7 @@ export function getScoreItem(respostaRaw: number | undefined, invertido: boolean
 }
 
 /**
- * Estimação do traço latente theta (TRI simplificada via EAP centrado)
+ * Índice padronizado interno, calculado a partir da média das respostas
  * a = discriminação (~1.5), escala centrada em 3.0
  */
 export function estimateTheta(scores: number[]): number {
@@ -144,7 +144,7 @@ export function estimateTheta(scores: number[]): number {
 }
 
 /**
- * Processador Psicométrico Completo dos 240 Itens
+ * Processador descritivo dos 240 itens
  */
 export function processAssessmentResults(
   answers: Record<number, number>,
@@ -244,10 +244,10 @@ export function processAssessmentResults(
 
   const msgValidade =
     statusGeralValidade === "TESTE_VALIDO"
-      ? "Protocolo aprovado com elevados índices de consistência interna, latência de tempo e autenticidade."
+      ? "Protocolo sem alertas relevantes nos controles observáveis de atenção, ritmo e coerência."
       : statusGeralValidade === "VALIDO_COM_RESSALVAS"
-      ? "Teste aceito com ressalvas metodológicas nos índices de consistência ou desejabilidade social."
-      : "Protocolo invalidado estatisticamente. Sugere-se a reaplicação do instrumento sob supervisão presencial.";
+      ? "Protocolo com alertas que devem ser considerados pelo consultor durante a entrevista."
+      : "Protocolo com alertas críticos de atenção, ritmo ou coerência; recomenda-se revisar as condições de aplicação e considerar nova coleta.";
 
   // -------------------------------------------------------------
   // 2. BIG FIVE (150 ITENS - 5 FATORES x 6 FACETAS)
