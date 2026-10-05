@@ -178,6 +178,72 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     y += splitText.length * 4.5 + 4;
   });
 
+  const report = profile_data?.psychometrics;
+  if (report?.validade && report?.disc && report?.bigFive) {
+    if (y > pageHeight - 60) { doc.addPage(); y = 20; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY);
+    doc.text("3. Qualidade e limites do protocolo", margin, y); y += 5;
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [["Indicador", "Resultado", "Leitura"]],
+      body: [
+        ["Coerencia entre itens", String(report.validade.vrinEscore), "Revisar em entrevista quando houver alerta"],
+        ["Ritmo medio", `${report.validade.tmiSegundos} s/item`, "Indicador observavel de ritmo de resposta"],
+        ["Itens de atencao", String(report.validade.infrequenciaErros), "Quantidade de respostas divergentes do comando"],
+      ],
+      theme: "grid", headStyles: { fillColor: NAVY, textColor: [255,255,255], fontSize: 8 }, styles: { fontSize: 8, cellPadding: 2.5 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 9;
+
+    if (y > pageHeight - 75) { doc.addPage(); y = 20; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY);
+    doc.text("4. Big Five - fatores e facetas", margin, y); y += 5;
+    const factors = Object.entries(report.bigFive.fatores as Record<string, any>);
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [["Fator", "Indice", "Faixa", "Facetas"]],
+      body: factors.map(([name, value]) => [
+        sanitize(name), `${value.percentil}%`, sanitize(value.nivel),
+        sanitize(Object.entries(value.facetas ?? {}).map(([facet, score]) => `${facet}: ${score}%`).join("; ")),
+      ]),
+      theme: "striped", headStyles: { fillColor: NAVY, textColor: [255,255,255], fontSize: 8 }, styles: { fontSize: 7.4, cellPadding: 2.4, overflow: "linebreak" }, columnStyles: { 3: { cellWidth: 88 } },
+    });
+    y = (doc as any).lastAutoTable.finalY + 9;
+
+    if (y > pageHeight - 70) { doc.addPage(); y = 20; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY);
+    doc.text("5. Estilo comportamental - natural e adaptado", margin, y); y += 5;
+    const adapted = new Map(report.disc.adaptado.map((item: any) => [item.fator, item.valor]));
+    autoTable(doc, {
+      startY: y, margin: { left: margin, right: margin },
+      head: [["Dimensao", "Natural", "Adaptado", "Diferenca"]],
+      body: report.disc.natural.map((item: any) => {
+        const adaptedValue = Number(adapted.get(item.fator) ?? 0);
+        return [`${item.fator} - ${sanitize(item.nome)}`, `${item.valor}%`, `${adaptedValue}%`, `${Math.abs(item.valor - adaptedValue)} pts`];
+      }),
+      theme: "grid", headStyles: { fillColor: NAVY, textColor: [255,255,255], fontSize: 8 }, styles: { fontSize: 8, cellPadding: 2.5 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+
+    const integratedSections = [
+      ["Forcas observaveis", ai_summary?.strengths],
+      ["Motivadores observaveis", report.disc.ambienteIdeal],
+      ["Ambiente e comunicacao", `Ambiente: ${report.disc.ambienteIdeal} Estilo de lideranca: ${report.disc.estiloLideranca}`],
+      ["Riscos sob pressao", report.disc.pontosCegos?.join(" ")],
+      ["Sintese integrada", report.parecerConsultor?.sinteseQualitativa],
+      ["Desenvolvimento sugerido", report.parecerConsultor?.pdi?.map((item: any) => `${item.area}: ${item.acao} (${item.prazoSugerido})`).join(" ")],
+    ];
+    integratedSections.forEach(([title, content]) => {
+      if (!content) return;
+      const lines = doc.splitTextToSize(sanitize(content), pageWidth - margin * 2);
+      if (y + lines.length * 4 + 10 > pageHeight - 16) { doc.addPage(); y = 20; }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...PRIMARY); doc.text(String(title), margin, y); y += 4.5;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...SLATE); doc.text(lines, margin, y); y += lines.length * 4 + 5;
+    });
+  }
+
   if (y > pageHeight - 35) { doc.addPage(); y = 20; }
   doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...NAVY);
   doc.text("Nota de uso e limites", margin, y); y += 5;
