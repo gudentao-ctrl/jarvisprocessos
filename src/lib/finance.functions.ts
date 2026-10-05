@@ -146,14 +146,15 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
     const open = rows.filter((r: any) => r.billing_status !== "faturado");
     const billed = rows.filter((r: any) => r.billing_status === "faturado");
 
-    const invoiced = sum(invoices, "total_amount");
-    const paid = sum(payments, "amount");
-
     const enhancedPayments = (payments ?? []).map((p: any) => {
       const att = store?.paymentAttachments?.[p.id];
       const hasNf = !!(att?.nfUrl || p.notes?.includes("[NF:"));
+      const isPending =
+        att?.confirmation_status === "pendente" ||
+        (!att?.confirmation_status && p.notes?.includes("[ADIANTAMENTO PENDENTE]"));
       return {
         ...p,
+        confirmation_status: (isPending ? "pendente" : "confirmado") as "pendente" | "confirmado",
         receiptUrl: att?.receiptUrl || null,
         receiptName: att?.receiptName || null,
         nfUrl: att?.nfUrl || null,
@@ -161,6 +162,12 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
         nfStatus: (att?.nfStatus || (hasNf ? "anexada" : "pendente")) as "anexada" | "pendente",
       };
     });
+
+    // Pagamentos pendentes de confirmação (ex: adiantamentos não confirmados) não entram no dashboard e DRE
+    const confirmedPayments = enhancedPayments.filter((p: any) => p.confirmation_status !== "pendente");
+
+    const invoiced = sum(invoices, "total_amount");
+    const paid = sum(confirmedPayments, "amount");
 
     return {
       hours: rows,
@@ -314,12 +321,13 @@ export const savePayment = createServerFn({ method: "POST" })
         receiptName: z.string().optional().nullable(),
         nfUrl: z.string().optional().nullable(),
         nfName: z.string().optional().nullable(),
+        confirmation_status: z.enum(["pendente", "confirmado"]).optional(),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    const { id, receiptUrl, receiptName, nfUrl, nfName, ...rest } = data;
+    const { id, receiptUrl, receiptName, nfUrl, nfName, confirmation_status, ...rest } = data;
     const payload = {
       ...rest,
       project_id: rest.project_id ?? null,
@@ -335,16 +343,23 @@ export const savePayment = createServerFn({ method: "POST" })
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
 
-    if (receiptUrl || receiptName || nfUrl || nfName) {
+    const isPending =
+      confirmation_status === "pendente" ||
+      data.notes?.includes("[ADIANTAMENTO PENDENTE]");
+
+    if (receiptUrl || receiptName || nfUrl || nfName || isPending) {
       try {
         const store = await getMaiaStore(sb);
         store.paymentAttachments = store.paymentAttachments || {};
+        const cur = store.paymentAttachments[row.id] || {};
         store.paymentAttachments[row.id] = {
-          receiptUrl: receiptUrl || store.paymentAttachments[row.id]?.receiptUrl || null,
-          receiptName: receiptName || store.paymentAttachments[row.id]?.receiptName || null,
-          nfUrl: nfUrl || store.paymentAttachments[row.id]?.nfUrl || null,
-          nfName: nfName || store.paymentAttachments[row.id]?.nfName || null,
-          nfStatus: (nfUrl || store.paymentAttachments[row.id]?.nfUrl) ? "anexada" : "pendente",
+          ...cur,
+          confirmation_status: isPending ? "pendente" : (cur.confirmation_status || "confirmado"),
+          receiptUrl: receiptUrl || cur.receiptUrl || null,
+          receiptName: receiptName || cur.receiptName || null,
+          nfUrl: nfUrl || cur.nfUrl || null,
+          nfName: nfName || cur.nfName || null,
+          nfStatus: (nfUrl || cur.nfUrl) ? "anexada" : "pendente",
           updated_at: new Date().toISOString(),
         };
         await saveMaiaStore(sb, store);
@@ -360,6 +375,43 @@ export const savePayment = createServerFn({ method: "POST" })
       details: { amount: data.amount, method: data.method },
     });
     return row;
+  });
+
+export const confirmPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ paymentId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const store = await getMaiaStore(sb);
+    store.paymentAttachments = store.paymentAttachments || {};
+    const cur = store.paymentAttachments[data.paymentId] || {};
+    store.paymentAttachments[data.paymentId] = {
+      ...cur,
+      confirmation_status: "confirmado",
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: context.userId,
+    };
+    await saveMaiaStore(sb, store);
+
+    const { data: p } = await sb.from("payments").select("notes").eq("id", data.paymentId).maybeSingle();
+    if (p?.notes?.includes("[ADIANTAMENTO PENDENTE]")) {
+      await sb
+        .from("payments")
+        .update({
+          notes: p.notes.replace("[ADIANTAMENTO PENDENTE]", "[ADIANTAMENTO CONFIRMADO]"),
+        })
+        .eq("id", data.paymentId);
+    }
+
+    await sb.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "payment_confirm",
+      entity: "payments",
+      entity_id: data.paymentId,
+      details: { status: "confirmado" },
+    });
+
+    return store.paymentAttachments[data.paymentId];
   });
 
 export const updatePaymentAttachments = createServerFn({ method: "POST" })

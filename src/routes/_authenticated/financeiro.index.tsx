@@ -7,6 +7,7 @@ import {
   getInvoiceDetail,
   createInvoice,
   savePayment,
+  confirmPayment,
   deletePayment,
   deleteInvoice,
   saveMaiaPaymentMethod,
@@ -62,6 +63,7 @@ import {
   Download,
   Paperclip,
   Loader2,
+  Clock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -229,20 +231,7 @@ function FinanceiroPage() {
   const savePaymentMethodFn = useServerFn(saveMaiaPaymentMethod);
   const updatePaymentAttachmentsFn = useServerFn(updatePaymentAttachments);
   const invoiceDetailFn = useServerFn(getInvoiceDetail);
-
-  async function exportPdf(mode: BilledPdfMode) {
-    if (!companyId) return;
-    try {
-      const report: any = await billedFn({ data: { company_id: companyId } } as any);
-      if (!report?.rows?.length) {
-        toast.error("Nenhum lançamento faturado para esta empresa.");
-        return;
-      }
-      exportBilledPdf(report, mode);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível gerar o PDF.");
-    }
-  }
+  const confirmPaymentFn = useServerFn(confirmPayment);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
@@ -305,7 +294,10 @@ function FinanceiroPage() {
   const liveDre = useMemo(() => {
     if (!companyId) return null;
     const pastInvoices = data?.invoices ?? [];
-    const pastPayments = data?.payments ?? [];
+    // Apenas pagamentos confirmados entram no DRE
+    const pastPayments = (data?.payments ?? []).filter(
+      (p: any) => p.confirmation_status !== "pendente",
+    );
     const currentInvoiced = preview.total > 0 ? preview.total : 0;
     return calculateInvoiceDRE({
       pastInvoices,
@@ -351,6 +343,7 @@ function FinanceiroPage() {
           receiptName: payload.receiptName ?? null,
           nfUrl: payload.nfUrl ?? null,
           nfName: payload.nfName ?? null,
+          confirmation_status: payload.confirmation_status ?? "confirmado",
         },
       } as any),
     onSuccess: () => {
@@ -366,6 +359,15 @@ function FinanceiroPage() {
       qc.invalidateQueries({ queryKey: ["finance"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar o pagamento"),
+  });
+
+  const confirmPaymentMut = useMutation({
+    mutationFn: (paymentId: string) => confirmPaymentFn({ data: { paymentId } }),
+    onSuccess: () => {
+      toast.success("Pagamento confirmado com sucesso! Valores incorporados ao DRE e dashboard.");
+      qc.invalidateQueries({ queryKey: ["finance"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível confirmar o pagamento."),
   });
 
   const savePaymentMethodMut = useMutation({
@@ -425,7 +427,9 @@ function FinanceiroPage() {
       }
 
       const allInvoices = data?.invoices ?? [];
-      const allPayments = data?.payments ?? [];
+      const allPayments = (data?.payments ?? []).filter(
+        (p: any) => p.confirmation_status !== "pendente",
+      );
 
       const dre = calculateInvoiceDRE({
         pastInvoices: allInvoices,
@@ -553,21 +557,6 @@ function FinanceiroPage() {
               ))}
             </SelectContent>
           </Select>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!companyId} className="shrink-0">
-                <FileDown className="mr-1 h-4 w-4" /> Relatório PDF
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => exportPdf("consultor")}>
-                Detalhado por consultor
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportPdf("resumido")}>
-                Compilado resumido
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button onClick={() => setPayOpen(true)} disabled={!companyId} className="shrink-0">
             <Plus className="mr-1 h-4 w-4" /> Pagamento
           </Button>
@@ -996,6 +985,15 @@ function FinanceiroPage() {
                               <Paperclip className="h-3 w-3 text-blue-600" /> Comprovante
                             </Badge>
                           )}
+                          {/* Badge de Adiantamento Pendente de Confirmação */}
+                          {p.confirmation_status === "pendente" && (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-500 bg-amber-50 text-amber-900 text-[10px] font-bold gap-1 animate-pulse"
+                            >
+                              <Clock className="h-3 w-3 text-amber-600" /> Pendente de Confirmação
+                            </Badge>
+                          )}
                         </div>
 
                         <p className="break-words text-xs text-muted-foreground">
@@ -1028,7 +1026,17 @@ function FinanceiroPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 self-end sm:self-start shrink-0">
+                    <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-start shrink-0">
+                      {p.confirmation_status === "pendente" && (
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+                          disabled={confirmPaymentMut.isPending}
+                          onClick={() => confirmPaymentMut.mutate(p.id)}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Confirmar Pagamento
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -1072,7 +1080,7 @@ function FinanceiroPage() {
         onSavePaymentMethod={async (method) => {
           return await savePaymentMethodMut.mutateAsync(method);
         }}
-        onConfirmInvoice={async ({ notes, hourlyRate }) => {
+        onConfirmInvoice={async ({ notes, hourlyRate, advancePayment }) => {
           const inv = await invoiceFn({
             data: {
               company_id: companyId!,
@@ -1082,6 +1090,25 @@ function FinanceiroPage() {
               notes: notes,
             },
           } as any);
+
+          // Se for cadastrado um pagamento de adiantamento na tela de fatura,
+          // cria o pagamento como "pendente" para confirmação prévia antes de entrar nos dashboards/DRE
+          if (advancePayment && Number(advancePayment) > 0) {
+            await payFn({
+              data: {
+                company_id: companyId!,
+                project_id: null,
+                invoice_id: inv.id,
+                paid_at: new Date().toISOString().slice(0, 10),
+                amount: Number(advancePayment),
+                method: "pix",
+                reference: `Adiantamento Fatura #${inv.id?.slice(0, 8)}`,
+                notes: `[ADIANTAMENTO PENDENTE] Adiantamento informado na emissão da fatura #${inv.id?.slice(0, 8)}`,
+                confirmation_status: "pendente",
+              },
+            } as any);
+          }
+
           setSelected([]);
           setInvoiceNotes("");
           qc.invalidateQueries({ queryKey: ["finance"] });

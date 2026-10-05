@@ -30,6 +30,8 @@ import {
   Upload,
   X,
   CreditCard,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { DreVisualConciliacao } from "./DreVisualConciliacao";
 import {
@@ -77,7 +79,7 @@ export function GerarFaturaModal({
   pastPayments: any[];
   savedPaymentMethods: PaymentMethodMaia[];
   onSavePaymentMethod: (method: PaymentMethodMaia) => Promise<any>;
-  onConfirmInvoice: (payload: { notes: string; hourlyRate: number }) => Promise<any>;
+  onConfirmInvoice: (payload: { notes: string; hourlyRate: number; advancePayment?: number }) => Promise<any>;
   isProcessing: boolean;
 }) {
   const [invoiceNotes, setInvoiceNotes] = useState("");
@@ -101,8 +103,9 @@ export function GerarFaturaModal({
 
   const [selectedMethodId, setSelectedMethodId] = useState<string>(defaultMethod.id || "");
   const [showNewMethodForm, setShowNewMethodForm] = useState(false);
+  const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
 
-  // Form de novo método
+  // Form de método
   const [newMethod, setNewMethod] = useState<{
     tipoChave: "CNPJ" | "TELEFONE" | "EMAIL" | "ALEATORIA" | "DADOS_BANCARIOS";
     chavePix: string;
@@ -130,10 +133,12 @@ export function GerarFaturaModal({
     return savedPaymentMethods.find((m) => m.id === selectedMethodId) || defaultMethod;
   }, [savedPaymentMethods, selectedMethodId, defaultMethod]);
 
-  // Cálculos do DRE
+  // Cálculos do DRE (considerando apenas pagamentos confirmados do histórico)
   const dre = useMemo(() => {
     const faturadoAnt = pastInvoices.reduce((acc, inv) => acc + Number(inv.total_amount ?? 0), 0);
-    const pagoAnt = pastPayments.reduce((acc, p) => acc + Number(p.amount ?? 0), 0);
+    const pagoAnt = pastPayments
+      .filter((p: any) => p.confirmation_status !== "pendente")
+      .reduce((acc, p) => acc + Number(p.amount ?? 0), 0);
     const faturadoAtual = preview.total;
     const pagoCiclo = advancePayment;
 
@@ -161,8 +166,34 @@ export function GerarFaturaModal({
     reader.readAsDataURL(file);
   }
 
-  // Salvar novo método de pagamento
-  async function handleSaveNewMethod() {
+  function handleStartNewMethod() {
+    setEditingMethodId(null);
+    setNewMethod({
+      tipoChave: "CNPJ",
+      chavePix: "",
+      banco: "Banco Itaú",
+      favorecido: "Maia Consultoria Empresarial LTDA",
+      qrCodeUrl: "",
+      isDefault: false,
+    });
+    setShowNewMethodForm(true);
+  }
+
+  function handleStartEditMethod(methodToEdit: PaymentMethodMaia) {
+    setEditingMethodId(methodToEdit.id || null);
+    setNewMethod({
+      tipoChave: methodToEdit.tipoChave || "CNPJ",
+      chavePix: methodToEdit.chavePix || "",
+      banco: methodToEdit.banco || "",
+      favorecido: methodToEdit.favorecido || "Maia Consultoria Empresarial LTDA",
+      qrCodeUrl: methodToEdit.qrCodeUrl || "",
+      isDefault: !!methodToEdit.isDefault,
+    });
+    setShowNewMethodForm(true);
+  }
+
+  // Salvar / Atualizar método de pagamento
+  async function handleSaveMethod() {
     if (!newMethod.chavePix.trim()) {
       toast.error("Informe a chave PIX.");
       return;
@@ -173,15 +204,17 @@ export function GerarFaturaModal({
     }
     setSavingMethod(true);
     try {
+      const targetId = editingMethodId || activeMethod?.id || `maia-pix-${Date.now()}`;
       const saved = await onSavePaymentMethod({
-        id: `maia-pix-${Date.now()}`,
+        id: targetId,
         ...newMethod,
       });
-      toast.success("Nova forma de pagamento salva!");
+      toast.success(editingMethodId ? "Forma de pagamento atualizada com sucesso!" : "Nova forma de pagamento salva!");
       if (saved?.id) {
         setSelectedMethodId(saved.id);
       }
       setShowNewMethodForm(false);
+      setEditingMethodId(null);
       setNewMethod({
         tipoChave: "CNPJ",
         chavePix: "",
@@ -200,10 +233,11 @@ export function GerarFaturaModal({
   // Emissão e geração dos PDFs
   async function handleEmitInvoiceAndPdfs() {
     try {
-      // 1. Confirma faturamento no banco
+      // 1. Confirma faturamento no banco (com eventual adiantamento para ficar pendente na aba de pagamentos)
       const invoice = await onConfirmInvoice({
         notes: invoiceNotes,
         hourlyRate: rate,
+        advancePayment: advancePayment,
       });
 
       // 2. Prepara dados para os PDFs
@@ -334,23 +368,43 @@ export function GerarFaturaModal({
                   Dados Bancários / PIX da Maia Consultoria (para impressão nos PDFs)
                 </Label>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs gap-1 border-[#3E100C]/30 text-[#3E100C] hover:bg-[#3E100C]/5"
-                onClick={() => setShowNewMethodForm(!showNewMethodForm)}
-              >
-                {showNewMethodForm ? (
-                  <>
-                    <X className="h-3.5 w-3.5" /> Cancelar Cadastro
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-3.5 w-3.5" /> Cadastrar Nova Forma de Pagamento Maia
-                  </>
+              <div className="flex items-center gap-1.5">
+                {activeMethod && !showNewMethodForm && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1 border-[#E05A10]/40 text-[#3E100C] hover:bg-[#FFF8F5]"
+                    onClick={() => handleStartEditMethod(activeMethod)}
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-[#E05A10]" /> Editar Selecionada
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1 border-[#3E100C]/30 text-[#3E100C] hover:bg-[#3E100C]/5"
+                  onClick={() => {
+                    if (showNewMethodForm) {
+                      setShowNewMethodForm(false);
+                      setEditingMethodId(null);
+                    } else {
+                      handleStartNewMethod();
+                    }
+                  }}
+                >
+                  {showNewMethodForm ? (
+                    <>
+                      <X className="h-3.5 w-3.5" /> Cancelar
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3.5 w-3.5" /> + Nova Forma Maia
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Dropdown de Contas Salvas */}
@@ -383,33 +437,58 @@ export function GerarFaturaModal({
                         <strong className="text-[#E05A10]">{activeMethod.chavePix}</strong>
                       </p>
                     </div>
-                    {activeMethod.qrCodeUrl ? (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <img
-                          src={activeMethod.qrCodeUrl}
-                          alt="QR Code PIX"
-                          className="h-12 w-12 rounded border object-contain p-0.5"
-                        />
-                        <span className="text-[10px] text-emerald-700 font-semibold">
-                          QR Code pronto
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] shrink-0">
-                        <QrCode className="h-4 w-4" /> Sem imagem QR
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {activeMethod.qrCodeUrl ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <img
+                            src={activeMethod.qrCodeUrl}
+                            alt="QR Code PIX"
+                            className="h-10 w-10 rounded border object-contain p-0.5"
+                          />
+                          <span className="text-[10px] text-emerald-700 font-semibold">
+                            QR Code pronto
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] shrink-0">
+                          <QrCode className="h-4 w-4" /> Sem imagem QR
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1 text-xs text-[#E05A10] hover:text-[#3E100C] hover:bg-[#FFF8F5]"
+                        onClick={() => handleStartEditMethod(activeMethod)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Editar
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Formulário: Cadastrar Nova Forma de Pagamento Maia */}
+            {/* Formulário: Cadastrar / Editar Forma de Pagamento Maia */}
             {showNewMethodForm && (
               <div className="space-y-3 rounded-lg border border-[#E05A10]/40 bg-white p-3 text-xs shadow-xs animate-in fade-in-50">
-                <p className="font-bold text-[#3E100C] text-xs">
-                  Cadastrar Nova Conta / Chave PIX da Maia
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-[#3E100C] text-xs">
+                    {editingMethodId ? "Editar Forma de Pagamento Maia" : "Cadastrar Nova Conta / Chave PIX da Maia"}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 text-xs text-muted-foreground"
+                    onClick={() => {
+                      setShowNewMethodForm(false);
+                      setEditingMethodId(null);
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
@@ -470,11 +549,23 @@ export function GerarFaturaModal({
                         className="h-9 text-xs file:mr-2 file:h-7 file:rounded file:border-0 file:bg-muted file:px-2 file:text-xs"
                       />
                       {newMethod.qrCodeUrl && (
-                        <img
-                          src={newMethod.qrCodeUrl}
-                          alt="Preview"
-                          className="h-8 w-8 rounded border object-contain shrink-0"
-                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <img
+                            src={newMethod.qrCodeUrl}
+                            alt="Preview"
+                            className="h-8 w-8 rounded border object-contain shrink-0"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => setNewMethod((prev) => ({ ...prev, qrCodeUrl: "" }))}
+                            title="Remover QR Code"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -497,11 +588,15 @@ export function GerarFaturaModal({
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 bg-[#3E100C] hover:bg-[#3E100C]/90 text-white text-xs"
+                    className="h-8 bg-[#3E100C] hover:bg-[#3E100C]/90 text-white text-xs font-semibold"
                     disabled={savingMethod}
-                    onClick={handleSaveNewMethod}
+                    onClick={handleSaveMethod}
                   >
-                    {savingMethod ? "Salvando..." : "Salvar Forma de Pagamento"}
+                    {savingMethod
+                      ? "Salvando..."
+                      : editingMethodId
+                        ? "Salvar Alterações"
+                        : "Salvar Forma de Pagamento"}
                   </Button>
                 </div>
               </div>
