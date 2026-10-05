@@ -37,8 +37,6 @@ export interface Candidate {
   completed_at?: string;
 }
 
-const LOCAL_STORAGE_KEY = "jarvis_candidates_db_v3";
-
 export const INITIAL_MOCK_CANDIDATES: Candidate[] = [
   {
     id: "demo-cand-1",
@@ -113,37 +111,8 @@ export const INITIAL_MOCK_CANDIDATES: Candidate[] = [
   },
 ];
 
-function getStoredLocalCandidates(): Candidate[] {
-  if (typeof window === "undefined") return INITIAL_MOCK_CANDIDATES;
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_MOCK_CANDIDATES));
-      return INITIAL_MOCK_CANDIDATES;
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
-    }
-    return INITIAL_MOCK_CANDIDATES;
-  } catch (err) {
-    console.error("Error reading localStorage candidates:", err);
-    return INITIAL_MOCK_CANDIDATES;
-  }
-}
-
-function setStoredLocalCandidates(candidates: Candidate[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(candidates));
-  } catch (err) {
-    console.error("Error writing localStorage candidates:", err);
-  }
-}
-
 /**
- * Carrega todos os candidatos unificando Supabase com localStorage,
- * garantindo que qualquer candidato recém-criado apareça imediatamente.
+ * Carrega candidatos do banco protegido.
  */
 export async function getCandidatesList(vinculoFilter: string = "todos"): Promise<Candidate[]> {
   const localList: Candidate[] = [];
@@ -163,10 +132,9 @@ export async function getCandidatesList(vinculoFilter: string = "todos"): Promis
     console.warn("Supabase candidates fetch fallback to local storage:", err);
   }
 
-  // Mescla lista do servidor e local, priorizando o item mais recente
+  // Mantém a ordenação estável recebida do banco.
   const mergedMap = new Map<string, Candidate>();
 
-  localList.forEach((c) => mergedMap.set(c.id, c));
   serverList.forEach((c) => mergedMap.set(c.id, { ...mergedMap.get(c.id), ...c }));
 
   const allMerged = Array.from(mergedMap.values()).sort((a, b) => {

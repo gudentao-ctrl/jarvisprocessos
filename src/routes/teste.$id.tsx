@@ -12,6 +12,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { getPublicAssessment, startPublicAssessment, savePublicAssessment, completePublicAssessment } from "@/lib/assessment.functions";
 
 export const Route = createFileRoute("/teste/$id")({
+  head: () => ({
+    meta: [
+      { title: "Avaliação de Perfil | Jarvis Processos" },
+      { name: "description", content: "Avaliação individual de perfil profissional e comportamental." },
+      { property: "og:title", content: "Avaliação de Perfil | Jarvis Processos" },
+      { property: "og:description", content: "Acesso individual à avaliação de perfil profissional." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CandidatoTestePage,
 });
 

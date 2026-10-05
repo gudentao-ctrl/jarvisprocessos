@@ -11,6 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { getCandidatesList, Candidate } from "@/lib/assessment-storage";
 
 export const Route = createFileRoute("/_authenticated/pessoas/assessment/")({
+  head: () => ({
+    meta: [
+      { title: "Avaliações de Pessoas | Jarvis Processos" },
+      { name: "description", content: "Gestão de avaliações e relatórios integrados de perfil profissional." },
+      { property: "og:title", content: "Avaliações de Pessoas | Jarvis Processos" },
+      { property: "og:description", content: "Gestão de avaliações de perfil profissional." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AssessmentList,
 });
 

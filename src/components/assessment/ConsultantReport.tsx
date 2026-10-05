@@ -80,6 +80,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
         desired_role: data.candidato.cargoPretendido,
         birth_date: "1990-01-01",
         profile_data: {
+          psychometrics: data,
           radar: [
             { name: "Neuroticismo", value: data.bigFive.fatores.neuroticismo.percentil, description: "Estabilidade Emocional" },
             { name: "Extroversão", value: data.bigFive.fatores.extroversao.percentil, description: "Sociabilidade e Assertividade" },
