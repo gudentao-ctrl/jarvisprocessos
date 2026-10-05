@@ -269,8 +269,13 @@ function CronoDetail() {
                 <span className="text-muted-foreground tabular-nums">
                   {Number(o.time_minutes).toFixed(2)} min
                 </span>
-                <Button size="icon" variant="ghost" onClick={() => remove(o.id)}>
-                  <Trash2 className="h-3.5 w-3.5" />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+                  onClick={() => remove(o.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}

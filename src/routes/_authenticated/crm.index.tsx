@@ -334,12 +334,12 @@ function CrmPage() {
       </div>
 
       <Tabs defaultValue="funil">
-        <TabsList>
-          <TabsTrigger value="funil">Funil</TabsTrigger>
-          <TabsTrigger value="alertas">
+        <TabsList className="w-full sm:w-auto h-auto p-1.5 gap-1.5 flex flex-wrap">
+          <TabsTrigger value="funil" className="py-2 min-h-[38px] sm:min-h-0 touch-manipulation">Funil</TabsTrigger>
+          <TabsTrigger value="alertas" className="py-2 min-h-[38px] sm:min-h-0 touch-manipulation">
             Alertas {alerts?.length ? `(${alerts.length})` : ""}
           </TabsTrigger>
-          <TabsTrigger value="empresas">Empresas ativas</TabsTrigger>
+          <TabsTrigger value="empresas" className="py-2 min-h-[38px] sm:min-h-0 touch-manipulation">Empresas ativas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funil" className="space-y-3 pt-3">

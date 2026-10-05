@@ -833,6 +833,7 @@ function EventRow({ it, onEdit, onDelete }: { it: any; onEdit: () => void; onDel
           <Button
             size="icon"
             variant="ghost"
+            className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -844,6 +845,7 @@ function EventRow({ it, onEdit, onDelete }: { it: any; onEdit: () => void; onDel
           <Button
             size="icon"
             variant="ghost"
+            className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 hover:bg-destructive/10 hover:text-destructive"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

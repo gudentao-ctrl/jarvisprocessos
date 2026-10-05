@@ -144,7 +144,7 @@ function GutStepper({
           type="button"
           variant="outline"
           size="icon"
-          className="h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 touch-manipulation active:scale-95"
           onClick={() => set(value - 1)}
           disabled={value <= 1}
           aria-label={`Diminuir ${label}`}
@@ -163,7 +163,7 @@ function GutStepper({
           type="button"
           variant="outline"
           size="icon"
-          className="h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 touch-manipulation active:scale-95"
           onClick={() => set(value + 1)}
           disabled={value >= 5}
           aria-label={`Aumentar ${label}`}
@@ -763,9 +763,9 @@ function PlanosPage() {
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex flex-wrap items-center justify-between sm:justify-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:shrink-0">
                     <Select value={p.status} onValueChange={(v) => updateStatus(p, v)}>
-                      <SelectTrigger className="w-36">
+                      <SelectTrigger className="h-9 w-36 text-xs touch-manipulation">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -776,12 +776,26 @@ function PlanosPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Editar">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(p)} title="Excluir">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEdit(p)}
+                        title="Editar"
+                        className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => remove(p)}
+                        title="Excluir"
+                        className="h-9 w-9 sm:h-8 sm:w-8 text-destructive touch-manipulation"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card>

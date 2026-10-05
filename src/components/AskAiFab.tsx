@@ -112,16 +112,17 @@ export function AskAiFab(props: Props = {}) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 lg:bottom-8"
+        className="fixed bottom-20 right-3.5 z-30 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-90 lg:bottom-8 lg:right-6 touch-manipulation"
         aria-label="Perguntar à IA"
       >
-        <Sparkles className="h-6 w-6" />
+        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="max-h-[90vh] overflow-y-auto rounded-t-2xl pb-8 sm:max-w-xl sm:mx-auto"
+          className="max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:max-w-xl sm:mx-auto"
+          style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}
         >
           <SheetHeader className="text-left">
             <SheetTitle className="flex items-center gap-2">
@@ -171,7 +172,7 @@ export function AskAiFab(props: Props = {}) {
                       key={s}
                       onClick={() => submit(s)}
                       disabled={!companyId}
-                      className="rounded-full border bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-secondary/70 active:scale-95 disabled:opacity-40"
+                      className="rounded-full border bg-secondary px-3.5 py-2 min-h-[36px] text-xs font-medium hover:bg-secondary/70 active:scale-95 touch-manipulation disabled:opacity-40"
                     >
                       {s}
                     </button>

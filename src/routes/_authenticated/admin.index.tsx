@@ -449,7 +449,7 @@ function AdminPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="text-destructive"
+                          className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                           onClick={() =>
                             confirm("Remover acesso?") &&
                             removeMut.mutate({ user_id: m.user_id, company_id: m.company_id })
@@ -539,6 +539,7 @@ function AdminPage() {
                 <Button
                   size="icon"
                   variant="outline"
+                  className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
                   aria-label="Editar usuário"
                   title="Editar usuário"
                   onClick={() =>
@@ -559,6 +560,7 @@ function AdminPage() {
                   <Button
                     size="icon"
                     variant="outline"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
                     aria-label="Enviar recuperação de senha"
                     title="Enviar recuperação de senha"
                     disabled={resetMut.isPending}
@@ -571,7 +573,7 @@ function AdminPage() {
                   <Button
                     size="icon"
                     variant="outline"
-                    className="text-destructive"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                     aria-label="Excluir usuário"
                     title="Excluir usuário"
                     disabled={deleteUserMut.isPending}

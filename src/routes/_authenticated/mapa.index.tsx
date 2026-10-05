@@ -199,12 +199,12 @@ function GutStepper({
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8 shrink-0"
+          className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
           onClick={() => set(value - 1)}
           disabled={value <= 1}
           aria-label={`Diminuir ${label}`}
         >
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-4 w-4" />
         </Button>
         <Input
           type="number"
@@ -212,18 +212,18 @@ function GutStepper({
           max={5}
           value={value}
           onChange={(e) => set(Number(e.target.value) || 1)}
-          className="w-full text-center tabular-nums h-8 text-xs font-semibold"
+          className="w-full text-center tabular-nums h-9 sm:h-8 text-xs font-semibold"
         />
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8 shrink-0"
+          className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
           onClick={() => set(value + 1)}
           disabled={value >= 5}
           aria-label={`Aumentar ${label}`}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -1114,22 +1114,22 @@ function MapaPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-muted-foreground hover:text-foreground shrink-0"
                                     onClick={() => handleOpenEdit(diretriz)}
                                     title="Editar Diretriz"
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
+                                    <Pencil className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                   </Button>
 
                                   {/* Excluir */}
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-muted-foreground hover:text-destructive shrink-0"
                                     onClick={() => handleOpenDelete(diretriz)}
                                     title="Excluir Diretriz"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                   </Button>
                                 </div>
                               </div>
@@ -1233,21 +1233,21 @@ function MapaPage() {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                            className="h-8 w-8 sm:h-6 sm:w-6 touch-manipulation active:scale-95 text-muted-foreground hover:text-foreground shrink-0"
                                             onClick={() => handleOpenEdit(sub)}
                                             title="Editar desdobramento"
                                           >
-                                            <Pencil className="h-3 w-3" />
+                                            <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                           </Button>
 
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                            className="h-8 w-8 sm:h-6 sm:w-6 touch-manipulation active:scale-95 text-muted-foreground hover:text-destructive shrink-0"
                                             onClick={() => handleOpenDelete(sub)}
                                             title="Excluir desdobramento"
                                           >
-                                            <Trash2 className="h-3 w-3" />
+                                            <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                           </Button>
 
                                           {(sub.description ||
@@ -1259,7 +1259,7 @@ function MapaPage() {
                                               variant="ghost"
                                               size="icon"
                                               className={cn(
-                                                "h-6 w-6 text-muted-foreground hover:text-primary",
+                                                "h-8 w-8 sm:h-6 sm:w-6 touch-manipulation active:scale-95 text-muted-foreground hover:text-primary shrink-0",
                                                 expandedActionDetails[sub.id] && "text-primary",
                                               )}
                                               onClick={() => toggleActionDetail(sub.id)}
@@ -1270,9 +1270,9 @@ function MapaPage() {
                                               }
                                             >
                                               {expandedActionDetails[sub.id] ? (
-                                                <EyeOff className="h-3 w-3" />
+                                                <EyeOff className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                               ) : (
-                                                <Eye className="h-3 w-3" />
+                                                <Eye className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                               )}
                                             </Button>
                                           )}

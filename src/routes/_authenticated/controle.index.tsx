@@ -192,22 +192,22 @@ function ControlePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-          <TabsTrigger value="painel" className="gap-1.5 text-xs sm:text-sm">
-            <LayoutDashboard className="h-4 w-4" />
-            Painel Geral
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1.5 gap-1.5">
+          <TabsTrigger value="painel" className="gap-1.5 text-xs sm:text-sm py-2 min-h-[40px] sm:min-h-0">
+            <LayoutDashboard className="h-4 w-4 shrink-0" />
+            <span>Painel Geral</span>
           </TabsTrigger>
-          <TabsTrigger value="maturidade" className="gap-1.5 text-xs sm:text-sm">
-            <Target className="h-4 w-4" />
-            Maturidade da Empresa
+          <TabsTrigger value="maturidade" className="gap-1.5 text-xs sm:text-sm py-2 min-h-[40px] sm:min-h-0">
+            <Target className="h-4 w-4 shrink-0" />
+            <span>Maturidade da Empresa</span>
           </TabsTrigger>
-          <TabsTrigger value="dre" className="gap-1.5 text-xs sm:text-sm">
-            <Calculator className="h-4 w-4" />
-            DRE Gerencial
+          <TabsTrigger value="dre" className="gap-1.5 text-xs sm:text-sm py-2 min-h-[40px] sm:min-h-0">
+            <Calculator className="h-4 w-4 shrink-0" />
+            <span>DRE Gerencial</span>
           </TabsTrigger>
-          <TabsTrigger value="evolucao" className="gap-1.5 text-xs sm:text-sm">
-            <TrendingUp className="h-4 w-4" />
-            Evolução Financeira
+          <TabsTrigger value="evolucao" className="gap-1.5 text-xs sm:text-sm py-2 min-h-[40px] sm:min-h-0">
+            <TrendingUp className="h-4 w-4 shrink-0" />
+            <span>Evolução Financeira</span>
           </TabsTrigger>
         </TabsList>
 

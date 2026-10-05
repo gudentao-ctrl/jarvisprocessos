@@ -404,8 +404,13 @@ function InfoMapEditor({
                 />
                 Risco de perda
               </label>
-              <Button size="icon" variant="ghost" className="ml-auto" onClick={() => remove(it.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="ml-auto h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+                onClick={() => remove(it.id)}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </Card>
@@ -471,8 +476,13 @@ function DecisionMapEditor({
                 />
                 Requer aprovação
               </label>
-              <Button size="icon" variant="ghost" className="ml-auto" onClick={() => remove(it.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="ml-auto h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+                onClick={() => remove(it.id)}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </Card>

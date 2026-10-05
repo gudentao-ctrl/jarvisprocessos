@@ -58,11 +58,23 @@ function SortableItem({
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
         {block.type}
       </span>
-      <Button variant="ghost" size="icon" onClick={onToggle} aria-label="Alternar visibilidade">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
+        onClick={onToggle}
+        aria-label="Alternar visibilidade"
+      >
         {block.enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 opacity-50" />}
       </Button>
-      <Button variant="ghost" size="icon" onClick={onRemove} aria-label="Remover">
-        <Trash2 className="h-4 w-4 text-destructive" />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+        onClick={onRemove}
+        aria-label="Remover"
+      >
+        <Trash2 className="h-4 w-4" />
       </Button>
     </div>
   );

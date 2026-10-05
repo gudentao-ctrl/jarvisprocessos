@@ -203,7 +203,12 @@ function SugerirPage() {
                     onChange={(e) => patch(`activities.${i}.time_minutes`, Number(e.target.value))}
                     placeholder="min"
                   />
-                  <Button size="icon" variant="ghost" onClick={() => removeFrom("activities", i)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={() => removeFrom("activities", i)}
+                  >
                     ✕
                   </Button>
                 </div>
@@ -233,6 +238,7 @@ function SugerirPage() {
                   <Button
                     size="icon"
                     variant="ghost"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                     onClick={() => removeFrom("information_map", i)}
                   >
                     ✕
@@ -261,7 +267,12 @@ function SugerirPage() {
                     onChange={(e) => patch(`decision_map.${i}.reported_delay`, e.target.value)}
                     placeholder="Atraso"
                   />
-                  <Button size="icon" variant="ghost" onClick={() => removeFrom("decision_map", i)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={() => removeFrom("decision_map", i)}
+                  >
                     ✕
                   </Button>
                 </div>
@@ -301,7 +312,12 @@ function SugerirPage() {
                       </option>
                     ))}
                   </select>
-                  <Button size="icon" variant="ghost" onClick={() => removeFrom("pains", i)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={() => removeFrom("pains", i)}
+                  >
                     ✕
                   </Button>
                 </div>

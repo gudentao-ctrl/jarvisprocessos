@@ -387,18 +387,29 @@ export function PopEditor({
                   <UnknownHint value={s.responsible} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => moveStep(i, -1)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95"
+                    onClick={() => moveStep(i, -1)}
+                  >
                     <ArrowUp className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => moveStep(i, 1)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95"
+                    onClick={() => moveStep(i, 1)}
+                  >
                     <ArrowDown className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10"
                     onClick={() => removeItem("steps", value.steps, i)}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -467,8 +478,13 @@ export function PopEditor({
               value={r.mitigation}
               onChange={(e) => setItem("risks", value.risks, i, { mitigation: e.target.value })}
             />
-            <Button variant="ghost" size="icon" onClick={() => removeItem("risks", value.risks, i)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0 self-center"
+              onClick={() => removeItem("risks", value.risks, i)}
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}
@@ -520,9 +536,10 @@ export function PopEditor({
             <Button
               variant="ghost"
               size="icon"
+              className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0 self-center"
               onClick={() => removeItem("indicators", value.indicators, i)}
             >
-              <Trash2 className="h-4 w-4 text-destructive" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}

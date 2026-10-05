@@ -425,10 +425,10 @@ function FinanceiroPage() {
       </div>
 
       <Tabs defaultValue="aberto">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="aberto">Horas em aberto</TabsTrigger>
-          <TabsTrigger value="faturas">Faturas</TabsTrigger>
-          <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
+        <TabsList className="w-full justify-start overflow-x-auto h-auto p-1.5 gap-1.5">
+          <TabsTrigger value="aberto" className="py-2 min-h-[38px] sm:min-h-0 touch-manipulation">Horas em aberto</TabsTrigger>
+          <TabsTrigger value="faturas" className="py-2 min-h-[38px] sm:min-h-0 touch-manipulation">Faturas</TabsTrigger>
+          <TabsTrigger value="pagamentos" className="py-2 min-h-[38px] sm:min-h-0 touch-manipulation">Pagamentos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="aberto" className="space-y-3 pt-3">
@@ -690,6 +690,7 @@ function FinanceiroPage() {
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 hover:bg-destructive/10 shrink-0"
                         aria-label="Desfazer fatura"
                         disabled={delInvoiceMut.isPending}
                         onClick={() =>
@@ -737,6 +738,7 @@ function FinanceiroPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 hover:bg-destructive/10 shrink-0"
                   onClick={() => delPayMut.mutate(p.id)}
                   aria-label="Excluir pagamento"
                 >

@@ -169,8 +169,13 @@ export function ActivitySheet({
         <DrawerHeader className="pb-2">
           <div className="flex items-center justify-between">
             <DrawerTitle className="truncate">{form.title || "Atividade"}</DrawerTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95"
+              onClick={onClose}
+            >
+              <X className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </DrawerHeader>
@@ -487,10 +492,10 @@ function ConnectionsPanel({
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7"
+                  className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                   onClick={() => remove(c.id)}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 </Button>
               </Card>
             );

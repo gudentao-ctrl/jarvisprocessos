@@ -284,7 +284,7 @@ function IndicadoresPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="shrink-0"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
                     onClick={() => setEditing(i)}
                   >
                     <Settings2 className="h-4 w-4" />
@@ -314,8 +314,8 @@ function IndicadoresPage() {
                 >
                   {st.label}
                 </span>
-                <div className="flex flex-wrap gap-2 pt-1 border-t">
-                  <Button asChild size="sm" className="min-h-9">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                  <Button asChild size="sm" className="min-h-9 text-xs touch-manipulation">
                     <Link to="/indicadores/$id/coletar" params={{ id: i.id }}>
                       <Check className="h-3.5 w-3.5 mr-1" /> Registrar
                     </Link>
@@ -324,10 +324,11 @@ function IndicadoresPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="ml-auto text-destructive"
+                    className="ml-auto min-h-9 px-2.5 text-destructive hover:bg-destructive/10 touch-manipulation"
                     onClick={() => {
                       if (confirm("Excluir indicador e suas coletas?")) del.mutate(i.id);
                     }}
+                    title="Excluir indicador"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -374,11 +375,17 @@ function LinkButton({ token, indicatorName }: { token: string; indicatorName: st
   }
   return (
     <>
-      <Button size="sm" variant="outline" onClick={copy} className="min-h-9">
+      <Button size="sm" variant="outline" onClick={copy} className="min-h-9 text-xs touch-manipulation">
         <Copy className="h-3.5 w-3.5 mr-1" /> Copiar link
       </Button>
-      <Button size="sm" variant="ghost" onClick={whatsapp} className="min-h-9" title="WhatsApp">
-        <MessageCircle className="h-4 w-4 text-emerald-600" />
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={whatsapp}
+        className="min-h-9 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 touch-manipulation"
+        title="Enviar WhatsApp"
+      >
+        <MessageCircle className="h-3.5 w-3.5 mr-1 text-emerald-600" /> WhatsApp
       </Button>
     </>
   );

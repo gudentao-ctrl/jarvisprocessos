@@ -255,14 +255,14 @@ function CompanyCard({
     <Card
       className={`${active ? "p-4 ring-2 ring-primary" : "p-4"} ${inactive ? "opacity-70" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         {editingCompany ? (
           <form onSubmit={handleSaveCompany} className="flex min-w-0 flex-1 items-center gap-2">
             <Building2 className="h-4 w-4 shrink-0 text-primary" />
             <Input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="h-8 flex-1 text-sm font-semibold"
+              className="h-9 sm:h-8 flex-1 text-sm font-semibold"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
@@ -275,7 +275,7 @@ function CompanyCard({
               size="icon"
               variant="ghost"
               type="submit"
-              className="h-8 w-8 text-primary"
+              className="h-9 w-9 sm:h-8 sm:w-8 text-primary touch-manipulation"
               title="Salvar"
             >
               <Check className="h-4 w-4" />
@@ -288,7 +288,7 @@ function CompanyCard({
                 setCompanyName(company.name);
                 setEditingCompany(false);
               }}
-              className="h-8 w-8 text-muted-foreground"
+              className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground touch-manipulation"
               title="Cancelar"
             >
               <X className="h-4 w-4" />
@@ -296,14 +296,14 @@ function CompanyCard({
           </form>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <button onClick={onOpen} className="flex min-w-0 items-center gap-2 text-left truncate">
+            <button onClick={onOpen} className="flex min-w-0 items-center gap-2 text-left truncate active:opacity-80 touch-manipulation">
               <Building2 className="h-4 w-4 shrink-0 text-primary" />
               <h3 className="truncate font-semibold hover:underline" title={company.name}>
                 {company.name}
               </h3>
               {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
               {inactive && (
-                <Badge variant="secondary" className="shrink-0">
+                <Badge variant="secondary" className="shrink-0 text-[10px]">
                   Inativa
                 </Badge>
               )}
@@ -322,7 +322,7 @@ function CompanyCard({
                   setCompanyName(company.name);
                   setEditingCompany(true);
                 }}
-                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 sm:h-7 sm:w-7 shrink-0 text-muted-foreground hover:text-foreground touch-manipulation"
                 title="Editar nome da empresa"
                 aria-label="Editar nome da empresa"
               >
@@ -331,38 +331,45 @@ function CompanyCard({
             )}
           </div>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setPortalOpen(true)}
-          className="h-8 gap-1"
-        >
-          <Globe className="h-3.5 w-3.5" /> Portal
-        </Button>
-        <Button size="sm" variant="outline" onClick={onOpen} className="h-8 gap-1">
-          <Radar className="h-3.5 w-3.5" /> Abrir
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onToggleActive}
-          className="h-8 gap-1"
-          title={inactive ? "Reativar empresa" : "Tornar inativa"}
-        >
-          {inactive ? <Power className="h-3.5 w-3.5" /> : <PowerOff className="h-3.5 w-3.5" />}
-          {inactive ? "Reativar" : "Inativar"}
-        </Button>
-        {isSuperadmin && (
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            title="Excluir empresa"
+            size="sm"
+            variant="outline"
+            onClick={() => setPortalOpen(true)}
+            className="min-h-9 sm:min-h-8 gap-1 text-xs touch-manipulation"
           >
-            <Trash2 className="h-4 w-4" />
+            <Globe className="h-3.5 w-3.5" /> Portal
           </Button>
-        )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onOpen}
+            className="min-h-9 sm:min-h-8 gap-1 text-xs touch-manipulation"
+          >
+            <Radar className="h-3.5 w-3.5" /> Abrir
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onToggleActive}
+            className="min-h-9 sm:min-h-8 gap-1 text-xs touch-manipulation"
+            title={inactive ? "Reativar empresa" : "Tornar inativa"}
+          >
+            {inactive ? <Power className="h-3.5 w-3.5" /> : <PowerOff className="h-3.5 w-3.5" />}
+            {inactive ? "Reativar" : "Inativar"}
+          </Button>
+          {isSuperadmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive touch-manipulation"
+              title="Excluir empresa"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
         <Badge variant="outline" className="gap-1 font-medium">
@@ -408,20 +415,20 @@ function CompanyCard({
                   size="icon"
                   variant="ghost"
                   type="submit"
-                  className="h-7 w-7 text-primary"
+                  className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-primary shrink-0"
                   title="Salvar setor"
                 >
-                  <Check className="h-3.5 w-3.5" />
+                  <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   type="button"
                   onClick={() => setEditingSectorId(null)}
-                  className="h-7 w-7 text-muted-foreground"
+                  className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-muted-foreground shrink-0"
                   title="Cancelar"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 </Button>
               </form>
             );

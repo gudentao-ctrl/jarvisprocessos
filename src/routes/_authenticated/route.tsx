@@ -163,15 +163,27 @@ function AuthenticatedLayout() {
         {/* Content area */}
         <div className="flex min-w-0 flex-1 flex-col lg:ml-60">
           {/* Topbar with company switcher */}
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
+          <header
+            className="sticky top-0 z-20 flex min-h-14 items-center gap-2 sm:gap-3 border-b bg-background/95 px-3 sm:px-4 backdrop-blur transition-all"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
             <div className="flex items-center gap-2 lg:hidden">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button size="icon" variant="ghost" aria-label="Abrir menu">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 shrink-0 touch-manipulation active:scale-95"
+                    aria-label="Abrir menu"
+                  >
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-72 p-0">
+                <SheetContent
+                  side="left"
+                  className="w-[85vw] max-w-xs p-0 sm:max-w-sm flex flex-col h-full"
+                  style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+                >
                   <SheetHeader className="border-b px-4 py-4 text-left">
                     <SheetTitle className="flex items-center gap-2">
                       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -180,15 +192,15 @@ function AuthenticatedLayout() {
                       JARVIS
                     </SheetTitle>
                   </SheetHeader>
-                  <nav className="space-y-1 p-3">
+                  <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
                     {visibleNav.map((item) => (
                       <SheetClose key={item.to} asChild>
                         <Link
                           to={item.to}
-                          className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                          activeProps={{ className: "bg-accent text-primary" }}
+                          className="flex min-h-[44px] items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-[0.98] active:bg-secondary touch-manipulation"
+                          activeProps={{ className: "bg-accent text-primary font-semibold" }}
                         >
-                          <item.icon className="h-5 w-5" />
+                          <item.icon className="h-5 w-5 shrink-0" />
                           <span>{item.label}</span>
                         </Link>
                       </SheetClose>
@@ -197,10 +209,10 @@ function AuthenticatedLayout() {
                       <SheetClose asChild>
                         <Link
                           to="/admin"
-                          className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                          activeProps={{ className: "bg-accent text-primary" }}
+                          className="flex min-h-[44px] items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-[0.98] active:bg-secondary touch-manipulation"
+                          activeProps={{ className: "bg-accent text-primary font-semibold" }}
                         >
-                          <ShieldCheck className="h-5 w-5" />
+                          <ShieldCheck className="h-5 w-5 shrink-0" />
                           <span>SuperAdmin</span>
                         </Link>
                       </SheetClose>
@@ -208,10 +220,10 @@ function AuthenticatedLayout() {
                     <SheetClose asChild>
                       <Link
                         to="/perfil"
-                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        activeProps={{ className: "bg-accent text-primary" }}
+                        className="flex min-h-[44px] items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-[0.98] active:bg-secondary touch-manipulation"
+                        activeProps={{ className: "bg-accent text-primary font-semibold" }}
                       >
-                        <User className="h-5 w-5" />
+                        <User className="h-5 w-5 shrink-0" />
                         <span>Meu Perfil</span>
                       </Link>
                     </SheetClose>
@@ -224,14 +236,14 @@ function AuthenticatedLayout() {
               <span className="text-base font-bold tracking-tight">JARVIS</span>
             </div>
             {showSwitcher && (
-              <div className="ml-auto">
+              <div className="ml-auto min-w-0 max-w-[170px] sm:max-w-none">
                 <CompanySwitcher />
               </div>
             )}
           </header>
 
-          <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-6xl px-4 py-4 pb-24 sm:py-6 lg:pb-6">
+          <main className="flex-1 overflow-y-auto overscroll-contain">
+            <div className="mx-auto w-full max-w-6xl px-3 py-3 sm:px-4 sm:py-6 pb-28 sm:pb-24 lg:pb-8">
               <Outlet />
             </div>
           </main>
@@ -239,18 +251,18 @@ function AuthenticatedLayout() {
 
         {/* Bottom nav mobile */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-background/95 backdrop-blur lg:hidden"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-background/95 backdrop-blur lg:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           {mobileShortcuts.map((n) => (
             <Link
               key={n.to}
               to={n.to}
-              className="flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground transition-colors active:bg-secondary"
-              activeProps={{ className: "text-primary" }}
+              className="flex min-h-[58px] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-1.5 text-[11px] font-medium text-muted-foreground transition-all active:scale-95 active:bg-secondary/60 touch-manipulation"
+              activeProps={{ className: "text-primary font-semibold" }}
             >
-              <n.icon className="h-5 w-5" />
-              <span>{n.label}</span>
+              <n.icon className="h-5 w-5 shrink-0" />
+              <span className="truncate max-w-full px-1">{n.label}</span>
             </Link>
           ))}
         </nav>

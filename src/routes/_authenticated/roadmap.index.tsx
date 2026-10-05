@@ -103,10 +103,14 @@ function Page() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-auto">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="cockpit">Cockpit Executivo</TabsTrigger>
-            <TabsTrigger value="iniciativas">Iniciativas por Horizonte</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full sm:w-auto">
+          <TabsList className="grid grid-cols-2 h-auto p-1 gap-1 w-full sm:w-auto">
+            <TabsTrigger value="cockpit" className="text-xs sm:text-sm py-2 min-h-[38px] sm:min-h-0">
+              Cockpit Executivo
+            </TabsTrigger>
+            <TabsTrigger value="iniciativas" className="text-xs sm:text-sm py-2 min-h-[38px] sm:min-h-0">
+              Iniciativas por Horizonte
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

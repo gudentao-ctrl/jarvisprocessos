@@ -1046,21 +1046,24 @@ function HorasPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex shrink-0 gap-1">
+                  <div className="flex shrink-0 gap-1 self-start">
                     <Button
                       size="icon"
                       variant="ghost"
+                      className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation"
                       disabled={faturado && !me?.isSuperadmin}
                       onClick={() => openEdit(r)}
+                      title="Editar lançamento"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-destructive"
+                      className="h-9 w-9 sm:h-8 sm:w-8 text-destructive hover:bg-destructive/10 touch-manipulation"
                       disabled={faturado && !me?.isSuperadmin}
                       onClick={() => confirm("Excluir este lançamento?") && delMut.mutate(r.id)}
+                      title="Excluir lançamento"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

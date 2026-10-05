@@ -171,6 +171,7 @@ function TicketsPage() {
               <Button
                 size="icon"
                 variant="ghost"
+                className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                 onClick={() => delMut.mutate(t.id)}
                 aria-label="Excluir chamado"
               >

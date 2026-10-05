@@ -149,7 +149,7 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (val: strin
         type="button"
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-muted-foreground hover:text-foreground"
         title="Mês anterior"
         onClick={prevMonth}
       >
@@ -172,7 +172,7 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (val: strin
         type="button"
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-muted-foreground hover:text-foreground"
         title="Próximo mês"
         onClick={nextMonth}
       >
@@ -229,17 +229,17 @@ function FinanceiroMaiaPage() {
 
       {/* Tabs Principais */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-12">
-          <TabsTrigger value="auditoria" className="gap-2 text-xs sm:text-sm font-semibold">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1.5 gap-1.5">
+          <TabsTrigger value="auditoria" className="gap-2 text-xs sm:text-sm font-semibold py-2 min-h-[40px] sm:min-h-0 touch-manipulation">
             <FileCheck2 className="h-4 w-4" /> Auditoria de Horas
           </TabsTrigger>
-          <TabsTrigger value="fechamento" className="gap-2 text-xs sm:text-sm font-semibold">
+          <TabsTrigger value="fechamento" className="gap-2 text-xs sm:text-sm font-semibold py-2 min-h-[40px] sm:min-h-0 touch-manipulation">
             <Users className="h-4 w-4" /> Fechamento de Equipe & NFs
           </TabsTrigger>
-          <TabsTrigger value="dre" className="gap-2 text-xs sm:text-sm font-semibold">
+          <TabsTrigger value="dre" className="gap-2 text-xs sm:text-sm font-semibold py-2 min-h-[40px] sm:min-h-0 touch-manipulation">
             <LineChart className="h-4 w-4" /> DRE Corporativo
           </TabsTrigger>
-          <TabsTrigger value="configuracoes" className="gap-2 text-xs sm:text-sm font-semibold">
+          <TabsTrigger value="configuracoes" className="gap-2 text-xs sm:text-sm font-semibold py-2 min-h-[40px] sm:min-h-0 touch-manipulation">
             <Percent className="h-4 w-4" /> Impostos & Contratos
           </TabsTrigger>
         </TabsList>
@@ -722,10 +722,10 @@ function AuditoriaSection({ selectedMonth }: { selectedMonth: string }) {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-6 w-6 text-destructive"
+                    className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10"
                     onClick={() => deleteBonusMut.mutate(b.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -1025,11 +1025,11 @@ function FechamentoSection({ selectedMonth }: { selectedMonth: string }) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-950/30"
+                        className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-950/30"
                         title="Disparar notificação de cobrança de NF para o consultor"
                         onClick={() => openNfNotification(c)}
                       >
-                        <Bell className="h-3.5 w-3.5" />
+                        <Bell className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
@@ -1464,10 +1464,10 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-6 w-6 text-destructive"
+                className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10"
                 onClick={() => deleteCostMut.mutate(f.id)}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -1491,10 +1491,10 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-6 w-6 text-destructive"
+                className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10"
                 onClick={() => deleteCostMut.mutate(v.id)}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -1718,7 +1718,7 @@ function ConfiguracoesSection() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-destructive"
+                    className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10"
                     onClick={() => confirm("Excluir este imposto?") && deleteTaxMut.mutate(t.id)}
                   >
                     <Trash2 className="h-4 w-4" />

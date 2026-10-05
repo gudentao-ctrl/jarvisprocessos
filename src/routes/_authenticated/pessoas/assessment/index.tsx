@@ -178,9 +178,10 @@ function AssessmentList() {
         totalCount={filteredCandidates.length}
       />
 
-      {/* Table Section */}
+      {/* List Section: Desktop Table & Mobile Cards */}
       <div className="rounded-lg border bg-card overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b text-muted-foreground font-medium text-xs">
               <tr>
@@ -292,6 +293,112 @@ function AssessmentList() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">
+              Carregando assessments...
+            </div>
+          ) : filteredCandidates.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground space-y-3">
+              <p className="text-sm">Nenhum assessment encontrado para os filtros.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsModalOpen(true)}
+                className="w-full text-xs min-h-10"
+              >
+                <Plus className="h-4 w-4 mr-1.5" /> Criar Primeiro Teste
+              </Button>
+            </div>
+          ) : (
+            filteredCandidates.map((c) => (
+              <div
+                key={c.id}
+                className="p-4 space-y-3 active:bg-muted/30 transition-colors"
+              >
+                <div
+                  onClick={() => handleOpenDetail(c.id)}
+                  className="flex items-start justify-between gap-2 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                      {c.full_name?.charAt(0) || "C"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-foreground truncate flex items-center gap-1">
+                        {c.full_name}
+                      </p>
+                      {c.desired_role && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          Alvo: <span className="text-foreground">{c.desired_role}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 pt-0.5">
+                    {getStatusBadge(c.status)}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pt-1">
+                  {c.external ? (
+                    <Badge variant="outline" className="text-[11px] font-normal">
+                      Externo
+                    </Badge>
+                  ) : (
+                    <span className="flex items-center gap-1 font-medium text-foreground text-[11px]">
+                      <Building2 className="h-3.5 w-3.5 text-primary" />
+                      {c.company_name || "Vinculada"}
+                    </span>
+                  )}
+                  {c.current_role && (
+                    <span className="text-[11px] truncate">· Cargo: {c.current_role}</span>
+                  )}
+                  {c.cpf && (
+                    <span className="text-[10px] font-mono opacity-80">
+                      · CPF: {c.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
+                    </span>
+                  )}
+                </div>
+
+                {/* Mobile action buttons: large, accessible, well-spaced */}
+                <div className="grid grid-cols-3 gap-1.5 pt-2 border-t">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => handleCopyLink(c.id, e)}
+                    className="min-h-10 text-xs px-2 touch-manipulation"
+                    title="Copiar link"
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1" />
+                    <span>Copiar</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => handleWhatsApp(c, e)}
+                    className="min-h-10 text-xs px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 touch-manipulation"
+                    title="Enviar WhatsApp"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                    <span>WhatsApp</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={(e) => handleOpenDetail(c.id, e)}
+                    className="min-h-10 text-xs px-2 touch-manipulation font-semibold"
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    <span>Dossiê</span>
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -272,13 +272,18 @@ function MapaDec() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(i)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
+                      onClick={() => openEdit(i)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-destructive"
+                      className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                       onClick={() => confirm("Excluir?") && delMut.mutate(i.id)}
                     >
                       <Trash2 className="h-4 w-4" />

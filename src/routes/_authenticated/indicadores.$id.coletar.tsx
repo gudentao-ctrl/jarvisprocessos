@@ -162,11 +162,12 @@ function ColetarPage() {
                 <Button
                   size="icon"
                   variant="ghost"
+                  className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
                   onClick={() => {
                     if (confirm("Excluir coleta?")) remove.mutate(c.id);
                   }}
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </Card>
             ))}
