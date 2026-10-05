@@ -38,6 +38,8 @@ const memoryFallback: {
     updated_by?: string;
   };
   googleTokens?: Record<string, any>;
+  paymentMethodsMaia?: any[];
+  paymentAttachments?: Record<string, any>;
 } = {
   taxes: [{ id: "def-tax-1", name: "Simples Nacional / ISS", rate_percent: 6.0, is_active: true }],
   contracts: {},
@@ -47,6 +49,25 @@ const memoryFallback: {
   bonuses: [],
   googleOAuth: undefined,
   googleTokens: {},
+  paymentMethodsMaia: [
+    {
+      id: "maia-itau-cnpj",
+      tipoChave: "CNPJ",
+      chavePix: "58.291.890/0001-34",
+      banco: "Banco Itaú (341)",
+      favorecido: "Maia Consultoria Empresarial LTDA",
+      isDefault: true,
+    },
+    {
+      id: "maia-inter-aleatoria",
+      tipoChave: "ALEATORIA",
+      chavePix: "7f8b9c1d-4e5a-4b3c-9d8e-1f2a3b4c5d6e",
+      banco: "Banco Inter (077)",
+      favorecido: "Maia Consultoria Empresarial LTDA",
+      isDefault: false,
+    },
+  ],
+  paymentAttachments: {},
 };
 
 export async function getMaiaStore(sb: any) {
@@ -73,6 +94,11 @@ export async function getMaiaStore(sb: any) {
         bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : memoryFallback.bonuses,
         googleOAuth: parsed.googleOAuth || memoryFallback.googleOAuth,
         googleTokens: parsed.googleTokens || memoryFallback.googleTokens,
+        paymentMethodsMaia:
+          Array.isArray(parsed.paymentMethodsMaia) && parsed.paymentMethodsMaia.length > 0
+            ? parsed.paymentMethodsMaia
+            : memoryFallback.paymentMethodsMaia,
+        paymentAttachments: parsed.paymentAttachments || memoryFallback.paymentAttachments || {},
       };
     }
   } catch {}

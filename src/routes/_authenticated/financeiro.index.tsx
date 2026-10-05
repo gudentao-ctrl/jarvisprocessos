@@ -4,10 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getFinanceOverview,
+  getInvoiceDetail,
   createInvoice,
   savePayment,
   deletePayment,
   deleteInvoice,
+  saveMaiaPaymentMethod,
+  updatePaymentAttachments,
   PAYMENT_METHODS,
   methodLabel,
 } from "@/lib/finance.functions";
@@ -55,6 +58,10 @@ import {
   Car,
   CircleParking,
   Hotel,
+  TrendingUp,
+  Download,
+  Paperclip,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -63,6 +70,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getBilledReport } from "@/lib/finance.functions";
+import {
+  type PaymentMethodMaia,
+  type InvoiceReportData,
+  calculateInvoiceDRE,
+  generateMaiaInvoicePDFs,
+} from "@/utils/pdfGenerator";
+import { DreVisualConciliacao } from "@/components/finance/DreVisualConciliacao";
+import { GerarFaturaModal } from "@/components/finance/GerarFaturaModal";
+import { RegistrarPagamentoModal } from "@/components/finance/RegistrarPagamentoModal";
+import { AnexarNfModal } from "@/components/finance/AnexarNfModal";
 import { exportBilledPdf, type BilledPdfMode } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -188,6 +205,9 @@ function FinanceiroPage() {
   const [invoiceNotes, setInvoiceNotes] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [showLiveDre, setShowLiveDre] = useState(false);
+  const [paymentForNfModal, setPaymentForNfModal] = useState<any>(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
   const [editingHour, setEditingHour] = useState<any>(null);
   const [payment, setPayment] = useState({
     paid_at: new Date().toISOString().slice(0, 10),
@@ -206,6 +226,9 @@ function FinanceiroPage() {
   const meFn = useServerFn(getMe);
   const billedFn = useServerFn(getBilledReport);
   const auditHourFn = useServerFn(auditWorkHourFromFinance);
+  const savePaymentMethodFn = useServerFn(saveMaiaPaymentMethod);
+  const updatePaymentAttachmentsFn = useServerFn(updatePaymentAttachments);
+  const invoiceDetailFn = useServerFn(getInvoiceDetail);
 
   async function exportPdf(mode: BilledPdfMode) {
     if (!companyId) return;
@@ -229,6 +252,11 @@ function FinanceiroPage() {
   const activeCompanies = useMemo(
     () => (companies as any[]).filter((c) => c.is_active !== false),
     [companies],
+  );
+
+  const selectedCompany = useMemo(
+    () => activeCompanies.find((c: any) => c.id === companyId) || null,
+    [activeCompanies, companyId],
   );
 
   const { data, isLoading } = useQuery({
@@ -274,6 +302,18 @@ function FinanceiroPage() {
     return { hours, expenses, tools, hoursAmount, total: hoursAmount + expenses + tools };
   }, [selectedRows, rate]);
 
+  const liveDre = useMemo(() => {
+    if (!companyId) return null;
+    const pastInvoices = data?.invoices ?? [];
+    const pastPayments = data?.payments ?? [];
+    const currentInvoiced = preview.total > 0 ? preview.total : 0;
+    return calculateInvoiceDRE({
+      pastInvoices,
+      pastPayments,
+      currentInvoiceAmount: currentInvoiced,
+    });
+  }, [companyId, data?.invoices, data?.payments, preview.total]);
+
   const invoiceMut = useMutation({
     mutationFn: () =>
       invoiceFn({
@@ -297,20 +337,24 @@ function FinanceiroPage() {
   });
 
   const payMut = useMutation({
-    mutationFn: () =>
+    mutationFn: (payload: any) =>
       payFn({
         data: {
           company_id: companyId!,
           project_id: null,
-          paid_at: payment.paid_at,
-          amount: Number(payment.amount),
-          method: payment.method,
-          reference: payment.reference,
-          notes: payment.notes,
+          paid_at: payload.paid_at,
+          amount: Number(payload.amount),
+          method: payload.method,
+          reference: payload.reference || "",
+          notes: payload.notes || "",
+          receiptUrl: payload.receiptUrl ?? null,
+          receiptName: payload.receiptName ?? null,
+          nfUrl: payload.nfUrl ?? null,
+          nfName: payload.nfName ?? null,
         },
       } as any),
     onSuccess: () => {
-      toast.success("Pagamento registrado");
+      toast.success("Pagamento registrado com sucesso!");
       setPayOpen(false);
       setPayment({
         paid_at: new Date().toISOString().slice(0, 10),
@@ -321,8 +365,126 @@ function FinanceiroPage() {
       });
       qc.invalidateQueries({ queryKey: ["finance"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar"),
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar o pagamento"),
   });
+
+  const savePaymentMethodMut = useMutation({
+    mutationFn: (method: PaymentMethodMaia) => savePaymentMethodFn({ data: method as any }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar forma de pagamento"),
+  });
+
+  const updateAttachmentsMut = useMutation({
+    mutationFn: (payload: any) => updatePaymentAttachmentsFn({ data: payload }),
+    onSuccess: () => {
+      toast.success("Anexos atualizados com sucesso!");
+      setPaymentForNfModal(null);
+      qc.invalidateQueries({ queryKey: ["finance"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível atualizar anexos"),
+  });
+
+  async function handleDownloadInvoicePdf(inv: any, mode: "resumido" | "detalhado") {
+    const loadingKey = `${inv.id}-${mode}`;
+    setGeneratingPdfId(loadingKey);
+    try {
+      const detail: any = await invoiceDetailFn({ data: { id: inv.id } });
+      const currentInvoice = detail?.invoice || inv;
+      const invoiceItems = detail?.items || [];
+
+      const company =
+        activeCompanies.find((c: any) => c.id === currentInvoice.company_id) ||
+        currentInvoice.companies || { name: "Cliente" };
+
+      const expensesBreakdown: Record<string, number> = {};
+      const rowsForPdf = invoiceItems.map((item: any) => {
+        if (item.expenses_amount > 0) {
+          expensesBreakdown["despesas_gerais"] =
+            (expensesBreakdown["despesas_gerais"] || 0) + Number(item.expenses_amount);
+        }
+        return {
+          id: item.id,
+          work_date: item.created_at ? item.created_at.slice(0, 10) : currentInvoice.period_start,
+          responsible: item.description?.split("·")?.[1]?.trim() || "Consultor",
+          description: item.description || "Atendimento de consultoria",
+          hours: Number(item.hours || 0),
+          work_hour_expenses: item.expenses_amount
+            ? [{ category: "despesas", amount: item.expenses_amount }]
+            : [],
+          work_hour_tools: item.tools_amount ? [{ amount: item.tools_amount }] : [],
+        };
+      });
+
+      if (
+        Object.keys(expensesBreakdown).length === 0 &&
+        Number(currentInvoice.expenses_amount || 0) > 0
+      ) {
+        expensesBreakdown["despesas_reembolsaveis"] = Number(currentInvoice.expenses_amount);
+      }
+
+      const allInvoices = data?.invoices ?? [];
+      const allPayments = data?.payments ?? [];
+
+      const dre = calculateInvoiceDRE({
+        pastInvoices: allInvoices,
+        pastPayments: allPayments,
+        currentInvoiceAmount: Number(currentInvoice.total_amount || 0),
+      });
+
+      const savedMethods: PaymentMethodMaia[] = data?.paymentMethods ?? [];
+      const paymentMethod =
+        savedMethods.find((m) => m.isDefault) ||
+        savedMethods[0] || {
+          id: "maia-itau-cnpj",
+          tipoChave: "CNPJ",
+          chavePix: "58.291.890/0001-34",
+          banco: "Banco Itaú (341)",
+          favorecido: "Maia Consultoria Empresarial LTDA",
+          isDefault: true,
+        };
+
+      const reportData: InvoiceReportData = {
+        company: {
+          id: company?.id,
+          name: company?.name || "Cliente",
+          title: company?.public_title || company?.name,
+          company_logo: company?.public_company_logo_url,
+          consultancy_logo: company?.public_consultancy_logo_url,
+        },
+        period: {
+          from: currentInvoice.period_start,
+          to: currentInvoice.period_end,
+        },
+        invoiceId: currentInvoice.id,
+        invoiceNumber: currentInvoice.id?.slice(0, 8),
+        invoicedAt: currentInvoice.invoiced_at || new Date().toISOString(),
+        hourlyRate: Number(currentInvoice.hourly_rate || 0),
+        totalHours: Number(currentInvoice.hours_total || 0),
+        totalHorasR$: Number(currentInvoice.hours_amount || 0),
+        totalDespesasR$: Number(currentInvoice.expenses_amount || 0),
+        totalFerramentasR$: Number(currentInvoice.tools_amount || 0),
+        expensesBreakdown,
+        rows: rowsForPdf.length > 0 ? rowsForPdf : undefined,
+        dre,
+        notes: currentInvoice.notes,
+      };
+
+      const pdfs = await generateMaiaInvoicePDFs(reportData, paymentMethod);
+      if (mode === "resumido") {
+        pdfs.downloadResumido();
+        toast.success("PDF Resumido baixado com sucesso!");
+      } else {
+        pdfs.downloadDetalhado();
+        toast.success("PDF Detalhado baixado com sucesso!");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar PDF da fatura.");
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  }
 
   const delPayMut = useMutation({
     mutationFn: (id: string) => delPayFn({ data: { id } } as any),
@@ -423,6 +585,50 @@ function FinanceiroPage() {
           tone={situation === "DEVEDOR" ? "warn" : situation === "CRÉDITO" ? "info" : "ok"}
         />
       </div>
+
+      {/* Visual DRE de Conciliação em Tempo Real para a Empresa Selecionada */}
+      {companyId && liveDre && (
+        <Card className="overflow-hidden border-[#E5D5CE] shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 sm:p-4 bg-[#FFF8F5]/80 border-b border-[#E5D5CE]/60">
+            <div className="flex items-center gap-2.5">
+              <TrendingUp className="h-5 w-5 text-[#E05A10] shrink-0" />
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-[#3E100C]">
+                  DRE de Conciliação Financeira (Entendimento do Cliente)
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Saldo devedor anterior, baixas efetuadas e saldo líquido remanescente
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={
+                  liveDre.isQuitadoAnterior
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-800 text-[10px] font-semibold"
+                    : "border-amber-500 bg-amber-50 text-amber-800 text-[10px] font-semibold"
+                }
+              >
+                {liveDre.isQuitadoAnterior ? "✓ Ciclo Anterior Quitado" : "⚠️ Débito Anterior Pendente"}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLiveDre(!showLiveDre)}
+                className="h-8 text-xs font-semibold border-[#3E100C]/30 text-[#3E100C] hover:bg-[#3E100C]/10"
+              >
+                {showLiveDre ? "Ocultar DRE" : "Ver DRE Detalhado"}
+              </Button>
+            </div>
+          </div>
+          {showLiveDre && (
+            <div className="p-3 sm:p-4 bg-white/70">
+              <DreVisualConciliacao dre={liveDre} showTitle={false} />
+            </div>
+          )}
+        </Card>
+      )}
 
       <Tabs defaultValue="aberto">
         <TabsList className="w-full justify-start overflow-x-auto h-auto p-1.5 gap-1.5">
@@ -678,14 +884,14 @@ function FinanceiroPage() {
             <Card className="p-6 text-sm text-muted-foreground">Nenhuma fatura emitida.</Card>
           ) : (
             (data?.invoices ?? []).map((inv: any) => (
-              <Card key={inv.id} className="p-4 text-sm">
+              <Card key={inv.id} className="p-4 text-sm hover:shadow-xs transition-shadow">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-2 font-medium">
-                    <FileText className="h-4 w-4 text-primary" />
+                    <FileText className="h-4 w-4 text-[#E05A10]" />
                     {fmtDate(inv.period_start)} — {fmtDate(inv.period_end)}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{brl(inv.total_amount)}</span>
+                    <span className="font-bold text-base text-[#3E100C]">{brl(inv.total_amount)}</span>
                     {me?.isSuperadmin && (
                       <Button
                         size="icon"
@@ -713,6 +919,38 @@ function FinanceiroPage() {
                   {new Date(inv.invoiced_at).toLocaleDateString("pt-BR")}
                 </p>
                 {inv.notes && <p className="mt-1 text-xs text-muted-foreground">{inv.notes}</p>}
+
+                {/* Botões de Download dos PDFs Maia */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-2.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs font-semibold border-[#3E100C]/30 text-[#3E100C] hover:bg-[#FFF8F5]"
+                    disabled={generatingPdfId === `${inv.id}-resumido`}
+                    onClick={() => handleDownloadInvoicePdf(inv, "resumido")}
+                  >
+                    {generatingPdfId === `${inv.id}-resumido` ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileDown className="h-3.5 w-3.5 text-[#E05A10]" />
+                    )}
+                    PDF Resumido
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs font-semibold border-[#3E100C]/30 text-[#3E100C] hover:bg-[#FFF8F5]"
+                    disabled={generatingPdfId === `${inv.id}-detalhado`}
+                    onClick={() => handleDownloadInvoicePdf(inv, "detalhado")}
+                  >
+                    {generatingPdfId === `${inv.id}-detalhado` ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 text-[#3E100C]" />
+                    )}
+                    PDF Detalhado
+                  </Button>
+                </div>
               </Card>
             ))
           )}
@@ -722,148 +960,163 @@ function FinanceiroPage() {
           {(data?.payments ?? []).length === 0 ? (
             <Card className="p-6 text-sm text-muted-foreground">Nenhum pagamento registrado.</Card>
           ) : (
-            (data?.payments ?? []).map((p: any) => (
-              <Card key={p.id} className="flex items-start gap-3 p-4 text-sm">
-                <Receipt className="mt-0.5 h-4 w-4 text-primary" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{fmtDate(p.paid_at)}</span>
-                    <Badge variant="secondary">{methodLabel(p.method)}</Badge>
-                    <span className="font-semibold">{brl(p.amount)}</span>
+            (data?.payments ?? []).map((p: any) => {
+              const hasNf = p.nfStatus === "anexada" || !!p.nfUrl;
+              return (
+                <Card key={p.id} className="p-4 text-sm hover:shadow-xs transition-shadow">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Receipt className="mt-1 h-4 w-4 text-[#E05A10] shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">{fmtDate(p.paid_at)}</span>
+                          <Badge variant="secondary" className="font-medium text-xs">
+                            {methodLabel(p.method)}
+                          </Badge>
+                          <span className="font-bold text-[#3E100C] text-base">{brl(p.amount)}</span>
+                          {/* Badge de Nota Fiscal (NF) */}
+                          {hasNf ? (
+                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 text-[10px] font-semibold gap-1">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" /> NF Anexada
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100 text-[10px] font-semibold gap-1"
+                            >
+                              <AlertCircle className="h-3 w-3 text-amber-600" /> Pendente de NF
+                            </Badge>
+                          )}
+                          {/* Badge de Comprovante de Pagamento */}
+                          {p.receiptUrl && (
+                            <Badge
+                              variant="outline"
+                              className="border-blue-300 bg-blue-50 text-blue-800 text-[10px] font-medium gap-1"
+                            >
+                              <Paperclip className="h-3 w-3 text-blue-600" /> Comprovante
+                            </Badge>
+                          )}
+                        </div>
+
+                        <p className="break-words text-xs text-muted-foreground">
+                          {[p.companies?.name, p.reference, p.notes].filter(Boolean).join(" · ") || "—"}
+                        </p>
+
+                        {/* Detalhes de Arquivos Anexos com link direto de download se existir */}
+                        {(p.nfUrl || p.receiptUrl) && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                            {p.nfUrl && (
+                              <a
+                                href={p.nfUrl}
+                                download={p.nfName || "nota_fiscal.pdf"}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-[#3E100C] hover:text-[#E05A10] hover:underline"
+                              >
+                                <FileDown className="h-3.5 w-3.5" /> {p.nfName || "Nota Fiscal"}
+                              </a>
+                            )}
+                            {p.receiptUrl && (
+                              <a
+                                href={p.receiptUrl}
+                                download={p.receiptName || "comprovante.pdf"}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline"
+                              >
+                                <FileDown className="h-3.5 w-3.5" /> {p.receiptName || "Comprovante"}
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-end sm:self-start shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1 text-xs font-semibold border-[#3E100C]/30 text-[#3E100C] hover:bg-[#FFF8F5]"
+                        onClick={() => setPaymentForNfModal(p)}
+                      >
+                        <FileText className="h-3.5 w-3.5 text-[#E05A10]" /> Gerenciar NF
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 touch-manipulation active:scale-95 hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() =>
+                          confirm("Tem certeza que deseja excluir este pagamento?") &&
+                          delPayMut.mutate(p.id)
+                        }
+                        aria-label="Excluir pagamento"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="mt-0.5 break-words text-xs text-muted-foreground">
-                    {[p.companies?.name, p.reference, p.notes].filter(Boolean).join(" · ") || "—"}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 hover:bg-destructive/10 shrink-0"
-                  onClick={() => delPayMut.mutate(p.id)}
-                  aria-label="Excluir pagamento"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </Card>
-            ))
+                </Card>
+              );
+            })
           )}
         </TabsContent>
       </Tabs>
 
-      {/* Confirmação de faturamento */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar faturamento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <Line label="Lançamentos" value={String(selected.length)} />
-            <Line label="Horas" value={fmtHours(preview.hours)} />
-            <Line label="Valor da hora" value={brl(rate)} />
-            <Line label="Horas" value={brl(preview.hoursAmount)} />
-            <Line label="Despesas" value={brl(preview.expenses)} />
-            <Line label="Ferramentas" value={brl(preview.tools)} />
-            <div className="flex justify-between border-t pt-2 text-base font-semibold">
-              <span>Total</span>
-              <span>{brl(preview.total)}</span>
-            </div>
-            <div>
-              <Label>Observação</Label>
-              <Textarea
-                value={invoiceNotes}
-                onChange={(e) => setInvoiceNotes(e.target.value)}
-                rows={2}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Após faturar, esses lançamentos não podem mais ser alterados ou excluídos.
-            </p>
-          </div>
-          <Button
-            className="h-11 w-full"
-            disabled={invoiceMut.isPending}
-            onClick={() => invoiceMut.mutate()}
-          >
-            {invoiceMut.isPending ? "Faturando…" : "Confirmar e faturar"}
-          </Button>
-        </DialogContent>
-      </Dialog>
+      {/* Modal Inteligente de Faturamento & Emissão de PDFs com DRE e PIX Maia */}
+      <GerarFaturaModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        company={selectedCompany}
+        selectedRows={selectedRows}
+        preview={preview}
+        rate={rate}
+        pastInvoices={data?.invoices ?? []}
+        pastPayments={data?.payments ?? []}
+        savedPaymentMethods={data?.paymentMethods ?? []}
+        onSavePaymentMethod={async (method) => {
+          return await savePaymentMethodMut.mutateAsync(method);
+        }}
+        onConfirmInvoice={async ({ notes, hourlyRate }) => {
+          const inv = await invoiceFn({
+            data: {
+              company_id: companyId!,
+              project_id: null,
+              work_hour_ids: selected,
+              hourly_rate: hourlyRate,
+              notes: notes,
+            },
+          } as any);
+          setSelected([]);
+          setInvoiceNotes("");
+          qc.invalidateQueries({ queryKey: ["finance"] });
+          qc.invalidateQueries({ queryKey: ["work-hours"] });
+          return inv;
+        }}
+        isProcessing={invoiceMut.isPending}
+      />
 
-      {/* Pagamento */}
-      <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar pagamento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Data</Label>
-                <Input
-                  type="date"
-                  className="h-11"
-                  value={payment.paid_at}
-                  onChange={(e) => setPayment({ ...payment, paid_at: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Valor (R$)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className="h-11"
-                  value={payment.amount}
-                  onChange={(e) => setPayment({ ...payment, amount: Number(e.target.value) })}
-                />
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Forma</Label>
-                <Select
-                  value={payment.method}
-                  onValueChange={(v) => setPayment({ ...payment, method: v })}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label>Referência</Label>
-              <Input
-                className="h-11"
-                value={payment.reference}
-                onChange={(e) => setPayment({ ...payment, reference: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Observação</Label>
-              <Textarea
-                rows={2}
-                value={payment.notes}
-                onChange={(e) => setPayment({ ...payment, notes: e.target.value })}
-              />
-            </div>
-            <Button
-              className="h-11 w-full"
-              disabled={payMut.isPending || payment.amount <= 0}
-              onClick={() => payMut.mutate()}
-            >
-              {payMut.isPending ? "Salvando…" : "Salvar pagamento"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de Registro de Pagamento com Quitação Parcial e Anexo de NF */}
+      <RegistrarPagamentoModal
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        companyName={selectedCompany?.name}
+        currentBalance={balance}
+        onSavePayment={async (payload) => {
+          return await payMut.mutateAsync(payload);
+        }}
+        isSaving={payMut.isPending}
+      />
+
+      {/* Modal de Gerenciamento de Nota Fiscal (NF) e Comprovante */}
+      {paymentForNfModal && (
+        <AnexarNfModal
+          open={!!paymentForNfModal}
+          onOpenChange={(open) => {
+            if (!open) setPaymentForNfModal(null);
+          }}
+          payment={paymentForNfModal}
+          onUpdateAttachments={async (payload) => {
+            return await updateAttachmentsMut.mutateAsync(payload);
+          }}
+          isUpdating={updateAttachmentsMut.isPending}
+        />
+      )}
 
       {/* Modal de Auditoria do Lançamento (Financeiro Cliente) */}
       {editingHour && (

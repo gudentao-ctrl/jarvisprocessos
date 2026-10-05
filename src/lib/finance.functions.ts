@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { getMaiaStore } from "./maia-finance.functions";
+import { getMaiaStore, saveMaiaStore } from "./maia-finance.functions";
 
 export const PAYMENT_METHODS = [
   { value: "pix", label: "PIX" },
@@ -149,10 +149,24 @@ export const getFinanceOverview = createServerFn({ method: "GET" })
     const invoiced = sum(invoices, "total_amount");
     const paid = sum(payments, "amount");
 
+    const enhancedPayments = (payments ?? []).map((p: any) => {
+      const att = store?.paymentAttachments?.[p.id];
+      const hasNf = !!(att?.nfUrl || p.notes?.includes("[NF:"));
+      return {
+        ...p,
+        receiptUrl: att?.receiptUrl || null,
+        receiptName: att?.receiptName || null,
+        nfUrl: att?.nfUrl || null,
+        nfName: att?.nfName || null,
+        nfStatus: (att?.nfStatus || (hasNf ? "anexada" : "pendente")) as "anexada" | "pendente",
+      };
+    });
+
     return {
       hours: rows,
       invoices: invoices ?? [],
-      payments: payments ?? [],
+      payments: enhancedPayments,
+      paymentMethods: store?.paymentMethodsMaia ?? [],
       totals: {
         hoursOpen: sum(open, "hours"),
         hoursBilled: sum(billed, "hours"),
@@ -295,13 +309,17 @@ export const savePayment = createServerFn({ method: "POST" })
         amount: z.number().positive("Informe o valor"),
         method: z.string().min(1),
         reference: z.string().max(200).default(""),
-        notes: z.string().max(1000).default(""),
+        notes: z.string().default(""),
+        receiptUrl: z.string().optional().nullable(),
+        receiptName: z.string().optional().nullable(),
+        nfUrl: z.string().optional().nullable(),
+        nfName: z.string().optional().nullable(),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    const { id, ...rest } = data;
+    const { id, receiptUrl, receiptName, nfUrl, nfName, ...rest } = data;
     const payload = {
       ...rest,
       project_id: rest.project_id ?? null,
@@ -317,6 +335,22 @@ export const savePayment = createServerFn({ method: "POST" })
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
 
+    if (receiptUrl || receiptName || nfUrl || nfName) {
+      try {
+        const store = await getMaiaStore(sb);
+        store.paymentAttachments = store.paymentAttachments || {};
+        store.paymentAttachments[row.id] = {
+          receiptUrl: receiptUrl || store.paymentAttachments[row.id]?.receiptUrl || null,
+          receiptName: receiptName || store.paymentAttachments[row.id]?.receiptName || null,
+          nfUrl: nfUrl || store.paymentAttachments[row.id]?.nfUrl || null,
+          nfName: nfName || store.paymentAttachments[row.id]?.nfName || null,
+          nfStatus: (nfUrl || store.paymentAttachments[row.id]?.nfUrl) ? "anexada" : "pendente",
+          updated_at: new Date().toISOString(),
+        };
+        await saveMaiaStore(sb, store);
+      } catch {}
+    }
+
     await sb.from("audit_log").insert({
       actor_id: context.userId,
       action: id ? "payment_update" : "payment_create",
@@ -326,6 +360,81 @@ export const savePayment = createServerFn({ method: "POST" })
       details: { amount: data.amount, method: data.method },
     });
     return row;
+  });
+
+export const updatePaymentAttachments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        paymentId: z.string().uuid(),
+        receiptUrl: z.string().optional().nullable(),
+        receiptName: z.string().optional().nullable(),
+        nfUrl: z.string().optional().nullable(),
+        nfName: z.string().optional().nullable(),
+        nfStatus: z.enum(["anexada", "pendente"]).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const store = await getMaiaStore(sb);
+    store.paymentAttachments = store.paymentAttachments || {};
+    const cur = store.paymentAttachments[data.paymentId] || {};
+    const nfUrl = data.nfUrl !== undefined ? data.nfUrl : cur.nfUrl;
+    const nfName = data.nfName !== undefined ? data.nfName : cur.nfName;
+    const nfStatus = data.nfStatus || (nfUrl ? "anexada" : "pendente");
+
+    store.paymentAttachments[data.paymentId] = {
+      ...cur,
+      receiptUrl: data.receiptUrl !== undefined ? data.receiptUrl : cur.receiptUrl,
+      receiptName: data.receiptName !== undefined ? data.receiptName : cur.receiptName,
+      nfUrl,
+      nfName,
+      nfStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    await saveMaiaStore(sb, store);
+    return store.paymentAttachments[data.paymentId];
+  });
+
+export const saveMaiaPaymentMethod = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().optional(),
+        tipoChave: z.enum(["CNPJ", "TELEFONE", "EMAIL", "ALEATORIA", "DADOS_BANCARIOS"]),
+        chavePix: z.string().min(1, "Informe a chave PIX"),
+        banco: z.string().min(1, "Informe o banco"),
+        favorecido: z.string().min(1, "Informe o favorecido"),
+        qrCodeUrl: z.string().optional(),
+        isDefault: z.boolean().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const store = await getMaiaStore(sb);
+    store.paymentMethodsMaia = Array.isArray(store.paymentMethodsMaia) ? store.paymentMethodsMaia : [];
+
+    const methodId = data.id || `maia-pix-${Date.now()}`;
+    const newMethod = { ...data, id: methodId };
+
+    if (data.isDefault) {
+      store.paymentMethodsMaia = store.paymentMethodsMaia.map((m: any) => ({ ...m, isDefault: false }));
+    }
+
+    const idx = store.paymentMethodsMaia.findIndex((m: any) => m.id === methodId);
+    if (idx >= 0) {
+      store.paymentMethodsMaia[idx] = newMethod;
+    } else {
+      store.paymentMethodsMaia.push(newMethod);
+    }
+
+    await saveMaiaStore(sb, store);
+    return newMethod;
   });
 
 export const deletePayment = createServerFn({ method: "POST" })
