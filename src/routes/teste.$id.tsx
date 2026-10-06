@@ -53,10 +53,7 @@ export default function CandidatoTestePage() {
     loadAssessment({ data: { token: id } })
       .then((cand) => {
         setCandidate(cand);
-        setAnswers(cand.answers ?? {});
-        setHasStarted(Boolean(cand.started_at));
         setIsCompleted(Boolean(cand.completed_at) || cand.status === "concluido");
-        setStartTime(cand.started_at ? new Date(cand.started_at).getTime() : Date.now());
       })
       .catch(() => setLoadError("Este convite não está disponível."))
       .finally(() => setLoading(false));
@@ -72,6 +69,7 @@ export default function CandidatoTestePage() {
     try {
       const row = await startAssessment({ data: { token: id, fullName: fullName.trim(), email: email.trim(), cpf: cpfDigits, birthDate, consentAccepted: true } });
       setCandidate(row);
+      setAnswers(row.answers ?? {});
       setHasStarted(true);
       setStartTime(row.started_at ? new Date(row.started_at).getTime() : Date.now());
     } catch (error) {

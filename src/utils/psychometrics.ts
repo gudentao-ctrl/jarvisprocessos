@@ -127,7 +127,10 @@ export function getPercentilNivel(p: number): string {
  * Inversão de Itens Likert de 5 pontos: X_inv = 6 - X_raw
  */
 export function getScoreItem(respostaRaw: number | undefined, invertido: boolean): number {
-  const raw = respostaRaw || 3;
+  if (!Number.isInteger(respostaRaw) || Number(respostaRaw) < 1 || Number(respostaRaw) > 5) {
+    throw new Error("Protocolo incompleto ou com resposta inválida");
+  }
+  const raw = Number(respostaRaw);
   return invertido ? 6 - raw : raw;
 }
 
@@ -157,7 +160,12 @@ export function processAssessmentResults(
     cargoPretendido?: string;
   }
 ): CandidatePsychometricResult {
-  const totalItems = 240;
+  const totalItems = bancoQuestoes.length;
+  const expectedIds = new Set(bancoQuestoes.map((question) => question.id));
+  const receivedIds = Object.keys(answers).map(Number);
+  if (receivedIds.length !== totalItems || receivedIds.some((id) => !expectedIds.has(id))) {
+    throw new Error("Protocolo incompleto: todas as respostas são obrigatórias");
+  }
   const tmi = totalExecutionSeconds > 0 ? totalExecutionSeconds / totalItems : 3.0;
 
   // -------------------------------------------------------------
@@ -207,8 +215,9 @@ export function processAssessmentResults(
 
   let vrinScore = 0;
   paresVrin.forEach((p) => {
-    const valA = answers[p.a] || 3;
-    const valB = answers[p.b] || 3;
+    const valA = answers[p.a];
+    const valB = answers[p.b];
+    if (!Number.isInteger(valA) || !Number.isInteger(valB)) throw new Error("Protocolo incompleto");
     vrinScore += Math.abs(valA - valB);
   });
 
@@ -507,26 +516,40 @@ export function processAssessmentResults(
     recomendacaoFinal = "RECOMENDADO COM RESSALVAS";
   }
 
-  const pdiSugerido = [
-    {
-      area: "Desenvolvimento de Empatia e Escuta Ativa",
-      acao: "Implementar rituais quinzenais de escuta estruturada 1:1 com liderados, priorizando diagnóstico de gargalos sem interrupção antecipada.",
-      prazoSugerido: "Primeiros 60 dias",
-      indicadorSucesso: "Aumento no índice de clima da equipe e redução de atritos operacionais.",
-    },
-    {
-      area: "Gestão do Delta de Adaptação e Prevenção de Estresse",
-      acao: "Mapear tarefas de alto custo emocional e delegar atividades operacionais periféricas para preservar energia em decisões estratégicas.",
-      prazoSugerido: "Imediato / Contínuo",
-      indicadorSucesso: "Manutenção do Delta DISC em faixa saudável (< 25) e estabilidade de humor.",
-    },
-    {
-      area: "Aprimoramento de Flexibilidade em Ambientes Ambíguos",
-      acao: "Participar de comitês de inovação aberta e prototipagem ágil, tolerando hipóteses incompletas antes da elaboração do plano formal.",
-      prazoSugerido: "90 a 120 dias",
-      indicadorSucesso: "Redução no tempo de lançamento de iniciativas piloto.",
-    },
-  ];
+  const factorLabels: Record<string, string> = {
+    neuroticismo: "regulação emocional",
+    extroversao: "comunicação e presença social",
+    abertura: "flexibilidade e abertura a experiências",
+    amabilidade: "cooperação e escuta",
+    conscienciosidade: "organização e constância",
+  };
+  const ascendingFactors = [...entriesBF].sort((a, b) => a[1].percentil - b[1].percentil);
+  const developmentKeys = ascendingFactors
+    .filter(([key]) => key !== "neuroticismo")
+    .slice(0, 2)
+    .map(([key]) => key);
+  if (resultadoBigFiveFatores.neuroticismo.percentil >= 60) developmentKeys.unshift("neuroticismo");
+  const uniqueDevelopmentKeys = [...new Set(developmentKeys)].slice(0, 2);
+  const pdiSugerido = uniqueDevelopmentKeys.map((key, index) => ({
+    area: `Desenvolvimento de ${factorLabels[key]}`,
+    acao: `Definir uma prática semanal observável de ${factorLabels[key]}, registrar situações críticas e revisar evidências com a liderança direta.`,
+    prazoSugerido: index === 0 ? "Primeiros 60 dias" : "90 dias",
+    indicadorSucesso: `Evidências mensais de evolução em ${factorLabels[key]} por feedback estruturado e entregas registradas.`,
+  }));
+  pdiSugerido.push({
+    area: "Acompanhamento do estilo adaptado",
+    acao: `Revisar mensalmente situações em que o esforço de adaptação atingiu ${deltaDisc} pontos e identificar condições que aumentam ou reduzem essa diferença.`,
+    prazoSugerido: "Contínuo",
+    indicadorSucesso: "Registro de situações, estratégias utilizadas e percepção de esforço ao longo de três ciclos.",
+  });
+
+  const highestFactors = [...entriesBF].slice(0, 2).map(([key, value]) => `${factorLabels[key]} (índice ${value.percentil})`);
+  const lowestFactor = ascendingFactors[0];
+  const protocolPrefix = statusGeralValidade === "TESTE_INVALIDO"
+    ? "O protocolo apresentou alertas críticos e requer revisão antes de qualquer interpretação."
+    : statusGeralValidade === "VALIDO_COM_RESSALVAS"
+      ? "O protocolo apresentou ressalvas que devem ser verificadas em entrevista."
+      : "Os controles de atenção, ritmo e coerência não apresentaram alertas relevantes.";
 
   return {
     candidato: {
@@ -563,11 +586,17 @@ export function processAssessmentResults(
       deltaEstresse: deltaDisc,
       classificacaoEstresse,
       estiloLideranca,
-      ambienteIdeal: "Ambientes com metas desafiadoras e autonomia executiva, acompanhados de processos estruturados e governança corporativa transparente.",
+      ambienteIdeal: tC_Adapt >= Math.max(tD_Adapt, tI_Adapt, tS_Adapt)
+        ? "Ambientes com critérios claros, qualidade mensurável e previsibilidade de processos."
+        : tI_Adapt >= Math.max(tD_Adapt, tS_Adapt)
+          ? "Ambientes colaborativos, com interação frequente, comunicação aberta e espaço para influência."
+          : tS_Adapt >= Math.max(tD_Adapt, tI_Adapt)
+            ? "Ambientes estáveis, cooperativos e com mudanças conduzidas de forma gradual."
+            : "Ambientes orientados a resultados, com autonomia, decisões rápidas e desafios objetivos.",
       pontosCegos: [
-        "Pode acelerar cobranças antes de calibrar a maturidade técnica da equipe sob sua gestão.",
-        "Tendência a elevar o nível de exigência pessoal em momentos de pressão crítica.",
-        "Risco de despender energia excessiva na fiscalização de processos já estabilizados.",
+        `O menor índice relativo foi ${factorLabels[lowestFactor[0]]} (${lowestFactor[1].percentil}); investigar impactos concretos em entrevista.`,
+        deltaDisc >= 16 ? `A diferença entre estilo natural e adaptado foi de ${deltaDisc} pontos; mapear as situações que exigem maior esforço.` : "A diferença entre estilo natural e adaptado permaneceu baixa no protocolo.",
+        tDesejabilidade > 70 ? "Houve elevação no controle de desejabilidade; confirmar exemplos comportamentais e resultados observáveis." : "Não houve elevação relevante no controle de desejabilidade.",
       ],
     },
     bigFive: {
@@ -575,8 +604,7 @@ export function processAssessmentResults(
       fatorDominante: fatorDominanteBF,
     },
     matrizConvergencia,
-    sinteseAutenticidade:
-      "A correlação entre o Perfil Natural (Big Five) e o Perfil Adaptado (DISC) evidencia elevada consistência interna, com adaptação funcional orientada para liderança, foco em metas e rigor nos processos.",
+    sinteseAutenticidade: `${protocolPrefix} A convergência entre os dois recortes foi confirmada em ${matrizConvergencia.filter((item) => item.cruzamento === "Confirmado").length} de 4 dimensões.`,
     matchCargo: {
       percentual: matchPct,
       distanciaEuclidiana: Math.round(dp * 10) / 10,
@@ -584,7 +612,7 @@ export function processAssessmentResults(
     },
     perguntasStar,
     parecerConsultor: {
-      sinteseQualitativa: `O candidato apresenta perfil com forte direcionamento para liderança de equipes e gestão de processos. Demonstra maturidade profissional, elevado senso de responsabilidade (Conscienciosidade percentil ${resultadoBigFiveFatores.conscienciosidade.percentil}%) e capacidade assertiva de conduzir operações. O índice de adaptação comportamental indica dedicação em atender às metas corporativas.`,
+      sinteseQualitativa: `${protocolPrefix} Os maiores índices relativos foram ${highestFactors.join(" e ")}. O menor índice relativo foi ${factorLabels[lowestFactor[0]]} (${lowestFactor[1].percentil}). O estilo adaptado predominante foi descrito como ${estiloLideranca.toLowerCase()}, com diferença global de ${deltaDisc} pontos em relação ao perfil natural. Esses achados devem ser confrontados com exemplos comportamentais e evidências da trajetória profissional.`,
       recomendacao: recomendacaoFinal,
       pdi: pdiSugerido,
     },

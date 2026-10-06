@@ -77,7 +77,7 @@ function AssessmentList() {
     e.stopPropagation();
     const portalLink = `${window.location.origin}/teste/${candidate.public_token ?? candidate.id}`;
     const message = encodeURIComponent(
-      `Olá ${candidate.full_name}, sua avaliação psicométrica e comportamental do Jarvis Processos está disponível. Acesse o link para responder o teste: ${portalLink}`,
+      `Olá ${candidate.full_name}, sua avaliação de perfil profissional do Jarvis Processos está disponível. Acesse o link para responder: ${portalLink}`,
     );
     const url = `https://wa.me/?text=${message}`;
     window.open(url, "_blank");
@@ -156,7 +156,7 @@ function AssessmentList() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Análise de Perfil (Assessment)</h1>
           <p className="text-sm text-muted-foreground">
-            Mapeamento comportamental Big Five (OCEAN), cadastro prévio, links do portal e dossiês
+            Avaliação por cinco fatores, estilos comportamentais, cadastro prévio e relatórios individuais
           </p>
         </div>
 

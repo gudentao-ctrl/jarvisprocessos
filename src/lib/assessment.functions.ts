@@ -25,13 +25,13 @@ async function findCandidate(token: string) {
   return { admin, candidate: result.data as any };
 }
 
-function publicCandidate(candidate: any) {
+function publicCandidate(candidate: any, includeProgress = false) {
   return {
     id: candidate.id,
     status: candidate.status,
-    started_at: candidate.started_at,
     completed_at: candidate.completed_at,
-    answers: candidate.profile_data?.answers ?? {},
+    started_at: includeProgress ? candidate.started_at : null,
+    answers: includeProgress ? candidate.profile_data?.answers ?? {} : {},
   };
 }
 
@@ -45,7 +45,7 @@ function normalizeCpf(value: string): string {
 
 export const getPublicAssessment = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ token: tokenSchema }).parse(input))
-  .handler(async ({ data }) => publicCandidate((await findCandidate(data.token)).candidate));
+  .handler(async ({ data }) => publicCandidate((await findCandidate(data.token)).candidate, false));
 
 export const startPublicAssessment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => identitySchema.parse(input))
@@ -68,7 +68,7 @@ export const startPublicAssessment = createServerFn({ method: "POST" })
     };
     const { data: row, error } = await admin.from("candidates").update(updates).eq("id", candidate.id).select().single();
     if (error) throw new Error("Não foi possível iniciar a avaliação");
-    return publicCandidate(row);
+    return publicCandidate(row, true);
   });
 
 export const savePublicAssessment = createServerFn({ method: "POST" })
