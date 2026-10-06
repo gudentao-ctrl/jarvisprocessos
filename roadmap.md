@@ -29,3 +29,4 @@
 - [x] Mapa Estratégico: ajustar o relatório ao PDF de referência sem agrupar diretrizes ou ações e preservar todas as descrições
 - [x] Bloco 14: automatizar Dores, Decisões e Informações, aplicar empresa global e refinar a Matriz
 - [x] Pessoas: cadastro pré-teste, aceite, tentativa única, controles de consistência e relatório combinado
+- [ ] Pessoas: validar identidade cadastral, eliminar resultados fictícios e individualizar integralmente os laudos

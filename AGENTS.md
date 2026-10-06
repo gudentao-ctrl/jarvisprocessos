@@ -19,3 +19,4 @@
 
 ## Avaliação de Pessoas
 - Dados pessoais, respostas e resultados de candidatos ficam somente no banco protegido; links públicos usam token e funções validadas para impedir exposição e repetição da tentativa.
+- Relatórios de Pessoas só podem ser exibidos após conclusão real; nunca gerar escores de demonstração ou preencher resultados ausentes.

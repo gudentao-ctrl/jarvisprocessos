@@ -53,13 +53,7 @@ export default function CandidatoTestePage() {
     loadAssessment({ data: { token: id } })
       .then((cand) => {
         setCandidate(cand);
-        setFullName(cand.full_name ?? "");
-        setEmail(cand.email ?? "");
-        setBirthDate(cand.birth_date ?? "");
-        setAnswers(cand.answers ?? {});
-        setHasStarted(Boolean(cand.started_at));
         setIsCompleted(Boolean(cand.completed_at) || cand.status === "concluido");
-        setStartTime(cand.started_at ? new Date(cand.started_at).getTime() : Date.now());
       })
       .catch(() => setLoadError("Este convite não está disponível."))
       .finally(() => setLoading(false));
@@ -75,6 +69,7 @@ export default function CandidatoTestePage() {
     try {
       const row = await startAssessment({ data: { token: id, fullName: fullName.trim(), email: email.trim(), cpf: cpfDigits, birthDate, consentAccepted: true } });
       setCandidate(row);
+      setAnswers(row.answers ?? {});
       setHasStarted(true);
       setStartTime(row.started_at ? new Date(row.started_at).getTime() : Date.now());
     } catch (error) {
@@ -174,7 +169,7 @@ export default function CandidatoTestePage() {
           <div className="rounded-lg border bg-muted/30 p-4"><h2 className="font-semibold">Instruções</h2><ul className="mt-3 space-y-2 text-sm text-muted-foreground">{instructions.map((item) => <li key={item} className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />{item}</li>)}</ul></div>
           <label className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer"><Checkbox checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><span className="text-sm">Eu li as instruções e concordo com o tratamento dos meus dados para esta avaliação, conforme a Política de Privacidade.</span></label>
           <Button className="w-full h-11" onClick={handleStart} disabled={isSubmitting || !consent}>{isSubmitting ? "Iniciando..." : "Iniciar avaliação"}<ArrowRight className="h-4 w-4 ml-2" /></Button>
-          <p className="text-xs text-muted-foreground text-center">Instrumento de apoio à análise profissional. Não substitui avaliação psicológica regulamentada.</p>
+          <p className="text-xs text-muted-foreground text-center">Avaliação confidencial para análise profissional.</p>
         </CardContent></Card>
       </div>
     );
