@@ -77,15 +77,7 @@ export default function AssessmentFormModal({
         external: external,
         company_id: external ? null : companyId || null,
         company_name: companyName,
-        profile_data: {
-          radar: [
-            { name: "Abertura à Experiência", factor: "A", value: 50, description: "Criatividade e flexibilidade mental" },
-            { name: "Conscienciosidade", factor: "C", value: 50, description: "Organização, foco em metas e método" },
-            { name: "Extroversão", factor: "E", value: 50, description: "Comunicação, liderança e assertividade" },
-            { name: "Amabilidade", factor: "M", value: 50, description: "Empatia, cooperação e trabalho em equipe" },
-            { name: "Estabilidade Emocional", factor: "N", value: 50, description: "Resiliência, serenidade e equilíbrio sob pressão" },
-          ],
-        },
+        profile_data: {},
         ai_summary: {
           natural: "Aguardando preenchimento da avaliação de perfil de 240 itens.",
         },

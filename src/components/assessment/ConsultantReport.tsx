@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   CandidatePsychometricResult,
-  MOCK_CONSULTANT_REPORT_STATE,
 } from "@/utils/psychometrics";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,11 +45,11 @@ import { toast } from "sonner";
 import { generateAssessmentReport } from "@/lib/pdf-generator";
 
 interface ConsultantReportProps {
-  data?: CandidatePsychometricResult;
+  data: CandidatePsychometricResult;
   onExportPdf?: () => void;
 }
 
-export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExportPdf }: ConsultantReportProps) {
+export function ConsultantReport({ data, onExportPdf }: ConsultantReportProps) {
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     neuroticismo: true,
     extroversao: false,
@@ -157,7 +156,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
               Avaliação Integrada • 240 Itens
             </Badge>
             <Badge variant="outline" className="text-xs">
-              Big Five + estilos comportamentais
+              Cinco fatores + estilos comportamentais
             </Badge>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Relatório Técnico do Consultor</h1>
@@ -183,7 +182,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
                 1
               </span>
               <CardTitle className="text-base font-bold">
-                Dados do Avaliado e Índices de Validade do Teste
+                Dados do Avaliado e Controles do Protocolo
               </CardTitle>
             </div>
             <Badge
@@ -196,10 +195,10 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
               }`}
             >
               {data.validade.statusGeral === "TESTE_VALIDO"
-                ? "TESTE VÁLIDO"
+                ? "SEM ALERTAS"
                 : data.validade.statusGeral === "VALIDO_COM_RESSALVAS"
-                ? "VÁLIDO COM RESSALVAS"
-                : "TESTE INVÁLIDO"}
+                ? "REVISÃO RECOMENDADA"
+                : "PROTOCOLO INCONSISTENTE"}
             </Badge>
           </div>
           <CardDescription className="text-xs">
@@ -464,7 +463,7 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
                 3
               </span>
               <CardTitle className="text-base font-bold">
-                Perfil Big Five — Mapa de Tendências de Personalidade
+              Cinco fatores — Mapa de Tendências de Personalidade
               </CardTitle>
             </div>
             <Badge variant="outline" className="text-xs font-normal">
@@ -824,38 +823,8 @@ export function ConsultantReport({ data = MOCK_CONSULTANT_REPORT_STATE, onExport
             </div>
           </div>
 
-          {/* Recomendação Final em Destaque */}
-          <div className="p-4 bg-card rounded-xl border space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-              Recomendação Conclusiva do Consultor:
-            </span>
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              {[
-                { status: "RECOMENDADO", label: "RECOMENDADO", color: "bg-emerald-600 text-white" },
-                { status: "RECOMENDADO COM RESSALVAS", label: "RECOMENDADO COM RESSALVAS", color: "bg-amber-600 text-white" },
-                { status: "NÃO RECOMENDADO PARA A FUNÇÃO ATUAL", label: "NÃO RECOMENDADO PARA A FUNÇÃO ATUAL", color: "bg-red-600 text-white" },
-              ].map((opt) => {
-                const isSelected = data.parecerConsultor.recomendacao === opt.status;
-                return (
-                  <div
-                    key={opt.status}
-                    className={`px-3.5 py-2 rounded-lg border text-xs font-bold flex items-center gap-2 transition-all ${
-                      isSelected
-                        ? `${opt.color} shadow-sm scale-[1.02]`
-                        : "bg-muted/40 text-muted-foreground border-border opacity-60"
-                    }`}
-                  >
-                    <span className="h-4 w-4 rounded-full border flex items-center justify-center text-[10px]">
-                      {isSelected ? "✓" : ""}
-                    </span>
-                    {opt.label}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="pt-3 mt-2 border-t text-[10px] text-muted-foreground italic leading-relaxed opacity-80">
-              Relatório interno de apoio profissional baseado nas respostas do participante e em modelos descritivos Big Five e DISC. Não equivale a instrumentos psicológicos licenciados, não possui norma populacional própria e deve ser interpretado junto com entrevista e evidências do contexto.
-            </div>
+          <div className="p-4 bg-card rounded-xl border text-xs text-muted-foreground leading-relaxed">
+            Interpretação profissional baseada exclusivamente nas respostas registradas, nos controles de coerência e nas evidências da entrevista.
           </div>
 
           {/* Síntese Qualitativa */}

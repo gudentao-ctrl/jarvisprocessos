@@ -75,19 +75,12 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
 
   y += 36;
 
-  // Radar Scores Table (Big Five OCEAN)
-  const radarItems = profile_data?.radar ?? [
-    { name: "Abertura a Experiencia", value: 75, description: "Criatividade e inovacao" },
-    { name: "Conscienciosidade", value: 85, description: "Organizacao e foco em metas" },
-    { name: "Extroversao", value: 70, description: "Comunicacao e assertividade" },
-    { name: "Amabilidade", value: 78, description: "Empatia e cooperacao" },
-    { name: "Estabilidade Emocional", value: 80, description: "Resiliencia sob pressao" },
-  ];
+  const radarItems = profile_data?.radar ?? [];
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...NAVY);
-  doc.text("1. Tendencias nos 5 Fatores (Modelo Big Five)", margin, y);
+  doc.text("1. Tendencias nos cinco fatores", margin, y);
   y += 4;
 
   const tableData = radarItems.map((r: any) => {
@@ -198,7 +191,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
 
     if (y > pageHeight - 75) { doc.addPage(); y = 20; }
     doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY);
-    doc.text("4. Big Five - fatores e facetas", margin, y); y += 5;
+  doc.text("4. Cinco fatores e facetas", margin, y); y += 5;
     const factors = Object.entries(report.bigFive.fatores as Record<string, any>);
     autoTable(doc, {
       startY: y,
@@ -246,9 +239,9 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
 
   if (y > pageHeight - 35) { doc.addPage(); y = 20; }
   doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...NAVY);
-  doc.text("Nota de uso e limites", margin, y); y += 5;
+  doc.text("Nota de interpretacao", margin, y); y += 5;
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...SLATE);
-  const limits = doc.splitTextToSize("Este relatorio apoia entrevistas e desenvolvimento profissional. Nao equivale a instrumento psicologico licenciado, nao possui norma populacional propria e nao deve ser usado isoladamente para diagnostico ou decisao de contratacao.", pageWidth - margin * 2);
+  const limits = doc.splitTextToSize("Relatorio confidencial calculado a partir das respostas registradas e dos controles objetivos do protocolo. A interpretacao final deve considerar entrevista, contexto e evidencias profissionais.", pageWidth - margin * 2);
   doc.text(limits, margin, y);
 
   // Footer on all pages

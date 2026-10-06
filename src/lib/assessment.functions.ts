@@ -28,16 +28,19 @@ async function findCandidate(token: string) {
 function publicCandidate(candidate: any) {
   return {
     id: candidate.id,
-    full_name: candidate.full_name,
-    email: candidate.email,
-    birth_date: candidate.birth_date,
-    current_role: candidate.current_role,
-    desired_role: candidate.desired_role,
     status: candidate.status,
     started_at: candidate.started_at,
     completed_at: candidate.completed_at,
     answers: candidate.profile_data?.answers ?? {},
   };
+}
+
+function normalizeText(value: string): string {
+  return value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizeCpf(value: string): string {
+  return value.replace(/\D/g, "");
 }
 
 export const getPublicAssessment = createServerFn({ method: "GET" })
@@ -49,12 +52,14 @@ export const startPublicAssessment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, candidate } = await findCandidate(data.token);
     if (candidate.completed_at) throw new Error("Esta avaliação já foi concluída");
+    const identityMatches =
+      normalizeText(data.fullName) === normalizeText(String(candidate.full_name ?? "")) &&
+      data.email.trim().toLowerCase() === String(candidate.email ?? "").trim().toLowerCase() &&
+      normalizeCpf(data.cpf) === normalizeCpf(String(candidate.cpf ?? "")) &&
+      data.birthDate === candidate.birth_date;
+    if (!identityMatches) throw new Error("Os dados informados não correspondem ao cadastro deste convite");
     const now = new Date().toISOString();
     const updates: Record<string, unknown> = {
-      full_name: data.fullName,
-      email: data.email.toLowerCase(),
-      cpf: data.cpf,
-      birth_date: data.birthDate,
       consent_version: "2026-10-02",
       privacy_consent_at: candidate.privacy_consent_at ?? now,
       started_at: candidate.started_at ?? now,
@@ -83,7 +88,11 @@ export const completePublicAssessment = createServerFn({ method: "POST" })
     const { admin, candidate } = await findCandidate(data.token);
     if (!candidate.started_at || candidate.completed_at) throw new Error("Avaliação indisponível para conclusão");
     const { bancoQuestoes } = await import("@/data/bancoQuestoes");
-    if (Object.keys(data.answers).length !== bancoQuestoes.length) throw new Error("Responda todas as afirmações antes de concluir");
+    const expectedIds = new Set(bancoQuestoes.map((question) => String(question.id)));
+    const answerIds = Object.keys(data.answers);
+    if (answerIds.length !== expectedIds.size || answerIds.some((id) => !expectedIds.has(id))) {
+      throw new Error("Responda todas as afirmações antes de concluir");
+    }
     const { processAssessmentResults } = await import("@/utils/psychometrics");
     const birth = new Date(`${candidate.birth_date}T12:00:00Z`);
     const age = Math.max(0, new Date().getUTCFullYear() - birth.getUTCFullYear());
