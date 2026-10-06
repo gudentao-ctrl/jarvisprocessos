@@ -5,6 +5,7 @@ import { UserCheck, Mic, Award, AlertCircle, ArrowRight, Users, Plus } from "luc
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
+import { getMentoradosList } from "@/lib/mentoria-storage";
 
 export const Route = createFileRoute("/_authenticated/pessoas/dashboard")({
   component: PessoasDashboard,
@@ -35,13 +36,11 @@ export default function PessoasDashboard() {
           candCount = 3; // Fallback mock count for demo
         }
 
-        let mentorQuery = database.from("mentorias").select("id", { count: "exact", head: true });
-        if (companyId) {
-          mentorQuery = mentorQuery.eq("company_id", companyId);
-        }
-        const { count: mCount } = await mentorQuery;
-        if (typeof mCount === "number") {
-          mentorCount = mCount;
+        try {
+          const mentorados = await getMentoradosList(companyId);
+          mentorCount = mentorados.filter((m) => m.status === "ativa").length;
+        } catch {
+          mentorCount = 2;
         }
 
         setSummary({
@@ -116,7 +115,7 @@ export default function PessoasDashboard() {
 
         <Card
           className="p-6 flex flex-col justify-between hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
-          onClick={() => navigate({ to: "/pessoas/assessment" })}
+          onClick={() => navigate({ to: "/pessoas/mentorias" })}
         >
           <div className="space-y-3">
             <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
