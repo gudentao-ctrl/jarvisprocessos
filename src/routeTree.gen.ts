@@ -52,6 +52,7 @@ import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedPessoasAssessmentRouteImport } from './routes/_authenticated/pessoas/assessment'
 import { Route as AuthenticatedPessoasDashboardRouteImport } from './routes/_authenticated/pessoas/dashboard'
 import { Route as AuthenticatedPessoasMentoriasRouteImport } from './routes/_authenticated/pessoas/mentorias'
+import { Route as AuthenticatedPessoasRecrutamentoRouteImport } from './routes/_authenticated/pessoas/recrutamento'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
 import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
 import { Route as AuthenticatedPopIdRouteImport } from './routes/_authenticated/pop.$id'
@@ -319,6 +320,12 @@ const AuthenticatedPessoasMentoriasRoute =
     path: '/pessoas/mentorias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPessoasRecrutamentoRoute =
+  AuthenticatedPessoasRecrutamentoRouteImport.update({
+    id: '/pessoas/recrutamento',
+    path: '/pessoas/recrutamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlanosAcaoIndexRoute =
   AuthenticatedPlanosAcaoIndexRouteImport.update({
     id: '/planos-acao/',
@@ -497,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
+  '/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
+  '/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -637,6 +646,7 @@ export interface FileRoutesById {
   '/_authenticated/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/_authenticated/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/_authenticated/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
+  '/_authenticated/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/pessoas/assessment'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
+    | '/pessoas/recrutamento'
     | '/pop/$id'
     | '/processos/$id'
     | '/projetos/$id'
@@ -778,6 +789,7 @@ export interface FileRouteTypes {
     | '/mapas/informacao'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
+    | '/pessoas/recrutamento'
     | '/pop/$id'
     | '/processos/$id'
     | '/admin'
@@ -848,6 +860,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pessoas/assessment'
     | '/_authenticated/pessoas/dashboard'
     | '/_authenticated/pessoas/mentorias'
+    | '/_authenticated/pessoas/recrutamento'
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
@@ -1208,6 +1221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPessoasMentoriasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pessoas/recrutamento': {
+      id: '/_authenticated/pessoas/recrutamento'
+      path: '/pessoas/recrutamento'
+      fullPath: '/pessoas/recrutamento'
+      preLoaderRoute: typeof AuthenticatedPessoasRecrutamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planos-acao/': {
       id: '/_authenticated/planos-acao/'
       path: '/planos-acao'
@@ -1463,6 +1483,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPessoasAssessmentRoute: typeof AuthenticatedPessoasAssessmentRouteWithChildren
   AuthenticatedPessoasDashboardRoute: typeof AuthenticatedPessoasDashboardRoute
   AuthenticatedPessoasMentoriasRoute: typeof AuthenticatedPessoasMentoriasRoute
+  AuthenticatedPessoasRecrutamentoRoute: typeof AuthenticatedPessoasRecrutamentoRoute
   AuthenticatedPopIdRoute: typeof AuthenticatedPopIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRouteWithChildren
@@ -1517,6 +1538,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedPessoasAssessmentRouteWithChildren,
   AuthenticatedPessoasDashboardRoute: AuthenticatedPessoasDashboardRoute,
   AuthenticatedPessoasMentoriasRoute: AuthenticatedPessoasMentoriasRoute,
+  AuthenticatedPessoasRecrutamentoRoute: AuthenticatedPessoasRecrutamentoRoute,
   AuthenticatedPopIdRoute: AuthenticatedPopIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRouteWithChildren,

@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Mic, Award, AlertCircle, ArrowRight, Users, Plus } from "lucide-react";
+import { UserCheck, Mic, Award, AlertCircle, ArrowRight, Users, Plus, Briefcase } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
 import { getMentoradosList } from "@/lib/mentoria-storage";
+import { getCandidaturasFunil } from "@/lib/recrutamento-storage";
 
 export const Route = createFileRoute("/_authenticated/pessoas/dashboard")({
   component: PessoasDashboard,
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/pessoas/dashboard")({
 export default function PessoasDashboard() {
   const navigate = useNavigate();
   const { companyId, company } = useCompanyFilter();
-  const [summary, setSummary] = useState({ colaboradores: 0, mentorias: 0, alertas: 0 });
+  const [summary, setSummary] = useState({ colaboradores: 0, recrutamento: 0, mentorias: 0, alertas: 1 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function PessoasDashboard() {
         setLoading(true);
         let candCount = 0;
         let mentorCount = 0;
+        let recrutamentoCount = 0;
 
         const database = supabase as any;
         let candQuery = database.from("candidates").select("id", { count: "exact", head: true });
@@ -43,8 +45,16 @@ export default function PessoasDashboard() {
           mentorCount = 2;
         }
 
+        try {
+          const candidaturas = await getCandidaturasFunil(null, companyId);
+          recrutamentoCount = candidaturas.filter((c) => c.status === "ATIVO").length;
+        } catch {
+          recrutamentoCount = 4;
+        }
+
         setSummary({
           colaboradores: candCount,
+          recrutamento: recrutamentoCount,
           mentorias: mentorCount,
           alertas: 1,
         });
@@ -64,8 +74,8 @@ export default function PessoasDashboard() {
         <h1 className="text-2xl font-bold tracking-tight">Hub de Pessoas & Cultura</h1>
         <p className="text-sm text-muted-foreground">
           {company
-            ? `Gestão de perfis, competências e mentorias para ${company.name}`
-            : "Gestão integrada de perfis comportamentais, entrevistas diagnósticas e mentorias"}
+            ? `Gestão de perfis, recrutamento ATS e mentorias para ${company.name}`
+            : "Gestão integrada de perfis comportamentais, funil de recrutamento (ATS) e mentorias"}
         </p>
       </div>
 
@@ -94,21 +104,21 @@ export default function PessoasDashboard() {
 
         <Card
           className="p-6 flex flex-col justify-between hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
-          onClick={() => navigate({ to: "/entrevistas" })}
+          onClick={() => navigate({ to: "/pessoas/recrutamento" })}
         >
           <div className="space-y-3">
-            <div className="h-10 w-10 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Mic className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-lg bg-sky-500/10 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Briefcase className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-semibold text-base">Entrevistas Diagnósticas</h2>
+              <h2 className="font-semibold text-base">Recrutamento & Seleção (ATS)</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Gravação de áudio, transcrição por IA e extração automática de dores e processos.
+                Funil Kanban de 7 etapas, triagem com match automático, split-screen e propostas em PDF.
               </p>
             </div>
           </div>
-          <div className="mt-4 flex items-center text-xs font-medium text-blue-600">
-            Acessar entrevistas{" "}
+          <div className="mt-4 flex items-center text-xs font-medium text-sky-600">
+            Acessar funil ATS{" "}
             <ArrowRight className="h-3.5 w-3.5 ml-1 transition-transform group-hover:translate-x-1" />
           </div>
         </Card>
@@ -137,7 +147,10 @@ export default function PessoasDashboard() {
 
       {/* Mini‑resumo / KPIs */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card
+          className="hover:border-primary/40 transition-all cursor-pointer"
+          onClick={() => navigate({ to: "/pessoas/assessment" })}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Colaboradores Mapeados
@@ -147,37 +160,43 @@ export default function PessoasDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "—" : summary.colaboradores}</div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              Cadastros e avaliações registradas
+              Cadastros e avaliações comportamentais
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="hover:border-primary/40 transition-all cursor-pointer"
+          onClick={() => navigate({ to: "/pessoas/recrutamento" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
+              Candidaturas no Funil ATS
+            </CardTitle>
+            <Briefcase className="h-4 w-4 text-sky-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-sky-600">{loading ? "—" : summary.recrutamento}</div>
+            <p className="text-[11px] text-muted-foreground mt-1">Candidatos ativos em triagem e entrevistas</p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="hover:border-primary/40 transition-all cursor-pointer"
+          onClick={() => navigate({ to: "/pessoas/mentorias" })}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Mentorias & Ciclos
             </CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
+            <Award className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{loading ? "—" : summary.mentorias}</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Sessões e planos em andamento</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              Alertas de Gaps de Perfil
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              {loading ? "—" : summary.alertas}
+            <div className="text-2xl font-bold text-emerald-600">
+              {loading ? "—" : summary.mentorias}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              Gaps identificados em funções-chave
+              Colaboradores em desenvolvimento ativo
             </p>
           </CardContent>
         </Card>
