@@ -126,8 +126,6 @@ export function calculateInvoiceDRE(params: {
   saldoAnteriorPago: number;
   faturadoAtual: number;
   pagoNoCicloAtual?: number;
-  pastInvoices?: unknown[];
-  pastPayments?: unknown[];
 }): InvoiceDRECalculation {
   const faturadoAnt = Math.round(Number(params.saldoAnteriorFaturado || 0) * 100) / 100;
   const pagoAnt = Math.round(Number(params.saldoAnteriorPago || 0) * 100) / 100;
