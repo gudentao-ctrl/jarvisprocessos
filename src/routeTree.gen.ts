@@ -20,6 +20,7 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
+import { Route as PHashRouteImport } from './routes/p.$hash'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as TesteIdRouteImport } from './routes/teste.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -52,6 +53,7 @@ import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedPessoasAssessmentRouteImport } from './routes/_authenticated/pessoas/assessment'
 import { Route as AuthenticatedPessoasDashboardRouteImport } from './routes/_authenticated/pessoas/dashboard'
 import { Route as AuthenticatedPessoasMentoriasRouteImport } from './routes/_authenticated/pessoas/mentorias'
+import { Route as AuthenticatedPessoasNpsRouteImport } from './routes/_authenticated/pessoas/nps'
 import { Route as AuthenticatedPessoasRecrutamentoRouteImport } from './routes/_authenticated/pessoas/recrutamento'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
 import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
@@ -134,6 +136,11 @@ const CTokenRoute = CTokenRouteImport.update({
 const DashboardTokenRoute = DashboardTokenRouteImport.update({
   id: '/dashboard/$token',
   path: '/dashboard/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PHashRoute = PHashRouteImport.update({
+  id: '/p/$hash',
+  path: '/p/$hash',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
@@ -320,6 +327,11 @@ const AuthenticatedPessoasMentoriasRoute =
     path: '/pessoas/mentorias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPessoasNpsRoute = AuthenticatedPessoasNpsRouteImport.update({
+  id: '/pessoas/nps',
+  path: '/pessoas/nps',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPessoasRecrutamentoRoute =
   AuthenticatedPessoasRecrutamentoRouteImport.update({
     id: '/pessoas/recrutamento',
@@ -489,6 +501,7 @@ export interface FileRoutesByFullPath {
   '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
+  '/p/$hash': typeof PHashRoute
   '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -504,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
+  '/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
   '/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
@@ -560,6 +574,7 @@ export interface FileRoutesByTo {
   '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
+  '/p/$hash': typeof PHashRoute
   '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -574,6 +589,7 @@ export interface FileRoutesByTo {
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
+  '/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
   '/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
@@ -631,6 +647,7 @@ export interface FileRoutesById {
   '/_authenticated/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
+  '/p/$hash': typeof PHashRoute
   '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -646,6 +663,7 @@ export interface FileRoutesById {
   '/_authenticated/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/_authenticated/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/_authenticated/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
+  '/_authenticated/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
   '/_authenticated/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
@@ -704,6 +722,7 @@ export interface FileRouteTypes {
     | '/template-documentos'
     | '/c/$token'
     | '/dashboard/$token'
+    | '/p/$hash'
     | '/p/$token'
     | '/teste/$id'
     | '/causa-raiz/$id'
@@ -719,6 +738,7 @@ export interface FileRouteTypes {
     | '/pessoas/assessment'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
+    | '/pessoas/nps'
     | '/pessoas/recrutamento'
     | '/pop/$id'
     | '/processos/$id'
@@ -775,6 +795,7 @@ export interface FileRouteTypes {
     | '/template-documentos'
     | '/c/$token'
     | '/dashboard/$token'
+    | '/p/$hash'
     | '/p/$token'
     | '/teste/$id'
     | '/causa-raiz/$id'
@@ -789,6 +810,7 @@ export interface FileRouteTypes {
     | '/mapas/informacao'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
+    | '/pessoas/nps'
     | '/pessoas/recrutamento'
     | '/pop/$id'
     | '/processos/$id'
@@ -845,6 +867,7 @@ export interface FileRouteTypes {
     | '/_authenticated/template-documentos'
     | '/c/$token'
     | '/dashboard/$token'
+    | '/p/$hash'
     | '/p/$token'
     | '/teste/$id'
     | '/_authenticated/causa-raiz/$id'
@@ -860,6 +883,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pessoas/assessment'
     | '/_authenticated/pessoas/dashboard'
     | '/_authenticated/pessoas/mentorias'
+    | '/_authenticated/pessoas/nps'
     | '/_authenticated/pessoas/recrutamento'
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
@@ -913,6 +937,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
   DashboardTokenRoute: typeof DashboardTokenRoute
+  PHashRoute: typeof PHashRoute
   PTokenRoute: typeof PTokenRoute
   TesteIdRoute: typeof TesteIdRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
@@ -995,6 +1020,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/$token'
       fullPath: '/dashboard/$token'
       preLoaderRoute: typeof DashboardTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$hash': {
+      id: '/p/$hash'
+      path: '/p/$hash'
+      fullPath: '/p/$hash'
+      preLoaderRoute: typeof PHashRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
@@ -1219,6 +1251,13 @@ declare module '@tanstack/react-router' {
       path: '/pessoas/mentorias'
       fullPath: '/pessoas/mentorias'
       preLoaderRoute: typeof AuthenticatedPessoasMentoriasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pessoas/nps': {
+      id: '/_authenticated/pessoas/nps'
+      path: '/pessoas/nps'
+      fullPath: '/pessoas/nps'
+      preLoaderRoute: typeof AuthenticatedPessoasNpsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pessoas/recrutamento': {
@@ -1483,6 +1522,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPessoasAssessmentRoute: typeof AuthenticatedPessoasAssessmentRouteWithChildren
   AuthenticatedPessoasDashboardRoute: typeof AuthenticatedPessoasDashboardRoute
   AuthenticatedPessoasMentoriasRoute: typeof AuthenticatedPessoasMentoriasRoute
+  AuthenticatedPessoasNpsRoute: typeof AuthenticatedPessoasNpsRoute
   AuthenticatedPessoasRecrutamentoRoute: typeof AuthenticatedPessoasRecrutamentoRoute
   AuthenticatedPopIdRoute: typeof AuthenticatedPopIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
@@ -1538,6 +1578,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedPessoasAssessmentRouteWithChildren,
   AuthenticatedPessoasDashboardRoute: AuthenticatedPessoasDashboardRoute,
   AuthenticatedPessoasMentoriasRoute: AuthenticatedPessoasMentoriasRoute,
+  AuthenticatedPessoasNpsRoute: AuthenticatedPessoasNpsRoute,
   AuthenticatedPessoasRecrutamentoRoute: AuthenticatedPessoasRecrutamentoRoute,
   AuthenticatedPopIdRoute: AuthenticatedPopIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
@@ -1587,6 +1628,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
   DashboardTokenRoute: DashboardTokenRoute,
+  PHashRoute: PHashRoute,
   PTokenRoute: PTokenRoute,
   TesteIdRoute: TesteIdRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
