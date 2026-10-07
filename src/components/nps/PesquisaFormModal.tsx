@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Check,
   Building2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -433,18 +434,85 @@ export function PesquisaFormModal({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">URL da Logomarca ou Imagem de Fundo (Opcional)</Label>
-                  <Input
-                    placeholder="https://exemplo.com/logo.png ou anexe um link de imagem"
-                    value={configVisual.logo_url || ""}
-                    onChange={(e) =>
-                      setConfigVisual((c) => ({ ...c, logo_url: e.target.value }))
-                    }
-                  />
+                <div className="space-y-2 p-4 rounded-xl border bg-muted/20">
+                  <Label className="text-xs font-semibold block text-[#3E100C]">
+                    Logomarca da Empresa / Cliente
+                  </Label>
                   <p className="text-[11px] text-muted-foreground">
-                    Se fornecido, será exibido no cabeçalho superior do questionário público.
+                    Faça upload da imagem do logo ou insira uma URL direta para exibir no topo da pesquisa.
                   </p>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">
+                    {/* Botão de Upload de Arquivo */}
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 3 * 1024 * 1024) {
+                            toast.error("O arquivo deve ter no máximo 3MB.");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const dataUrl = event.target?.result as string;
+                            if (dataUrl) {
+                              setConfigVisual((c) => ({
+                                ...c,
+                                logo_url: dataUrl,
+                              }));
+                              toast.success("Logo carregado com sucesso!");
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                      <div className="h-9 px-3 rounded-lg border border-dashed border-[#E05A10]/50 bg-background hover:bg-[#E05A10]/5 text-[#E05A10] flex items-center gap-2 text-xs font-medium transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Fazer Upload do Logo (PNG / JPG / SVG)</span>
+                      </div>
+                    </label>
+
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase">ou</span>
+
+                    {/* Input de URL direta */}
+                    <div className="flex-1 w-full">
+                      <Input
+                        placeholder="Cole a URL da logomarca (https://...)"
+                        value={configVisual.logo_url || ""}
+                        onChange={(e) =>
+                          setConfigVisual((c) => ({ ...c, logo_url: e.target.value }))
+                        }
+                        className="text-xs h-9 bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preview do Logo se existente */}
+                  {configVisual.logo_url && (
+                    <div className="flex items-center gap-3 pt-2">
+                      <div className="p-2 rounded-lg border bg-white max-h-16 flex items-center justify-center">
+                        <img
+                          src={configVisual.logo_url}
+                          alt="Logo Preview"
+                          className="max-h-12 max-w-[160px] object-contain"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfigVisual((c) => ({ ...c, logo_url: "" }))}
+                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-8"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Remover Logo
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

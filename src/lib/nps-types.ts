@@ -6,14 +6,20 @@ export type StatusPesquisa = "ativa" | "inativa";
 export type TipoResposta = "nps_score" | "rating" | "text_open" | "selecao_lista";
 
 export interface ConfigVisualPesquisa {
-  bg_color: string;
-  primary_color: string;
-  text_color: string;
-  card_bg_color: string;
+  bg_color?: string;
+  cor_fundo?: string;
+  primary_color?: string;
+  cor_primaria?: string;
+  text_color?: string;
+  cor_texto?: string;
+  card_bg_color?: string;
   logo_url?: string;
   bg_image_url?: string;
-  welcome_msg: string;
-  thanks_msg: string;
+  welcome_msg?: string;
+  mensagem_boas_vindas?: string;
+  thanks_msg?: string;
+  mensagem_agradecimento?: string;
+  permitir_anonimo?: boolean;
 }
 
 export interface PesquisaPergunta {

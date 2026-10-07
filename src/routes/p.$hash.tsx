@@ -71,15 +71,27 @@ export default function PublicSurveyView() {
   const totalQuestions = perguntas.length;
   const progressPct = totalQuestions > 0 ? Math.round(((currentQuestionIndex + 1) / totalQuestions) * 100) : 0;
 
-  // Cores dinâmicas configuradas pelo usuário
-  const visual = pesquisa?.config_visual || {
-    bg_color: "#FFF8F5",
-    primary_color: "#E05A10",
-    text_color: "#2B1B17",
-    card_bg_color: "#FFFFFF",
-    welcome_msg: "Bem-vindo(a) à nossa pesquisa de satisfação!",
-    thanks_msg: "Muito obrigado pelas suas respostas!",
-  };
+  // Cores dinâmicas configuradas pelo usuário (compatível com cor_fundo / bg_color)
+  const cv = pesquisa?.config_visual as any;
+  const visual = useMemo(() => {
+    const bgColor = cv?.bg_color || cv?.cor_fundo || "#FFF8F5";
+    const primaryColor = cv?.primary_color || cv?.cor_primaria || "#E05A10";
+    const textColor = cv?.text_color || cv?.cor_texto || "#2B1B17";
+    const cardBgColor = cv?.card_bg_color || (bgColor === "#3E100C" ? "#2B0B08" : "#FFFFFF");
+    const welcomeMsg = cv?.welcome_msg || cv?.mensagem_boas_vindas || "Bem-vindo(a) à nossa pesquisa de satisfação!";
+    const thanksMsg = cv?.thanks_msg || cv?.mensagem_agradecimento || "Muito obrigado pelas suas respostas!";
+    const logoUrl = cv?.logo_url || "";
+
+    return {
+      bg_color: bgColor,
+      primary_color: primaryColor,
+      text_color: textColor,
+      card_bg_color: cardBgColor,
+      welcome_msg: welcomeMsg,
+      thanks_msg: thanksMsg,
+      logo_url: logoUrl,
+    };
+  }, [cv]);
 
   // Manipulação de resposta com auto-advance para classificações numéricas (300ms)
   const handleSelectScore = (perguntaId: string, nota: number) => {
@@ -212,6 +224,22 @@ export default function PublicSurveyView() {
             {visual.thanks_msg || "Agradecemos imensamente pela sua participação! Suas respostas nos ajudam a evoluir continuamente."}
           </p>
 
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem(`maia_nps_answered_${hash}`);
+                setIsCompleted(false);
+                setHasStarted(false);
+                setCurrentQuestionIndex(0);
+                setAnswers({});
+              }}
+              className="text-[11px] underline opacity-70 hover:opacity-100 transition-opacity"
+            >
+              Enviar outra resposta
+            </button>
+          </div>
+
           <div className="pt-4 border-t border-black/10 flex items-center justify-center gap-1.5 text-xs opacity-75 font-medium">
             <Sparkles className="h-4 w-4" style={{ color: visual.primary_color }} />
             <span>Maia Consultoria Empresarial • Hub de Pessoas</span>
@@ -305,6 +333,17 @@ export default function PublicSurveyView() {
           className="max-w-2xl w-full p-6 sm:p-10 rounded-3xl shadow-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 border border-black/5"
           style={{ backgroundColor: visual.card_bg_color }}
         >
+          {/* Logomarca da Empresa se configurada */}
+          {visual.logo_url && (
+            <div className="flex items-center justify-start pb-2 border-b border-black/5">
+              <img
+                src={visual.logo_url}
+                alt="Logo"
+                className="max-h-12 max-w-[180px] object-contain"
+              />
+            </div>
+          )}
+
           {/* Título da Questão Atual */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">

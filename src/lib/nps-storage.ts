@@ -385,13 +385,29 @@ export async function savePesquisa(pesquisaData: Partial<Pesquisa>): Promise<Pes
           .replace(/(^-|-$)/g, "")
       : `pesquisa-${Date.now()}`);
 
-  const config_visual = pesquisaData.config_visual || {
-    bg_color: "#FFF8F5",
-    primary_color: "#E05A10",
-    text_color: "#2B1B17",
-    card_bg_color: "#FFFFFF",
-    welcome_msg: "Bem-vindo(a) à nossa pesquisa de satisfação!",
-    thanks_msg: "Muito obrigado pelas suas respostas!",
+  const cvRaw = pesquisaData.config_visual || {};
+  const bg_color = cvRaw.bg_color || cvRaw.cor_fundo || "#FFF8F5";
+  const primary_color = cvRaw.primary_color || cvRaw.cor_primaria || "#E05A10";
+  const text_color = cvRaw.text_color || cvRaw.cor_texto || "#1F2937";
+  const card_bg_color = cvRaw.card_bg_color || (bg_color === "#3E100C" ? "#2B0B08" : "#FFFFFF");
+  const welcome_msg = cvRaw.welcome_msg || cvRaw.mensagem_boas_vindas || "Bem-vindo(a) à nossa pesquisa de satisfação!";
+  const thanks_msg = cvRaw.thanks_msg || cvRaw.mensagem_agradecimento || "Muito obrigado pelas suas respostas!";
+  const logo_url = cvRaw.logo_url || "";
+
+  const config_visual: ConfigVisualPesquisa = {
+    bg_color,
+    cor_fundo: bg_color,
+    primary_color,
+    cor_primaria: primary_color,
+    text_color,
+    cor_texto: text_color,
+    card_bg_color,
+    logo_url,
+    welcome_msg,
+    mensagem_boas_vindas: welcome_msg,
+    thanks_msg,
+    mensagem_agradecimento: thanks_msg,
+    permitir_anonimo: cvRaw.permitir_anonimo ?? true,
   };
 
   const empresaIdFinal = pesquisaData.empresa_id || pesquisaData.company_id || null;
