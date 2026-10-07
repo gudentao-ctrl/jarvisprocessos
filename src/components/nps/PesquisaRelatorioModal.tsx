@@ -399,6 +399,8 @@ export function PesquisaRelatorioModal({
                           ? "NPS (0 a 10)"
                           : q.tipo === "escala_1_5"
                           ? "Escala (1 a 5)"
+                          : q.tipo === "selecao_lista"
+                          ? "Lista de Seleção"
                           : "Texto Aberto"}{" "}
                         • {q.totalRespostas} respostas computadas
                       </p>
@@ -414,13 +416,13 @@ export function PesquisaRelatorioModal({
                     )}
                   </div>
 
-                  {/* Distribuição por nota se numérico */}
+                  {/* Distribuição por nota ou opção selecionada */}
                   {q.distribuicao && Object.keys(q.distribuicao).length > 0 && (
                     <div className="space-y-2 pt-2 border-t">
                       <p className="text-[11px] font-semibold text-muted-foreground">
-                        Frequência de Notas:
+                        {q.tipo === "selecao_lista" ? "Distribuição das Alternativas:" : "Frequência de Notas:"}
                       </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-11 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                         {Object.entries(q.distribuicao).map(([nota, count]) => {
                           const pct =
                             q.totalRespostas > 0

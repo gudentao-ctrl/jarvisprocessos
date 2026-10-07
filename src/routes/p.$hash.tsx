@@ -398,7 +398,57 @@ export default function PublicSurveyView() {
               </div>
             )}
 
-            {/* TIPO 3: TEXTO ABERTO (Textarea) */}
+            {/* TIPO 3: LISTA DE SELEÇÃO / MÚLTIPLA ESCOLHA */}
+            {currentQuestion?.tipo_resposta === "selecao_lista" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-2.5">
+                  {(currentQuestion.opcoes_lista && currentQuestion.opcoes_lista.length > 0
+                    ? currentQuestion.opcoes_lista
+                    : ["Opção 1", "Opção 2", "Opção 3"]
+                  ).map((opcao, opcIdx) => {
+                    const isSelected = answers[currentQuestion.id]?.valor_texto === opcao;
+                    return (
+                      <button
+                        key={opcIdx}
+                        type="button"
+                        onClick={() => {
+                          handleTextChange(currentQuestion.id, opcao);
+                          // Auto-advance suave após seleção
+                          setTimeout(() => {
+                            if (currentQuestionIndex < totalQuestions - 1) {
+                              setCurrentQuestionIndex((prev) => prev + 1);
+                            }
+                          }, 320);
+                        }}
+                        className={`w-full text-left p-4 rounded-2xl font-medium text-sm sm:text-base flex items-center justify-between transition-all duration-200 border ${
+                          isSelected
+                            ? "text-white shadow-md scale-[1.01]"
+                            : "bg-black/5 hover:bg-black/10 border-black/10"
+                        }`}
+                        style={{
+                          backgroundColor: isSelected ? visual.primary_color : undefined,
+                          borderColor: isSelected ? visual.primary_color : undefined,
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
+                              isSelected ? "bg-white text-black" : "bg-black/10 opacity-70"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + opcIdx)}
+                          </span>
+                          <span>{opcao}</span>
+                        </div>
+                        {isSelected && <CheckCircle2 className="h-5 w-5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TIPO 4: TEXTO ABERTO (Textarea) */}
             {currentQuestion?.tipo_resposta === "text_open" && (
               <div className="space-y-2">
                 <Textarea

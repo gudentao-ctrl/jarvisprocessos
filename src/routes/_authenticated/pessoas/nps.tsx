@@ -19,6 +19,7 @@ import {
   BarChart3,
   Edit,
   Power,
+  Trash2,
   Sparkles,
   Award,
   Layers,
@@ -34,6 +35,7 @@ import {
   savePesquisaCompleta,
   toggleStatusPesquisa,
   calcularRelatorioPesquisa,
+  deletePesquisa,
 } from "@/lib/nps-storage";
 import { PesquisaFormModal } from "@/components/nps/PesquisaFormModal";
 import { PesquisaRelatorioModal } from "@/components/nps/PesquisaRelatorioModal";
@@ -148,10 +150,30 @@ function NpsDashboardPage() {
     }
   };
 
+  const handleDeletePesquisa = async (pesquisa: Pesquisa) => {
+    if (
+      !window.confirm(
+        `Tem certeza que deseja excluir permanentemente a pesquisa "${pesquisa.titulo}"? Esta ação removerá também as respostas coletadas.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deletePesquisa(pesquisa.id);
+      toast.success("Pesquisa excluída com sucesso.");
+      carregarPesquisas();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao excluir pesquisa.");
+    }
+  };
+
   const handleCopyLink = (hash: string) => {
-    const url = `${window.location.origin}/p/${hash}`;
+    const clean = hash || "";
+    const url = `${window.location.origin}/p/${clean}`;
     navigator.clipboard.writeText(url);
-    setCopiedHash(hash);
+    setCopiedHash(clean);
     toast.success("Link público copiado para a área de transferência!");
     setTimeout(() => setCopiedHash(null), 2500);
   };
@@ -316,7 +338,8 @@ function NpsDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {pesquisasFiltradas.map((pesquisa) => {
             const isNps = pesquisa.tipo === "nps";
-            const score = pesquisa.score_nps;
+            const score = pesquisa.score_nps ?? pesquisa.scoreNps;
+            const linkHash = pesquisa.url_hash || pesquisa.hash_publico || pesquisa.id;
             let scoreBg = "bg-muted text-muted-foreground";
             if (score !== null && score !== undefined) {
               if (score >= 75) scoreBg = "bg-emerald-100 text-emerald-800 border-emerald-300";
@@ -416,8 +439,8 @@ function NpsDashboardPage() {
 
                   {/* Hash / Link de Acesso */}
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t">
-                    <span className="font-mono truncate max-w-[170px]" title={pesquisa.hash_publico}>
-                      /p/{pesquisa.hash_publico}
+                    <span className="font-mono truncate max-w-[170px]" title={linkHash}>
+                      /p/{linkHash}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button
@@ -425,9 +448,9 @@ function NpsDashboardPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2 text-xs text-[#E05A10] hover:bg-[#E05A10]/10"
-                        onClick={() => handleCopyLink(pesquisa.hash_publico)}
+                        onClick={() => handleCopyLink(linkHash)}
                       >
-                        {copiedHash === pesquisa.hash_publico ? (
+                        {copiedHash === linkHash ? (
                           <>
                             <Check className="h-3 w-3 mr-1 text-emerald-600" />
                             Copiado!
@@ -440,7 +463,7 @@ function NpsDashboardPage() {
                         )}
                       </Button>
                       <a
-                        href={`/p/${pesquisa.hash_publico}`}
+                        href={`/p/${linkHash}`}
                         target="_blank"
                         rel="noreferrer"
                         className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground rounded"
@@ -454,15 +477,27 @@ function NpsDashboardPage() {
 
                 {/* Ações Inferiores do Card */}
                 <div className="p-3 bg-muted/10 border-t flex items-center justify-between gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground hover:text-foreground h-8"
-                    onClick={() => handleOpenEdit(pesquisa)}
-                  >
-                    <Edit className="h-3.5 w-3.5 mr-1" />
-                    Editar
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
+                      onClick={() => handleOpenEdit(pesquisa)}
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-8 px-2"
+                      onClick={() => handleDeletePesquisa(pesquisa)}
+                      title="Excluir pesquisa"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Excluir
+                    </Button>
+                  </div>
 
                   <Button
                     size="sm"

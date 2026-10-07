@@ -298,7 +298,7 @@ export async function getPesquisasList(companyId?: string | null): Promise<Pesqu
       query = query.eq("empresa_id", companyId);
     }
     const { data, error } = await query;
-    if (!error && Array.isArray(data) && data.length > 0) {
+    if (!error && Array.isArray(data)) {
       return enrichPesquisas(data as Pesquisa[]);
     }
   } catch (err) {
@@ -306,30 +306,64 @@ export async function getPesquisasList(companyId?: string | null): Promise<Pesqu
   }
 
   const list = readStorage<Pesquisa[]>(LOCAL_STORAGE_PESQUISAS, INITIAL_MOCK_PESQUISAS);
-  const filtered = companyId ? list.filter((p) => !p.empresa_id || p.empresa_id === companyId) : list;
+  const filtered = companyId
+    ? list.filter((p) => p.empresa_id === companyId || p.company_id === companyId)
+    : list;
   return enrichPesquisas(filtered);
 }
 
 export async function getPesquisaByHash(urlHash: string): Promise<Pesquisa | null> {
+  if (!urlHash) return null;
+  const cleanHash = decodeURIComponent(urlHash).trim();
+
   try {
     const db = supabase as any;
-    const { data, error } = await db
+    // Tenta primeiro por url_hash
+    let { data, error } = await db
       .from("pesquisas")
       .select("*, perguntas:pesquisa_perguntas(*)")
-      .eq("url_hash", urlHash)
-      .eq("status", "ativa")
+      .eq("url_hash", cleanHash)
       .maybeSingle();
 
+    // Se não encontrou por url_hash, tenta por id
+    if (!data) {
+      const res = await db
+        .from("pesquisas")
+        .select("*, perguntas:pesquisa_perguntas(*)")
+        .eq("id", cleanHash)
+        .maybeSingle();
+      data = res.data;
+      error = res.error;
+    }
+
     if (!error && data) {
-      return data as Pesquisa;
+      const hashFinal = data.url_hash || data.id;
+      return {
+        ...data,
+        url_hash: hashFinal,
+        hash_publico: hashFinal,
+      } as Pesquisa;
     }
   } catch (err) {
     console.warn("Supabase getPesquisaByHash fallback to localStorage:", err);
   }
 
   const list = readStorage<Pesquisa[]>(LOCAL_STORAGE_PESQUISAS, INITIAL_MOCK_PESQUISAS);
-  const p = list.find((item) => item.url_hash === urlHash || item.id === urlHash);
-  return p || null;
+  const p = list.find(
+    (item) =>
+      item.url_hash === cleanHash ||
+      item.id === cleanHash ||
+      item.hash_publico === cleanHash
+  );
+  if (p) {
+    const hashFinal = p.url_hash || p.hash_publico || p.id;
+    return {
+      ...p,
+      url_hash: hashFinal,
+      hash_publico: hashFinal,
+    };
+  }
+  return null;
 }
 
 export async function getPesquisaById(id: string): Promise<Pesquisa | null> {
@@ -360,14 +394,18 @@ export async function savePesquisa(pesquisaData: Partial<Pesquisa>): Promise<Pes
     thanks_msg: "Muito obrigado pelas suas respostas!",
   };
 
+  const empresaIdFinal = pesquisaData.empresa_id || pesquisaData.company_id || null;
+
   const novaPesquisa: Pesquisa = {
     id,
-    empresa_id: pesquisaData.empresa_id || null,
+    empresa_id: empresaIdFinal,
+    company_id: empresaIdFinal,
     titulo: pesquisaData.titulo || "Nova Pesquisa de Satisfação",
     descricao: pesquisaData.descricao || "",
     tipo: pesquisaData.tipo || "nps",
     status: pesquisaData.status || "ativa",
     url_hash,
+    hash_publico: url_hash,
     config_visual,
     perguntas: (pesquisaData.perguntas || []).map((perg, idx) => ({
       ...perg,
@@ -561,6 +599,25 @@ export async function getRelatorioConsolidado(pesquisaId: string): Promise<NpsRe
         distribuicao: distRating,
         mediaRating: count > 0 ? Math.round((soma / count) * 10) / 10 : 0,
       };
+    } else if (perg.tipo_resposta === "selecao_lista") {
+      // Lista de seleção / múltipla escolha
+      const distOpcoes: Record<string, number> = {};
+      (perg.opcoes_lista || []).forEach((opc) => {
+        distOpcoes[opc] = 0;
+      });
+
+      respostas.forEach((r) => {
+        const it = r.itens.find((i) => i.pergunta_id === perg.id);
+        if (it && it.valor_texto && it.valor_texto.trim()) {
+          const val = it.valor_texto.trim();
+          distOpcoes[val] = (distOpcoes[val] || 0) + 1;
+        }
+      });
+
+      return {
+        pergunta: perg,
+        distribuicao: distOpcoes,
+      };
     } else {
       // Texto aberto
       const comentariosTexto: Array<{ texto: string; data: string }> = [];
@@ -600,20 +657,61 @@ export async function getRelatorioConsolidado(pesquisaId: string): Promise<NpsRe
     };
   });
 
+  // Mapeamento de feedbacks abertos para PesquisaRelatorioModal
+  const feedbacksAbertos: Array<{ perguntaTexto: string; comentario: string; respondente?: string; data: string }> = [];
+  perguntasResultados.forEach((pr) => {
+    if (pr.comentariosTexto) {
+      pr.comentariosTexto.forEach((c) => {
+        feedbacksAbertos.push({
+          perguntaTexto: pr.pergunta.titulo_pergunta,
+          comentario: c.texto,
+          data: c.data,
+        });
+      });
+    }
+  });
+
+  // Mapeamento de questoesStats
+  const questoesStats = perguntasResultados.map((pr) => {
+    let tipoFormatado = "texto_aberto";
+    if (pr.pergunta.tipo_resposta === "nps_score") tipoFormatado = "nps_0_10";
+    else if (pr.pergunta.tipo_resposta === "rating") tipoFormatado = "escala_1_5";
+    else if (pr.pergunta.tipo_resposta === "selecao_lista") tipoFormatado = "selecao_lista";
+
+    return {
+      perguntaTexto: pr.pergunta.titulo_pergunta,
+      tipo: tipoFormatado,
+      totalRespostas: respostas.length,
+      media: pr.mediaRating ?? null,
+      distribuicao: pr.distribuicao || {},
+    };
+  });
+
   return {
     pesquisa,
+    zona: scores.zona,
+    totalRespostas: respostas.length,
     totalRespondentes: respostas.length,
     scoreNps: scores.scoreNps,
+    promotores: scores.promotores,
     promotoresCount: scores.promotores,
+    neutros: scores.neutros,
     neutrosCount: scores.neutros,
+    detratores: scores.detratores,
     detratoresCount: scores.detratores,
+    pctPromotores: scores.promotoresPct,
     promotoresPct: scores.promotoresPct,
+    pctNeutros: scores.neutrosPct,
     neutrosPct: scores.neutrosPct,
+    pctDetratores: scores.detratoresPct,
     detratoresPct: scores.detratoresPct,
     distribuicaoNotas,
+    perguntas,
     perguntasResultados,
+    questoesStats,
+    feedbacksAbertos,
     respostasBrutas,
-  };
+  } as any;
 }
 
 function enrichPesquisas(pesquisas: Pesquisa[]): Pesquisa[] {
@@ -633,10 +731,18 @@ function enrichPesquisas(pesquisas: Pesquisa[]): Pesquisa[] {
 
     const scores = calcularNpsScores(notas);
 
+    const hashFinal = p.url_hash || p.hash_publico || p.id;
+
     return {
       ...p,
+      url_hash: hashFinal,
+      hash_publico: hashFinal,
+      company_id: p.empresa_id || p.company_id || null,
+      empresa_id: p.empresa_id || p.company_id || null,
       totalRespostas: respostasP.length,
+      total_respostas: respostasP.length,
       scoreNps: scores.scoreNps,
+      score_nps: scores.scoreNps,
       promotoresPct: scores.promotoresPct,
       neutrosPct: scores.neutrosPct,
       detratoresPct: scores.detratoresPct,
@@ -668,15 +774,27 @@ export async function savePesquisaCompleta(
 ): Promise<Pesquisa> {
   const payload: Partial<Pesquisa> = {
     ...pesquisaData,
-    perguntas: perguntasData.map((p, idx) => ({
-      id: p.id || `perg-${Date.now()}-${idx + 1}`,
-      pesquisa_id: pesquisaData.id,
-      ordem: idx + 1,
-      titulo_pergunta: p.titulo_pergunta || (p as any).texto_pergunta || "Pergunta",
-      tipo_resposta: p.tipo_resposta || (p as any).tipo === "escala_1_5" ? "rating" : (p as any).tipo === "texto_aberto" ? "text_open" : "nps_score",
-      obrigatorio: p.obrigatorio ?? (p as any).obrigatoria ?? true,
-      placeholder: p.placeholder || (p as any).texto_ajuda || "",
-    })),
+    perguntas: perguntasData.map((p, idx) => {
+      let tipoResposta: any = p.tipo_resposta;
+      const t = (p as any).tipo;
+      if (!tipoResposta) {
+        if (t === "escala_1_5") tipoResposta = "rating";
+        else if (t === "texto_aberto") tipoResposta = "text_open";
+        else if (t === "selecao_lista") tipoResposta = "selecao_lista";
+        else tipoResposta = "nps_score";
+      }
+
+      return {
+        id: p.id || `perg-${Date.now()}-${idx + 1}`,
+        pesquisa_id: pesquisaData.id,
+        ordem: idx + 1,
+        titulo_pergunta: p.titulo_pergunta || (p as any).texto_pergunta || "Pergunta",
+        tipo_resposta: tipoResposta,
+        obrigatorio: p.obrigatorio ?? (p as any).obrigatoria ?? true,
+        placeholder: p.placeholder || (p as any).texto_ajuda || "",
+        opcoes_lista: p.opcoes_lista || (p as any).opcoes_lista || [],
+      };
+    }),
   };
   return savePesquisa(payload);
 }

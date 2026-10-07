@@ -3,7 +3,7 @@
 
 export type TipoPesquisa = "nps" | "enps";
 export type StatusPesquisa = "ativa" | "inativa";
-export type TipoResposta = "nps_score" | "rating" | "text_open";
+export type TipoResposta = "nps_score" | "rating" | "text_open" | "selecao_lista";
 
 export interface ConfigVisualPesquisa {
   bg_color: string;
@@ -24,16 +24,19 @@ export interface PesquisaPergunta {
   tipo_resposta: TipoResposta;
   obrigatorio: boolean;
   placeholder?: string;
+  opcoes_lista?: string[]; // Opções para perguntas do tipo 'selecao_lista'
 }
 
 export interface Pesquisa {
   id: string;
   empresa_id?: string | null;
+  company_id?: string | null; // Alias para compatibilidade
   titulo: string;
   descricao?: string;
   tipo: TipoPesquisa;
   status: StatusPesquisa;
   url_hash: string;
+  hash_publico?: string; // Alias para compatibilidade
   config_visual: ConfigVisualPesquisa;
   created_at: string;
   updated_at?: string;
@@ -41,7 +44,9 @@ export interface Pesquisa {
   // Calculados
   perguntas?: PesquisaPergunta[];
   totalRespostas?: number;
+  total_respostas?: number; // Alias para compatibilidade
   scoreNps?: number;
+  score_nps?: number; // Alias para compatibilidade
   promotoresPct?: number;
   neutrosPct?: number;
   detratoresPct?: number;

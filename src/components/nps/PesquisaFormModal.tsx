@@ -44,7 +44,7 @@ import type {
 interface PesquisaFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (pesquisa: Partial<Pesquisa>, perguntas: Array<Omit<PesquisaPergunta, "id" | "pesquisa_id" | "criado_em">>) => Promise<void>;
+  onSave: (pesquisa: Partial<Pesquisa>, perguntas: any[]) => Promise<void>;
   pesquisaEdit?: Pesquisa | null;
   perguntasEdit?: PesquisaPergunta[];
   companyId?: string | null;
@@ -59,6 +59,17 @@ const DEFAULT_CONFIG_VISUAL: ConfigVisualPesquisa = {
   mensagem_agradecimento: "Muito obrigado por dedicar seu tempo! Suas respostas nos ajudam a construir uma experiência cada vez melhor.",
   permitir_anonimo: true,
 };
+
+type TipoPerguntaForm = "nps_0_10" | "escala_1_5" | "texto_aberto" | "selecao_lista";
+
+interface PerguntaFormState {
+  texto_pergunta: string;
+  tipo: TipoPerguntaForm;
+  obrigatoria: boolean;
+  ordem: number;
+  texto_ajuda?: string;
+  opcoes_lista?: string[];
+}
 
 export function PesquisaFormModal({
   isOpen,
@@ -84,15 +95,23 @@ export function PesquisaFormModal({
   );
 
   // Perguntas
-  const [perguntas, setPerguntas] = useState<Array<Omit<PesquisaPergunta, "id" | "pesquisa_id" | "criado_em">>>(
+  const [perguntas, setPerguntas] = useState<PerguntaFormState[]>(
     perguntasEdit && perguntasEdit.length > 0
-      ? perguntasEdit.map((p) => ({
-          texto_pergunta: p.texto_pergunta,
-          tipo: p.tipo,
-          obrigatoria: p.obrigatoria,
-          ordem: p.ordem,
-          texto_ajuda: p.texto_ajuda || "",
-        }))
+      ? perguntasEdit.map((p) => {
+          let t: TipoPerguntaForm = "nps_0_10";
+          if (p.tipo_resposta === "rating" || (p as any).tipo === "escala_1_5") t = "escala_1_5";
+          else if (p.tipo_resposta === "text_open" || (p as any).tipo === "texto_aberto") t = "texto_aberto";
+          else if (p.tipo_resposta === "selecao_lista" || (p as any).tipo === "selecao_lista") t = "selecao_lista";
+
+          return {
+            texto_pergunta: p.titulo_pergunta || (p as any).texto_pergunta || "",
+            tipo: t,
+            obrigatoria: p.obrigatorio ?? (p as any).obrigatoria ?? true,
+            ordem: p.ordem,
+            texto_ajuda: p.placeholder || (p as any).texto_ajuda || "",
+            opcoes_lista: p.opcoes_lista || (p as any).opcoes_lista || ["Opção 1", "Opção 2", "Opção 3"],
+          };
+        })
       : [
           {
             texto_pergunta:
@@ -103,6 +122,7 @@ export function PesquisaFormModal({
             obrigatoria: true,
             ordem: 1,
             texto_ajuda: "0 significa pouco provável e 10 significa extremamente provável",
+            opcoes_lista: [],
           },
           {
             texto_pergunta: "Qual o principal motivo para a sua avaliação?",
@@ -110,19 +130,25 @@ export function PesquisaFormModal({
             obrigatoria: false,
             ordem: 2,
             texto_ajuda: "Sinta-se livre para compartilhar detalhes e sugestões de melhoria",
+            opcoes_lista: [],
           },
         ]
   );
 
-  const handleAddPergunta = (tipoPergunta: TipoPerguntaNps) => {
+  const handleAddPergunta = (tipoPergunta: TipoPerguntaForm) => {
     let textoDefault = "Nova Pergunta";
     let textoAjuda = "";
+    let opcoesDefault: string[] = [];
     if (tipoPergunta === "nps_0_10") {
       textoDefault = "Em uma escala de 0 a 10, o quanto você recomendaria nossos serviços?";
       textoAjuda = "0 = Pouco provável / 10 = Extremamente provável";
     } else if (tipoPergunta === "escala_1_5") {
       textoDefault = "Como você avalia o atendimento recebido?";
       textoAjuda = "1 = Insatisfeito / 5 = Totalmente Satisfeito";
+    } else if (tipoPergunta === "selecao_lista") {
+      textoDefault = "Selecione uma das opções abaixo:";
+      textoAjuda = "Escolha a alternativa mais adequada";
+      opcoesDefault = ["Opção 1", "Opção 2", "Opção 3"];
     } else {
       textoDefault = "Deixe seus comentários e sugestões:";
       textoAjuda = "Sua resposta sincera nos ajuda muito.";
@@ -136,6 +162,7 @@ export function PesquisaFormModal({
         obrigatoria: true,
         ordem: prev.length + 1,
         texto_ajuda: textoAjuda,
+        opcoes_lista: opcoesDefault,
       },
     ]);
   };
@@ -481,7 +508,7 @@ export function PesquisaFormModal({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       type="button"
                       size="sm"
@@ -501,6 +528,16 @@ export function PesquisaFormModal({
                     >
                       <Star className="h-3.5 w-3.5 mr-1" />
                       + Escala (1 a 5)
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAddPergunta("selecao_lista")}
+                      className="text-xs border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-600"
+                    >
+                      <ListOrdered className="h-3.5 w-3.5 mr-1" />
+                      + Lista de Seleção
                     </Button>
                     <Button
                       type="button"
@@ -533,6 +570,8 @@ export function PesquisaFormModal({
                                 ? "bg-orange-100 text-orange-800"
                                 : perg.tipo === "escala_1_5"
                                 ? "bg-amber-100 text-amber-800"
+                                : perg.tipo === "selecao_lista"
+                                ? "bg-emerald-100 text-emerald-800"
                                 : "bg-indigo-100 text-indigo-800"
                             }
                           >
@@ -540,6 +579,8 @@ export function PesquisaFormModal({
                               ? "NPS Padrão (0 a 10)"
                               : perg.tipo === "escala_1_5"
                               ? "Escala / Rating (1 a 5)"
+                              : perg.tipo === "selecao_lista"
+                              ? "Lista de Seleção"
                               : "Texto Aberto"}
                           </Badge>
                           {perg.obrigatoria && (
@@ -598,9 +639,12 @@ export function PesquisaFormModal({
                           <Label className="text-[11px] text-muted-foreground">Tipo de Entrada</Label>
                           <Select
                             value={perg.tipo}
-                            onValueChange={(v: TipoPerguntaNps) =>
-                              handleUpdatePergunta(idx, "tipo", v)
-                            }
+                            onValueChange={(v: TipoPerguntaForm) => {
+                              handleUpdatePergunta(idx, "tipo", v);
+                              if (v === "selecao_lista" && (!perg.opcoes_lista || perg.opcoes_lista.length === 0)) {
+                                handleUpdatePergunta(idx, "opcoes_lista", ["Opção 1", "Opção 2", "Opção 3"]);
+                              }
+                            }}
                           >
                             <SelectTrigger className="h-9">
                               <SelectValue />
@@ -608,11 +652,74 @@ export function PesquisaFormModal({
                             <SelectContent>
                               <SelectItem value="nps_0_10">NPS (0 a 10)</SelectItem>
                               <SelectItem value="escala_1_5">Escala (1 a 5)</SelectItem>
+                              <SelectItem value="selecao_lista">Lista de Seleção</SelectItem>
                               <SelectItem value="texto_aberto">Texto Aberto</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
+
+                      {/* Configuração de opções da lista de seleção */}
+                      {perg.tipo === "selecao_lista" && (
+                        <div className="p-3 bg-muted/30 rounded-xl border space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-semibold text-[#3E100C]">
+                              Alternativas da Lista de Seleção
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-emerald-700 hover:bg-emerald-50"
+                              onClick={() => {
+                                const current = perg.opcoes_lista || [];
+                                handleUpdatePergunta(idx, "opcoes_lista", [
+                                  ...current,
+                                  `Opção ${current.length + 1}`,
+                                ]);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              + Adicionar Opção
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {(perg.opcoes_lista || []).map((opc, opcIdx) => (
+                              <div key={opcIdx} className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground font-mono w-5">
+                                  {opcIdx + 1}.
+                                </span>
+                                <Input
+                                  value={opc}
+                                  onChange={(e) => {
+                                    const nextOpcoes = [...(perg.opcoes_lista || [])];
+                                    nextOpcoes[opcIdx] = e.target.value;
+                                    handleUpdatePergunta(idx, "opcoes_lista", nextOpcoes);
+                                  }}
+                                  placeholder={`Texto da alternativa ${opcIdx + 1}`}
+                                  className="h-8 text-xs bg-background"
+                                />
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                                  onClick={() => {
+                                    const nextOpcoes = (perg.opcoes_lista || []).filter(
+                                      (_, i) => i !== opcIdx
+                                    );
+                                    handleUpdatePergunta(idx, "opcoes_lista", nextOpcoes);
+                                  }}
+                                  disabled={(perg.opcoes_lista || []).length <= 1}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-1">
                         <div className="md:col-span-3 space-y-1">
