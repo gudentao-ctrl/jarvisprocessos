@@ -209,6 +209,16 @@ export default function PublicSurveyView() {
           className="max-w-lg w-full p-8 sm:p-10 rounded-3xl shadow-xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-500"
           style={{ backgroundColor: visual.card_bg_color }}
         >
+          {visual.logo_url && (
+            <div className="flex items-center justify-center pb-2">
+              <img
+                src={visual.logo_url}
+                alt="Logo do Cliente"
+                className="max-h-20 sm:max-h-24 max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm"
+              />
+            </div>
+          )}
+
           <div
             className="h-16 w-16 rounded-full flex items-center justify-center mx-auto shadow-md"
             style={{ backgroundColor: visual.primary_color, color: "#FFFFFF" }}
@@ -261,17 +271,17 @@ export default function PublicSurveyView() {
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
-            <img src={visual.logo_url} alt="Logo" className="h-12 mx-auto object-contain mb-2" />
+            <div className="flex items-center justify-center pb-2">
+              <img
+                src={visual.logo_url}
+                alt="Logo do Cliente"
+                className="max-h-24 sm:max-h-28 max-w-[280px] sm:max-w-[340px] object-contain drop-shadow-sm"
+              />
+            </div>
           )}
 
           <div className="space-y-2">
-            <span
-              className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full"
-              style={{ backgroundColor: `${visual.primary_color}20`, color: visual.primary_color }}
-            >
-              {pesquisa.tipo === "enps" ? "Pesquisa de Clima (eNPS)" : "Pesquisa de Satisfação (NPS)"}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-2">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-1">
               {pesquisa.titulo}
             </h1>
             {pesquisa.descricao && (
@@ -335,11 +345,11 @@ export default function PublicSurveyView() {
         >
           {/* Logomarca da Empresa se configurada */}
           {visual.logo_url && (
-            <div className="flex items-center justify-start pb-2 border-b border-black/5">
+            <div className="flex items-center justify-start pb-3 border-b border-black/5">
               <img
                 src={visual.logo_url}
-                alt="Logo"
-                className="max-h-12 max-w-[180px] object-contain"
+                alt="Logo do Cliente"
+                className="max-h-20 sm:max-h-24 max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm"
               />
             </div>
           )}
