@@ -300,9 +300,9 @@ function FinanceiroPage() {
     );
     const currentInvoiced = preview.total > 0 ? preview.total : 0;
     return calculateInvoiceDRE({
-      pastInvoices,
-      pastPayments,
-      currentInvoiceAmount: currentInvoiced,
+      saldoAnteriorFaturado: pastInvoices.reduce((s: number, i: any) => s + Number(i.total_amount ?? 0), 0),
+      saldoAnteriorPago: pastPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0),
+      faturadoAtual: currentInvoiced,
     });
   }, [companyId, data?.invoices, data?.payments, preview.total]);
 
@@ -431,10 +431,13 @@ function FinanceiroPage() {
         (p: any) => p.confirmation_status !== "pendente",
       );
 
+      const currentAmount = Number(currentInvoice.total_amount || 0);
       const dre = calculateInvoiceDRE({
-        pastInvoices: allInvoices,
-        pastPayments: allPayments,
-        currentInvoiceAmount: Number(currentInvoice.total_amount || 0),
+        saldoAnteriorFaturado: allInvoices
+          .filter((i: any) => i.id !== currentInvoice.id)
+          .reduce((s: number, i: any) => s + Number(i.total_amount ?? 0), 0),
+        saldoAnteriorPago: allPayments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0),
+        faturadoAtual: currentAmount,
       });
 
       const savedMethods: PaymentMethodMaia[] = data?.paymentMethods ?? [];
