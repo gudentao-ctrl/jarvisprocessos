@@ -471,56 +471,128 @@ export function MentoradoDetail({
                         >
                           Aproveitamento: {nota.toFixed(1)}/5.0
                         </Badge>
+                        {sessao.diagnostico?.evolucao_percebida && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] bg-[#FFF8F5] text-[#E05A10] border border-[#E05A10]/30"
+                          >
+                            Evolução: {sessao.diagnostico.evolucao_percebida}/5.0
+                          </Badge>
+                        )}
                       </div>
 
+                      {/* Objetivo da Sessão */}
+                      {sessao.objetivo_sessao && (
+                        <div className="text-xs text-foreground bg-[#FFF8F5]/80 p-2 rounded-md border border-[#E5D5CE]/60 flex items-start gap-1.5">
+                          <span className="font-bold text-[#3E100C] shrink-0">Objetivo:</span>
+                          <span className="text-muted-foreground">{sessao.objetivo_sessao}</span>
+                        </div>
+                      )}
+
                       {/* Resumo */}
-                      <div className="text-xs text-foreground bg-[#FFF8F5]/60 p-2.5 rounded-lg border border-[#E5D5CE]/50">
+                      <div className="text-xs text-foreground bg-muted/15 p-2.5 rounded-lg border border-[#E5D5CE]/50">
                         <span className="font-bold text-[#3E100C] block mb-0.5">Temas e Tópicos Abordados:</span>
                         <p className="text-muted-foreground leading-relaxed">{sessao.resumo}</p>
                       </div>
 
-                      {/* Checklist de Ações */}
-                      {sessao.acoes && sessao.acoes.length > 0 && (
-                        <div className="space-y-1 pt-1">
-                          <span className="text-xs font-bold text-[#3E100C] flex items-center gap-1">
-                            <CheckSquare className="h-3.5 w-3.5 text-[#E05A10]" /> Ações Definidas:
-                          </span>
-                          <div className="space-y-1">
-                            {sessao.acoes.map((ac) => (
-                              <div
-                                key={ac.id}
-                                className="flex items-center gap-2 text-xs text-muted-foreground pl-1"
-                              >
-                                <span className={ac.concluida ? "text-emerald-600 font-bold" : "text-amber-600"}>
-                                  {ac.concluida ? "✓" : "○"}
-                                </span>
-                                <span className={ac.concluida ? "line-through text-muted-foreground/80" : "font-medium text-foreground"}>
-                                  {ac.texto}
-                                </span>
-                                {ac.prazo && (
-                                  <span className="text-[10px] bg-muted/40 px-1 rounded">
-                                    Prazo: {new Date(ac.prazo).toLocaleDateString("pt-BR")}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                      {/* Registro da Mentora (Grid 2x2 ou Cards) */}
+                      {(sessao.avancos_observados ||
+                        sessao.pontos_desenvolvimento ||
+                        sessao.evidencias_comportamentais ||
+                        sessao.foco_proxima_sessao ||
+                        sessao.pontos_atencao ||
+                        sessao.pontos_informe) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                          {(sessao.avancos_observados || sessao.pontos_informe) && (
+                            <div className="bg-emerald-50/60 p-2 rounded border border-emerald-200 text-emerald-900 space-y-0.5">
+                              <strong>Principais Avanços:</strong>
+                              <p className="text-emerald-800 leading-snug">
+                                {sessao.avancos_observados || sessao.pontos_informe}
+                              </p>
+                            </div>
+                          )}
+
+                          {(sessao.pontos_desenvolvimento || sessao.pontos_atencao) && (
+                            <div className="bg-amber-50/60 p-2 rounded border border-amber-200 text-amber-900 space-y-0.5">
+                              <strong>Pontos em Desenvolvimento:</strong>
+                              <p className="text-amber-800 leading-snug">
+                                {sessao.pontos_desenvolvimento || sessao.pontos_atencao}
+                              </p>
+                            </div>
+                          )}
+
+                          {sessao.evidencias_comportamentais && (
+                            <div className="bg-sky-50/60 p-2 rounded border border-sky-200 text-sky-900 space-y-0.5">
+                              <strong>Evidências Comportamentais:</strong>
+                              <p className="text-sky-800 leading-snug">
+                                {sessao.evidencias_comportamentais}
+                              </p>
+                            </div>
+                          )}
+
+                          {sessao.foco_proxima_sessao && (
+                            <div className="bg-[#FFF8F5] p-2 rounded border border-[#E05A10]/30 text-[#3E100C] space-y-0.5">
+                              <strong>Foco para a Próxima Sessão:</strong>
+                              <p className="text-muted-foreground leading-snug">
+                                {sessao.foco_proxima_sessao}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Pontos de Atenção & Informe */}
-                      {(sessao.pontos_atencao || sessao.pontos_informe) && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
-                          {sessao.pontos_atencao && (
-                            <p className="bg-amber-50/60 p-2 rounded border border-amber-200 text-amber-900">
-                              <strong>Atenção:</strong> {sessao.pontos_atencao}
-                            </p>
-                          )}
-                          {sessao.pontos_informe && (
-                            <p className="bg-blue-50/60 p-2 rounded border border-blue-200 text-blue-900">
-                              <strong>Informe Equipe:</strong> {sessao.pontos_informe}
-                            </p>
-                          )}
+                      {/* Checklist de Ações Expandido */}
+                      {sessao.acoes && sessao.acoes.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-xs font-bold text-[#3E100C] flex items-center gap-1">
+                            <CheckSquare className="h-3.5 w-3.5 text-[#E05A10]" /> Ações Definidas (Plano Prático):
+                          </span>
+                          <div className="space-y-1.5">
+                            {sessao.acoes.map((ac) => {
+                              const status = ac.status || (ac.concluida ? "Concluída" : "Pendente");
+                              const statusColor =
+                                status === "Concluída"
+                                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                  : status === "Parcial"
+                                    ? "bg-sky-50 text-sky-800 border-sky-200"
+                                    : status === "Não realizada"
+                                      ? "bg-rose-50 text-rose-800 border-rose-200"
+                                      : "bg-amber-50 text-amber-800 border-amber-200";
+
+                              return (
+                                <div
+                                  key={ac.id}
+                                  className="p-2 rounded bg-[#FFF8F5]/30 border border-[#E5D5CE]/60 text-xs space-y-1"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className={status === "Concluída" ? "text-emerald-600 font-bold" : "text-amber-600"}>
+                                        {status === "Concluída" ? "✓" : "○"}
+                                      </span>
+                                      <span className={status === "Concluída" ? "line-through text-muted-foreground" : "font-medium text-foreground"}>
+                                        {ac.texto}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${statusColor}`}>
+                                        {status}
+                                      </span>
+                                      {ac.prazo && (
+                                        <span className="text-[10px] text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">
+                                          Prazo: {new Date(ac.prazo).toLocaleDateString("pt-BR")}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {ac.resultado_aprendizado && (
+                                    <p className="text-[11px] text-muted-foreground italic pl-4 border-l-2 border-[#E05A10]/40">
+                                      Resultado: {ac.resultado_aprendizado}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>

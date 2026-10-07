@@ -212,14 +212,14 @@ export async function generateMentoriaFinalReportPDF(
     `#${idx + 1}`,
     new Date(s.data_atendimento).toLocaleDateString("pt-BR"),
     `${Number(s.horas || 0).toFixed(1)}h`,
-    s.resumo || "—",
-    `${Number(s.diagnostico?.media_nota || 0).toFixed(1)} / 5.0`,
+    s.objetivo_sessao ? `Objetivo: ${s.objetivo_sessao}\n${s.resumo || ""}` : s.resumo || "—",
+    `${Number(s.diagnostico?.media_nota || 0).toFixed(1)} / 5.0${s.diagnostico?.evolucao_percebida ? ` (Evol: ${s.diagnostico.evolucao_percebida})` : ""}`,
   ]);
 
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
-    head: [["Sessão", "Data", "Horas", "Resumo dos Temas Abordados", "Aproveitamento"]],
+    head: [["Sessão", "Data", "Horas", "Objetivo & Resumo dos Temas Abordados", "Aproveitamento"]],
     body: sessoesTableData.length > 0 ? sessoesTableData : [["—", "—", "—", "Nenhuma sessão registrada", "—"]],
     theme: "striped",
     headStyles: {
@@ -265,11 +265,13 @@ export async function generateMentoriaFinalReportPDF(
   const todasAcoes: any[] = [];
   sessoes.forEach((s, sIdx) => {
     (s.acoes || []).forEach((ac) => {
+      const statusLabel = (ac.status || (ac.concluida ? "Concluída" : "Pendente")).toUpperCase();
+      const descr = ac.resultado_aprendizado ? `${ac.texto}\n> Resultado: ${ac.resultado_aprendizado}` : ac.texto;
       todasAcoes.push([
         `Sessão #${sIdx + 1}`,
-        ac.texto,
+        descr,
         ac.prazo ? new Date(ac.prazo).toLocaleDateString("pt-BR") : "—",
-        ac.concluida ? "CONCLUÍDA" : "EM ABERTO",
+        statusLabel,
       ]);
     });
   });
