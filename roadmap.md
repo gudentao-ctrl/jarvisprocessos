@@ -30,3 +30,4 @@
 - [x] Bloco 14: automatizar Dores, Decisões e Informações, aplicar empresa global e refinar a Matriz
 - [x] Pessoas: cadastro pré-teste, aceite, tentativa única, controles de consistência e relatório combinado
 - [x] Pessoas: validar identidade cadastral, eliminar resultados fictícios e individualizar integralmente os laudos
+- [ ] Pessoas: corrigir idade pelo nascimento cadastrado e auditar conteúdo e apresentação do PDF real
