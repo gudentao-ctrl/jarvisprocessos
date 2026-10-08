@@ -1,10 +1,15 @@
+import { calculateAssessmentAge } from "@/lib/assessment-age";
 import { bancoQuestoes, Questao } from "@/data/bancoQuestoes";
 
 export interface CandidatePsychometricResult {
   candidato: {
     id: string;
     nome: string;
-    idade: number;
+    idade: number | null;
+    nascimento?: string | null;
+    cargoAtual?: string;
+    empresa?: string | null;
+    externo?: boolean;
     escolaridade: string;
     cargoPretendido: string;
     dataTeste: string;
@@ -155,7 +160,7 @@ export function processAssessmentResults(
   candidateMeta: {
     id: string;
     nome: string;
-    idade?: number;
+    idade?: number | null;
     escolaridade?: string;
     cargoPretendido?: string;
   }
@@ -555,9 +560,9 @@ export function processAssessmentResults(
     candidato: {
       id: candidateMeta.id,
       nome: candidateMeta.nome,
-      idade: candidateMeta.idade || 35,
-      escolaridade: candidateMeta.escolaridade || "Superior Completo / Pós-Graduação",
-      cargoPretendido: candidateMeta.cargoPretendido || "Gestão e Liderança",
+      idade: candidateMeta.idade ?? null,
+      escolaridade: candidateMeta.escolaridade || "Não informado",
+      cargoPretendido: candidateMeta.cargoPretendido || "Não informado",
       dataTeste: new Date().toISOString().split("T")[0],
       tempoTotalMinutos: Math.round(totalExecutionSeconds / 60) || 35,
     },
@@ -804,312 +809,21 @@ export const MOCK_CONSULTANT_REPORT_STATE: CandidatePsychometricResult = {
  * Constrói ou recupera o relatório do consultor para um candidato específico
  */
 export function buildReportForCandidate(cand: any): CandidatePsychometricResult {
-  if (cand?.profile_data?.psychometrics) {
-    return {
-      ...cand.profile_data.psychometrics,
-      candidato: {
-        ...cand.profile_data.psychometrics.candidato,
-        id: cand.id,
-        nome: cand.full_name || cand.nome || "Colaborador Avaliado",
-        cargoPretendido: cand.desired_role || cand.current_role || cand.cargoPretendido || "Gestão e Operações",
-      },
-    };
+  if (cand?.status !== "concluido" || !cand?.profile_data?.psychometrics) {
+    throw new Error("Esta avaliação não possui um protocolo concluído para gerar relatório.");
   }
-
-  // PRNG baseado em hash simples do ID
-  const seedString = cand?.id || "default-cand";
-  let hash = 0;
-  for (let i = 0; i < seedString.length; i++) {
-    hash = (hash << 5) - hash + seedString.charCodeAt(i);
-    hash |= 0; 
-  }
-  let seed = Math.abs(hash) || 12345;
-  const prng = () => {
-    seed = Math.sin(seed) * 10000;
-    return seed - Math.floor(seed);
-  };
-
-  const randBank = (arr: any[]) => arr[Math.floor(prng() * arr.length)];
-  const jitter = (base: number, dev: number) => Math.max(1, Math.min(99, Math.round(base + (prng() * 2 - 1) * dev)));
-
-  const age = cand?.birth_date
-    ? Math.floor((Date.now() - new Date(cand.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-    : 34;
-
-  const radar = cand?.profile_data?.radar as Array<{ name: string; factor?: string; value: number }> | undefined;
-  
-  // Valores default de 50
-  let ext = 50, amab = 50, consc = 50, stab = 50, abert = 50;
-
-  if (Array.isArray(radar) && radar.length > 0) {
-    radar.forEach((r) => {
-      if (r.factor === "E" || /extrovers/i.test(r.name)) ext = r.value;
-      if (r.factor === "M" || /amabilid/i.test(r.name)) amab = r.value;
-      if (r.factor === "C" || /conscien/i.test(r.name)) consc = r.value;
-      if (r.factor === "N" || /estabili/i.test(r.name)) stab = r.value;
-      if (r.factor === "A" || /abertura/i.test(r.name)) abert = r.value;
-    });
-  }
-
-  const neuro = Math.max(1, Math.min(99, 100 - stab));
-
-  // Função utilitária para montar o fator Big Five
-  const buildFactor = (val: number, facetNames: string[]) => {
-    const p = Math.max(1, Math.min(99, val));
-    const z = (p - 50) / 30; // aproximação grosseira
-    const tScore = zToTScore(z);
-    
-    const facetas: Record<string, number> = {};
-    facetNames.forEach(f => facetas[f] = jitter(p, 12));
-
-    return {
-      percentil: p,
-      escoreT: Math.round(tScore),
-      nivel: getPercentilNivel(p),
-      theta: Number(z.toFixed(2)),
-      facetas
-    };
-  };
-
-  const bigFiveFatores = {
-    neuroticismo: buildFactor(neuro, ["Ansiedade", "Vulnerabilidade", "Hostilidade", "Impulsividade", "Depressão", "Autoconsciência"]),
-    extroversao: buildFactor(ext, ["Acolhimento", "Gregarismo", "Assertividade", "Atividade", "Busca de Excitação", "Emoções Positivas"]),
-    abertura: buildFactor(abert, ["Fantasia", "Estética", "Sentimentos", "Ações", "Ideias", "Valores"]),
-    amabilidade: buildFactor(amab, ["Confiança", "Franqueza", "Altruísmo", "Conformidade", "Modéstia", "Sensibilidade"]),
-    conscienciosidade: buildFactor(consc, ["Competência", "Ordem", "Dever", "Esforço para Realização", "Autodisciplina", "Deliberação"])
-  };
-
-  // Identificar fator dominante
-  const allFactors = [
-    { name: "Neuroticismo", val: neuro },
-    { name: "Extroversão", val: ext },
-    { name: "Abertura", val: abert },
-    { name: "Amabilidade", val: amab },
-    { name: "Conscienciosidade", val: consc }
-  ];
-  allFactors.sort((a, b) => b.val - a.val);
-  const fatorDominante = allFactors[0].name;
-
-  // Gerar DISC
-  const D_nat = Math.round((consc + ext + (100 - amab)) / 3);
-  const I_nat = Math.round((ext + abert + amab) / 3);
-  const S_nat = Math.round((amab + stab + (100 - ext)) / 3);
-  const C_nat = Math.round((consc + (100 - abert) + stab) / 3);
-
-  const buildDiscProfile = (d: number, i: number, s: number, c: number, dev: number) => {
-    return [
-      { fator: "D" as const, nome: "Dominância", valor: jitter(d, dev), theta: Number(((d - 50) / 30).toFixed(2)), percentil: jitter(d, dev) },
-      { fator: "I" as const, nome: "Influência", valor: jitter(i, dev), theta: Number(((i - 50) / 30).toFixed(2)), percentil: jitter(i, dev) },
-      { fator: "S" as const, nome: "Estabilidade", valor: jitter(s, dev), theta: Number(((s - 50) / 30).toFixed(2)), percentil: jitter(s, dev) },
-      { fator: "C" as const, nome: "Conformidade", valor: jitter(c, dev), theta: Number(((c - 50) / 30).toFixed(2)), percentil: jitter(c, dev) }
-    ];
-  };
-
-  const natural = buildDiscProfile(D_nat, I_nat, S_nat, C_nat, 3);
-  const adaptado = buildDiscProfile(D_nat, I_nat, S_nat, C_nat, 15);
-  
-  // Delta de estresse
-  let deltaSum = 0;
-  for(let idx = 0; idx < 4; idx++) {
-    deltaSum += Math.abs(natural[idx].valor - adaptado[idx].valor);
-  }
-  const deltaEstresse = Math.round(deltaSum / 4);
-  const classificacaoEstresse = deltaEstresse < 10 ? "Baixo" : (deltaEstresse < 20 ? "Moderado" : "Alto");
-
-  // Bancos de narrativas
-  const liderancaBank = [
-    "Estilo diretivo focado em resultados rápidos e pragmáticos.",
-    "Liderança colaborativa e empática, valorizando o consenso.",
-    "Abordagem estruturada, priorizando qualidade e precisão nas entregas.",
-    "Liderança inspiradora e carismática, focada em motivar a equipe.",
-    "Estilo adaptável e equilibrado, mesclando foco na tarefa e nas pessoas."
-  ];
-  
-  const ambienteBank = [
-    "Ambientes dinâmicos com alto grau de autonomia e desafios constantes.",
-    "Culturas organizacionais acolhedoras com forte senso de equipe.",
-    "Estruturas previsíveis com regras claras e processos bem definidos.",
-    "Cenários inovadores que estimulam a criatividade e a experimentação.",
-    "Organizações focadas em alta performance e metas agressivas."
-  ];
-
-  const pontosCegosBank = [
-    "Pode negligenciar detalhes importantes em busca de rapidez.",
-    "Tende a evitar conflitos necessários para manter a harmonia.",
-    "Pode ser excessivamente crítico e perfeccionista, atrasando entregas.",
-    "Risco de dispersão devido ao excesso de entusiasmo com novas ideias.",
-    "Pode demonstrar impaciência com ritmos de trabalho mais cautelosos."
-  ];
-
-  // Matriz de Convergência
-  const cruzamentoD = D_nat > 50 && (consc > 50 && ext > 50) ? "Confirmado" : "Divergente";
-  const cruzamentoI = I_nat > 50 && ext > 50 ? "Confirmado" : "Divergente";
-  const cruzamentoS = S_nat > 50 && amab > 50 ? "Confirmado" : "Divergente";
-  const cruzamentoC = C_nat > 50 && consc > 50 ? "Confirmado" : "Divergente";
-
-  const diagConf = [
-    "Perfil perfeitamente alinhado entre traços estáveis e expressão comportamental.",
-    "Alta aderência entre os motivadores internos e o estilo visível.",
-    "Consistência sólida indicando autoconhecimento e estabilidade."
-  ];
-  const diagDiv = [
-    "Indicativo de adaptação situacional; o comportamento difere da base natural.",
-    "Possível esforço adaptativo frente a exigências do ambiente atual.",
-    "Sinaliza uma flexibilização tática do comportamento para lidar com pressões."
-  ];
-
-  const matrizConvergencia = [
-    { tracoDisc: "D", fatorBigFive: "Conscienciosidade + Extroversão", cruzamento: cruzamentoD, diagnostico: cruzamentoD === "Confirmado" ? randBank(diagConf) : randBank(diagDiv) },
-    { tracoDisc: "I", fatorBigFive: "Extroversão + Abertura", cruzamento: cruzamentoI, diagnostico: cruzamentoI === "Confirmado" ? randBank(diagConf) : randBank(diagDiv) },
-    { tracoDisc: "S", fatorBigFive: "Amabilidade", cruzamento: cruzamentoS, diagnostico: cruzamentoS === "Confirmado" ? randBank(diagConf) : randBank(diagDiv) },
-    { tracoDisc: "C", fatorBigFive: "Conscienciosidade", cruzamento: cruzamentoC, diagnostico: cruzamentoC === "Confirmado" ? randBank(diagConf) : randBank(diagDiv) }
-  ] as any; // Type assertion since types exactness may vary
-
-  const divergencias = matrizConvergencia.filter((m: any) => m.cruzamento === "Divergente").length;
-  const sinteseAutenticidade = divergencias === 0 
-    ? "O candidato apresenta um perfil de altíssima autenticidade, não demonstrando tensões entre sua personalidade estrutural e sua expressão de superfície." 
-    : (divergencias <= 2 
-        ? "Nota-se alguma adaptação situacional onde o candidato modula certos traços para atender às demandas do ambiente, sem perder sua essência." 
-        : "Forte indício de estresse adaptativo crônico. O perfil projetado difere substancialmente da matriz basal de personalidade.");
-
-  // MATCH CARGO
-  const cargo = cand?.desired_role || cand?.current_role || "Função Atual";
-  const distEuc = Number((prng() * 15 + 5).toFixed(2));
-  const pctMatch = Math.min(100, Math.max(0, Math.round(100 - distEuc * 2)));
-  
-  const compStatus = (score: number) => score >= 85 ? "Fortaleza" : score >= 65 ? "Adequado" : "Gap";
-  const competencias = [
-    { nome: "Resiliência sob Pressão", score: stab, status: compStatus(stab), descricao: "Capacidade de manter a calma e a clareza mental em situações de crise." },
-    { nome: "Comunicação Interpessoal", score: ext, status: compStatus(ext), descricao: "Habilidade de influenciar e engajar stakeholders de forma eficaz." },
-    { nome: "Foco em Qualidade", score: consc, status: compStatus(consc), descricao: "Orientação ao detalhe, normas e excelência nas entregas." },
-    { nome: "Adaptabilidade", score: abert, status: compStatus(abert), descricao: "Abertura para inovações e flexibilidade frente a mudanças." }
-  ] as any;
-
-  // PERGUNTAS STAR (focar em áreas de gap ou mediano)
-  const sortedComps = [...competencias].sort((a, b) => a.score - b.score);
-  const perguntasStar = [
-    {
-      competencia: sortedComps[0].nome,
-      situacao: "Conte sobre uma vez em que você enfrentou um desafio crítico envolvendo " + sortedComps[0].nome.toLowerCase() + ".",
-      tarefa: "Qual era exatamente o seu papel e o que precisava ser resolvido?",
-      acao: "Que medidas específicas você tomou para contornar a dificuldade?",
-      resultado: "Quais foram os impactos da sua ação e o que você faria diferente hoje?"
-    },
-    {
-      competencia: sortedComps[1].nome,
-      situacao: "Descreva um projeto onde sua habilidade de " + sortedComps[1].nome.toLowerCase() + " foi posta à prova.",
-      tarefa: "Quais eram os objetivos iniciais e os obstáculos identificados?",
-      acao: "Como você agiu na prática para superar as barreiras?",
-      resultado: "Qual foi a entrega final e o feedback recebido?"
-    }
-  ];
-
-  // PARECER CONSULTOR & PDI
-  const parecerBank = [
-    `${cand?.full_name || "O profissional"} demonstra um perfil centrado, com ancoragem principal em ${fatorDominante}. Suas respostas indicam potencial para contribuições sólidas na função de ${cargo}, embora exija atenção em cenários de alta imprevisibilidade.`,
-    `Avaliamos que ${cand?.full_name || "o profissional"} possui aderência tática às demandas de ${cargo}. A presença forte de ${fatorDominante} sugere uma atuação engajada e focada em entregas efetivas.`,
-    `Perfil de ${cand?.full_name || "candidato"} revela maturidade profissional. O destaque em ${fatorDominante} fortalece sua capacidade de resposta, sendo recomendado para desafios em ${cargo} que valorizem essa característica.`
-  ];
-
-  const recEnum = pctMatch >= 80 ? "RECOMENDADO" : (pctMatch >= 60 ? "RECOMENDADO COM RESSALVAS" : "NÃO RECOMENDADO PARA A FUNÇÃO ATUAL");
-
   return {
+    ...cand.profile_data.psychometrics,
     candidato: {
-      id: cand?.id || "cand-id",
-      nome: cand?.full_name || cand?.nome || "Colaborador Avaliado",
-      idade: age,
-      escolaridade: cand?.escolaridade || "Não informado",
-      cargoPretendido: cargo,
-      dataTeste: new Date().toISOString().split("T")[0],
-      tempoTotalMinutos: jitter(45, 15),
+      ...cand.profile_data.psychometrics.candidato,
+      id: cand.id,
+      nome: cand.full_name || "Não informado",
+      nascimento: cand.birth_date ?? null,
+      idade: calculateAssessmentAge(cand.birth_date),
+      cargoAtual: cand.current_role || "Não informado",
+      cargoPretendido: cand.desired_role || "Não informado",
+      empresa: cand.company_name ?? null,
+      externo: Boolean(cand.external),
     },
-    validade: {
-      statusGeral: "VALIDO_COM_RESSALVAS",
-      vrinEscore: 0,
-      desejabilidadeT: 50,
-      tmiSegundos: 0,
-      infrequenciaErros: 0,
-      mensagem: "Perfil derivado sinteticamente a partir de mapeamento comportamental (Radar Big Five). Os escores apresentados são estimativas psicométricas calculadas por modelagem cruzada. Para máxima acurácia, recomenda-se aplicação do instrumento psicométrico completo (240 itens).",
-      alertas: [
-        "Estimativa sintética — escores derivados de radar comportamental, sem aplicação de questionário padronizado.",
-        "Escalas de validade (VRIN, TMI, Desejabilidade Social) não aplicáveis neste modo de estimativa.",
-        "Recomenda-se aplicação do instrumento completo para fins de decisão em processos seletivos formais."
-      ]
-    },
-    disc: {
-      natural,
-      adaptado,
-      deltaEstresse,
-      classificacaoEstresse,
-      estiloLideranca: randBank(liderancaBank),
-      ambienteIdeal: randBank(ambienteBank),
-      pontosCegos: [randBank(pontosCegosBank), randBank(pontosCegosBank), randBank(pontosCegosBank)]
-    },
-    bigFive: {
-      fatores: bigFiveFatores,
-      fatorDominante,
-    },
-    matrizConvergencia,
-    sinteseAutenticidade,
-    matchCargo: {
-      percentual: pctMatch,
-      distanciaEuclidiana: distEuc,
-      competencias
-    },
-    perguntasStar: [
-      {
-        competencia: sortedComps[0].nome,
-        situacao: `Relate uma situação profissional real em que sua capacidade de ${sortedComps[0].nome.toLowerCase()} foi severamente testada por um imprevisto ou crise inesperada.`,
-        tarefa: `Qual era exatamente o seu papel institucional, e quais eram as consequências concretas (financeiras, operacionais ou reputacionais) de um eventual fracasso?`,
-        acao: `Descreva passo a passo as medidas específicas que você implementou, incluindo quem envolveu, quais recursos mobilizou e como priorizou as ações.`,
-        resultado: `Quais indicadores (KPIs, métricas, feedbacks) comprovaram a efetividade da sua resposta? O que teria feito diferente com a experiência de hoje?`
-      },
-      {
-        competencia: sortedComps[1].nome,
-        situacao: `Apresente um projeto ou desafio onde você precisou desenvolver ou demonstrar alta competência em ${sortedComps[1].nome.toLowerCase()} acima do que era habitual para você.`,
-        tarefa: `Quais eram os critérios de sucesso definidos pela liderança e o prazo inegociável estabelecido?`,
-        acao: `De que forma você saiu da sua zona de conforto para atender a essa demanda? Quais comportamentos novos precisou adotar?`,
-        resultado: `Qual foi o resultado entregue versus o esperado? Como essa experiência mudou sua forma de atuar em situações similares?`
-      },
-      {
-        competencia: `Integração ${sortedComps[0].nome} × ${sortedComps[1].nome}`,
-        situacao: `Descreva um contexto em que precisou equilibrar simultaneamente ${sortedComps[0].nome.toLowerCase()} e ${sortedComps[1].nome.toLowerCase()} sob forte pressão de prazos.`,
-        tarefa: `Como você definiu prioridades entre essas duas demandas conflitantes?`,
-        acao: `Quais trade-offs foram necessários e como você comunicou suas decisões aos stakeholders?`,
-        resultado: `O equilíbrio alcançado foi sustentável? Quais aprendizados foram incorporados à sua prática?`
-      },
-      {
-        competencia: "Liderança e Gestão de Pessoas",
-        situacao: `Conte sobre um momento em que precisou liderar uma equipe em condições adversas (recursos limitados, conflitos internos ou mudança organizacional).`,
-        tarefa: `Qual era o objetivo estratégico que dependia diretamente do desempenho dessa equipe?`,
-        acao: `Como você motivou, alinhou expectativas e gerenciou o desempenho individual dos membros da equipe?`,
-        resultado: `Qual foi o desfecho do projeto e como ficou o clima da equipe após a conclusão?`
-      }
-    ],
-    parecerConsultor: {
-      sinteseQualitativa: randBank(parecerBank),
-      recomendacao: recEnum,
-      pdi: [
-        {
-          area: sortedComps[0].nome,
-          acao: `Programa estruturado de desenvolvimento em ${sortedComps[0].nome.toLowerCase()}: participação em workshops especializados, mentoria com profissional sênior da área e aplicação prática em projetos-piloto com acompanhamento quinzenal de evolução.`,
-          prazoSugerido: "Primeiros 90 dias",
-          indicadorSucesso: `Evolução mensurável no indicador de ${sortedComps[0].nome.toLowerCase()} em avaliação 360° e feedback qualitativo da liderança direta.`
-        },
-        {
-          area: sortedComps[1].nome,
-          acao: `Imersão prática em cenários que exijam alta ${sortedComps[1].nome.toLowerCase()}: participação ativa em comitês interdepartamentais, condução de apresentações executivas e liderança de iniciativas transversais com equipes multidisciplinares.`,
-          prazoSugerido: "90 a 180 dias",
-          indicadorSucesso: `Registro de pelo menos 3 entregas de alto impacto com evidências documentadas de melhoria em ${sortedComps[1].nome.toLowerCase()}.`
-        },
-        {
-          area: "Inteligência Emocional e Autoconhecimento",
-          acao: "Sessões mensais de coaching executivo com foco em autoconhecimento, regulação emocional e ampliação de repertório comportamental. Uso de diário reflexivo e feedback estruturado de pares.",
-          prazoSugerido: "Contínuo (12 meses)",
-          indicadorSucesso: "Redução de pontos cegos identificados no mapeamento inicial e aumento no índice de percepção de liderança pelo time."
-        }
-      ]
-    }
   };
 }
-
