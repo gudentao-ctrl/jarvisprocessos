@@ -22,3 +22,6 @@
 - Relatórios de Pessoas só podem ser exibidos após conclusão real; nunca gerar escores de demonstração ou preencher resultados ausentes.
 - Assessment demographics must come from the candidate record, with calendar age calculated by the shared assessment-age helper; this prevents fixed dates and divergent report ages.
 - Assessment PDFs must use embedded Unicode fonts, paginated text, explicit protocol alerts and descriptive-scale labels; this preserves legibility and prevents unsupported normative claims.
+
+## Access management
+- The access catalog describes the tools covered by each existing permission group without creating independent grants; this keeps administration aligned with route and data enforcement.
