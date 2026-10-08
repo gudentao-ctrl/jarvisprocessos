@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateAssessmentAge } from "./assessment-age";
+import { calculateAssessmentAge } from "../src/lib/assessment-age";
 
 describe("calendar age", () => {
   it("changes only on the birthday", () => {
