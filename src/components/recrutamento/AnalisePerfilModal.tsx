@@ -68,7 +68,7 @@ export default function AnalisePerfilModal({
       (vaga ? `R$ ${vaga.salario_min.toLocaleString("pt-BR")} a R$ ${vaga.salario_max.toLocaleString("pt-BR")}` : "R$ 7.500,00"),
   );
   const [fatorDominante, setFatorDominante] = useState(
-    analiseAtual?.fatorDominante || "Conscienciosidade & Dominância (Foco em Execução e Metas)",
+    analiseAtual?.fator_dominante || "Conscienciosidade & Dominância (Foco em Execução e Metas)",
   );
   const [discResumo, setDiscResumo] = useState(
     analiseAtual?.disc_resumo || "Perfil com alta disciplina executiva, facilidade para organização de fluxos e liderança firme.",

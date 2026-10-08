@@ -10,6 +10,14 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pessoas/assessment/detail/$id")({
+  head: () => ({ meta: [
+    { title: "Relatório de Perfil Profissional | Jarvis Processos" },
+    { name: "description", content: "Relatório confidencial de perfil, controles do protocolo e desenvolvimento profissional." },
+    { property: "og:title", content: "Relatório de Perfil Profissional | Jarvis Processos" },
+    { property: "og:description", content: "Análise integrada dos cinco fatores e estilos de atuação." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: DetailPage,
 });
 

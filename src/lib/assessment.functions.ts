@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { calculateAssessmentAge } from "@/lib/assessment-age";
 
 const tokenSchema = z.string().uuid();
 const answersSchema = z.record(z.string(), z.number().int().min(1).max(5));
@@ -94,8 +95,7 @@ export const completePublicAssessment = createServerFn({ method: "POST" })
       throw new Error("Responda todas as afirmações antes de concluir");
     }
     const { processAssessmentResults } = await import("@/utils/psychometrics");
-    const birth = new Date(`${candidate.birth_date}T12:00:00Z`);
-    const age = Math.max(0, new Date().getUTCFullYear() - birth.getUTCFullYear());
+    const age = calculateAssessmentAge(candidate.birth_date);
     const results = processAssessmentResults(data.answers as Record<number, number>, data.elapsedSeconds, {
       id: candidate.id,
       nome: candidate.full_name,
@@ -106,6 +106,7 @@ export const completePublicAssessment = createServerFn({ method: "POST" })
       ...(candidate.profile_data ?? {}),
       psychometrics: results,
       answers: data.answers,
+      elapsed_seconds: data.elapsedSeconds,
       radar: results.disc.adaptado.map((item) => ({ name: item.nome, value: item.valor, factor: item.fator })),
       dominant_factor: results.disc.estiloLideranca,
     };

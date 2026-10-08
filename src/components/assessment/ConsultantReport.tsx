@@ -75,9 +75,11 @@ export function ConsultantReport({ data, onExportPdf }: ConsultantReportProps) {
       // Prepara o objeto compatível para a geração executiva de PDF
       const pdfCandidate = {
         full_name: data.candidato.nome,
-        current_role: data.candidato.cargoPretendido,
+        current_role: data.candidato.cargoAtual,
         desired_role: data.candidato.cargoPretendido,
-        birth_date: "1990-01-01",
+        birth_date: data.candidato.nascimento,
+        company_name: data.candidato.empresa,
+        external: data.candidato.externo,
         profile_data: {
           psychometrics: data,
           radar: [
@@ -91,7 +93,7 @@ export function ConsultantReport({ data, onExportPdf }: ConsultantReportProps) {
         },
         ai_summary: {
           natural: data.parecerConsultor.sinteseQualitativa,
-          strengths: `Liderança: ${data.disc.estiloLideranca}. Aderência de Cargo: ${data.matchCargo.percentual}%.`,
+           strengths: `Estilo de atuação: ${data.disc.estiloLideranca}. Confirmar competências com exemplos profissionais.`,
           ideal_env: data.disc.ambienteIdeal,
           blind_spots: data.disc.pontosCegos.join(" "),
         },
@@ -215,7 +217,7 @@ export function ConsultantReport({ data, onExportPdf }: ConsultantReportProps) {
             </div>
             <div>
               <span className="text-muted-foreground block text-[11px]">Idade:</span>
-              <strong className="text-foreground">{data.candidato.idade} anos</strong>
+              <strong className="text-foreground">{data.candidato.idade == null ? "Não informado" : `${data.candidato.idade} anos`}</strong>
             </div>
             <div>
               <span className="text-muted-foreground block text-[11px]">Escolaridade:</span>
