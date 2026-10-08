@@ -45,6 +45,7 @@ import {
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ACCESS_CATALOG, matchesAccessSearch } from "@/lib/access-catalog";
 import {
   adminListTickets,
   adminUpdateTicket,
@@ -150,6 +151,8 @@ function AdminPage() {
   });
 
   const [draft, setDraft] = useState<MemberDraft | null>(null);
+  const [accessSearch, setAccessSearch] = useState("");
+  const [toolSearch, setToolSearch] = useState("");
   const [userDraft, setUserDraft] = useState<UserDraft | null>(null);
 
   const statusMut = useMutation({
@@ -399,10 +402,11 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="acessos" className="space-y-3 pt-3">
-          {companies.map((c: any) => (
+          <Input aria-label="Buscar empresa ou usuário" placeholder="Buscar empresa ou usuário" value={accessSearch} onChange={(e) => setAccessSearch(e.target.value)} className="h-11" />
+          {companies.filter((c: any) => matchesAccessSearch(`${c.name} ${(membersByCompany[c.id] ?? []).map((m: any) => profileName(m.user_id)).join(" ")}`, accessSearch)).map((c: any) => (
             <Card key={c.id} className="p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="font-semibold">{c.name}</p>
+                <div className="min-w-0"><p className="break-words font-semibold">{c.name}</p><p className="text-xs text-muted-foreground">{(membersByCompany[c.id] ?? []).length} usuários autorizados</p></div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -460,7 +464,7 @@ function AdminPage() {
                       </div>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {TOOLS.map((t) => (
+                      {TOOLS.filter((t) => m.permissions?.[t.key]).map((t) => (
                         <span
                           key={t.key}
                           className={
@@ -469,9 +473,10 @@ function AdminPage() {
                               : "rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
                           }
                         >
-                          {t.label}: {m.permissions?.[t.key] ? "SIM" : "NÃO"}
+                          {t.label}
                         </span>
                       ))}
+                      {!TOOLS.some((t) => m.permissions?.[t.key]) && <span className="text-xs text-muted-foreground">Nenhuma ferramenta liberada</span>}
                     </div>
                   </div>
                 ))}
@@ -607,13 +612,14 @@ function AdminPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!draft} onOpenChange={(o) => !o && setDraft(null)}>
-        <DialogContent>
+      <Dialog open={!!draft} onOpenChange={(o) => { if (!o) { setDraft(null); setToolSearch(""); } }}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Permissões do usuário</DialogTitle>
           </DialogHeader>
           {draft && (
             <div className="space-y-3">
+              <p className="text-sm font-medium">{companies.find((c: any) => c.id === draft.company_id)?.name}</p>
               <div>
                 <Label>Usuário</Label>
                 <Select
@@ -652,14 +658,22 @@ function AdminPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 rounded-md border p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  Ferramentas autorizadas
-                </p>
-                {TOOLS.map((t) => (
-                  <div key={t.key} className="flex items-center justify-between">
-                    <Label className="text-sm">{t.label}</Label>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">Ferramentas autorizadas <span className="text-muted-foreground">({TOOLS.filter((t) => draft.permissions[t.key]).length}/{TOOLS.length})</span></p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setDraft({ ...draft, permissions: { ...draft.permissions, ...Object.fromEntries(TOOLS.map((t) => [t.key, true])) } })}>Liberar todas</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setDraft({ ...draft, permissions: { ...draft.permissions, ...Object.fromEntries(TOOLS.map((t) => [t.key, false])) } })}>Desmarcar todas</Button>
+                  </div>
+                </div>
+                <Input aria-label="Buscar ferramenta" placeholder="Buscar ferramenta" value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-11" />
+                {ACCESS_CATALOG.filter((t) => matchesAccessSearch(`${t.label} ${t.tools.join(" ")}`, toolSearch)).map((t) => (
+                  <div key={t.key} className="border-b border-border pb-3">
+                    <div className="flex min-h-11 items-center justify-between gap-3">
+                    <Label htmlFor={`permission-${t.key}`} className="text-sm font-semibold">{t.label}</Label>
                     <Switch
+                      id={`permission-${t.key}`}
+                      aria-label={t.label}
                       checked={!!draft.permissions[t.key]}
                       onCheckedChange={(v) =>
                         setDraft({
@@ -668,8 +682,11 @@ function AdminPage() {
                         })
                       }
                     />
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">{t.tools.map((tool) => <span key={tool}>{tool}</span>)}</div>
                   </div>
                 ))}
+                {!ACCESS_CATALOG.some((t) => matchesAccessSearch(`${t.label} ${t.tools.join(" ")}`, toolSearch)) && <p className="text-sm text-muted-foreground">Nenhuma ferramenta encontrada.</p>}
               </div>
               <Button
                 className="min-h-11 w-full"
