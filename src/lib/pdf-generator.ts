@@ -46,7 +46,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
   const newPage = () => { doc.addPage(); y = 22; };
   const ensure = (height: number) => { if (y + height > bottom) newPage(); };
   const heading = (title: string) => {
-    ensure(18); doc.setFont("Assessment", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY);
+    ensure(38); doc.setFont("Assessment", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY);
     const lines = doc.splitTextToSize(title, width);
     doc.text(lines, margin, y); y += lines.length * 5 + 4;
   };
@@ -114,7 +114,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     const value = adapted.get(item.fator);
     return [item.nome, Math.round(item.valor), value == null ? "Não registrado" : Math.round(Number(value)), value == null ? "—" : `${Math.round(Math.abs(item.valor - Number(value)))} pontos`];
   }));
-  subheading("Estilo de atuação"); paragraph(report.disc.estiloLideranca);
+  subheading("Estilo de atuação"); paragraph(invalid ? "Interpretação suspensa pelos alertas críticos." : report.disc.estiloLideranca);
   subheading("Ambiente e condições de trabalho"); paragraph(invalid ? "Não interpretar com este protocolo." : report.disc.ambienteIdeal);
   subheading("Pontos de atenção sob pressão");
   if (invalid) paragraph("Não inferir características pessoais a partir deste protocolo.");
