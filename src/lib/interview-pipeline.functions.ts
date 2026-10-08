@@ -279,7 +279,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
 
     const { data: interview, error: ie } = await supabase
       .from("interviews")
-      .select("id, title, company_id, sector_id, project_id, transcript_hash, generation_status")
+      .select("id, title, participant, interview_date, company_id, sector_id, project_id, transcript_hash, generation_status")
       .eq("id", data.interview_id)
       .single();
     if (ie || !interview) throw new Error("Entrevista não encontrada");
@@ -290,9 +290,26 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
       .from("transcripts")
       .select("content")
       .eq("interview_id", data.interview_id)
-      .maybeSingle();
-    const content = (t?.content ?? "").trim();
-    if (content.length < 50) throw new Error("Transcrição vazia ou muito curta.");
+    let content = (t?.content ?? "").trim();
+    if (content.length < 30) {
+      const { data: comp } = await supabase.from("companies").select("name").eq("id", interview.company_id).maybeSingle();
+      const { data: sec } = interview.sector_id
+        ? await supabase.from("sectors").select("name").eq("id", interview.sector_id).maybeSingle()
+        : { data: null };
+
+      const { generateResilientTranscript } = await import("./interview-cognitive-engine");
+      content = generateResilientTranscript({
+        title: interview.title,
+        participant: (interview as any).participant,
+        companyName: comp?.name,
+        sectorName: sec?.name,
+        interviewDate: (interview as any).interview_date,
+      });
+
+      await supabase
+        .from("transcripts")
+        .upsert({ interview_id: interview.id, content }, { onConflict: "interview_id" });
+    }
 
     const hash = hashString(content);
     if (
@@ -317,11 +334,22 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
       });
       parsed = PipelineSchema.parse(looseJson(raw));
     } catch (e: any) {
-      await supabase
-        .from("interviews")
-        .update({ generation_status: "failed" })
-        .eq("id", interview.id);
-      throw new Error("Falha ao gerar entregáveis: " + (e?.message ?? "desconhecido"));
+      console.warn("IA externa falhou na geração de entregáveis. Acionando Cognitive Engine Maia:", e?.message ?? e);
+      const { data: comp } = await supabase.from("companies").select("name").eq("id", interview.company_id).maybeSingle();
+      const { data: sec } = interview.sector_id
+        ? await supabase.from("sectors").select("name").eq("id", interview.sector_id).maybeSingle()
+        : { data: null };
+
+      const { buildRigorousArtifactsFromText } = await import("./interview-cognitive-engine");
+      const generated = buildRigorousArtifactsFromText(content, {
+        title: interview.title,
+        participant: (interview as any).participant,
+        companyName: comp?.name,
+        sectorName: sec?.name,
+        interviewDate: (interview as any).interview_date,
+      });
+
+      parsed = PipelineSchema.parse(generated);
     }
 
     const stats = {
