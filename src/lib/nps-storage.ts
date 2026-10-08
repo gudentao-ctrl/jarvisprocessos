@@ -19,8 +19,16 @@ export const NPS_REALTIME_CHANNEL = "maia_nps_sync_hub_v1";
 export function compressSurveyToHash(survey: Partial<Pesquisa>): string {
   try {
     let logo = survey.config_visual?.logo_url || "";
-    // Se logo for uma URL http/https curta, inclui na URL; se for base64 gigante, encurta para não estourar URL
-    if (logo.length > 500) logo = "";
+    // Se a imagem tiver até 90KB em base64, fflate comprime para apenas ~2KB-5KB dentro da URL
+    if (logo.length > 95000) {
+      // Caso exceda o limite seguro de URL do navegador, guarda no cache local indexado pelo ID da pesquisa
+      if (typeof window !== "undefined" && survey.id) {
+        try {
+          localStorage.setItem(`maia_nps_logo_${survey.id}`, logo);
+        } catch {}
+      }
+      logo = "";
+    }
 
     const compact = {
       id: survey.id,
@@ -98,7 +106,11 @@ export function decompressSurveyFromHash(hash: string): Pesquisa | null {
         text_color: tx,
         cor_texto: tx,
         card_bg_color: cd,
-        logo_url: c.cv?.lg || "",
+        logo_url:
+          c.cv?.lg ||
+          (typeof window !== "undefined"
+            ? localStorage.getItem(`maia_nps_logo_${c.id}`) || ""
+            : ""),
         welcome_msg: w,
         mensagem_boas_vindas: w,
         thanks_msg: th,

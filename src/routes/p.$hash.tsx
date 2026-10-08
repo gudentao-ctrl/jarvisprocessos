@@ -271,11 +271,11 @@ export default function PublicSurveyView() {
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
-            <div className="flex items-center justify-center pb-3">
+            <div className="flex items-center justify-center pb-4">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-28 sm:max-h-36 max-w-[320px] sm:max-w-[420px] object-contain drop-shadow-md"
+                className="max-h-32 sm:max-h-44 max-w-[340px] sm:max-w-[480px] object-contain drop-shadow-lg"
               />
             </div>
           )}
@@ -343,13 +343,13 @@ export default function PublicSurveyView() {
           className="max-w-2xl w-full p-6 sm:p-10 rounded-3xl shadow-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 border border-black/5"
           style={{ backgroundColor: visual.card_bg_color }}
         >
-          {/* Logomarca da Empresa se configurada */}
+          {/* Logomarca da Empresa Centralizada e de Grande Destaque */}
           {visual.logo_url && (
-            <div className="flex items-center justify-start pb-3 border-b border-black/5">
+            <div className="flex items-center justify-center pb-4 border-b border-black/10">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-24 sm:max-h-28 max-w-[280px] sm:max-w-[360px] object-contain drop-shadow-sm"
+                className="max-h-28 sm:max-h-36 max-w-[320px] sm:max-w-[440px] object-contain drop-shadow-md"
               />
             </div>
           )}

@@ -458,14 +458,45 @@ export function PesquisaFormModal({
                           }
                           const reader = new FileReader();
                           reader.onload = (event) => {
-                            const dataUrl = event.target?.result as string;
-                            if (dataUrl) {
-                              setConfigVisual((c) => ({
-                                ...c,
-                                logo_url: dataUrl,
-                              }));
+                            const rawDataUrl = event.target?.result as string;
+                            if (!rawDataUrl) return;
+
+                            // Comprime a imagem via Canvas para um tamanho ideal (max 600x240, ~20-50KB)
+                            const img = new Image();
+                            img.onload = () => {
+                              const canvas = document.createElement("canvas");
+                              let width = img.width;
+                              let height = img.height;
+                              const maxWidth = 600;
+                              const maxHeight = 240;
+
+                              if (width > maxWidth || height > maxHeight) {
+                                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                                width = Math.round(width * ratio);
+                                height = Math.round(height * ratio);
+                              }
+
+                              canvas.width = width;
+                              canvas.height = height;
+                              const ctx = canvas.getContext("2d");
+                              if (ctx) {
+                                ctx.drawImage(img, 0, 0, width, height);
+                                const optimizedDataUrl = canvas.toDataURL("image/png", 0.88);
+                                setConfigVisual((c) => ({
+                                  ...c,
+                                  logo_url: optimizedDataUrl,
+                                }));
+                                toast.success("Logo carregado e otimizado com sucesso!");
+                              } else {
+                                setConfigVisual((c) => ({ ...c, logo_url: rawDataUrl }));
+                                toast.success("Logo carregado com sucesso!");
+                              }
+                            };
+                            img.onerror = () => {
+                              setConfigVisual((c) => ({ ...c, logo_url: rawDataUrl }));
                               toast.success("Logo carregado com sucesso!");
-                            }
+                            };
+                            img.src = rawDataUrl;
                           };
                           reader.readAsDataURL(file);
                         }}
