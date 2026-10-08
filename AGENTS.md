@@ -20,3 +20,5 @@
 ## Avaliação de Pessoas
 - Dados pessoais, respostas e resultados de candidatos ficam somente no banco protegido; links públicos usam token e funções validadas para impedir exposição e repetição da tentativa.
 - Relatórios de Pessoas só podem ser exibidos após conclusão real; nunca gerar escores de demonstração ou preencher resultados ausentes.
+- Assessment demographics must come from the candidate record, with calendar age calculated by the shared assessment-age helper; this prevents fixed dates and divergent report ages.
+- Assessment PDFs must use embedded Unicode fonts, paginated text, explicit protocol alerts and descriptive-scale labels; this preserves legibility and prevents unsupported normative claims.
