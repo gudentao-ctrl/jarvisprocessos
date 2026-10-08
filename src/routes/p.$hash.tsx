@@ -210,11 +210,11 @@ export default function PublicSurveyView() {
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
-            <div className="flex items-center justify-center pb-2">
+            <div className="flex items-center justify-center pb-3">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-20 sm:max-h-24 max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm"
+                className="max-h-24 sm:max-h-32 max-w-[300px] sm:max-w-[380px] object-contain drop-shadow-md"
               />
             </div>
           )}
@@ -271,11 +271,11 @@ export default function PublicSurveyView() {
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
-            <div className="flex items-center justify-center pb-2">
+            <div className="flex items-center justify-center pb-3">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-24 sm:max-h-28 max-w-[280px] sm:max-w-[340px] object-contain drop-shadow-sm"
+                className="max-h-28 sm:max-h-36 max-w-[320px] sm:max-w-[420px] object-contain drop-shadow-md"
               />
             </div>
           )}
@@ -349,7 +349,7 @@ export default function PublicSurveyView() {
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-20 sm:max-h-24 max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm"
+                className="max-h-24 sm:max-h-28 max-w-[280px] sm:max-w-[360px] object-contain drop-shadow-sm"
               />
             </div>
           )}

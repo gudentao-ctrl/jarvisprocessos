@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
 import type { Pesquisa, PesquisaPergunta, NpsRelatorioConsolidado, TipoPesquisa } from "@/lib/nps-types";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getPesquisas,
   getPerguntasByPesquisaId,
@@ -36,6 +37,8 @@ import {
   toggleStatusPesquisa,
   calcularRelatorioPesquisa,
   deletePesquisa,
+  generatePublicSurveyLink,
+  NPS_REALTIME_CHANNEL,
 } from "@/lib/nps-storage";
 import { PesquisaFormModal } from "@/components/nps/PesquisaFormModal";
 import { PesquisaRelatorioModal } from "@/components/nps/PesquisaRelatorioModal";
@@ -84,6 +87,33 @@ function NpsDashboardPage() {
 
   useEffect(() => {
     carregarPesquisas();
+  }, [carregarPesquisas]);
+
+  // Escuta respostas submetidas publicamente em tempo real via Realtime Broadcast
+  useEffect(() => {
+    const channel = supabase.channel(NPS_REALTIME_CHANNEL);
+    channel
+      .on("broadcast", { event: "nova_resposta_nps" }, (payload: any) => {
+        const resp = payload?.payload?.resposta;
+        if (resp) {
+          // Atualiza o cache local do painel com a resposta recebida
+          try {
+            const raw = localStorage.getItem("maia_nps_respostas_v1");
+            const list = raw ? JSON.parse(raw) : [];
+            if (!list.some((r: any) => r.id === resp.id)) {
+              list.unshift(resp);
+              localStorage.setItem("maia_nps_respostas_v1", JSON.stringify(list));
+            }
+          } catch {}
+          toast.info("Nova resposta de pesquisa recebida em tempo real!");
+          carregarPesquisas();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [carregarPesquisas]);
 
   // Filtragem
@@ -169,12 +199,12 @@ function NpsDashboardPage() {
     }
   };
 
-  const handleCopyLink = (hash: string) => {
-    const clean = hash || "";
-    const url = `${window.location.origin}/p/${clean}`;
+  const handleCopyLink = (p: Pesquisa) => {
+    const url = generatePublicSurveyLink(p);
     navigator.clipboard.writeText(url);
-    setCopiedHash(clean);
-    toast.success("Link público copiado para a área de transferência!");
+    const key = p.id;
+    setCopiedHash(key);
+    toast.success("Link público copiado! Acessível em qualquer navegador ou guia anônima.");
     setTimeout(() => setCopiedHash(null), 2500);
   };
 
@@ -448,9 +478,9 @@ function NpsDashboardPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2 text-xs text-[#E05A10] hover:bg-[#E05A10]/10"
-                        onClick={() => handleCopyLink(linkHash)}
+                        onClick={() => handleCopyLink(pesquisa)}
                       >
-                        {copiedHash === linkHash ? (
+                        {copiedHash === pesquisa.id ? (
                           <>
                             <Check className="h-3 w-3 mr-1 text-emerald-600" />
                             Copiado!
@@ -463,7 +493,7 @@ function NpsDashboardPage() {
                         )}
                       </Button>
                       <a
-                        href={`/p/${linkHash}`}
+                        href={generatePublicSurveyLink(pesquisa)}
                         target="_blank"
                         rel="noreferrer"
                         className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground rounded"
