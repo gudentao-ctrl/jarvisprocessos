@@ -73,6 +73,7 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     const lines = doc.splitTextToSize(title, width); doc.text(lines, margin, y); y += lines.length * 5 + 2;
   };
   const age = calculateAssessmentAge(candidate.birth_date);
+  const invalid = report.validade.statusGeral === "TESTE_INVALIDO";
   const birth = candidate.birth_date ? String(candidate.birth_date).split("-").reverse().join("/") : "Não informado";
   heading("1. Identificação e rastreabilidade");
   table(["Dado", "Registro"], [
@@ -95,7 +96,9 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
   ]);
   paragraph("Escalas de 0 a 100 são índices descritivos internos, não percentis de uma população de referência. Valores altos ou baixos não são, por si, melhores ou piores. Ausência de alertas não comprova validade científica. Os controles usam critérios internos, sem normas populacionais demonstradas.");
   heading("3. Síntese individual integrada");
-  paragraph(report.parecerConsultor.sinteseQualitativa);
+  paragraph(invalid
+    ? "Interpretação individual suspensa: os alertas críticos tornam este protocolo inadequado para concluir características profissionais. Os índices abaixo são apresentados somente para rastreabilidade das respostas. Rever as condições de aplicação antes de uma nova coleta autorizada."
+    : report.parecerConsultor.sinteseQualitativa);
   heading("4. Cinco fatores — tendências e facetas");
   const factors = Object.entries(report.bigFive.fatores as Record<string, any>);
   table(["Fator", "Índice (0–100)", "Faixa descritiva"], factors.map(([key, factor]) => [FACTOR_NAMES[key] || key, Math.round(factor.percentil), factor.nivel]));
@@ -112,11 +115,14 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     return [item.nome, Math.round(item.valor), value == null ? "Não registrado" : Math.round(Number(value)), value == null ? "—" : `${Math.round(Math.abs(item.valor - Number(value)))} pontos`];
   }));
   subheading("Estilo de atuação"); paragraph(report.disc.estiloLideranca);
-  subheading("Ambiente e condições de trabalho"); paragraph(report.disc.ambienteIdeal);
-  subheading("Pontos de atenção sob pressão"); for (const item of report.disc.pontosCegos ?? []) paragraph(`• ${item}`);
+  subheading("Ambiente e condições de trabalho"); paragraph(invalid ? "Não interpretar com este protocolo." : report.disc.ambienteIdeal);
+  subheading("Pontos de atenção sob pressão");
+  if (invalid) paragraph("Não inferir características pessoais a partir deste protocolo.");
+  else for (const item of report.disc.pontosCegos ?? []) paragraph(`• ${item}`);
   heading("6. Integração dos achados — hipóteses para confirmação");
   paragraph("Os cruzamentos abaixo são hipóteses internas de interpretação. Confirmar com exemplos de atuação e evidências, sem tratá-los como prova independente de capacidade profissional.");
-  table(["Recorte comportamental", "Fatores relacionados", "Hipótese"], (report.matrizConvergencia ?? []).map((item: any) => [item.tracoDisc, item.fatorBigFive, item.diagnostico]));
+  if (invalid) paragraph("Cruzamentos interpretativos suspensos pelos alertas críticos.");
+  else table(["Recorte comportamental", "Fatores relacionados", "Hipótese"], (report.matrizConvergencia ?? []).map((item: any) => [item.tracoDisc, item.fatorBigFive, item.diagnostico]));
   heading("7. Entrevista estruturada para aprofundamento");
   for (const item of report.perguntasStar ?? []) {
     subheading(item.competencia);
@@ -124,7 +130,8 @@ export async function generateAssessmentReport(candidate: any): Promise<Blob> {
     paragraph(`Ação: ${item.acao}`); paragraph(`Resultado: ${item.resultado}`);
   }
   heading("8. Plano de desenvolvimento e acompanhamento");
-  table(["Frente", "Ação sugerida", "Prazo", "Evidência de evolução"], (report.parecerConsultor.pdi ?? []).map((item: any) => [item.area, item.acao, item.prazoSugerido, item.indicadorSucesso]));
+  if (invalid) paragraph("Plano individual suspenso. Primeiro confirmar as condições de resposta e obter um protocolo interpretável.");
+  else table(["Frente", "Ação sugerida", "Prazo", "Evidência de evolução"], (report.parecerConsultor.pdi ?? []).map((item: any) => [item.area, item.acao, item.prazoSugerido, item.indicadorSucesso]));
   heading("9. Nota de interpretação");
   paragraph("Documento confidencial de apoio profissional baseado no protocolo registrado. A interpretação final requer entrevista, contexto da função e evidências de desempenho. Não há normas populacionais ou validação técnica documentadas para afirmar equivalência a um instrumento licenciado; não usar o resultado isoladamente para decidir contratação.");
   const total = doc.getNumberOfPages();

@@ -106,6 +106,7 @@ export const completePublicAssessment = createServerFn({ method: "POST" })
       ...(candidate.profile_data ?? {}),
       psychometrics: results,
       answers: data.answers,
+      elapsed_seconds: data.elapsedSeconds,
       radar: results.disc.adaptado.map((item) => ({ name: item.nome, value: item.valor, factor: item.fator })),
       dominant_factor: results.disc.estiloLideranca,
     };

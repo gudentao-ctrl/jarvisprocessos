@@ -564,7 +564,7 @@ export function processAssessmentResults(
       escolaridade: candidateMeta.escolaridade || "Não informado",
       cargoPretendido: candidateMeta.cargoPretendido || "Não informado",
       dataTeste: new Date().toISOString().split("T")[0],
-      tempoTotalMinutos: Math.round(totalExecutionSeconds / 60) || 35,
+      tempoTotalMinutos: Math.round(totalExecutionSeconds / 60),
     },
     validade: {
       statusGeral: statusGeralValidade,
@@ -812,10 +812,20 @@ export function buildReportForCandidate(cand: any): CandidatePsychometricResult 
   if (cand?.status !== "concluido" || !cand?.profile_data?.psychometrics) {
     throw new Error("Esta avaliação não possui um protocolo concluído para gerar relatório.");
   }
+  const saved = cand.profile_data.psychometrics;
+  const answers = cand.profile_data.answers;
+  const seconds = cand.profile_data.elapsed_seconds ?? Number(saved.candidato?.tempoTotalMinutos) * 60;
+  const recalculated = answers && Object.keys(answers).length === bancoQuestoes.length && Number.isFinite(seconds) && seconds > 0
+    ? processAssessmentResults(answers, seconds, {
+      id: cand.id, nome: cand.full_name, idade: calculateAssessmentAge(cand.birth_date),
+      cargoPretendido: cand.desired_role || "Não informado",
+    })
+    : saved;
   return {
-    ...cand.profile_data.psychometrics,
+    ...recalculated,
     candidato: {
-      ...cand.profile_data.psychometrics.candidato,
+      ...recalculated.candidato,
+      dataTeste: saved.candidato?.dataTeste ?? "Não informada",
       id: cand.id,
       nome: cand.full_name || "Não informado",
       nascimento: cand.birth_date ?? null,
