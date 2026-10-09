@@ -77,6 +77,23 @@ export interface PesquisaResposta {
 
 export interface NpsRelatorioConsolidado {
   pesquisa: Pesquisa;
+  zona: "Excelente" | "Muito Bom" | "Razoável" | "Crítico";
+  totalRespostas: number;
+  promotores: number;
+  neutros: number;
+  detratores: number;
+  pctPromotores: number;
+  pctNeutros: number;
+  pctDetratores: number;
+  perguntas: PesquisaPergunta[];
+  questoesStats: Array<{
+    perguntaTexto: string;
+    tipo: string;
+    totalRespostas: number;
+    media: number | null;
+    distribuicao: Record<string, number>;
+  }>;
+  feedbacksAbertos: Array<{ perguntaTexto: string; comentario: string; respondente?: string; data: string }>;
   totalRespondentes: number;
   scoreNps: number;
   promotoresCount: number;

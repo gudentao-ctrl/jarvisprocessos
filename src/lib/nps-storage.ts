@@ -891,7 +891,7 @@ export async function getRelatorioConsolidado(pesquisaId: string): Promise<NpsRe
     questoesStats,
     feedbacksAbertos,
     respostasBrutas,
-  } as any;
+  };
 }
 
 function enrichPesquisas(pesquisas: Pesquisa[]): Pesquisa[] {

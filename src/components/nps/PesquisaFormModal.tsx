@@ -38,7 +38,6 @@ import type {
   Pesquisa,
   PesquisaPergunta,
   TipoPesquisa,
-  TipoPerguntaNps,
   ConfigVisualPesquisa,
 } from "@/lib/nps-types";
 
@@ -195,7 +194,7 @@ export function PesquisaFormModal({
 
   const handleUpdatePergunta = (
     index: number,
-    field: keyof Omit<PesquisaPergunta, "id" | "pesquisa_id" | "criado_em">,
+    field: keyof PerguntaFormState,
     value: any
   ) => {
     setPerguntas((prev) => {

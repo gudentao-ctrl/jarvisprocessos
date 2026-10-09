@@ -26,6 +26,10 @@ export const Route = createFileRoute("/p/$hash")({
     meta: [
       { title: "Pesquisa de Satisfação | Maia Consultoria" },
       { name: "description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
+      { property: "og:title", content: "Pesquisa de Satisfação | Maia Consultoria" },
+      { property: "og:description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: PublicSurveyView,
@@ -371,7 +375,7 @@ export default function PublicSurveyView() {
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold leading-tight">
-              {currentQuestion?.tituloPergunta || currentQuestion?.titulo_pergunta}
+              {currentQuestion?.titulo_pergunta}
             </h2>
           </div>
 

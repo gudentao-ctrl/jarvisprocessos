@@ -31,3 +31,4 @@
 - [x] Pessoas: cadastro pré-teste, aceite, tentativa única, controles de consistência e relatório combinado
 - [x] Pessoas: validar identidade cadastral, eliminar resultados fictícios e individualizar integralmente os laudos
 - [x] Pessoas: corrigir idade pelo nascimento cadastrado e auditar conteúdo e apresentação do PDF real
+- [x] SuperAdmin: otimizar liberação de acessos com busca, catálogo de ferramentas por grupo e seleção em lote
