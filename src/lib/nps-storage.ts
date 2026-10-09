@@ -7,7 +7,6 @@ import {
   PesquisaRespostaItem,
   NpsRelatorioConsolidado,
   ConfigVisualPesquisa,
-  ConfigVisualPesquisa,
 } from "./nps-types";
 
 const LOCAL_STORAGE_PESQUISAS = "maia_nps_pesquisas_v1";
