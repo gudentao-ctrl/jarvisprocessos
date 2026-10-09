@@ -1,6 +1,4 @@
-// src/lib/nps-storage.ts
-// Camada de persistência híbrida (Supabase + localStorage fallback + dados mock) para NPS/eNPS
-
+import * as fflate from "fflate";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Pesquisa,
@@ -8,14 +6,141 @@ import {
   PesquisaResposta,
   PesquisaRespostaItem,
   NpsRelatorioConsolidado,
+  ConfigVisualPesquisa,
+  ConfigVisualPesquisa,
 } from "./nps-types";
 
 const LOCAL_STORAGE_PESQUISAS = "maia_nps_pesquisas_v1";
 const LOCAL_STORAGE_RESPOSTAS = "maia_nps_respostas_v1";
+export const NPS_REALTIME_CHANNEL = "maia_nps_sync_hub_v1";
 
 // ---------------------------------------------------------------------------
-// DADOS MOCK INICIAIS
+// COMPACTAÇÃO / DESCOMPACTAÇÃO AUTÔNOMA DE PESQUISAS (ZERO DEPENDÊNCIA DE LOGIN)
 // ---------------------------------------------------------------------------
+export function compressSurveyToHash(survey: Partial<Pesquisa>): string {
+  try {
+    let logo = survey.config_visual?.logo_url || "";
+    // Se a imagem tiver até 90KB em base64, fflate comprime para apenas ~2KB-5KB dentro da URL
+    if (logo.length > 95000) {
+      // Caso exceda o limite seguro de URL do navegador, guarda no cache local indexado pelo ID da pesquisa
+      if (typeof window !== "undefined" && survey.id) {
+        try {
+          localStorage.setItem(`maia_nps_logo_${survey.id}`, logo);
+        } catch {}
+      }
+      logo = "";
+    }
+
+    const compact = {
+      id: survey.id,
+      eid: survey.empresa_id || survey.company_id || null,
+      t: survey.titulo || "Pesquisa de Satisfação",
+      d: survey.descricao || "",
+      tp: survey.tipo || "nps",
+      st: survey.status || "ativa",
+      h: survey.url_hash || "",
+      cv: {
+        bg: survey.config_visual?.bg_color || survey.config_visual?.cor_fundo || "#FFF8F5",
+        pr: survey.config_visual?.primary_color || survey.config_visual?.cor_primaria || "#E05A10",
+        tx: survey.config_visual?.text_color || survey.config_visual?.cor_texto || "#2B1B17",
+        cd: survey.config_visual?.card_bg_color || "#FFFFFF",
+        lg: logo,
+        w: survey.config_visual?.welcome_msg || survey.config_visual?.mensagem_boas_vindas || "",
+        th: survey.config_visual?.thanks_msg || survey.config_visual?.mensagem_agradecimento || "",
+      },
+      pq: (survey.perguntas || []).map((p) => ({
+        i: p.id,
+        o: p.ordem,
+        t: p.titulo_pergunta,
+        tr: p.tipo_resposta,
+        ob: p.obrigatorio,
+        ph: p.placeholder || "",
+        op: p.opcoes_lista || [],
+      })),
+    };
+
+    const json = JSON.stringify(compact);
+    const u8 = fflate.deflateSync(fflate.strToU8(json));
+    let binary = "";
+    for (let i = 0; i < u8.byteLength; i++) binary += String.fromCharCode(u8[i]);
+    const b64 = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    return `s_${b64}`;
+  } catch (err) {
+    console.error("Erro ao compactar pesquisa:", err);
+    return survey.url_hash || survey.id || "pesquisa";
+  }
+}
+
+export function decompressSurveyFromHash(hash: string): Pesquisa | null {
+  if (!hash || !hash.startsWith("s_")) return null;
+  try {
+    let b64 = hash.slice(2).replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    const binary = atob(b64);
+    const u8 = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) u8[i] = binary.charCodeAt(i);
+    const json = fflate.strFromU8(fflate.inflateSync(u8));
+    const c = JSON.parse(json);
+
+    const bg = c.cv?.bg || "#FFF8F5";
+    const pr = c.cv?.pr || "#E05A10";
+    const tx = c.cv?.tx || "#2B1B17";
+    const cd = c.cv?.cd || "#FFFFFF";
+    const w = c.cv?.w || "Olá! Queremos muito ouvir sua opinião.";
+    const th = c.cv?.th || "Muito obrigado pelo seu feedback!";
+
+    return {
+      id: c.id,
+      empresa_id: c.eid,
+      company_id: c.eid,
+      titulo: c.t,
+      descricao: c.d,
+      tipo: c.tp || "nps",
+      status: c.st || "ativa",
+      url_hash: c.h || hash,
+      hash_publico: hash,
+      config_visual: {
+        bg_color: bg,
+        cor_fundo: bg,
+        primary_color: pr,
+        cor_primaria: pr,
+        text_color: tx,
+        cor_texto: tx,
+        card_bg_color: cd,
+        logo_url:
+          c.cv?.lg ||
+          (typeof window !== "undefined"
+            ? localStorage.getItem(`maia_nps_logo_${c.id}`) || ""
+            : ""),
+        welcome_msg: w,
+        mensagem_boas_vindas: w,
+        thanks_msg: th,
+        mensagem_agradecimento: th,
+      },
+      perguntas: (c.pq || []).map((p: any) => ({
+        id: p.i,
+        pesquisa_id: c.id,
+        ordem: p.o,
+        titulo_pergunta: p.t,
+        tipo_resposta: p.tr,
+        obrigatorio: p.ob,
+        placeholder: p.ph,
+        opcoes_lista: p.op,
+      })),
+      created_at: new Date().toISOString(),
+    };
+  } catch (err) {
+    console.warn("Falha ao descompactar hash autônomo da pesquisa:", err);
+    return null;
+  }
+}
+
+export function generatePublicSurveyLink(pesquisa: Pesquisa, origin?: string): string {
+  const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
+  const hash = compressSurveyToHash(pesquisa);
+  return `${base}/p/${hash}`;
+}
+
 const INITIAL_MOCK_PESQUISAS: Pesquisa[] = [
   {
     id: "pesq-01",
@@ -316,6 +441,26 @@ export async function getPesquisaByHash(urlHash: string): Promise<Pesquisa | nul
   if (!urlHash) return null;
   const cleanHash = decodeURIComponent(urlHash).trim();
 
+  // 1. Prioridade máxima: decodifica payload autônomo (funciona 100% sem login, em qualquer guia ou aparelho)
+  if (cleanHash.startsWith("s_")) {
+    const dec = decompressSurveyFromHash(cleanHash);
+    if (dec) {
+      // Salva em cache local do navegador para rápido reuso
+      try {
+        const list = readStorage<Pesquisa[]>(LOCAL_STORAGE_PESQUISAS, INITIAL_MOCK_PESQUISAS);
+        const idx = list.findIndex((x) => x.id === dec.id || x.url_hash === dec.url_hash);
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], ...dec };
+        } else {
+          list.unshift(dec);
+        }
+        writeStorage(LOCAL_STORAGE_PESQUISAS, list);
+      } catch {}
+      return dec;
+    }
+  }
+
+  // 2. Busca no Supabase (se as tabelas estiverem disponíveis)
   try {
     const db = supabase as any;
     // Tenta primeiro por url_hash
@@ -348,6 +493,7 @@ export async function getPesquisaByHash(urlHash: string): Promise<Pesquisa | nul
     console.warn("Supabase getPesquisaByHash fallback to localStorage:", err);
   }
 
+  // 3. Fallback no cache local
   const list = readStorage<Pesquisa[]>(LOCAL_STORAGE_PESQUISAS, INITIAL_MOCK_PESQUISAS);
   const p = list.find(
     (item) =>
@@ -558,6 +704,25 @@ export async function saveRespostaPublica(
     console.warn("Supabase saveRespostaPublica fallback to localStorage:", err);
   }
 
+  // Notifica o painel administrativo em tempo real via Supabase Realtime Broadcast
+  try {
+    const channel = supabase.channel(NPS_REALTIME_CHANNEL);
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        channel.send({
+          type: "broadcast",
+          event: "nova_resposta_nps",
+          payload: {
+            pesquisaId,
+            resposta: novaResposta,
+          },
+        }).catch(() => {});
+      }
+    });
+  } catch (syncErr) {
+    console.warn("Broadcast resposta aviso:", syncErr);
+  }
+
   const all = readStorage<PesquisaResposta[]>(LOCAL_STORAGE_RESPOSTAS, INITIAL_MOCK_RESPOSTAS);
   all.unshift(novaResposta);
   writeStorage(LOCAL_STORAGE_RESPOSTAS, all);
@@ -727,7 +892,7 @@ export async function getRelatorioConsolidado(pesquisaId: string): Promise<NpsRe
     questoesStats,
     feedbacksAbertos,
     respostasBrutas,
-  } as any;
+  };
 }
 
 function enrichPesquisas(pesquisas: Pesquisa[]): Pesquisa[] {

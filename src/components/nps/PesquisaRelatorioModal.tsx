@@ -80,22 +80,11 @@ export function PesquisaRelatorioModal({
 
       // Aba 2: Respostas Brutas
       const respostasRows = relatorio.respostasBrutas.map((r) => {
-        const row: Record<string, any> = {
+        const row: Record<string, string | number> = {
           "ID Resposta": r.id,
-          "Respondente": r.respondente_nome || (r.anonimo ? "Anônimo" : "Não identificado"),
-          "E-mail": r.respondente_email || "-",
-          "Data Envio": new Date(r.criado_em).toLocaleString("pt-BR"),
-          "Tempo (segundos)": r.tempo_resposta_segundos || "-",
+          "Data Envio": r.data,
+          ...r.respostas,
         };
-
-        r.itens?.forEach((item) => {
-          const perg = relatorio.perguntas.find((p) => p.id === item.pergunta_id);
-          const colName = perg ? perg.texto_pergunta : `Pergunta ${item.pergunta_id}`;
-          row[colName] =
-            item.valor_numero !== null && item.valor_numero !== undefined
-              ? item.valor_numero
-              : item.valor_texto || "-";
-        });
 
         return row;
       });

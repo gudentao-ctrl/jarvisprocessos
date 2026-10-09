@@ -26,6 +26,10 @@ export const Route = createFileRoute("/p/$hash")({
     meta: [
       { title: "Pesquisa de Satisfação | Maia Consultoria" },
       { name: "description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
+      { property: "og:title", content: "Pesquisa de Satisfação | Maia Consultoria" },
+      { property: "og:description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: PublicSurveyView,
@@ -210,11 +214,11 @@ export default function PublicSurveyView() {
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
-            <div className="flex items-center justify-center pb-2">
+            <div className="flex items-center justify-center pb-3">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-20 sm:max-h-24 max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm"
+                className="max-h-24 sm:max-h-32 max-w-[300px] sm:max-w-[380px] object-contain drop-shadow-md"
               />
             </div>
           )}
@@ -271,11 +275,11 @@ export default function PublicSurveyView() {
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
-            <div className="flex items-center justify-center pb-2">
+            <div className="flex items-center justify-center pb-4">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-24 sm:max-h-28 max-w-[280px] sm:max-w-[340px] object-contain drop-shadow-sm"
+                className="max-h-32 sm:max-h-44 max-w-[340px] sm:max-w-[480px] object-contain drop-shadow-lg"
               />
             </div>
           )}
@@ -343,13 +347,13 @@ export default function PublicSurveyView() {
           className="max-w-2xl w-full p-6 sm:p-10 rounded-3xl shadow-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 border border-black/5"
           style={{ backgroundColor: visual.card_bg_color }}
         >
-          {/* Logomarca da Empresa se configurada */}
+          {/* Logomarca da Empresa Centralizada e de Grande Destaque */}
           {visual.logo_url && (
-            <div className="flex items-center justify-start pb-3 border-b border-black/5">
+            <div className="flex items-center justify-center pb-4 border-b border-black/10">
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-20 sm:max-h-24 max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm"
+                className="max-h-28 sm:max-h-36 max-w-[320px] sm:max-w-[440px] object-contain drop-shadow-md"
               />
             </div>
           )}
@@ -371,7 +375,7 @@ export default function PublicSurveyView() {
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold leading-tight">
-              {currentQuestion?.tituloPergunta || currentQuestion?.titulo_pergunta}
+              {currentQuestion?.titulo_pergunta}
             </h2>
           </div>
 
