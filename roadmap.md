@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] RBAC granular: matriz por usuário/empresa, migração dos acessos existentes, presets e tela /admin/permissoes
+- [ ] RBAC granular: proteger consultas, alterações, rotas e menus; leitura restrita para Cliente
+- [ ] RBAC granular: revisar CRUD do SuperAdmin, auditoria e testes multiempresa de acesso negado
+
 - [x] Horas: empresa no lugar de projeto, consultor automático, só horas próprias, filtros empresa/período/tipo
 - [x] Financeiro: sem projeto, seleção de empresa (todas ativas) local à tela
 - [x] SuperAdmin: ferramenta Portal e solicitações de novos usuários pendentes
