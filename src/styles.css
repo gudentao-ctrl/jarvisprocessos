@@ -64,9 +64,13 @@
   --color-acc-slate: var(--acc-slate);
   --color-acc-red: var(--acc-red);
   --color-acc-violet: var(--acc-violet);
+  --color-permission-active: var(--permission-active);
+  --color-permission-active-foreground: var(--permission-active-foreground);
 }
 
 :root {
+  --permission-active: #E05A10;
+  --permission-active-foreground: #ffffff;
   --radius: 0.625rem;
   /* Fundo branco / cinza muito claro para alto contraste */
   --background: oklch(0.99 0.002 80);

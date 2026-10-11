@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertAccessAdmin } from "./permissions.functions";
+import { normalizePermissions, type PermissionMatrix } from "./permission-catalog";
 
 export const TOOLS = [
   { key: "portal", label: "Portal do cliente" },
@@ -27,6 +29,8 @@ export type Me = {
     company_name: string | null;
     member_role: string;
     permissions: Record<string, boolean>;
+    granularPermissions?: PermissionMatrix;
+    accessRole?: string;
   }>;
 };
 
@@ -44,10 +48,7 @@ const personalDataSchema = z.object({
 });
 
 async function assertSuperadmin(sb: any, userId?: string) {
-  let q = sb.from("profiles").select("is_superadmin");
-  if (userId) q = q.eq("user_id", userId);
-  const { data } = await q.limit(1).maybeSingle();
-  if (!data?.is_superadmin) throw new Error("Acesso restrito ao SuperAdmin");
+  await assertAccessAdmin(sb);
 }
 
 export const getMe = createServerFn({ method: "GET" })
@@ -64,6 +65,11 @@ export const getMe = createServerFn({ method: "GET" })
       .from("company_members")
       .select("company_id, member_role, permissions, companies(name)")
       .eq("user_id", context.userId);
+
+    const { data: matrices, error: matrixError } = await sb.from("user_company_permissions").select("company_id,role,permissions").eq("user_id", context.userId);
+    if (matrixError) throw new Error(matrixError.message);
+    const { data: superadmin, error: roleError } = await sb.rpc("is_access_superadmin");
+    if (roleError) throw new Error(roleError.message);
 
     const claims: any = context.claims ?? {};
     const email: string | null = profile?.email ?? claims.email ?? null;
@@ -85,13 +91,15 @@ export const getMe = createServerFn({ method: "GET" })
       userId: context.userId,
       email,
       fullName,
-      isSuperadmin: !!profile?.is_superadmin,
+      isSuperadmin: superadmin === true,
       status: (profile?.status ?? "pending") as Me["status"],
       memberships: (members ?? []).map((m: any) => ({
         company_id: m.company_id,
         company_name: m.companies?.name ?? null,
         member_role: m.member_role,
         permissions: (m.permissions ?? {}) as Record<string, boolean>,
+        granularPermissions: normalizePermissions(matrices?.find((matrix: any) => matrix.company_id === m.company_id)?.permissions ?? m.permissions),
+        accessRole: matrices?.find((matrix: any) => matrix.company_id === m.company_id)?.role,
       })),
     };
   });
@@ -203,15 +211,7 @@ export const adminSaveMember = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const { error } = await sb.from("company_members").upsert(
-      {
-        user_id: data.user_id,
-        company_id: data.company_id,
-        member_role: data.member_role,
-        permissions: data.permissions,
-      },
-      { onConflict: "user_id,company_id" },
-    );
+    const { error } = await sb.rpc("save_company_permissions", { _user_id: data.user_id, _company_id: data.company_id, _role: data.member_role.toUpperCase(), _permissions: normalizePermissions(data.permissions), _grant_superadmin: false });
     if (error) throw new Error(error.message);
 
     await sb.from("audit_log").insert({
@@ -236,11 +236,7 @@ export const adminRemoveMember = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const { error } = await sb
-      .from("company_members")
-      .delete()
-      .eq("user_id", data.user_id)
-      .eq("company_id", data.company_id);
+    const { error } = await sb.rpc("remove_company_permissions", { _user_id: data.user_id, _company_id: data.company_id });
     if (error) throw new Error(error.message);
     await sb.from("audit_log").insert({
       actor_id: context.userId,
