@@ -2932,22 +2932,63 @@ export type Database = {
           },
         ]
       }
+      user_company_permissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          permissions: Json
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          permissions?: Json
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          permissions?: Json
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_company_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
           id: string
+          is_superadmin: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_superadmin?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_superadmin?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -3212,6 +3253,25 @@ export type Database = {
       convert_crm_lead_to_company: {
         Args: { _lead_id: string }
         Returns: string
+      }
+      has_company_permission: {
+        Args: { _action?: string; _company_id: string; _tool: string }
+        Returns: boolean
+      }
+      is_access_superadmin: { Args: never; Returns: boolean }
+      remove_company_permissions: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: undefined
+      }
+      save_company_permissions: {
+        Args: {
+          _company_id: string
+          _grant_superadmin?: boolean
+          _permissions: Json
+          _role: string
+          _user_id: string
+        }
+        Returns: undefined
       }
       superadmin_delete_invoice: {
         Args: { _invoice_id: string }

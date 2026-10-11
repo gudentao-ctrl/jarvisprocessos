@@ -24,6 +24,7 @@ import { Route as PHashRouteImport } from './routes/p.$hash'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as TesteIdRouteImport } from './routes/teste.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_authenticated/admin.permissoes'
 import { Route as AuthenticatedAnaliseCriticaIndexRouteImport } from './routes/_authenticated/analise-critica.index'
 import { Route as AuthenticatedCalendarioIndexRouteImport } from './routes/_authenticated/calendario.index'
 import { Route as AuthenticatedCausaRaizIndexRouteImport } from './routes/_authenticated/causa-raiz.index'
@@ -158,6 +159,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminPermissoesRoute =
+  AuthenticatedAdminPermissoesRouteImport.update({
+    id: '/admin/permissoes',
+    path: '/admin/permissoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnaliseCriticaIndexRoute =
   AuthenticatedAnaliseCriticaIndexRouteImport.update({
     id: '/analise-critica/',
@@ -504,6 +511,7 @@ export interface FileRoutesByFullPath {
   '/p/$hash': typeof PHashRoute
   '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
+  '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -577,6 +585,7 @@ export interface FileRoutesByTo {
   '/p/$hash': typeof PHashRoute
   '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
+  '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -650,6 +659,7 @@ export interface FileRoutesById {
   '/p/$hash': typeof PHashRoute
   '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
+  '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
   '/_authenticated/cronoanalise/$id': typeof AuthenticatedCronoanaliseIdRoute
   '/_authenticated/cronoanalise/nova': typeof AuthenticatedCronoanaliseNovaRoute
@@ -725,6 +735,7 @@ export interface FileRouteTypes {
     | '/p/$hash'
     | '/p/$token'
     | '/teste/$id'
+    | '/admin/permissoes'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
@@ -798,6 +809,7 @@ export interface FileRouteTypes {
     | '/p/$hash'
     | '/p/$token'
     | '/teste/$id'
+    | '/admin/permissoes'
     | '/causa-raiz/$id'
     | '/cronoanalise/$id'
     | '/cronoanalise/nova'
@@ -870,6 +882,7 @@ export interface FileRouteTypes {
     | '/p/$hash'
     | '/p/$token'
     | '/teste/$id'
+    | '/_authenticated/admin/permissoes'
     | '/_authenticated/causa-raiz/$id'
     | '/_authenticated/cronoanalise/$id'
     | '/_authenticated/cronoanalise/nova'
@@ -1048,6 +1061,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/permissoes': {
+      id: '/_authenticated/admin/permissoes'
+      path: '/admin/permissoes'
+      fullPath: '/admin/permissoes'
+      preLoaderRoute: typeof AuthenticatedAdminPermissoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analise-critica/': {
@@ -1509,6 +1529,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGoogleCallbackRoute: typeof AuthenticatedGoogleCallbackRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedTemplateDocumentosRoute: typeof AuthenticatedTemplateDocumentosRoute
+  AuthenticatedAdminPermissoesRoute: typeof AuthenticatedAdminPermissoesRoute
   AuthenticatedCausaRaizIdRoute: typeof AuthenticatedCausaRaizIdRoute
   AuthenticatedCronoanaliseIdRoute: typeof AuthenticatedCronoanaliseIdRoute
   AuthenticatedCronoanaliseNovaRoute: typeof AuthenticatedCronoanaliseNovaRoute
@@ -1564,6 +1585,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGoogleCallbackRoute: AuthenticatedGoogleCallbackRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedTemplateDocumentosRoute: AuthenticatedTemplateDocumentosRoute,
+  AuthenticatedAdminPermissoesRoute: AuthenticatedAdminPermissoesRoute,
   AuthenticatedCausaRaizIdRoute: AuthenticatedCausaRaizIdRoute,
   AuthenticatedCronoanaliseIdRoute: AuthenticatedCronoanaliseIdRoute,
   AuthenticatedCronoanaliseNovaRoute: AuthenticatedCronoanaliseNovaRoute,
