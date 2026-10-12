@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMe } from "@/lib/access.functions";
-import { hasToolPermission, permissionForPath } from "@/lib/access-control";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function PhaseMenu({ current }: { current?: PhaseSlug }) {
   const [open, setOpen] = useState(false);
@@ -16,10 +16,11 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   const currentLabel = PHASES.find((p) => p.slug === current)?.label ?? "Etapas";
+  const { canAccessPath } = usePermissions();
   const visiblePhases = PHASES.filter((phase) => {
-    if (phase.slug === "controle") return hasToolPermission(profile, "gestao");
+    if (phase.slug === "controle") return canAccessPath("/controle");
     return PHASE_TOOLS[phase.slug].some((item) =>
-      hasToolPermission(profile, permissionForPath(item.to)),
+      canAccessPath(item.to),
     );
   });
 
@@ -72,13 +73,14 @@ export function PhaseMenu({ current }: { current?: PhaseSlug }) {
 
 // Optional inline grid variant (used inside Controle)
 export function PhaseGrid() {
+  const { canAccessPath } = usePermissions();
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   const visiblePhases = PHASES.filter(
     (phase) =>
       phase.slug !== "controle" &&
       PHASE_TOOLS[phase.slug].some((item) =>
-        hasToolPermission(profile, permissionForPath(item.to)),
+        canAccessPath(item.to),
       ),
   );
   return (
@@ -101,7 +103,8 @@ export function PhaseGrid() {
 }
 
 export function useVisiblePhaseTools<T extends { to: string }>(items: T[]) {
+  const { canAccessPath } = usePermissions();
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
-  return items.filter((item) => hasToolPermission(profile, permissionForPath(item.to)));
+  return items.filter((item) => canAccessPath(item.to));
 }

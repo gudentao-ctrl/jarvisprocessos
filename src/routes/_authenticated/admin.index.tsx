@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -278,6 +278,7 @@ function AdminPage() {
         <p className="text-xs text-muted-foreground">
           Usuários, permissões por empresa e auditoria
         </p>
+        <Button variant="outline" className="mt-3" asChild><Link to="/admin/permissoes"><ShieldCheck className="size-4" /> Alçadas por ferramenta</Link></Button>
       </div>
 
       <Tabs defaultValue="solicitacoes">
@@ -402,6 +403,7 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="acessos" className="space-y-3 pt-3">
+          <Button asChild className="bg-permission-active text-permission-active-foreground hover:bg-permission-active/90"><Link to="/admin/permissoes">Gerenciar alçadas granulares</Link></Button>
           <Input aria-label="Buscar empresa ou usuário" placeholder="Buscar empresa ou usuário" value={accessSearch} onChange={(e) => setAccessSearch(e.target.value)} className="h-11" />
           {companies.filter((c: any) => matchesAccessSearch(`${c.name} ${(membersByCompany[c.id] ?? []).map((m: any) => profileName(m.user_id)).join(" ")}`, accessSearch)).map((c: any) => (
             <Card key={c.id} className="p-3">

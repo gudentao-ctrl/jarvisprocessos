@@ -290,6 +290,7 @@ export const generateArtifactsFromInterview = createServerFn({ method: "POST" })
       .from("transcripts")
       .select("content")
       .eq("interview_id", data.interview_id)
+      .maybeSingle();
     let content = (t?.content ?? "").trim();
     if (content.length < 30) {
       const { data: comp } = await supabase.from("companies").select("name").eq("id", interview.company_id).maybeSingle();

@@ -30,6 +30,8 @@ import {
 
 import { cn } from "@/lib/utils";
 import { ActiveCompanyProvider } from "@/lib/active-company";
+import { usePermissions } from "@/hooks/usePermissions";
+import { toolsForPath } from "@/lib/permission-catalog";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { AskAiFab } from "@/components/AskAiFab";
 import { getMe } from "@/lib/access.functions";
@@ -104,6 +106,10 @@ const NAV = [
 ] as const;
 
 function AuthenticatedLayout() {
+  return <ActiveCompanyProvider><AuthenticatedShell /></ActiveCompanyProvider>;
+}
+
+function AuthenticatedShell() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const HIDE_COMPANY_SWITCHER = [
@@ -119,14 +125,13 @@ function AuthenticatedLayout() {
   const showSwitcher = !HIDE_COMPANY_SWITCHER.some((p) => pathname.startsWith(p));
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
-  const hasPermission = (permission: string) =>
-    !!profile?.isSuperadmin ||
-    !!profile?.memberships.some((membership) => membership.permissions?.[permission] === true);
+  const { hasAccess, canAccessPath, isPending: permissionsPending } = usePermissions();
+  const hasPermission = (permission: string) => hasAccess(permission);
   const isManagerOrAdmin =
     !!profile?.isSuperadmin ||
     !!profile?.memberships.some((m: any) => m.role === "gestor" || m.permissions?.gestao === true);
 
-  const visibleNav = NAV.filter((item) => hasPermission(item.permission));
+  const visibleNav = NAV.filter((item) => canAccessPath(item.to));
   const mobileShortcuts = visibleNav.slice(0, 5);
 
   useEffect(() => {
@@ -137,7 +142,6 @@ function AuthenticatedLayout() {
   }, [router]);
 
   return (
-    <ActiveCompanyProvider>
       <div className="flex min-h-screen bg-muted/30">
         {/* Sidebar desktop */}
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-background lg:flex">
@@ -244,7 +248,7 @@ function AuthenticatedLayout() {
 
           <main className="flex-1 overflow-y-auto overscroll-contain">
             <div className="mx-auto w-full max-w-6xl px-3 py-3 sm:px-4 sm:py-6 pb-28 sm:pb-24 lg:pb-8">
-              <Outlet />
+              {permissionsPending ? <p className="py-8 text-muted-foreground">Verificando acessos…</p> : pathname.startsWith("/admin") ? (profile?.isSuperadmin ? <Outlet /> : <p role="alert">Área exclusiva do SuperAdmin.</p>) : toolsForPath(pathname).length > 0 && !canAccessPath(pathname) ? <p role="alert" className="py-8">Acesso não liberado para esta ferramenta na empresa selecionada.</p> : <Outlet />}
             </div>
           </main>
         </div>
@@ -269,7 +273,6 @@ function AuthenticatedLayout() {
 
         <AskAiFab />
       </div>
-    </ActiveCompanyProvider>
   );
 }
 

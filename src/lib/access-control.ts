@@ -1,4 +1,5 @@
 import type { Me, ToolKey } from "@/lib/access.functions";
+import { ALL_PERMISSION_TOOLS, canUsePermission, toolsForPath } from "./permission-catalog";
 
 export function permissionForPath(pathname: string): ToolKey | null {
   if (pathname.startsWith("/financeiro")) return "financeiro";
@@ -42,6 +43,13 @@ export function hasToolPermission(profile: Me | undefined, permission: ToolKey |
   if (!permission) return true;
   return (
     !!profile?.isSuperadmin ||
-    !!profile?.memberships.some((membership) => membership.permissions?.[permission] === true)
+    (profile?.status === "active" && !!profile.memberships.some((membership) => ALL_PERMISSION_TOOLS.filter((tool) => tool.category === permission).some((tool) => canUsePermission(membership.granularPermissions ?? membership.permissions, tool.key))))
   );
+}
+
+export function hasPathPermission(profile: Me | undefined, pathname: string, companyId?: string | null) {
+  if (profile?.isSuperadmin) return true;
+  if (profile?.status !== "active") return false;
+  const keys = toolsForPath(pathname);
+  return profile.memberships.filter((membership) => !companyId || membership.company_id === companyId).some((membership) => keys.some((key) => canUsePermission(membership.granularPermissions ?? membership.permissions, key)));
 }

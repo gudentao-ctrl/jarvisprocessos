@@ -326,7 +326,7 @@ export const transcribeInterview = createServerFn({ method: "POST" })
           ? "audio/mpeg"
           : path.endsWith(".m4a")
             ? "audio/mp4"
-            : interview!.audio_mime || blob.type || "audio/webm";
+            : interview?.audio_mime || blob.type || "audio/webm";
       const ext =
         path.split(".").pop() ||
         (mime.includes("wav") ? "wav" : mime.includes("mp4") ? "m4a" : "mp3");
@@ -339,12 +339,12 @@ export const transcribeInterview = createServerFn({ method: "POST" })
         supabase: context.supabase,
         maxRetries: 2,
         metadata: {
-          title: interview.title,
-          participant: interview.participant,
+          title: interview?.title,
+          participant: interview?.participant ?? undefined,
           companyName: (interview as any).companies?.name,
           sectorName: (interview as any).sectors?.name,
-          interviewDate: interview.interview_date,
-          durationSec: interview.audio_duration_sec ?? undefined,
+          interviewDate: interview?.interview_date,
+          durationSec: interview?.audio_duration_sec ?? undefined,
           partIndex: pIdx,
           totalParts: totalP,
         },
