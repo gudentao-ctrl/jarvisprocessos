@@ -1,23 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertPermission } from "./permissions.functions";
 
 export async function assertManagerOrAdmin(sb: any, userId: string) {
-  const [{ data: prof }, { data: mems }] = await Promise.all([
-    sb.from("profiles").select("is_superadmin").eq("user_id", userId).maybeSingle(),
-    sb.from("company_members").select("member_role, permissions").eq("user_id", userId),
-  ]);
-  const isAllowed =
-    !!prof?.is_superadmin ||
-    (mems ?? []).some(
-      (m: any) =>
-        m.member_role === "gestor" ||
-        m.permissions?.gestao === true ||
-        m.permissions?.financeiro === true,
-    );
-  if (!isAllowed) {
-    throw new Error("Acesso exclusivo a Gestores e Superadmins.");
-  }
+  await assertPermission(sb, null, "faturamentos");
 }
 
 // ─── PERSISTENT FALLBACK STORE (Garante funcionamento mesmo se tabelas não migradas) ───

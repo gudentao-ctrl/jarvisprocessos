@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertPermission } from "./permissions.functions";
 
 export const listIndicatorStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -155,20 +156,7 @@ async function requireIndicatorTokenAccess(sb: any, userId: string, token: strin
     throw new Error("Seu cadastro ainda não foi aprovado pelo SuperAdmin.");
   }
 
-  if (!profile.is_superadmin) {
-    const { data: membership, error: membershipError } = await sb
-      .from("company_members")
-      .select("permissions")
-      .eq("user_id", userId)
-      .eq("company_id", indicator.company_id)
-      .maybeSingle();
-    if (membershipError) throw new Error(membershipError.message);
-    if (membership?.permissions?.indicadores !== true) {
-      throw new Error(
-        "Seu acesso à coleta de indicadores desta empresa não foi liberado pelo SuperAdmin.",
-      );
-    }
-  }
+  await assertPermission(sb, indicator.company_id, "indicadores_coleta");
 
   return { indicator, profile };
 }
@@ -196,6 +184,7 @@ export const createCollectionByAccessToken = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const result = await requireIndicatorTokenAccess(context.supabase, context.userId, data.token);
     if (!result) throw new Error("Indicador não encontrado.");
+    await assertPermission(context.supabase, result.indicator.company_id, "indicadores_coleta", "create");
     const submittedBy =
       result.profile.full_name?.trim() || result.profile.email || "Usuário autenticado";
     const { data: row, error } = await context.supabase
