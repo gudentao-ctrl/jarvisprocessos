@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertAccessAdmin } from "./permissions.functions";
 
 export const TICKET_KINDS = [
   { value: "melhoria", label: "Melhoria" },
@@ -84,6 +85,7 @@ export const adminListTickets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
+    await assertAccessAdmin(sb);
     const [{ data: tickets, error }, { data: profiles }] = await Promise.all([
       sb.from("tickets").select("*").order("created_at", { ascending: false }),
       sb.from("profiles").select("user_id, full_name, email"),
@@ -112,6 +114,7 @@ export const adminUpdateTicket = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
+    await assertAccessAdmin(sb);
     const { id, ...rest } = data;
     const payload: any = { ...rest };
     if (rest.status === "resolvido") payload.resolved_at = new Date().toISOString();

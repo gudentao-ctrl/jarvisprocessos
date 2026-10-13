@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertPermission } from "./permissions.functions";
 
 /* ============================================================
  * ADMIN — configuração da página pública
@@ -111,18 +112,7 @@ async function requirePortalAccess(userSb: any, userId: string, companyId: strin
   if (!profile || (profile.status !== "active" && !profile.is_superadmin)) {
     throw new Error("Seu cadastro ainda não foi aprovado pelo SuperAdmin.");
   }
-  if (profile.is_superadmin) return;
-
-  const { data: membership, error: membershipError } = await userSb
-    .from("company_members")
-    .select("permissions")
-    .eq("user_id", userId)
-    .eq("company_id", companyId)
-    .maybeSingle();
-  if (membershipError) throw new Error(membershipError.message);
-  if (membership?.permissions?.portal !== true) {
-    throw new Error("Seu acesso ao portal desta empresa não foi liberado pelo SuperAdmin.");
-  }
+  await assertPermission(userSb, companyId, "portal_empresa");
 }
 
 export const getPublicDashboard = createServerFn({ method: "GET" })

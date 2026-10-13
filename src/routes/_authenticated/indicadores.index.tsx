@@ -20,6 +20,7 @@ import {
   listCollections,
 } from "@/lib/indicator-collections.functions";
 import { useActiveCompany } from "@/lib/active-company";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,13 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/indicadores/")({
   component: IndicadoresPage,
+  head: () => ({ meta: [
+    { title: "Indicadores e medições | JARVIS Processo" },
+    { name: "description", content: "Acompanhe indicadores e o histórico de medições da sua empresa no JARVIS Processo." },
+    { property: "og:title", content: "Indicadores e medições | JARVIS Processo" },
+    { property: "og:description", content: "Indicadores, metas e histórico de resultados por empresa." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 const STATUS_STYLES: Record<string, { dot: string; label: string; chip: string }> = {
@@ -80,6 +88,7 @@ const FREQUENCIES = [
 ];
 
 function IndicadoresPage() {
+  const { hasAccess } = usePermissions();
   const { companyId } = useActiveCompany();
   const list = useServerFn(listIndicatorStatus);
   const comp = useServerFn(listCompanies);
@@ -166,7 +175,7 @@ function IndicadoresPage() {
         </div>
         <Dialog open={open} onOpenChange={openDialog}>
           <DialogTrigger asChild>
-            <Button className="shrink-0 min-h-11">
+            <Button className="shrink-0 min-h-11" hidden={!hasAccess("indicadores_cadastro", "create")}>
               <Plus className="h-4 w-4 mr-1" /> Novo
             </Button>
           </DialogTrigger>
@@ -286,6 +295,7 @@ function IndicadoresPage() {
                     variant="ghost"
                     className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
                     onClick={() => setEditing(i)}
+                    hidden={!hasAccess("indicadores_cadastro", "update", i.company_id)}
                   >
                     <Settings2 className="h-4 w-4" />
                   </Button>
@@ -315,7 +325,7 @@ function IndicadoresPage() {
                   {st.label}
                 </span>
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                  <Button asChild size="sm" className="min-h-9 text-xs touch-manipulation">
+                  <Button asChild size="sm" hidden={!hasAccess("indicadores_coleta", "create", i.company_id)} className="min-h-9 text-xs touch-manipulation">
                     <Link to="/indicadores/$id/coletar" params={{ id: i.id }}>
                       <Check className="h-3.5 w-3.5 mr-1" /> Registrar
                     </Link>
@@ -329,6 +339,7 @@ function IndicadoresPage() {
                       if (confirm("Excluir indicador e suas coletas?")) del.mutate(i.id);
                     }}
                     title="Excluir indicador"
+                    hidden={!hasAccess("indicadores_cadastro", "delete", i.company_id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

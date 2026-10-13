@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertPermission } from "./permissions.functions";
 import { z } from "zod";
 
 export const DEFAULT_PILLARS = [
@@ -150,6 +151,7 @@ export const getMapaData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    await assertPermission(context.supabase, data.company_id, "mapa_estrategico");
     const sb = context.supabase;
 
     const [actionPlansRes, companyRes] = await Promise.all([
@@ -418,6 +420,7 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await assertPermission(context.supabase, data.company_id, "mapa_estrategico", data.id ? "update" : "create");
     const sb = context.supabase;
 
     // Harmonize status & progress
@@ -595,6 +598,9 @@ export const deleteMapaItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+    const { data: target, error: targetError } = await sb.from("action_plans").select("company_id").eq("id", data.id).single();
+    if (targetError || !target?.company_id) throw new Error("Item não encontrado");
+    await assertPermission(sb, target.company_id, "mapa_estrategico", "delete");
 
     // 1. Delete children whose parent_id is this item
     await (sb.from("action_plans") as any).delete().eq("parent_id", data.id);

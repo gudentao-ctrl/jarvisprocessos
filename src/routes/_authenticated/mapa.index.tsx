@@ -14,6 +14,7 @@ import { exportMapaPdf } from "@/lib/mapa-pdf";
 import { exportMapaExcel } from "@/lib/mapa-excel";
 import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,9 +232,13 @@ function GutStepper({
 }
 
 function MapaPage() {
+  const { hasAccess } = usePermissions();
   const qc = useQueryClient();
   const { companyId: activeCompanyId, setCompanyId: setActiveCompanyId } = useActiveCompany();
   const [companyId, setCompanyId] = useState<string | null>(activeCompanyId ?? null);
+  const canCreate = hasAccess("mapa_estrategico", "create", companyId);
+  const canEdit = hasAccess("mapa_estrategico", "update", companyId);
+  const canDelete = hasAccess("mapa_estrategico", "delete", companyId);
 
   // Sync active company from global context
   useEffect(() => {
@@ -408,6 +413,7 @@ function MapaPage() {
 
   // Modal Handlers
   function handleOpenNewDiretriz(pillarKey?: string) {
+    if (!canCreate) return;
     setItemModalMode("diretriz");
     setParentItemForSub(null);
     const standardKeys = ["pessoas", "processo", "negocio"];
@@ -422,6 +428,7 @@ function MapaPage() {
   }
 
   function handleOpenNewSubAction(parent: MapaItem) {
+    if (!canCreate) return;
     setItemModalMode("desdobramento");
     setParentItemForSub(parent);
     const standardKeys = ["pessoas", "processo", "negocio"];
@@ -439,6 +446,7 @@ function MapaPage() {
   }
 
   function handleOpenEdit(item: MapaItem) {
+    if (!canEdit) return;
     setItemModalMode("edit");
     setParentItemForSub(null);
     const standardKeys = ["pessoas", "processo", "negocio"];
@@ -468,6 +476,7 @@ function MapaPage() {
   }
 
   function handleOpenDelete(item: MapaItem) {
+    if (!canDelete) return;
     setItemToDelete(item);
     setDeleteConfirmOpen(true);
   }
@@ -635,7 +644,7 @@ function MapaPage() {
             </Select>
           </div>
 
-          {companyId && (
+          {companyId && canCreate && (
             <>
               <Button
                 variant="outline"
@@ -808,7 +817,7 @@ function MapaPage() {
                   </div>
 
                   {/* Quick Action */}
-                  <div className="mt-3 flex justify-end">
+                  <div className={cn("mt-3 flex justify-end", !canCreate && "hidden")}>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -966,6 +975,7 @@ function MapaPage() {
                       <Button
                         size="sm"
                         variant="ghost"
+                        hidden={!canCreate}
                         className="h-8 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
                         onClick={() => handleOpenNewDiretriz(pilar.key)}
                       >
@@ -1102,6 +1112,7 @@ function MapaPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    hidden={!canCreate}
                                     className="h-7 text-[11px] px-2 gap-1"
                                     onClick={() => handleOpenNewSubAction(diretriz)}
                                     title="Adicionar Desdobramento / Ação prática"
@@ -1116,6 +1127,7 @@ function MapaPage() {
                                     size="icon"
                                     className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-muted-foreground hover:text-foreground shrink-0"
                                     onClick={() => handleOpenEdit(diretriz)}
+                                    hidden={!canEdit}
                                     title="Editar Diretriz"
                                   >
                                     <Pencil className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -1127,6 +1139,7 @@ function MapaPage() {
                                     size="icon"
                                     className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation active:scale-95 text-muted-foreground hover:text-destructive shrink-0"
                                     onClick={() => handleOpenDelete(diretriz)}
+                                    hidden={!canDelete}
                                     title="Excluir Diretriz"
                                   >
                                     <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -1235,6 +1248,7 @@ function MapaPage() {
                                             size="icon"
                                             className="h-8 w-8 sm:h-6 sm:w-6 touch-manipulation active:scale-95 text-muted-foreground hover:text-foreground shrink-0"
                                             onClick={() => handleOpenEdit(sub)}
+                                            hidden={!canEdit}
                                             title="Editar desdobramento"
                                           >
                                             <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
@@ -1245,6 +1259,7 @@ function MapaPage() {
                                             size="icon"
                                             className="h-8 w-8 sm:h-6 sm:w-6 touch-manipulation active:scale-95 text-muted-foreground hover:text-destructive shrink-0"
                                             onClick={() => handleOpenDelete(sub)}
+                                            hidden={!canDelete}
                                             title="Excluir desdobramento"
                                           >
                                             <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
