@@ -541,6 +541,7 @@ export type Database = {
           consent_version: string | null
           cpf: string
           created_at: string
+          created_by: string | null
           current_role: string | null
           desired_role: string | null
           email: string
@@ -562,6 +563,7 @@ export type Database = {
           consent_version?: string | null
           cpf: string
           created_at?: string
+          created_by?: string | null
           current_role?: string | null
           desired_role?: string | null
           email: string
@@ -583,6 +585,7 @@ export type Database = {
           consent_version?: string | null
           cpf?: string
           created_at?: string
+          created_by?: string | null
           current_role?: string | null
           desired_role?: string | null
           email?: string
