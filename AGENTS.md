@@ -24,4 +24,4 @@
 - Assessment PDFs must use embedded Unicode fonts, paginated text, explicit protocol alerts and descriptive-scale labels; this preserves legibility and prevents unsupported normative claims.
 
 ## Access management
-- The access catalog describes the tools covered by each existing permission group without creating independent grants; this keeps administration aligned with route and data enforcement.
+- Treat the versioned per-user, per-company permission matrix as the authorization source; enforce its tool and CRUD actions in both server functions and database policies so navigation controls are never the security boundary.

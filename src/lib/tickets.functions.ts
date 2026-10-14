@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { assertAccessAdmin } from "./permissions.functions";
+import { assertAccessAdmin, assertPermission } from "./permissions.functions";
 
 export const TICKET_KINDS = [
   { value: "melhoria", label: "Melhoria" },
@@ -43,6 +43,7 @@ export const listMyTickets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
+    await assertPermission(sb, null, "chamados_acompanhamento");
     const { data, error } = await sb
       .from("tickets")
       .select("*")
@@ -58,6 +59,7 @@ export const saveTicket = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     const { id, ...rest } = data;
+    await assertPermission(sb, null, data.kind === "bug" ? "chamados_erros" : "chamados_melhorias", id ? "update" : "create");
     if (id) {
       const { error } = await sb.from("tickets").update(rest).eq("id", id);
       if (error) throw new Error(error.message);
@@ -76,6 +78,7 @@ export const deleteTicket = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertPermission(context.supabase, null, "chamados_acompanhamento", "delete");
     const { error } = await (context.supabase as any).from("tickets").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

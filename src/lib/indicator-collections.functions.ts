@@ -14,6 +14,7 @@ export const listIndicatorStatus = createServerFn({ method: "GET" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
+    if (data.company_id) await assertPermission(context.supabase, data.company_id, "indicadores_historico");
     let q = context.supabase.from("v_indicator_status").select("*").order("name");
     if (data.project_id) q = q.eq("project_id", data.project_id);
     if (data.company_id) q = q.eq("company_id", data.company_id);
@@ -26,6 +27,9 @@ export const listCollections = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ indicator_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: indicator } = await context.supabase.from("indicators").select("company_id").eq("id", data.indicator_id).single();
+    if (!indicator?.company_id) throw new Error("Indicador não encontrado");
+    await assertPermission(context.supabase, indicator.company_id, "indicadores_historico");
     const { data: rows, error } = await context.supabase
       .from("indicator_collections")
       .select("*")
@@ -57,6 +61,9 @@ export const updateIndicatorPublicSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { id, ...patch } = data;
+    const { data: indicator } = await context.supabase.from("indicators").select("company_id").eq("id", id).single();
+    if (!indicator?.company_id) throw new Error("Indicador não encontrado");
+    await assertPermission(context.supabase, indicator.company_id, "indicadores_cadastro", "update");
     const { data: row, error } = await context.supabase
       .from("indicators")
       .update(patch)
@@ -71,6 +78,9 @@ export const regenerateIndicatorToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: indicator } = await context.supabase.from("indicators").select("company_id").eq("id", data.id).single();
+    if (!indicator?.company_id) throw new Error("Indicador não encontrado");
+    await assertPermission(context.supabase, indicator.company_id, "indicadores_cadastro", "update");
     // generate URL-safe random token client-side here (server runtime)
     const bytes = new Uint8Array(12);
     crypto.getRandomValues(bytes);
@@ -98,6 +108,8 @@ export const getIndicator = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
+    if (!row.company_id) throw new Error("Indicador sem empresa vinculada");
+    await assertPermission(context.supabase, row.company_id, "indicadores_historico");
     return row;
   });
 
@@ -115,6 +127,9 @@ export const createCollection = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    const { data: indicator } = await context.supabase.from("indicators").select("company_id").eq("id", data.indicator_id).single();
+    if (!indicator?.company_id) throw new Error("Indicador não encontrado");
+    await assertPermission(context.supabase, indicator.company_id, "indicadores_coleta", "create");
     const { data: row, error } = await context.supabase
       .from("indicator_collections")
       .insert(data)
@@ -128,6 +143,11 @@ export const deleteCollection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: collection } = await context.supabase.from("indicator_collections").select("indicator_id").eq("id", data.id).single();
+    if (!collection?.indicator_id) throw new Error("Medição não encontrada");
+    const { data: indicator } = await context.supabase.from("indicators").select("company_id").eq("id", collection.indicator_id).single();
+    if (!indicator?.company_id) throw new Error("Indicador não encontrado");
+    await assertPermission(context.supabase, indicator.company_id, "indicadores_coleta", "delete");
     const { error } = await context.supabase
       .from("indicator_collections")
       .delete()

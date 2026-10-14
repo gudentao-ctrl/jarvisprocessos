@@ -330,7 +330,7 @@ function IndicadoresPage() {
                       <Check className="h-3.5 w-3.5 mr-1" /> Registrar
                     </Link>
                   </Button>
-                  <LinkButton token={i.public_token} indicatorName={i.name} />
+                  {hasAccess("indicadores_coleta", "read", i.company_id) && <LinkButton token={i.public_token} indicatorName={i.name} />}
                   <Button
                     size="sm"
                     variant="ghost"
