@@ -35,7 +35,7 @@ export const getPermissionWorkspace = createServerFn({ method: "GET" })
 
 export const saveCompanyPermissions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid(), company_id: z.string().uuid(), role: z.enum(["CLIENTE", "CONSULTOR", "GESTOR", "SUPERADMIN"]), permissions: permissionSchema, grant_superadmin: z.boolean().default(false) }).parse(input))
+  .validator((input: unknown) => z.object({ user_id: z.string().uuid(), company_id: z.string().uuid(), role: z.enum(["CLIENTE", "CONSULTOR", "GESTOR", "SUPERADMIN"]), permissions: permissionSchema, grant_superadmin: z.boolean().default(false) }).parse(input))
   .handler(async ({ context, data }) => {
     await assertAccessAdmin(context.supabase);
     const known = new Set(PERMISSION_CATALOG.flatMap((group) => group.tools.map((tool) => tool.key)));
