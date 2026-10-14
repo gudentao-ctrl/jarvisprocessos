@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertPermission } from "./permissions.functions";
 
 export const CRM_STAGES = [
   { value: "nao_iniciado", label: "Não iniciado" },
@@ -87,6 +88,7 @@ export const listLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
+    await assertPermission(sb, null, "crm_leads");
     const [
       { data: leads, error },
       { data: acts },
@@ -126,6 +128,7 @@ export const convertLeadToCompany = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ lead_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
+    await assertPermission(sb, null, "crm_contratos", "create");
     const { data: companyId, error } = await sb.rpc("convert_crm_lead_to_company", {
       _lead_id: data.lead_id,
     });
@@ -138,6 +141,7 @@ export const saveLead = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => leadSchema.parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
+    await assertPermission(sb, null, "crm_leads", data.id ? "update" : "create");
     const { id, ...rest } = data;
     const payload: any = { ...rest };
     if (data.stage === "fechamento") payload.converted_at = new Date().toISOString();
@@ -192,6 +196,7 @@ export const deleteLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertPermission(context.supabase, null, "crm_leads", "delete");
     const { error } = await (context.supabase as any).from("crm_leads").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -211,6 +216,7 @@ export const addLeadActivity = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
+    await assertPermission(sb, null, "crm_atividades", "create");
     const { error } = await sb
       .from("crm_activities")
       .insert({ ...data, created_by: context.userId });
