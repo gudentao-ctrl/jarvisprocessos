@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Revisão completa: corrigir armazenamento de credenciais Google e validar isolamento de acesso
+- [ ] Revisão completa: substituir persistência insegura de Pessoas e verificar fluxos principais
+- [ ] Revisão completa: revisar funções, permissões, dependências e registrar verificações e bloqueios
+
 - [x] Segurança: revisão inicial de permissões, links públicos e dependências; correções e limites registrados em SECURITY_REVIEW.md
 
 - [x] RBAC granular: matriz por usuário/empresa, migração dos acessos existentes, presets e tela /admin/permissoes
