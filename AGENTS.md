@@ -25,3 +25,5 @@
 
 ## Access management
 - Treat the versioned per-user, per-company permission matrix as the authorization source; enforce its tool and CRUD actions in both server functions and database policies so navigation controls are never the security boundary.
+
+- Keep access editing exclusively on `/admin/permissoes`; the SuperAdmin overview links there instead of duplicating permission forms. This prevents legacy controls from conflicting with the granular matrix.

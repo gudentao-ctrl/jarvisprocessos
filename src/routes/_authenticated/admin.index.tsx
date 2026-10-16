@@ -1,26 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   adminListUsers,
   adminSetUserStatus,
-  adminSaveMember,
-  adminRemoveMember,
   adminListAudit,
   getMe,
-  TOOLS,
-  MEMBER_ROLES,
   adminUpdateUser,
   adminCreateUser,
   adminSendPasswordReset,
   adminDeleteUser,
 } from "@/lib/access.functions";
-import { listCompanies } from "@/lib/interviews.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -36,7 +30,6 @@ import {
   UserCheck,
   UserX,
   Trash2,
-  Plus,
   ShieldAlert,
   Pencil,
   KeyRound,
@@ -45,7 +38,6 @@ import {
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ACCESS_CATALOG, matchesAccessSearch } from "@/lib/access-catalog";
 import {
   adminListTickets,
   adminUpdateTicket,
@@ -74,13 +66,6 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   }),
 });
 
-type MemberDraft = {
-  user_id: string;
-  company_id: string;
-  member_role: (typeof MEMBER_ROLES)[number];
-  permissions: Record<string, boolean>;
-};
-
 type UserDraft = {
   user_id?: string;
   full_name: string;
@@ -104,10 +89,7 @@ function AdminPage() {
   const qc = useQueryClient();
   const me = useServerFn(getMe);
   const listUsers = useServerFn(adminListUsers);
-  const listComp = useServerFn(listCompanies);
   const setStatus = useServerFn(adminSetUserStatus);
-  const saveMember = useServerFn(adminSaveMember);
-  const removeMember = useServerFn(adminRemoveMember);
   const listAudit = useServerFn(adminListAudit);
   const updateUser = useServerFn(adminUpdateUser);
   const createUser = useServerFn(adminCreateUser);
@@ -120,11 +102,6 @@ function AdminPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => listUsers(),
-    enabled: isAdmin,
-  });
-  const { data: companies = [] } = useQuery({
-    queryKey: ["companies"],
-    queryFn: () => listComp(),
     enabled: isAdmin,
   });
   const { data: audit = [] } = useQuery({
@@ -150,9 +127,6 @@ function AdminPage() {
     onError: (e: any) => toast.error(e?.message),
   });
 
-  const [draft, setDraft] = useState<MemberDraft | null>(null);
-  const [accessSearch, setAccessSearch] = useState("");
-  const [toolSearch, setToolSearch] = useState("");
   const [userDraft, setUserDraft] = useState<UserDraft | null>(null);
 
   const statusMut = useMutation({
@@ -165,20 +139,6 @@ function AdminPage() {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("Situação atualizada");
     },
-    onError: (e: any) => toast.error(e?.message),
-  });
-  const memberMut = useMutation({
-    mutationFn: (v: MemberDraft) => saveMember({ data: v }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
-      setDraft(null);
-      toast.success("Acesso salvo");
-    },
-    onError: (e: any) => toast.error(e?.message),
-  });
-  const removeMut = useMutation({
-    mutationFn: (v: { user_id: string; company_id: string }) => removeMember({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
     onError: (e: any) => toast.error(e?.message),
   });
   const userMut = useMutation({
@@ -231,14 +191,6 @@ function AdminPage() {
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível excluir o usuário"),
   });
 
-  const membersByCompany = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    for (const m of data?.members ?? []) {
-      (map[m.company_id] ??= []).push(m);
-    }
-    return map;
-  }, [data]);
-
   const profileName = (userId: string) => {
     const p = (data?.profiles ?? []).find((x: any) => x.user_id === userId);
     return p?.full_name || p?.email || userId.slice(0, 8);
@@ -278,7 +230,7 @@ function AdminPage() {
         <p className="text-xs text-muted-foreground">
           Usuários, permissões por empresa e auditoria
         </p>
-        <Button variant="outline" className="mt-3" asChild><Link to="/admin/permissoes"><ShieldCheck className="size-4" /> Alçadas por ferramenta</Link></Button>
+        <Button variant="outline" className="mt-3" asChild><Link to="/admin/permissoes"><ShieldCheck className="size-4" /> Gestão de acessos</Link></Button>
       </div>
 
       <Tabs defaultValue="solicitacoes">
@@ -292,7 +244,6 @@ function AdminPage() {
               ? ` (${tickets.filter((t: any) => t.status === "aberto").length})`
               : ""}
           </TabsTrigger>
-          <TabsTrigger value="acessos">Gestão de Acessos</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="auditoria">Auditoria</TabsTrigger>
         </TabsList>
@@ -398,91 +349,6 @@ function AdminPage() {
               >
                 Salvar resposta
               </Button>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="acessos" className="space-y-3 pt-3">
-          <Button asChild className="bg-permission-active text-permission-active-foreground hover:bg-permission-active/90"><Link to="/admin/permissoes">Gerenciar alçadas granulares</Link></Button>
-          <Input aria-label="Buscar empresa ou usuário" placeholder="Buscar empresa ou usuário" value={accessSearch} onChange={(e) => setAccessSearch(e.target.value)} className="h-11" />
-          {companies.filter((c: any) => matchesAccessSearch(`${c.name} ${(membersByCompany[c.id] ?? []).map((m: any) => profileName(m.user_id)).join(" ")}`, accessSearch)).map((c: any) => (
-            <Card key={c.id} className="p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="min-w-0"><p className="break-words font-semibold">{c.name}</p><p className="text-xs text-muted-foreground">{(membersByCompany[c.id] ?? []).length} usuários autorizados</p></div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setDraft({
-                      user_id: "",
-                      company_id: c.id,
-                      member_role: "consultor",
-                      permissions: {},
-                    })
-                  }
-                >
-                  <Plus className="mr-1 h-4 w-4" /> Autorizar usuário
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {(membersByCompany[c.id] ?? []).length === 0 && (
-                  <p className="text-xs text-muted-foreground">Nenhum usuário autorizado.</p>
-                )}
-                {(membersByCompany[c.id] ?? []).map((m: any) => (
-                  <div key={m.id} className="rounded-md border p-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium">{profileName(m.user_id)}</p>
-                        <Badge variant="secondary" className="capitalize">
-                          {m.member_role}
-                        </Badge>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            setDraft({
-                              user_id: m.user_id,
-                              company_id: m.company_id,
-                              member_role: m.member_role,
-                              permissions: m.permissions ?? {},
-                            })
-                          }
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 text-destructive hover:bg-destructive/10 shrink-0"
-                          onClick={() =>
-                            confirm("Remover acesso?") &&
-                            removeMut.mutate({ user_id: m.user_id, company_id: m.company_id })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {TOOLS.filter((t) => m.permissions?.[t.key]).map((t) => (
-                        <span
-                          key={t.key}
-                          className={
-                            m.permissions?.[t.key]
-                              ? "rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary"
-                              : "rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                          }
-                        >
-                          {t.label}
-                        </span>
-                      ))}
-                      {!TOOLS.some((t) => m.permissions?.[t.key]) && <span className="text-xs text-muted-foreground">Nenhuma ferramenta liberada</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </Card>
           ))}
         </TabsContent>
@@ -613,94 +479,6 @@ function AdminPage() {
           ))}
         </TabsContent>
       </Tabs>
-
-      <Dialog open={!!draft} onOpenChange={(o) => { if (!o) { setDraft(null); setToolSearch(""); } }}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Permissões do usuário</DialogTitle>
-          </DialogHeader>
-          {draft && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium">{companies.find((c: any) => c.id === draft.company_id)?.name}</p>
-              <div>
-                <Label>Usuário</Label>
-                <Select
-                  value={draft.user_id}
-                  onValueChange={(v) => setDraft({ ...draft, user_id: v })}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(data?.profiles ?? [])
-                      .filter((p: any) => !p.is_superadmin)
-                      .map((p: any) => (
-                        <SelectItem key={p.user_id} value={p.user_id}>
-                          {p.full_name || p.email}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Perfil</Label>
-                <Select
-                  value={draft.member_role}
-                  onValueChange={(v) => setDraft({ ...draft, member_role: v as any })}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MEMBER_ROLES.map((r) => (
-                      <SelectItem key={r} value={r} className="capitalize">
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">Ferramentas autorizadas <span className="text-muted-foreground">({TOOLS.filter((t) => draft.permissions[t.key]).length}/{TOOLS.length})</span></p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setDraft({ ...draft, permissions: { ...draft.permissions, ...Object.fromEntries(TOOLS.map((t) => [t.key, true])) } })}>Liberar todas</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDraft({ ...draft, permissions: { ...draft.permissions, ...Object.fromEntries(TOOLS.map((t) => [t.key, false])) } })}>Desmarcar todas</Button>
-                  </div>
-                </div>
-                <Input aria-label="Buscar ferramenta" placeholder="Buscar ferramenta" value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-11" />
-                {ACCESS_CATALOG.filter((t) => matchesAccessSearch(`${t.label} ${t.tools.join(" ")}`, toolSearch)).map((t) => (
-                  <div key={t.key} className="border-b border-border pb-3">
-                    <div className="flex min-h-11 items-center justify-between gap-3">
-                    <Label htmlFor={`permission-${t.key}`} className="text-sm font-semibold">{t.label}</Label>
-                    <Switch
-                      id={`permission-${t.key}`}
-                      aria-label={t.label}
-                      checked={!!draft.permissions[t.key]}
-                      onCheckedChange={(v) =>
-                        setDraft({
-                          ...draft,
-                          permissions: { ...draft.permissions, [t.key]: v },
-                        })
-                      }
-                    />
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">{t.tools.map((tool) => <span key={tool}>{tool}</span>)}</div>
-                  </div>
-                ))}
-                {!ACCESS_CATALOG.some((t) => matchesAccessSearch(`${t.label} ${t.tools.join(" ")}`, toolSearch)) && <p className="text-sm text-muted-foreground">Nenhuma ferramenta encontrada.</p>}
-              </div>
-              <Button
-                className="min-h-11 w-full"
-                disabled={!draft.user_id || memberMut.isPending}
-                onClick={() => memberMut.mutate(draft)}
-              >
-                Salvar acesso
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!userDraft} onOpenChange={(open) => !open && setUserDraft(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
