@@ -1052,6 +1052,75 @@ export type Database = {
           },
         ]
       }
+      google_calendar_oauth_states: {
+        Row: {
+          expires_at: string
+          redirect_uri: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string
+          redirect_uri: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          redirect_uri?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_private_config: {
+        Row: {
+          client_id: string
+          client_secret: string
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          client_secret: string
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          client_secret?: string
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      google_calendar_private_tokens: {
+        Row: {
+          access_token: string
+          expiry_date: number | null
+          google_email: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          expiry_date?: number | null
+          google_email?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          expiry_date?: number | null
+          google_email?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       improvement_opportunities: {
         Row: {
           action_plan_id: string | null
