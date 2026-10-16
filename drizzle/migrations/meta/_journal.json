@@ -29,6 +29,27 @@
       "when": 1792113368156,
       "tag": "0003_protect_profile_approval_state",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792113786077,
+      "tag": "0004_isolate_google_calendar_secrets",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792114004604,
+      "tag": "0005_protected_people_modules",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792114071257,
+      "tag": "0006_validated_survey_operations",
+      "breakpoints": true
     }
   ]
 }

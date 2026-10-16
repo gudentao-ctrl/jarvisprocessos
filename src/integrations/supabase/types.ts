@@ -609,6 +609,78 @@ export type Database = {
           },
         ]
       }
+      candidaturas_funil: {
+        Row: {
+          analise_perfil: Json | null
+          avaliacao_cliente: Json | null
+          candidato_id: string
+          created_at: string | null
+          created_by: string | null
+          data_devolutiva: string | null
+          devolutiva_enviada: boolean | null
+          etapa_kanban: string | null
+          historico_etapas: Json | null
+          id: string
+          motivo_reprovacao: string | null
+          parecer_consultoria: Json | null
+          proposta_contratacao: Json | null
+          status: string | null
+          updated_at: string | null
+          vaga_id: string
+        }
+        Insert: {
+          analise_perfil?: Json | null
+          avaliacao_cliente?: Json | null
+          candidato_id: string
+          created_at?: string | null
+          created_by?: string | null
+          data_devolutiva?: string | null
+          devolutiva_enviada?: boolean | null
+          etapa_kanban?: string | null
+          historico_etapas?: Json | null
+          id?: string
+          motivo_reprovacao?: string | null
+          parecer_consultoria?: Json | null
+          proposta_contratacao?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          vaga_id: string
+        }
+        Update: {
+          analise_perfil?: Json | null
+          avaliacao_cliente?: Json | null
+          candidato_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          data_devolutiva?: string | null
+          devolutiva_enviada?: boolean | null
+          etapa_kanban?: string | null
+          historico_etapas?: Json | null
+          id?: string
+          motivo_reprovacao?: string | null
+          parecer_consultoria?: Json | null
+          proposta_contratacao?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          vaga_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidaturas_funil_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidaturas_funil_vaga_id_fkey"
+            columns: ["vaga_id"]
+            isOneToOne: false
+            referencedRelation: "vagas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -1051,6 +1123,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_calendar_oauth_states: {
+        Row: {
+          expires_at: string
+          redirect_uri: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string
+          redirect_uri: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          redirect_uri?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_private_config: {
+        Row: {
+          client_id: string
+          client_secret: string
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          client_secret: string
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          client_secret?: string
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      google_calendar_private_tokens: {
+        Row: {
+          access_token: string
+          expiry_date: number | null
+          google_email: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          expiry_date?: number | null
+          google_email?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          expiry_date?: number | null
+          google_email?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       improvement_opportunities: {
         Row: {
@@ -1676,6 +1817,149 @@ export type Database = {
           },
         ]
       }
+      mentoria_sessoes: {
+        Row: {
+          acoes: Json | null
+          avancos_observados: string | null
+          created_at: string | null
+          created_by: string | null
+          data_atendimento: string
+          diagnostico: Json | null
+          evidencias_comportamentais: string | null
+          foco_proxima_sessao: string | null
+          horas: number | null
+          id: string
+          mentoria_id: string
+          objetivo_sessao: string | null
+          pontos_atencao: string | null
+          pontos_desenvolvimento: string | null
+          pontos_informe: string | null
+          resumo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acoes?: Json | null
+          avancos_observados?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_atendimento?: string
+          diagnostico?: Json | null
+          evidencias_comportamentais?: string | null
+          foco_proxima_sessao?: string | null
+          horas?: number | null
+          id?: string
+          mentoria_id: string
+          objetivo_sessao?: string | null
+          pontos_atencao?: string | null
+          pontos_desenvolvimento?: string | null
+          pontos_informe?: string | null
+          resumo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acoes?: Json | null
+          avancos_observados?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_atendimento?: string
+          diagnostico?: Json | null
+          evidencias_comportamentais?: string | null
+          foco_proxima_sessao?: string | null
+          horas?: number | null
+          id?: string
+          mentoria_id?: string
+          objetivo_sessao?: string | null
+          pontos_atencao?: string | null
+          pontos_desenvolvimento?: string | null
+          pontos_informe?: string | null
+          resumo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentoria_sessoes_mentoria_id_fkey"
+            columns: ["mentoria_id"]
+            isOneToOne: false
+            referencedRelation: "mentorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentorias: {
+        Row: {
+          behavioral_profile: Json | null
+          candidate_id: string | null
+          cargo: string | null
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          finalizada_em: string | null
+          formacao: string | null
+          id: string
+          idade: number | null
+          nome: string
+          parecer_final: string | null
+          relatorio_final_url: string | null
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          behavioral_profile?: Json | null
+          candidate_id?: string | null
+          cargo?: string | null
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          finalizada_em?: string | null
+          formacao?: string | null
+          id?: string
+          idade?: number | null
+          nome: string
+          parecer_final?: string | null
+          relatorio_final_url?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          behavioral_profile?: Json | null
+          candidate_id?: string | null
+          cargo?: string | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          finalizada_em?: string | null
+          formacao?: string | null
+          id?: string
+          idade?: number | null
+          nome?: string
+          parecer_final?: string | null
+          relatorio_final_url?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentorias_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentorias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pain_points: {
         Row: {
           category: Database["public"]["Enums"]["pain_category"]
@@ -1815,6 +2099,186 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisa_perguntas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          obrigatorio: boolean | null
+          opcoes_lista: string[] | null
+          ordem: number | null
+          pesquisa_id: string
+          placeholder: string | null
+          tipo_resposta: string | null
+          titulo_pergunta: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          obrigatorio?: boolean | null
+          opcoes_lista?: string[] | null
+          ordem?: number | null
+          pesquisa_id: string
+          placeholder?: string | null
+          tipo_resposta?: string | null
+          titulo_pergunta: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          obrigatorio?: boolean | null
+          opcoes_lista?: string[] | null
+          ordem?: number | null
+          pesquisa_id?: string
+          placeholder?: string | null
+          tipo_resposta?: string | null
+          titulo_pergunta?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_perguntas_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisa_respostas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          pesquisa_id: string
+          respondente_info: Json | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          pesquisa_id: string
+          respondente_info?: Json | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          pesquisa_id?: string
+          respondente_info?: Json | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_respostas_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisa_respostas_itens: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          pergunta_id: string
+          resposta_id: string
+          valor_nota: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          pergunta_id: string
+          resposta_id: string
+          valor_nota?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          pergunta_id?: string
+          resposta_id?: string
+          valor_nota?: number | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_respostas_itens_pergunta_id_fkey"
+            columns: ["pergunta_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisa_perguntas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pesquisa_respostas_itens_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisa_respostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisas: {
+        Row: {
+          config_visual: Json | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          empresa_id: string
+          id: string
+          status: string | null
+          tipo: string | null
+          titulo: string
+          updated_at: string | null
+          url_hash: string
+        }
+        Insert: {
+          config_visual?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          status?: string | null
+          tipo?: string | null
+          titulo: string
+          updated_at?: string | null
+          url_hash?: string
+        }
+        Update: {
+          config_visual?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          status?: string | null
+          tipo?: string | null
+          titulo?: string
+          updated_at?: string | null
+          url_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2530,6 +2994,80 @@ export type Database = {
           },
         ]
       }
+      recrutamento_candidatos: {
+        Row: {
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          curriculo_nome: string | null
+          curriculo_texto: string | null
+          curriculo_url: string | null
+          data_nascimento: string | null
+          email: string | null
+          empresa_id: string
+          experiencias: string | null
+          ferramentas: string[] | null
+          formacao: string | null
+          id: string
+          nome: string
+          pretensao_salarial: number | null
+          status_global: string | null
+          telefone: string | null
+          ultimos_salarios: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          curriculo_nome?: string | null
+          curriculo_texto?: string | null
+          curriculo_url?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id: string
+          experiencias?: string | null
+          ferramentas?: string[] | null
+          formacao?: string | null
+          id?: string
+          nome: string
+          pretensao_salarial?: number | null
+          status_global?: string | null
+          telefone?: string | null
+          ultimos_salarios?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          curriculo_nome?: string | null
+          curriculo_texto?: string | null
+          curriculo_url?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id?: string
+          experiencias?: string | null
+          ferramentas?: string[] | null
+          formacao?: string | null
+          id?: string
+          nome?: string
+          pretensao_salarial?: number | null
+          status_global?: string | null
+          telefone?: string | null
+          ultimos_salarios?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_candidatos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roadmap_items: {
         Row: {
           area: string
@@ -2997,6 +3535,86 @@ export type Database = {
         }
         Relationships: []
       }
+      vagas: {
+        Row: {
+          beneficios: string[] | null
+          created_at: string | null
+          created_by: string | null
+          departamento: string | null
+          descricao: string | null
+          empresa_id: string
+          empresa_nome: string | null
+          experiencias_exigidas: string | null
+          ferramentas_obrigatorias: string[] | null
+          flyer_url: string | null
+          id: string
+          jornada: string | null
+          requisitos_formacao: string | null
+          salario_combinar: boolean | null
+          salario_max: number | null
+          salario_min: number | null
+          soft_skills: string[] | null
+          status: string | null
+          tipo_contratacao: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          beneficios?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          empresa_id: string
+          empresa_nome?: string | null
+          experiencias_exigidas?: string | null
+          ferramentas_obrigatorias?: string[] | null
+          flyer_url?: string | null
+          id?: string
+          jornada?: string | null
+          requisitos_formacao?: string | null
+          salario_combinar?: boolean | null
+          salario_max?: number | null
+          salario_min?: number | null
+          soft_skills?: string[] | null
+          status?: string | null
+          tipo_contratacao?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          beneficios?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          empresa_nome?: string | null
+          experiencias_exigidas?: string | null
+          ferramentas_obrigatorias?: string[] | null
+          flyer_url?: string | null
+          id?: string
+          jornada?: string | null
+          requisitos_formacao?: string | null
+          salario_combinar?: boolean | null
+          salario_max?: number | null
+          salario_min?: number | null
+          soft_skills?: string[] | null
+          status?: string | null
+          tipo_contratacao?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vagas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_hour_expenses: {
         Row: {
           amount: number
@@ -3257,6 +3875,11 @@ export type Database = {
         Args: { _lead_id: string }
         Returns: string
       }
+      create_recruitment_candidate: {
+        Args: { _candidate: Json; _vaga_id: string }
+        Returns: Json
+      }
+      get_public_survey: { Args: { _token: string }; Returns: Json }
       has_company_permission: {
         Args: { _action?: string; _company_id: string; _tool: string }
         Returns: boolean
@@ -3275,6 +3898,11 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      save_survey_definition: { Args: { _survey: Json }; Returns: string }
+      submit_public_survey: {
+        Args: { _items: Json; _session_id: string; _token: string }
+        Returns: boolean
       }
       superadmin_delete_invoice: {
         Args: { _invoice_id: string }

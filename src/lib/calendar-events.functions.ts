@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertPermission } from "./permissions.functions";
 
 const EventInput = z.object({
   id: z.string().uuid().optional(),
@@ -121,6 +122,12 @@ export const saveEvent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { id, sync_google, ...payload } = data;
+    await assertPermission(sb, data.company_id || null, "agenda", id ? "update" : "create");
+    if (id) {
+      const { data: existing, error } = await sb.from("calendar_events").select("company_id").eq("id", id).single();
+      if (error || !existing) throw new Error("Evento não encontrado ou sem acesso.");
+      await assertPermission(sb, existing.company_id || null, "agenda", "update");
+    }
 
     let row: any;
     if (id) {
@@ -142,88 +149,11 @@ export const saveEvent = createServerFn({ method: "POST" })
       row = inserted;
     }
 
-    // Optionally sync to Google Calendar if user has tokens
-    if (sync_google && (data.guest_emails?.length || data.is_internal_invite)) {
-      try {
-        const { data: tokenRow } = await sb
-          .from("user_google_calendar_tokens")
-          .select("access_token, refresh_token, expiry_date")
-          .eq("user_id", context.userId)
-          .maybeSingle();
-
-        if (tokenRow) {
-          const { getGoogleOAuthCredentials } = await import("./google-calendar.functions");
-          const { clientId, clientSecret } = await getGoogleOAuthCredentials(sb);
-          const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-          const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
-
-          let accessToken = tokenRow.access_token;
-          const isExpired = tokenRow.expiry_date && Date.now() > tokenRow.expiry_date - 60_000;
-          if (isExpired && tokenRow.refresh_token && clientId && clientSecret) {
-            const res = await fetch(GOOGLE_TOKEN_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: new URLSearchParams({
-                client_id: clientId,
-                client_secret: clientSecret,
-                refresh_token: tokenRow.refresh_token,
-                grant_type: "refresh_token",
-              }),
-            });
-            if (res.ok) {
-              const tokens: any = await res.json();
-              accessToken = tokens.access_token;
-              await sb
-                .from("user_google_calendar_tokens")
-                .update({
-                  access_token: tokens.access_token,
-                  expiry_date: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null,
-                })
-                .eq("user_id", context.userId);
-            }
-          }
-
-          if (accessToken) {
-            const attendees = (data.guest_emails ?? []).map((email) => ({ email }));
-            const startDt = new Date(data.starts_at);
-            const endDt = data.ends_at
-              ? new Date(data.ends_at)
-              : new Date(startDt.getTime() + 60 * 60_000);
-            const body = {
-              summary: data.title,
-              description: data.description,
-              location: data.location,
-              start: { dateTime: startDt.toISOString(), timeZone: "America/Sao_Paulo" },
-              end: { dateTime: endDt.toISOString(), timeZone: "America/Sao_Paulo" },
-              attendees,
-            };
-            const isUpdate = !!row.google_event_id;
-            const url = isUpdate
-              ? `${GOOGLE_CALENDAR_API}/calendars/primary/events/${row.google_event_id}?sendUpdates=all`
-              : `${GOOGLE_CALENDAR_API}/calendars/primary/events?sendUpdates=all`;
-            const gRes = await fetch(url, {
-              method: isUpdate ? "PUT" : "POST",
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(body),
-            });
-            if (gRes.ok) {
-              const gEvent: any = await gRes.json();
-              await sb
-                .from("calendar_events")
-                .update({ google_event_id: gEvent.id })
-                .eq("id", row.id);
-              row.google_event_id = gEvent.id;
-            } else {
-              console.error("[Google Calendar] saveEvent sync failed:", await gRes.text());
-            }
-          }
-        }
-      } catch (e) {
-        console.error("[Google Calendar] sync error:", e);
-      }
+    if (sync_google) {
+      const { syncStoredGoogleEvent } = await import("./google-calendar.server");
+      const result = await syncStoredGoogleEvent(sb, context.userId, row.id);
+      if (result.ok && result.google_event_id) row.google_event_id = result.google_event_id;
+      else row.google_sync_error = result.reason;
     }
 
     return row;
@@ -233,6 +163,9 @@ export const deleteEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: event, error: readError } = await context.supabase.from("calendar_events").select("company_id").eq("id", data.id).single();
+    if (readError || !event) throw new Error("Evento não encontrado ou sem acesso.");
+    await assertPermission(context.supabase, event.company_id || null, "agenda", "delete");
     const { error } = await context.supabase.from("calendar_events").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

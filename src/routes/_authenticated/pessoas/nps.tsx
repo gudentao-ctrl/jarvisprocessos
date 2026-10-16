@@ -29,7 +29,6 @@ import {
 import { toast } from "sonner";
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
 import type { Pesquisa, PesquisaPergunta, NpsRelatorioConsolidado, TipoPesquisa } from "@/lib/nps-types";
-import { supabase } from "@/integrations/supabase/client";
 import {
   getPesquisas,
   getPerguntasByPesquisaId,
@@ -38,7 +37,6 @@ import {
   calcularRelatorioPesquisa,
   deletePesquisa,
   generatePublicSurveyLink,
-  NPS_REALTIME_CHANNEL,
 } from "@/lib/nps-storage";
 import { PesquisaFormModal } from "@/components/nps/PesquisaFormModal";
 import { PesquisaRelatorioModal } from "@/components/nps/PesquisaRelatorioModal";
@@ -89,31 +87,11 @@ function NpsDashboardPage() {
     carregarPesquisas();
   }, [carregarPesquisas]);
 
-  // Escuta respostas submetidas publicamente em tempo real via Realtime Broadcast
+  // Refresh only authorized rows; never broadcast individual answers.
   useEffect(() => {
-    const channel = supabase.channel(NPS_REALTIME_CHANNEL);
-    channel
-      .on("broadcast", { event: "nova_resposta_nps" }, (payload: any) => {
-        const resp = payload?.payload?.resposta;
-        if (resp) {
-          // Atualiza o cache local do painel com a resposta recebida
-          try {
-            const raw = localStorage.getItem("maia_nps_respostas_v1");
-            const list = raw ? JSON.parse(raw) : [];
-            if (!list.some((r: any) => r.id === resp.id)) {
-              list.unshift(resp);
-              localStorage.setItem("maia_nps_respostas_v1", JSON.stringify(list));
-            }
-          } catch {}
-          toast.info("Nova resposta de pesquisa recebida em tempo real!");
-          carregarPesquisas();
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const refresh = () => { void carregarPesquisas(); };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, [carregarPesquisas]);
 
   // Filtragem

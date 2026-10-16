@@ -85,10 +85,7 @@ function PerfilPage() {
   });
 
   const isManagerOrAdmin = Boolean(
-    profile?.isSuperadmin ||
-    (profile?.memberships ?? []).some(
-      (m: any) => m.role === "gestor" || m.member_role === "gestor",
-    ),
+    profile?.isSuperadmin,
   );
 
   const disconnectMut = useMutation({
@@ -108,6 +105,8 @@ function PerfilPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["google-oauth-config"] });
       setConfigModalOpen(false);
+      setConfigClientSecret("");
+      setConfigClientId("");
       toast.success("Credenciais do Google Cloud salvas com sucesso!");
     },
     onError: (e: any) => {
@@ -523,7 +522,10 @@ function PerfilPage() {
       <Dialog
         open={configModalOpen}
         onOpenChange={(v) => {
-          if (!saveOAuthConfigMut.isPending) setConfigModalOpen(v);
+          if (!saveOAuthConfigMut.isPending) {
+            setConfigModalOpen(v);
+            if (!v) { setConfigClientSecret(""); setConfigClientId(""); }
+          }
         }}
       >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

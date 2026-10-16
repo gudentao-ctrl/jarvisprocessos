@@ -18,11 +18,13 @@ export default function PessoasDashboard() {
   const { companyId, company } = useCompanyFilter();
   const [summary, setSummary] = useState({ colaboradores: 0, recrutamento: 0, mentorias: 0, npsCount: 0, alertas: 1 });
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     async function loadSummary() {
       try {
         setLoading(true);
+        setUnavailable(false);
         let candCount = 0;
         let mentorCount = 0;
         let recrutamentoCount = 0;
@@ -37,28 +39,32 @@ export default function PessoasDashboard() {
         if (!cErr && typeof cCount === "number") {
           candCount = cCount;
         } else {
-          candCount = 3; // Fallback mock count for demo
+          candCount = 0;
+          setUnavailable(true);
         }
 
         try {
           const mentorados = await getMentoradosList(companyId);
           mentorCount = mentorados.filter((m) => m.status === "ativa").length;
         } catch {
-          mentorCount = 2;
+          mentorCount = 0;
+          setUnavailable(true);
         }
 
         try {
           const candidaturas = await getCandidaturasFunil(null, companyId);
           recrutamentoCount = candidaturas.filter((c) => c.status === "ATIVO").length;
         } catch {
-          recrutamentoCount = 4;
+          recrutamentoCount = 0;
+          setUnavailable(true);
         }
 
         try {
           const pesquisas = await getPesquisas(companyId);
           npsCount = pesquisas.length;
         } catch {
-          npsCount = 2;
+          npsCount = 0;
+          setUnavailable(true);
         }
 
         setSummary({
@@ -189,7 +195,7 @@ export default function PessoasDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{loading ? "—" : summary.colaboradores}</div>
+            <div className="text-2xl font-bold">{loading || unavailable ? "—" : summary.colaboradores}</div>
             <p className="text-[11px] text-muted-foreground mt-1">
               Cadastros e avaliações comportamentais
             </p>
@@ -207,7 +213,7 @@ export default function PessoasDashboard() {
             <Briefcase className="h-4 w-4 text-sky-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-sky-600">{loading ? "—" : summary.recrutamento}</div>
+            <div className="text-2xl font-bold text-sky-600">{loading || unavailable ? "—" : summary.recrutamento}</div>
             <p className="text-[11px] text-muted-foreground mt-1">Candidatos ativos em triagem e entrevistas</p>
           </CardContent>
         </Card>
@@ -224,7 +230,7 @@ export default function PessoasDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">
-              {loading ? "—" : summary.mentorias}
+              {loading || unavailable ? "—" : summary.mentorias}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               Colaboradores em desenvolvimento ativo
@@ -244,7 +250,7 @@ export default function PessoasDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#E05A10]">
-              {loading ? "—" : summary.npsCount}
+              {loading || unavailable ? "—" : summary.npsCount}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               Termômetros ativos de satisfação
