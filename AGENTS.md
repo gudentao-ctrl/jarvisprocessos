@@ -29,3 +29,4 @@
 - Keep access editing exclusively on `/admin/permissoes`; the SuperAdmin overview links there instead of duplicating permission forms. This prevents legacy controls from conflicting with the granular matrix.
 - Public assessment writes must revalidate invitation and candidate identity, use server-measured elapsed time and update only unfinished records; this prevents invitation-only tampering and duplicate completion.
 - Pin audited transitive dependency versions with package overrides and use the official patched SheetJS distribution; registry-only scans cannot verify that distribution.
+- Validate password-recovery redirects against explicit application origins in the shared URL helper; never trust all tenants of a shared hosting domain.
