@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { assertAccessAdmin } from "./permissions.functions";
 import { normalizePermissions, type PermissionMatrix } from "./permission-catalog";
+import { isAllowedRecoveryUrl } from "./security-urls";
 
 export const TOOLS = [
   { key: "portal", label: "Portal do cliente" },
@@ -378,10 +379,7 @@ export const adminSendPasswordReset = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const resetUrl = new URL(data.redirect_to);
-    const isAllowedHost =
-      resetUrl.hostname === "localhost" || resetUrl.hostname.endsWith(".lovable.app");
-    if (!isAllowedHost || resetUrl.pathname !== "/auth")
+    if (!isAllowedRecoveryUrl(data.redirect_to))
       throw new Error("Endereço de recuperação inválido");
     const { data: profile } = await sb
       .from("profiles")
