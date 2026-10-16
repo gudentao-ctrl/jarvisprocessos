@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Segurança: revisar permissões, links públicos, dados pessoais e dependências; corrigir falhas confirmadas e validar
+
 - [x] RBAC granular: matriz por usuário/empresa, migração dos acessos existentes, presets e tela /admin/permissoes
 - [x] RBAC granular: proteger consultas, alterações, rotas e menus; leitura restrita para Cliente
 - [x] RBAC granular: revisar CRUD do SuperAdmin, auditoria e testes multiempresa de acesso negado
