@@ -20,8 +20,7 @@ async function getAdmin() {
 
 async function findCandidate(token: string) {
   const admin = await getAdmin();
-  let result = await admin.from("candidates").select("*").eq("public_token", token).maybeSingle();
-  if (!result.data) result = await admin.from("candidates").select("*").eq("id", token).maybeSingle();
+  const result = await admin.from("candidates").select("*").eq("public_token", token).maybeSingle();
   if (result.error || !result.data) throw new Error("Convite inválido ou expirado");
   return { admin, candidate: result.data as any };
 }
@@ -44,6 +43,15 @@ function normalizeCpf(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+function assertCandidateIdentity(candidate: any, data: z.infer<typeof identitySchema>) {
+  if (
+    normalizeText(data.fullName) !== normalizeText(String(candidate.full_name ?? "")) ||
+    data.email.trim().toLowerCase() !== String(candidate.email ?? "").trim().toLowerCase() ||
+    normalizeCpf(data.cpf) !== normalizeCpf(String(candidate.cpf ?? "")) ||
+    data.birthDate !== candidate.birth_date
+  ) throw new Error("Os dados informados não correspondem ao cadastro deste convite");
+}
+
 export const getPublicAssessment = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ token: tokenSchema }).parse(input))
   .handler(async ({ data }) => publicCandidate((await findCandidate(data.token)).candidate, false));
@@ -53,12 +61,7 @@ export const startPublicAssessment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, candidate } = await findCandidate(data.token);
     if (candidate.completed_at) throw new Error("Esta avaliação já foi concluída");
-    const identityMatches =
-      normalizeText(data.fullName) === normalizeText(String(candidate.full_name ?? "")) &&
-      data.email.trim().toLowerCase() === String(candidate.email ?? "").trim().toLowerCase() &&
-      normalizeCpf(data.cpf) === normalizeCpf(String(candidate.cpf ?? "")) &&
-      data.birthDate === candidate.birth_date;
-    if (!identityMatches) throw new Error("Os dados informados não correspondem ao cadastro deste convite");
+    assertCandidateIdentity(candidate, data);
     const now = new Date().toISOString();
     const updates: Record<string, unknown> = {
       consent_version: "2026-10-02",
@@ -67,26 +70,28 @@ export const startPublicAssessment = createServerFn({ method: "POST" })
       status: "em_teste",
       updated_at: now,
     };
-    const { data: row, error } = await admin.from("candidates").update(updates).eq("id", candidate.id).select().single();
+    const { data: row, error } = await admin.from("candidates").update(updates).eq("id", candidate.id).is("completed_at", null).select().single();
     if (error) throw new Error("Não foi possível iniciar a avaliação");
     return publicCandidate(row, true);
   });
 
 export const savePublicAssessment = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ token: tokenSchema, answers: answersSchema }).parse(input))
+  .inputValidator((input: unknown) => identitySchema.extend({ answers: answersSchema }).parse(input))
   .handler(async ({ data }) => {
     const { admin, candidate } = await findCandidate(data.token);
+    assertCandidateIdentity(candidate, data);
     if (!candidate.started_at || candidate.completed_at) throw new Error("Avaliação indisponível para alteração");
     const profileData = { ...(candidate.profile_data ?? {}), answers: data.answers };
-    const { error } = await admin.from("candidates").update({ profile_data: profileData, updated_at: new Date().toISOString() }).eq("id", candidate.id);
-    if (error) throw new Error("Não foi possível salvar o progresso");
+    const { data: saved, error } = await admin.from("candidates").update({ profile_data: profileData, updated_at: new Date().toISOString() }).eq("id", candidate.id).is("completed_at", null).select("id").maybeSingle();
+    if (error || !saved) throw new Error("Não foi possível salvar o progresso");
     return { ok: true };
   });
 
 export const completePublicAssessment = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ token: tokenSchema, answers: answersSchema, elapsedSeconds: z.number().int().min(60).max(172800) }).parse(input))
+  .inputValidator((input: unknown) => identitySchema.extend({ answers: answersSchema, elapsedSeconds: z.number().int().min(60).max(172800) }).parse(input))
   .handler(async ({ data }) => {
     const { admin, candidate } = await findCandidate(data.token);
+    assertCandidateIdentity(candidate, data);
     if (!candidate.started_at || candidate.completed_at) throw new Error("Avaliação indisponível para conclusão");
     const { bancoQuestoes } = await import("@/data/bancoQuestoes");
     const expectedIds = new Set(bancoQuestoes.map((question) => String(question.id)));
@@ -96,7 +101,9 @@ export const completePublicAssessment = createServerFn({ method: "POST" })
     }
     const { processAssessmentResults } = await import("@/utils/psychometrics");
     const age = calculateAssessmentAge(candidate.birth_date);
-    const results = processAssessmentResults(data.answers as Record<number, number>, data.elapsedSeconds, {
+    const elapsedSeconds = Math.floor((Date.now() - new Date(candidate.started_at).getTime()) / 1000);
+    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 60 || elapsedSeconds > 172800) throw new Error("Tempo de avaliação inválido");
+    const results = processAssessmentResults(data.answers as Record<number, number>, elapsedSeconds, {
       id: candidate.id,
       nome: candidate.full_name,
       idade: age,
@@ -106,18 +113,18 @@ export const completePublicAssessment = createServerFn({ method: "POST" })
       ...(candidate.profile_data ?? {}),
       psychometrics: results,
       answers: data.answers,
-      elapsed_seconds: data.elapsedSeconds,
+      elapsed_seconds: elapsedSeconds,
       radar: results.disc.adaptado.map((item) => ({ name: item.nome, value: item.valor, factor: item.fator })),
       dominant_factor: results.disc.estiloLideranca,
     };
     const now = new Date().toISOString();
-    const { error } = await admin.from("candidates").update({
+    const { data: saved, error } = await admin.from("candidates").update({
       profile_data: profileData,
       ai_summary: { natural: results.parecerConsultor.sinteseQualitativa },
       status: "concluido",
       completed_at: now,
       updated_at: now,
-    }).eq("id", candidate.id);
-    if (error) throw new Error("Não foi possível concluir a avaliação");
+    }).eq("id", candidate.id).is("completed_at", null).select("id").maybeSingle();
+    if (error || !saved) throw new Error("Não foi possível concluir a avaliação");
     return { ok: true };
   });
