@@ -100,8 +100,9 @@ export async function createVaga(payload: Partial<Vaga>): Promise<Vaga> {
 }
 
 export async function updateVaga(id: string, updates: Partial<Vaga>): Promise<Vaga> {
-  const { id: _id, ...fields } = updates;
-  const { data, error } = await supabase.from("vagas").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+  const { id: _id, empresa_id, ...fields } = updates;
+  if (empresa_id === null) throw new Error("A vaga precisa de uma empresa.");
+  const { data, error } = await supabase.from("vagas").update({ ...fields, ...(empresa_id ? { empresa_id } : {}), updated_at: new Date().toISOString() }).eq("id", id).select().single();
   if (error) throw new Error("Não foi possível atualizar a vaga.");
   return data as Vaga;
 }

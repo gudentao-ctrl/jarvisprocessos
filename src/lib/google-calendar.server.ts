@@ -1,3 +1,4 @@
+import { createServerOnlyFn } from "@tanstack/react-start";
 import { isAllowedGoogleCallbackUrl } from './security-urls';
 
 async function privateClient() {
@@ -6,7 +7,7 @@ async function privateClient() {
 }
 
 /** Call only after authenticating the caller; token rows never cross RPC boundaries. */
-export async function googleCredentials() {
+export const googleCredentials = createServerOnlyFn(async () => {
   const clientId = process.env['GOOGLE_CLIENT_ID']?.trim() || '';
   const clientSecret = process.env['GOOGLE_CLIENT_SECRET']?.trim() || '';
   if (clientId && clientSecret) return { clientId, clientSecret };
@@ -14,7 +15,7 @@ export async function googleCredentials() {
   const { data, error } = await db.from('google_calendar_private_config').select('client_id,client_secret').eq('id', true).maybeSingle();
   if (error) throw new Error('Não foi possível consultar a configuração Google.');
   return { clientId: clientId || data?.client_id || '', clientSecret: clientSecret || data?.client_secret || '' };
-}
+});
 
 export async function storeGoogleConfig(clientId: string, clientSecret: string) {
   const db = await privateClient();

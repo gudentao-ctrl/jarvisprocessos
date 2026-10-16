@@ -19,6 +19,7 @@ import {
 import { User, Briefcase, GraduationCap, Phone, Mail, Award, Users } from "lucide-react";
 import { getCandidatesList, type Candidate } from "@/lib/assessment-storage";
 import { toast } from "sonner";
+import { calculateAssessmentAge } from "@/lib/assessment-age";
 
 export function NovoMentoradoModal({
   open,
@@ -51,7 +52,7 @@ export function NovoMentoradoModal({
     async function loadCandidates() {
       try {
         const list = await getCandidatesList("todos");
-        setCandidates(list);
+        setCandidates(list.filter((candidate) => candidate.status === "concluido" || candidate.status === "completed"));
       } catch {}
     }
     if (open) {
@@ -74,14 +75,7 @@ export function NovoMentoradoModal({
         setSelectedCompanyId(cand.company_id);
       }
 
-      // Calcula idade aproximada se houver data de nascimento
-      if (cand.birth_date) {
-        const birthYear = new Date(cand.birth_date).getFullYear();
-        const currentYear = new Date().getFullYear();
-        if (birthYear > 1940 && birthYear < currentYear) {
-          setIdade(currentYear - birthYear);
-        }
-      }
+      setIdade(calculateAssessmentAge(cand.birth_date) ?? "");
       toast.success("Dados importados do perfil de assessment!");
     }
   };
@@ -92,7 +86,15 @@ export function NovoMentoradoModal({
       return;
     }
 
+    if (!selectedCompanyId || selectedCompanyId === "__all") {
+      toast.error("Selecione a empresa da mentoria.");
+      return;
+    }
     const matchedCand = candidates.find((c) => c.id === selectedCandidateId);
+    if (matchedCand && matchedCand.company_id !== selectedCompanyId) {
+      toast.error("A avaliação precisa pertencer à mesma empresa da mentoria.");
+      return;
+    }
     let behavioralProfile = undefined;
 
     if (matchedCand) {
@@ -160,7 +162,7 @@ export function NovoMentoradoModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">— Cadastrar novo sem vínculo prévio —</SelectItem>
-                  {candidates.map((c) => (
+                  {candidates.filter((c) => !selectedCompanyId || c.company_id === selectedCompanyId).map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.full_name} {c.current_role ? `(${c.current_role})` : ""}
                     </SelectItem>
