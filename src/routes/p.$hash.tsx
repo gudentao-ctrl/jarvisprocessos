@@ -162,7 +162,7 @@ export default function PublicSurveyView() {
         valor_texto: val.valor_texto,
       }));
 
-      await saveRespostaPublica(pesquisa.id, itens);
+      await saveRespostaPublica(hash, itens);
 
       // Marca como respondido no navegador
       localStorage.setItem(`maia_nps_answered_${hash}`, "true");
@@ -237,22 +237,6 @@ export default function PublicSurveyView() {
           <p className="text-sm leading-relaxed opacity-90">
             {visual.thanks_msg || "Agradecemos imensamente pela sua participação! Suas respostas nos ajudam a evoluir continuamente."}
           </p>
-
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.removeItem(`maia_nps_answered_${hash}`);
-                setIsCompleted(false);
-                setHasStarted(false);
-                setCurrentQuestionIndex(0);
-                setAnswers({});
-              }}
-              className="text-[11px] underline opacity-70 hover:opacity-100 transition-opacity"
-            >
-              Enviar outra resposta
-            </button>
-          </div>
 
           <div className="pt-4 border-t border-black/10 flex items-center justify-center gap-1.5 text-xs opacity-75 font-medium">
             <Sparkles className="h-4 w-4" style={{ color: visual.primary_color }} />

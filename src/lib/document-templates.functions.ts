@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertPermission } from "./permissions.functions";
 
 /* CRUD de document_templates (branding único para PDFs) */
 
@@ -9,6 +10,7 @@ export const getTemplateForCompany = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ company_id: z.string().uuid().nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+    await assertPermission(sb, data.company_id, "modelos_documentos", "read");
     if (data.company_id) {
       const { data: t } = await sb
         .from("document_templates")
@@ -48,6 +50,13 @@ export const saveTemplate = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+    if (data.name === "__maia_finance_store_v1__") throw new Error("Nome reservado.");
+    await assertPermission(sb, data.company_id, "modelos_documentos", data.id ? "update" : "create");
+    if (data.id) {
+      const { data: existing, error } = await sb.from("document_templates").select("company_id,name").eq("id", data.id).single();
+      if (error || !existing || existing.name === "__maia_finance_store_v1__") throw new Error("Modelo não disponível.");
+      await assertPermission(sb, existing.company_id, "modelos_documentos", "update");
+    }
     if (data.id) {
       const { data: row, error } = await sb
         .from("document_templates")
