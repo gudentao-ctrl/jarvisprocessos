@@ -3875,6 +3875,11 @@ export type Database = {
         Args: { _lead_id: string }
         Returns: string
       }
+      create_recruitment_candidate: {
+        Args: { _candidate: Json; _vaga_id: string }
+        Returns: Json
+      }
+      get_public_survey: { Args: { _token: string }; Returns: Json }
       has_company_permission: {
         Args: { _action?: string; _company_id: string; _tool: string }
         Returns: boolean
@@ -3893,6 +3898,11 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      save_survey_definition: { Args: { _survey: Json }; Returns: string }
+      submit_public_survey: {
+        Args: { _items: Json; _session_id: string; _token: string }
+        Returns: boolean
       }
       superadmin_delete_invoice: {
         Args: { _invoice_id: string }

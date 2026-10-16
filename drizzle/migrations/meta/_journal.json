@@ -43,6 +43,13 @@
       "when": 1792114004604,
       "tag": "0005_protected_people_modules",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792114071257,
+      "tag": "0006_validated_survey_operations",
+      "breakpoints": true
     }
   ]
 }
