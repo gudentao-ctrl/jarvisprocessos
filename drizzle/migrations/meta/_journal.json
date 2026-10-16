@@ -22,6 +22,13 @@
       "when": 1792113244889,
       "tag": "0002_replace_open_candidate_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792113368156,
+      "tag": "0003_protect_profile_approval_state",
+      "breakpoints": true
     }
   ]
 }
