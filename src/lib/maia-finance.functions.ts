@@ -3,8 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { assertPermission } from "./permissions.functions";
 
-export async function assertManagerOrAdmin(sb: any, userId: string) {
-  await assertPermission(sb, null, "faturamentos");
+export async function assertManagerOrAdmin(sb: any, userId: string, action = "read") {
+  await assertPermission(sb, null, "faturamentos", action);
 }
 
 // ─── PERSISTENT FALLBACK STORE (Garante funcionamento mesmo se tabelas não migradas) ───
@@ -18,13 +18,6 @@ const memoryFallback: {
   auditNotes: Record<string, any>;
   dreEntries: any[];
   bonuses: any[];
-  googleOAuth?: {
-    clientId: string;
-    clientSecret: string;
-    updated_at?: string;
-    updated_by?: string;
-  };
-  googleTokens?: Record<string, any>;
   paymentMethodsMaia?: any[];
   paymentAttachments?: Record<string, any>;
 } = {
@@ -34,8 +27,6 @@ const memoryFallback: {
   auditNotes: {},
   dreEntries: [],
   bonuses: [],
-  googleOAuth: undefined,
-  googleTokens: {},
   paymentMethodsMaia: [
     {
       id: "maia-itau-cnpj",
@@ -79,8 +70,6 @@ export async function getMaiaStore(sb: any) {
           ? parsed.dreEntries
           : memoryFallback.dreEntries,
         bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : memoryFallback.bonuses,
-        googleOAuth: parsed.googleOAuth || memoryFallback.googleOAuth,
-        googleTokens: parsed.googleTokens || memoryFallback.googleTokens,
         paymentMethodsMaia:
           Array.isArray(parsed.paymentMethodsMaia) && parsed.paymentMethodsMaia.length > 0
             ? parsed.paymentMethodsMaia
@@ -152,7 +141,7 @@ export const saveMaiaTax = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const payload = {
       name: data.name,
@@ -197,7 +186,7 @@ export const deleteMaiaTax = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "delete");
 
     try {
       await sb.from("maia_tax_settings").delete().eq("id", data.id);
@@ -275,7 +264,7 @@ export const saveConsultantContract = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const payload = {
       ...data,
@@ -412,7 +401,7 @@ export const updateAuditedWorkHour = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const store = await getMaiaStore(sb);
     store.auditNotes[data.id] = {
@@ -471,7 +460,7 @@ export const auditWorkHourFromFinance = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     // 1. Obter registro atual
     const { data: current, error: curErr } = await sb
@@ -655,7 +644,7 @@ export const approveAuditBatch = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const store = await getMaiaStore(sb);
     for (const id of data.work_hour_ids) {
@@ -883,7 +872,7 @@ export const closeConsultantMonth = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const snapshot = {
       id: crypto.randomUUID(),
@@ -933,7 +922,7 @@ export const toggleNfReceived = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     try {
       if (data.closing_id) {
@@ -1161,7 +1150,7 @@ export const saveMaiaDreEntry = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const payload = {
       month_year: data.month_year,
@@ -1229,7 +1218,7 @@ export const deleteMaiaDreEntry = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "delete");
 
     try {
       await sb.from("maia_dre_entries").delete().eq("id", data.id);
@@ -1252,7 +1241,7 @@ export const cloneDreEntriesFromPreviousMonth = createServerFn({ method: "POST" 
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const [year, month] = data.current_month_year.split("-").map(Number);
     const prevDate = new Date(year, month - 2, 1);
@@ -1340,7 +1329,7 @@ export const saveConsultantBonus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "update");
 
     const month_year = data.bonus_date.slice(0, 7);
     const store = await getMaiaStore(sb);
@@ -1374,7 +1363,7 @@ export const deleteConsultantBonus = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId);
+    await assertManagerOrAdmin(sb, context.userId, "delete");
 
     const store = await getMaiaStore(sb);
     store.bonuses = (store.bonuses || []).filter((b: any) => b.id !== data.id);

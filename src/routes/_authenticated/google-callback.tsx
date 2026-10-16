@@ -10,13 +10,14 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/google-callback")({
   validateSearch: (search: Record<string, unknown>) => ({
     code: typeof search.code === "string" ? search.code : undefined,
+    state: typeof search.state === "string" ? search.state : undefined,
     error: typeof search.error === "string" ? search.error : undefined,
   }),
   component: GoogleCallbackPage,
 });
 
 function GoogleCallbackPage() {
-  const { code, error } = Route.useSearch();
+  const { code, state, error } = Route.useSearch();
   const navigate = useNavigate();
   const saveTokensFn = useServerFn(saveGoogleCalendarTokens);
 
@@ -34,16 +35,18 @@ function GoogleCallbackPage() {
       return;
     }
 
-    if (!code) {
+    if (!code || !state) {
       setStatus("error");
       setErrorMessage("Código de autorização não encontrado na resposta do Google.");
       return;
     }
 
+    const authorizationCode = code;
+    const authorizationState = state;
     async function handleExchange() {
       try {
         const redirectUri = `${window.location.origin}/google-callback`;
-        const res = await saveTokensFn({ data: { code: code!, redirectUri } });
+        const res = await saveTokensFn({ data: { code: authorizationCode, state: authorizationState, redirectUri } });
         if (res?.ok) {
           setStatus("success");
           toast.success("Google Agenda conectado com sucesso!");
@@ -61,7 +64,7 @@ function GoogleCallbackPage() {
     }
 
     handleExchange();
-  }, [code, error, navigate, saveTokensFn]);
+  }, [code, state, error, navigate, saveTokensFn]);
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center p-4">
