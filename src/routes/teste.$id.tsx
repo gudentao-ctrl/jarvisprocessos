@@ -96,8 +96,8 @@ export default function CandidatoTestePage() {
   };
 
   const persistProgress = useCallback(async (nextAnswers: Record<number, number>) => {
-    try { await saveAssessment({ data: { token: id, answers: nextAnswers } }); } catch { toast.error("Não foi possível salvar seu progresso."); }
-  }, [id, saveAssessment]);
+    try { await saveAssessment({ data: { token: id, fullName: fullName.trim(), email: email.trim(), cpf: cpf.replace(/\D/g, ""), birthDate, consentAccepted: true, answers: nextAnswers } }); } catch { toast.error("Não foi possível salvar seu progresso."); }
+  }, [id, saveAssessment, fullName, email, cpf, birthDate]);
 
   const handleNextPage = () => {
     if (!isCurrentPageComplete) {
@@ -128,7 +128,7 @@ export default function CandidatoTestePage() {
     try {
       const elapsedSeconds = Math.max(60, Math.round((Date.now() - startTime) / 1000));
 
-      await completeAssessment({ data: { token: id, answers, elapsedSeconds } });
+      await completeAssessment({ data: { token: id, fullName: fullName.trim(), email: email.trim(), cpf: cpf.replace(/\D/g, ""), birthDate, consentAccepted: true, answers, elapsedSeconds } });
 
       // Regra de Ouro Psicométrica: O candidato NUNCA vê gráficos, escores ou relatórios.
       setIsCompleted(true);
