@@ -105,7 +105,7 @@ export async function savePesquisa(payload: Partial<Pesquisa>): Promise<Pesquisa
   return row;
 }
 export async function deletePesquisa(id: string): Promise<boolean> {
-  const { data, error } = await supabase.from("pesquisas").delete().eq("id", id).select("id").single();
+  const { data, error } = await supabase.rpc("delete_survey", { _id: id });
   if (error || !data) throw new Error("Não foi possível excluir a pesquisa.");
   return true;
 }

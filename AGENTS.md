@@ -30,3 +30,6 @@
 - Public assessment writes must revalidate invitation and candidate identity, use server-measured elapsed time and update only unfinished records; this prevents invitation-only tampering and duplicate completion.
 - Pin audited transitive dependency versions with package overrides and use the official patched SheetJS distribution; registry-only scans cannot verify that distribution.
 - Validate password-recovery redirects against explicit application origins in the shared URL helper; never trust all tenants of a shared hosting domain.
+- Keep Google credentials and user tokens in service-role-only tables accessed through authenticated server-only helpers; shared document stores must never contain OAuth secrets.
+- People modules persist through company-and-action-scoped database policies, never local data fallbacks; public surveys expose token-scoped definitions and validated transactional submissions only.
+- Preserve answered survey question identities and semantics; delete surveys transactionally after authorization to avoid partial removal and foreign-key failures.
