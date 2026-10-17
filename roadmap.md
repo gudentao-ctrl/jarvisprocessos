@@ -1,8 +1,11 @@
 # Roadmap
 
-- [ ] Revisão completa: corrigir armazenamento de credenciais Google e validar isolamento de acesso
-- [ ] Revisão completa: substituir persistência insegura de Pessoas e verificar fluxos principais
-- [ ] Revisão completa: revisar funções, permissões, dependências e registrar verificações e bloqueios
+- [x] Revisão: isolar credenciais Google, autorizações e estados de retorno em armazenamento privado
+- [x] Revisão: substituir persistência insegura de Pessoas e verificar criação, resposta, relatório, edição e exclusão de pesquisa
+- [x] Revisão: corrigir permissões de alterações financeiras/modelos, verificar dependências e registrar limites em SECURITY_REVIEW.md
+- [ ] Segurança: remover serviço legado chunk-audio ao vivo — bloqueado até publicação e verificação do app migrado
+- [ ] Segurança: validar conta restrita multiempresa — depende de sessão autorizada de usuário não SuperAdmin
+- [ ] Google: rotacionar credencial anteriormente exposta e validar conexão real — depende da configuração e autorização Google do responsável
 
 - [x] Segurança: revisão inicial de permissões, links públicos e dependências; correções e limites registrados em SECURITY_REVIEW.md
 

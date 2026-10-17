@@ -33,3 +33,4 @@
 - Keep Google credentials and user tokens in service-role-only tables accessed through authenticated server-only helpers; shared document stores must never contain OAuth secrets.
 - People modules persist through company-and-action-scoped database policies, never local data fallbacks; public surveys expose token-scoped definitions and validated transactional submissions only.
 - Preserve answered survey question identities and semantics; delete surveys transactionally after authorization to avoid partial removal and foreign-key failures.
+- Financial shared-store reads and writes must fail explicitly on database errors and never mutate a process-global fallback; worker memory is neither persistence nor tenant isolation.
