@@ -49,62 +49,31 @@ const memoryFallback: {
 };
 
 export async function getMaiaStore(sb: any) {
+  const { data, error } = await sb.from("document_templates").select("id,header_html").eq("name", MAIA_STORE_KEY).maybeSingle();
+  if (error) throw new Error("Não foi possível consultar os registros financeiros.");
+  if (!data?.header_html) return structuredClone(memoryFallback);
   try {
-    const { data } = await sb
-      .from("document_templates")
-      .select("id, header_html")
-      .eq("name", MAIA_STORE_KEY)
-      .maybeSingle();
-
-    if (data?.header_html) {
-      const parsed = JSON.parse(data.header_html);
-      return {
-        taxes:
-          Array.isArray(parsed.taxes) && parsed.taxes.length > 0
-            ? parsed.taxes
-            : memoryFallback.taxes,
-        contracts: parsed.contracts || memoryFallback.contracts,
-        closings: Array.isArray(parsed.closings) ? parsed.closings : memoryFallback.closings,
-        auditNotes: parsed.auditNotes || memoryFallback.auditNotes,
-        dreEntries: Array.isArray(parsed.dreEntries)
-          ? parsed.dreEntries
-          : memoryFallback.dreEntries,
-        bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : memoryFallback.bonuses,
-        paymentMethodsMaia:
-          Array.isArray(parsed.paymentMethodsMaia) && parsed.paymentMethodsMaia.length > 0
-            ? parsed.paymentMethodsMaia
-            : memoryFallback.paymentMethodsMaia,
-        paymentAttachments: parsed.paymentAttachments || memoryFallback.paymentAttachments || {},
-      };
-    }
-  } catch {}
-  return memoryFallback;
+    const parsed = JSON.parse(data.header_html);
+    return {
+      taxes: Array.isArray(parsed.taxes) ? parsed.taxes : [],
+      contracts: parsed.contracts || {},
+      closings: Array.isArray(parsed.closings) ? parsed.closings : [],
+      auditNotes: parsed.auditNotes || {},
+      dreEntries: Array.isArray(parsed.dreEntries) ? parsed.dreEntries : [],
+      bonuses: Array.isArray(parsed.bonuses) ? parsed.bonuses : [],
+      paymentMethodsMaia: Array.isArray(parsed.paymentMethodsMaia) ? parsed.paymentMethodsMaia : [],
+      paymentAttachments: parsed.paymentAttachments || {},
+    };
+  } catch { throw new Error("Os registros financeiros precisam de revisão; não foram substituídos por dados temporários."); }
 }
-
 export async function saveMaiaStore(sb: any, store: any) {
-  Object.assign(memoryFallback, store);
-  try {
-    const jsonStr = JSON.stringify(store);
-    const { data: existing } = await sb
-      .from("document_templates")
-      .select("id")
-      .eq("name", MAIA_STORE_KEY)
-      .maybeSingle();
-
-    if (existing?.id) {
-      await sb
-        .from("document_templates")
-        .update({ header_html: jsonStr, updated_at: new Date().toISOString() })
-        .eq("id", existing.id);
-    } else {
-      await sb.from("document_templates").insert({
-        name: MAIA_STORE_KEY,
-        header_html: jsonStr,
-        code_prefix: "MAIA",
-        is_default: false,
-      });
-    }
-  } catch {}
+  const jsonStr = JSON.stringify(store);
+  const { data: existing, error: readError } = await sb.from("document_templates").select("id").eq("name", MAIA_STORE_KEY).maybeSingle();
+  if (readError) throw new Error("Não foi possível verificar o salvamento financeiro.");
+  const result = existing?.id
+    ? await sb.from("document_templates").update({ header_html: jsonStr, updated_at: new Date().toISOString() }).eq("id", existing.id).select("id").single()
+    : await sb.from("document_templates").insert({ name: MAIA_STORE_KEY, header_html: jsonStr, code_prefix: "MAIA", is_default: false }).select("id").single();
+  if (result.error || !result.data) throw new Error("O registro financeiro não foi salvo. Verifique suas permissões.");
 }
 
 // ─── 1. IMPOSTOS (maia_tax_settings) ──────────────────────────────────────────
@@ -141,7 +110,7 @@ export const saveMaiaTax = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, data.id ? "update" : "create");
 
     const payload = {
       name: data.name,
@@ -872,7 +841,7 @@ export const closeConsultantMonth = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, "create");
 
     const snapshot = {
       id: crypto.randomUUID(),
@@ -1150,7 +1119,7 @@ export const saveMaiaDreEntry = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, data.id ? "update" : "create");
 
     const payload = {
       month_year: data.month_year,
@@ -1241,7 +1210,7 @@ export const cloneDreEntriesFromPreviousMonth = createServerFn({ method: "POST" 
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, "create");
 
     const [year, month] = data.current_month_year.split("-").map(Number);
     const prevDate = new Date(year, month - 2, 1);
@@ -1329,7 +1298,7 @@ export const saveConsultantBonus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, data.id ? "update" : "create");
 
     const month_year = data.bonus_date.slice(0, 7);
     const store = await getMaiaStore(sb);

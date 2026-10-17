@@ -37,111 +37,13 @@ export interface Candidate {
   completed_at?: string;
 }
 
-export const INITIAL_MOCK_CANDIDATES: Candidate[] = [
-  {
-    id: "demo-cand-1",
-    full_name: "Mariana Souza",
-    cpf: "12345678901",
-    birth_date: "1992-05-14",
-    current_role: "Gerente de Operações",
-    desired_role: "Diretoria de Operações",
-    status: "concluido",
-    external: false,
-    company_id: null,
-    company_name: "Matriz Corporativa",
-    profile_data: {
-      radar: [
-        { name: "Abertura à Experiência", factor: "A", value: 85, description: "Criatividade, flexibilidade mental e capacidade de inovação" },
-        { name: "Conscienciosidade", factor: "C", value: 88, description: "Organização, disciplina, foco em metas e rigor metodológico" },
-        { name: "Extroversão", factor: "E", value: 78, description: "Sociabilidade, assertividade, liderança e comunicação expressiva" },
-        { name: "Amabilidade", factor: "M", value: 72, description: "Empatia, cooperação, confiança e facilidade em mediar consenso" },
-        { name: "Estabilidade Emocional", factor: "N", value: 82, description: "Resiliência sob pressão, calma e serenidade em momentos de crise" },
-      ],
-      dominant_factor: "Conscienciosidade",
-    },
-    ai_summary: {
-      natural: "Perfil executivo de alta performance com forte equilíbrio entre Conscienciosidade (88%) e Abertura à Experiência (85%). Foco contínuo em processos e inovação com disciplina.",
-      strengths: "Capacidade de liderança transformadora, planejamento minucioso, visão sistêmica e facilidade de alinhamento com equipes multidisciplinares.",
-      ideal_env: "Gestão estratégica, autonomia para reorganização de fluxos e metas claras com acompanhamento de KPIs.",
-      blind_spots: "Risco de elevar excessivamente a cobrança sobre o ritmo da equipe em entregas sob pressão.",
-    },
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: "demo-cand-2",
-    full_name: "Lucas Ribeiro",
-    cpf: "23456789012",
-    birth_date: "1995-10-22",
-    current_role: "Analista de Processos Sênior",
-    desired_role: "Especialista BPM",
-    status: "concluido",
-    external: false,
-    company_id: null,
-    company_name: "Filial Operações",
-    profile_data: {
-      radar: [
-        { name: "Abertura à Experiência", factor: "A", value: 75, description: "Criatividade, flexibilidade mental e capacidade de inovação" },
-        { name: "Conscienciosidade", factor: "C", value: 92, description: "Organização, disciplina, foco em metas e rigor metodológico" },
-        { name: "Extroversão", factor: "E", value: 52, description: "Sociabilidade, assertividade, liderança e comunicação expressiva" },
-        { name: "Amabilidade", factor: "M", value: 80, description: "Empatia, cooperação, confiança e facilidade em mediar consenso" },
-        { name: "Estabilidade Emocional", factor: "N", value: 85, description: "Resiliência sob pressão, calma e serenidade em momentos de crise" },
-      ],
-      dominant_factor: "Conscienciosidade",
-    },
-    ai_summary: {
-      natural: "Perfil predominantemente analítico e meticuloso, com Conscienciosidade excepcional (92%) e alta Estabilidade Emocional (85%).",
-      strengths: "Atenção a normas, rigor metodológico, lealdade com prazos e capacidade de auditoria técnica minuciosa.",
-      ideal_env: "Ambientes estruturados com metodologia clara, foco em qualidade de dados e respeito a padrões operacionais.",
-      blind_spots: "Pode despender excesso de tempo em refinamentos secundários antes de expor soluções parciais para o time.",
-    },
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: "demo-cand-3",
-    full_name: "Camila Fernandes",
-    cpf: "34567890123",
-    birth_date: "1998-03-30",
-    current_role: "Consultora de Negócios",
-    desired_role: "Líder de Projetos",
-    status: "aguardando",
-    external: true,
-    company_id: null,
-    company_name: "Candidato Externo",
-    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-  },
-];
-
 /**
  * Carrega candidatos do banco protegido.
  */
 export async function getCandidatesList(vinculoFilter: string = "todos"): Promise<Candidate[]> {
-  const localList: Candidate[] = [];
-  let serverList: Candidate[] = [];
-
-  try {
-    const database = supabase as any;
-    const { data, error } = await database
-      .from("candidates")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!error && Array.isArray(data)) {
-      serverList = data as Candidate[];
-    }
-  } catch (err) {
-    console.warn("Supabase candidates fetch fallback to local storage:", err);
-  }
-
-  // Mantém a ordenação estável recebida do banco.
-  const mergedMap = new Map<string, Candidate>();
-
-  serverList.forEach((c) => mergedMap.set(c.id, { ...mergedMap.get(c.id), ...c }));
-
-  const allMerged = Array.from(mergedMap.values()).sort((a, b) => {
-    const tA = new Date(a.created_at || 0).getTime();
-    const tB = new Date(b.created_at || 0).getTime();
-    return tB - tA;
-  });
+  const { data, error } = await supabase.from("candidates").select("*").order("created_at", { ascending: false });
+  if (error) throw new Error("Não foi possível carregar as avaliações.");
+  const allMerged = (data || []) as Candidate[];
 
   // Aplicação do filtro independente de vínculo
   if (!vinculoFilter || vinculoFilter === "todos") {
@@ -157,7 +59,7 @@ export async function getCandidatesList(vinculoFilter: string = "todos"): Promis
 }
 
 /**
- * Salva um novo candidato no banco e no storage local.
+ * Salva um novo candidato no banco protegido.
  */
 export async function createCandidate(payload: Omit<Candidate, "id"> & { id?: string }): Promise<Candidate> {
   const newId = payload.id || crypto.randomUUID();

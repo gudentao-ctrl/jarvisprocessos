@@ -50,6 +50,20 @@
       "when": 1792114071257,
       "tag": "0006_validated_survey_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792200285920,
+      "tag": "0007_survey_integrity_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792200540059,
+      "tag": "0008_delete_survey_transactionally",
+      "breakpoints": true
     }
   ]
 }

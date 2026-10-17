@@ -3879,6 +3879,7 @@ export type Database = {
         Args: { _candidate: Json; _vaga_id: string }
         Returns: Json
       }
+      delete_survey: { Args: { _id: string }; Returns: boolean }
       get_public_survey: { Args: { _token: string }; Returns: Json }
       has_company_permission: {
         Args: { _action?: string; _company_id: string; _tool: string }
