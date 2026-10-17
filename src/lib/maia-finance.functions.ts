@@ -141,7 +141,7 @@ export const saveMaiaTax = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, data.id ? "update" : "create");
 
     const payload = {
       name: data.name,
@@ -872,7 +872,7 @@ export const closeConsultantMonth = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, "create");
 
     const snapshot = {
       id: crypto.randomUUID(),
@@ -1150,7 +1150,7 @@ export const saveMaiaDreEntry = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, data.id ? "update" : "create");
 
     const payload = {
       month_year: data.month_year,
@@ -1241,7 +1241,7 @@ export const cloneDreEntriesFromPreviousMonth = createServerFn({ method: "POST" 
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, "create");
 
     const [year, month] = data.current_month_year.split("-").map(Number);
     const prevDate = new Date(year, month - 2, 1);
@@ -1329,7 +1329,7 @@ export const saveConsultantBonus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
-    await assertManagerOrAdmin(sb, context.userId, "update");
+    await assertManagerOrAdmin(sb, context.userId, data.id ? "update" : "create");
 
     const month_year = data.bonus_date.slice(0, 7);
     const store = await getMaiaStore(sb);

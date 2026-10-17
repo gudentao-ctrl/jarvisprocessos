@@ -63,6 +63,7 @@ const DEFAULT_CONFIG_VISUAL: ConfigVisualPesquisa = {
 type TipoPerguntaForm = "nps_0_10" | "escala_1_5" | "texto_aberto" | "selecao_lista";
 
 interface PerguntaFormState {
+  id?: string;
   texto_pergunta: string;
   tipo: TipoPerguntaForm;
   obrigatoria: boolean;
@@ -104,6 +105,7 @@ export function PesquisaFormModal({
           else if (p.tipo_resposta === "selecao_lista" || (p as any).tipo === "selecao_lista") t = "selecao_lista";
 
           return {
+            id: p.id,
             texto_pergunta: p.titulo_pergunta || (p as any).texto_pergunta || "",
             tipo: t,
             obrigatoria: p.obrigatorio ?? (p as any).obrigatoria ?? true,
