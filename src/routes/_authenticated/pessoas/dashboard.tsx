@@ -10,6 +10,14 @@ import { getCandidaturasFunil } from "@/lib/recrutamento-storage";
 import { getPesquisas } from "@/lib/nps-storage";
 
 export const Route = createFileRoute("/_authenticated/pessoas/dashboard")({
+  head: () => ({ meta: [
+    { title: "Hub de Pessoas | Jarvis Processos" },
+    { name: "description", content: "Acompanhe avaliações, recrutamento, mentorias e pesquisas da sua empresa." },
+    { property: "og:title", content: "Hub de Pessoas | Jarvis Processos" },
+    { property: "og:description", content: "Avaliações, recrutamento, mentorias e pesquisas protegidas por acesso empresarial." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: PessoasDashboard,
 });
 

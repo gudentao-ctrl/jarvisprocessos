@@ -52,7 +52,7 @@ export function NovoMentoradoModal({
     async function loadCandidates() {
       try {
         const list = await getCandidatesList("todos");
-        setCandidates(list.filter((candidate) => candidate.status === "concluido" || candidate.status === "completed"));
+        setCandidates(list.filter((candidate) => candidate.status === "concluido" && Boolean(candidate.completed_at)));
       } catch {}
     }
     if (open) {
