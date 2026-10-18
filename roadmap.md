@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Desempenho: medir navegação autenticada no computador e celular, corrigir gargalos e repetir verificações
+- [x] Desempenho: medir navegação autenticada no computador e celular, corrigir gargalos e repetir verificações; limites em PERFORMANCE_REVIEW.md
 - [x] Revisão: isolar credenciais Google, autorizações e estados de retorno em armazenamento privado
 - [x] Revisão: substituir persistência insegura de Pessoas e verificar criação, resposta, relatório, edição e exclusão de pesquisa
 - [x] Revisão: corrigir permissões de alterações financeiras/modelos, verificar dependências e registrar limites em SECURITY_REVIEW.md
