@@ -29,67 +29,32 @@ export default function PessoasDashboard() {
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadSummary() {
-      try {
-        setLoading(true);
-        setUnavailable(false);
-        let candCount = 0;
-        let mentorCount = 0;
-        let recrutamentoCount = 0;
-        let npsCount = 0;
-
-        const database = supabase as any;
-        let candQuery = database.from("candidates").select("id", { count: "exact", head: true });
-        if (companyId) {
-          candQuery = candQuery.eq("company_id", companyId);
-        }
-        const { count: cCount, error: cErr } = await candQuery;
-        if (!cErr && typeof cCount === "number") {
-          candCount = cCount;
-        } else {
-          candCount = 0;
-          setUnavailable(true);
-        }
-
-        try {
-          const mentorados = await getMentoradosList(companyId);
-          mentorCount = mentorados.filter((m) => m.status === "ativa").length;
-        } catch {
-          mentorCount = 0;
-          setUnavailable(true);
-        }
-
-        try {
-          const candidaturas = await getCandidaturasFunil(null, companyId);
-          recrutamentoCount = candidaturas.filter((c) => c.status === "ATIVO").length;
-        } catch {
-          recrutamentoCount = 0;
-          setUnavailable(true);
-        }
-
-        try {
-          const pesquisas = await getPesquisas(companyId);
-          npsCount = pesquisas.length;
-        } catch {
-          npsCount = 0;
-          setUnavailable(true);
-        }
-
-        setSummary({
-          colaboradores: candCount,
-          recrutamento: recrutamentoCount,
-          mentorias: mentorCount,
-          npsCount,
-          alertas: 1,
-        });
-      } catch (err) {
-        console.error("Error loading pessoas dashboard summary:", err);
-      } finally {
-        setLoading(false);
-      }
+      setLoading(true);
+      setUnavailable(false);
+      let candQuery = supabase.from("candidates").select("id", { count: "exact", head: true });
+      if (companyId) candQuery = candQuery.eq("company_id", companyId);
+      const [candidates, mentors, applications, surveys] = await Promise.allSettled([
+        candQuery,
+        getMentoradosList(companyId),
+        getCandidaturasFunil(null, companyId),
+        getPesquisas(companyId),
+      ]);
+      if (cancelled) return;
+      const candidateOk = candidates.status === "fulfilled" && !candidates.value.error && typeof candidates.value.count === "number";
+      setUnavailable(!candidateOk || mentors.status === "rejected" || applications.status === "rejected" || surveys.status === "rejected");
+      setSummary({
+        colaboradores: candidateOk && candidates.status === "fulfilled" ? candidates.value.count ?? 0 : 0,
+        mentorias: mentors.status === "fulfilled" ? mentors.value.filter((m) => m.status === "ativa").length : 0,
+        recrutamento: applications.status === "fulfilled" ? applications.value.filter((c) => c.status === "ATIVO").length : 0,
+        npsCount: surveys.status === "fulfilled" ? surveys.value.length : 0,
+        alertas: 0,
+      });
+      setLoading(false);
     }
-
-    loadSummary();
+    void loadSummary();
+    return () => { cancelled = true; };
   }, [companyId]);
 
   return (

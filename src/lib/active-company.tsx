@@ -27,6 +27,7 @@ export function ActiveCompanyProvider({ children }: { children: ReactNode }) {
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ["companies"],
     queryFn: () => list(),
+    staleTime: 30_000,
   });
 
   const [companyId, setCompanyIdState] = useState<string | null>(() => {
@@ -51,8 +52,8 @@ export function ActiveCompanyProvider({ children }: { children: ReactNode }) {
       if (id) window.localStorage.setItem(KEY, id);
       else window.localStorage.removeItem(KEY);
     }
-    // Refetch everything scoped to a company
-    qc.invalidateQueries();
+    // Identity and the company directory do not change when selecting a company.
+    qc.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "me" && query.queryKey[0] !== "companies" });
   }
 
   const company = useMemo(
