@@ -10,8 +10,6 @@ import {
   type MapaItem,
   type MapaCompanyInfo,
 } from "@/lib/mapa.functions";
-import { exportMapaPdf } from "@/lib/mapa-pdf";
-import { exportMapaExcel } from "@/lib/mapa-excel";
 import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -77,6 +75,10 @@ export const Route = createFileRoute("/_authenticated/mapa/")({
         content:
           "Mapa estratégico da consultoria por pilares: Pessoas, Processos e Negócios com diretrizes e desdobramentos.",
       },
+      { property: "og:title", content: "Mapa Estratégico | JARVIS" },
+      { property: "og:description", content: "Pilares, diretrizes e ações estratégicas da empresa no JARVIS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -234,18 +236,10 @@ function GutStepper({
 function MapaPage() {
   const { hasAccess } = usePermissions();
   const qc = useQueryClient();
-  const { companyId: activeCompanyId, setCompanyId: setActiveCompanyId } = useActiveCompany();
-  const [companyId, setCompanyId] = useState<string | null>(activeCompanyId ?? null);
+  const { companyId, setCompanyId } = useActiveCompany();
   const canCreate = hasAccess("mapa_estrategico", "create", companyId);
   const canEdit = hasAccess("mapa_estrategico", "update", companyId);
   const canDelete = hasAccess("mapa_estrategico", "delete", companyId);
-
-  // Sync active company from global context
-  useEffect(() => {
-    if (activeCompanyId && !companyId) {
-      setCompanyId(activeCompanyId);
-    }
-  }, [activeCompanyId, companyId]);
 
   // Server functions
   const getMapaFn = useServerFn(getMapaData);
@@ -300,6 +294,7 @@ function MapaPage() {
     if (!mapaData?.company || !mapaData.pillars) return;
     setExportingPdf(true);
     try {
+      const { exportMapaPdf } = await import("@/lib/mapa-pdf");
       await exportMapaPdf({
         company: mapaData.company,
         pillars: mapaData.pillars,
@@ -314,10 +309,11 @@ function MapaPage() {
     }
   }
 
-  function handleExportExcel() {
+  async function handleExportExcel() {
     if (!mapaData?.company || !mapaData.pillars) return;
     setExportingExcel(true);
     try {
+      const { exportMapaExcel } = await import("@/lib/mapa-excel");
       exportMapaExcel({
         company: mapaData.company,
         pillars: mapaData.pillars,
@@ -628,7 +624,6 @@ function MapaPage() {
               value={companyId ?? ""}
               onValueChange={(val) => {
                 setCompanyId(val || null);
-                setActiveCompanyId(val || null);
               }}
             >
               <SelectTrigger className="h-9 w-60 text-xs font-semibold bg-background shadow-sm border-border/70">
@@ -685,7 +680,6 @@ function MapaPage() {
             <Select
               onValueChange={(val) => {
                 setCompanyId(val);
-                setActiveCompanyId(val);
               }}
             >
               <SelectTrigger className="h-10 text-sm font-semibold">
