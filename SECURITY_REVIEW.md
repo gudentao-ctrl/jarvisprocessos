@@ -1,4 +1,4 @@
-# Security review — 2026-10-17
+# Security review — 2026-10-18
 
 ## Corrected and checked
 - Candidate policies no longer use unconditional access; company/tool/CRUD rules remain enforced by restrictive policies as well.
@@ -10,8 +10,8 @@
 
 ## Verification
 - Fresh basic database scan: no findings. This is not deep code analysis or certification.
-- All 51 live public application tables have row-level security enabled.
-- Twelve focused automated tests pass; spreadsheet and Word-document generation smoke tests pass.
+- The initial 51-table inventory had row-level security enabled; the new People tables explicitly enable it in their migrations.
+- Initial focused tests and document-generation smoke tests passed; the fresh focused suite has fourteen passing tests.
 - Browser: signed-out administration access redirects to sign-in; invalid assessment invitations and writes without identity are rejected; real signed-in SuperAdmin permission workspace still loads.
 - Preview build signal: build OK.
 - No candidate's real answers were changed. Successful assessment completion with the new checks was not exercised end-to-end.
@@ -36,3 +36,4 @@
 - Survey flow was exercised with temporary records: creation, anonymous answer, report readback (one real response, score +100), editing with stable question IDs, replay rejection, anonymous answer/token-table denial and transactional deletion. All temporary surveys were removed; no real candidate responses were changed.
 - Fourteen focused tests passed. Fresh dependency scan found no known advisories in 70 registry production dependencies; basic security scan found no issues. Latest preview build signal was OK.
 - Linter flags on three private tables without client policies are intentional fail-closed isolation; token-scoped public survey functions intentionally use validated SECURITY DEFINER execution.
+- Fresh live policy inspection confirms candidates have no anonymous policies and authenticated access uses company/tool/action gates; calendar and document-template gates are RESTRICTIVE, so permissive company policies do not bypass them. Historical blanket candidate policies flagged by repository review are not present in the live policy inventory.
