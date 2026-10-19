@@ -3,14 +3,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const getPublicPlan = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ token: z.string().min(8) }).parse(d))
-  .handler(async ({ data }) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
     const { data: row, error } = await sb
       .from("action_plans")
       .select("id, title, description, responsible, due_date, status, priority")
@@ -21,7 +22,7 @@ const getPublicPlan = createServerFn({ method: "GET" })
     return row;
   });
 
-export const Route = createFileRoute("/p/$token")({
+export const Route = createFileRoute("/_authenticated/p/$token")({
   ssr: false,
   loader: async ({ params }) => {
     const plan = await getPublicPlan({ data: { token: params.token } });
@@ -39,14 +40,13 @@ export const Route = createFileRoute("/p/$token")({
     </div>
   ),
   component: PublicPlan,
-  head: () => ({ meta: [{ title: "Plano de ação — JARVIS" }] }),
+  head: () => ({ meta: [{ title: "Plano de ação — JARVIS" }, { name: "description", content: "Acompanhamento autorizado de planos de ação JARVIS." }, { property: "og:title", content: "Plano de ação — JARVIS" }, { property: "og:description", content: "Acompanhamento autorizado de planos de ação JARVIS." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
 });
 
 const STATUSES = [
   { value: "aberto", label: "Aberto" },
   { value: "em_andamento", label: "Em andamento" },
   { value: "concluido", label: "Concluído" },
-  { value: "bloqueado", label: "Bloqueado" },
 ] as const;
 
 function PublicPlan() {
@@ -59,9 +59,11 @@ function PublicPlan() {
 
   const mut = useMutation({
     mutationFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) throw new Error("Entre na sua conta");
       const res = await fetch(`/api/public/planos/${token}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
         body: JSON.stringify({ status, comment, submitted_by_name: name }),
       });
       if (!res.ok) throw new Error((await res.text()) || `Erro ${res.status}`);
@@ -149,13 +151,13 @@ function PublicPlan() {
 
           {mut.error && <p className="text-sm text-destructive">{(mut.error as Error).message}</p>}
 
-          <button
+          <Button
             type="submit"
             disabled={mut.isPending}
             className="w-full bg-primary text-primary-foreground font-semibold rounded-lg min-h-12 disabled:opacity-50"
           >
             {mut.isPending ? "Enviando…" : "Atualizar plano"}
-          </button>
+          </Button>
         </form>
 
         <p className="text-[10px] text-center text-muted-foreground pt-2 border-t">
