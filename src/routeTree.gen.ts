@@ -141,11 +141,7 @@ const DashboardTokenRoute = DashboardTokenRouteImport.update({
   path: '/dashboard/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PHashRoute = PHashRouteImport.update({
-  id: '/p/$hash',
-  path: '/p/$hash',
-  getParentRoute: () => rootRouteImport,
-} as any)
+
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
