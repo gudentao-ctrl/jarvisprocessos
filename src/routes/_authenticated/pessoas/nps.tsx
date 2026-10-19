@@ -542,6 +542,9 @@ function NpsDashboardPage() {
           onClose={() => setIsRelatorioOpen(false)}
           pesquisa={selectedPesquisaParaRelatorio}
           relatorio={relatorioData}
+          onResetSuccess={async () => {
+            await carregarPesquisas();
+          }}
         />
       )}
     </div>
