@@ -121,23 +121,8 @@ function buildMetaTag(data: {
 }
 
 async function logoDataUrl(sb: any, value: string | null | undefined) {
-  if (!value) return null;
-  try {
-    let url = value;
-    if (!/^https?:\/\//i.test(value)) {
-      const { data } = await sb.storage.from("portal-logos").createSignedUrl(value, 600);
-      if (!data?.signedUrl) return null;
-      url = data.signedUrl;
-    }
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    let binary = "";
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    return `data:${response.headers.get("content-type") || "image/png"};base64,${btoa(binary)}`;
-  } catch {
-    return null;
-  }
+  const { reportLogoDataUrl } = await import("./report-logo.server");
+  return reportLogoDataUrl(sb, value);
 }
 
 export type MapaCompanyInfo = {
