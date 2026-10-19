@@ -8,138 +8,22 @@ import {
   ConfigVisualPesquisa,
 } from "./nps-types";
 
-// Survey links contain only a random invitation token, never definitions or responses.
-export function compressSurveyToHash(survey: Partial<Pesquisa>): string { return survey.url_hash || ""; }
-export function decompressSurveyFromHash(_hash: string): Pesquisa | null { return null; }
-export function generatePublicSurveyLink(survey: Pesquisa, origin?: string): string {
-  return `${origin || (typeof window !== "undefined" ? window.location.origin : "")}/p/${survey.url_hash}`;
-}
 export const NPS_REALTIME_CHANNEL = "maia_nps_sync_hub_v1";
 
 // ---------------------------------------------------------------------------
-// COMPACTAÇÃO / DESCOMPACTAÇÃO AUTÔNOMA DE PESQUISAS (ZERO DEPENDÊNCIA DE LOGIN)
+// GERAÇÃO E RESOLUÇÃO DE LINKS PÚBLICOS DE PESQUISA (NPS / eNPS)
 // ---------------------------------------------------------------------------
 export function compressSurveyToHash(survey: Partial<Pesquisa>): string {
-  try {
-    let logo = survey.config_visual?.logo_url || "";
-    // Se a imagem tiver até 90KB em base64, fflate comprime para apenas ~2KB-5KB dentro da URL
-    if (logo.length > 95000) {
-      // Caso exceda o limite seguro de URL do navegador, guarda no cache local indexado pelo ID da pesquisa
-      if (typeof window !== "undefined" && survey.id) {
-        try {
-          localStorage.setItem(`maia_nps_logo_${survey.id}`, logo);
-        } catch {}
-      }
-      logo = "";
-    }
-
-    const compact = {
-      id: survey.id,
-      eid: survey.empresa_id || survey.company_id || null,
-      t: survey.titulo || "Pesquisa de Satisfação",
-      d: survey.descricao || "",
-      tp: survey.tipo || "nps",
-      st: survey.status || "ativa",
-      h: survey.url_hash || "",
-      cv: {
-        bg: survey.config_visual?.bg_color || survey.config_visual?.cor_fundo || "#FFF8F5",
-        pr: survey.config_visual?.primary_color || survey.config_visual?.cor_primaria || "#E05A10",
-        tx: survey.config_visual?.text_color || survey.config_visual?.cor_texto || "#2B1B17",
-        cd: survey.config_visual?.card_bg_color || "#FFFFFF",
-        lg: logo,
-        w: survey.config_visual?.welcome_msg || survey.config_visual?.mensagem_boas_vindas || "",
-        th: survey.config_visual?.thanks_msg || survey.config_visual?.mensagem_agradecimento || "",
-      },
-      pq: (survey.perguntas || []).map((p) => ({
-        i: p.id,
-        o: p.ordem,
-        t: p.titulo_pergunta,
-        tr: p.tipo_resposta,
-        ob: p.obrigatorio,
-        ph: p.placeholder || "",
-        op: p.opcoes_lista || [],
-      })),
-    };
-
-    const json = JSON.stringify(compact);
-    const u8 = fflate.deflateSync(fflate.strToU8(json));
-    let binary = "";
-    for (let i = 0; i < u8.byteLength; i++) binary += String.fromCharCode(u8[i]);
-    const b64 = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    return `s_${b64}`;
-  } catch (err) {
-    console.error("Erro ao compactar pesquisa:", err);
-    return survey.url_hash || survey.id || "pesquisa";
-  }
+  return survey.url_hash || survey.hash_publico || survey.id || "";
 }
 
-export function decompressSurveyFromHash(hash: string): Pesquisa | null {
-  if (!hash || !hash.startsWith("s_")) return null;
-  try {
-    let b64 = hash.slice(2).replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) b64 += "=";
-    const binary = atob(b64);
-    const u8 = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) u8[i] = binary.charCodeAt(i);
-    const json = fflate.strFromU8(fflate.inflateSync(u8));
-    const c = JSON.parse(json);
-
-    const bg = c.cv?.bg || "#FFF8F5";
-    const pr = c.cv?.pr || "#E05A10";
-    const tx = c.cv?.tx || "#2B1B17";
-    const cd = c.cv?.cd || "#FFFFFF";
-    const w = c.cv?.w || "Olá! Queremos muito ouvir sua opinião.";
-    const th = c.cv?.th || "Muito obrigado pelo seu feedback!";
-
-    return {
-      id: c.id,
-      empresa_id: c.eid,
-      company_id: c.eid,
-      titulo: c.t,
-      descricao: c.d,
-      tipo: c.tp || "nps",
-      status: c.st || "ativa",
-      url_hash: c.h || hash,
-      hash_publico: hash,
-      config_visual: {
-        bg_color: bg,
-        cor_fundo: bg,
-        primary_color: pr,
-        cor_primaria: pr,
-        text_color: tx,
-        cor_texto: tx,
-        card_bg_color: cd,
-        logo_url:
-          c.cv?.lg ||
-          (typeof window !== "undefined"
-            ? localStorage.getItem(`maia_nps_logo_${c.id}`) || ""
-            : ""),
-        welcome_msg: w,
-        mensagem_boas_vindas: w,
-        thanks_msg: th,
-        mensagem_agradecimento: th,
-      },
-      perguntas: (c.pq || []).map((p: any) => ({
-        id: p.i,
-        pesquisa_id: c.id,
-        ordem: p.o,
-        titulo_pergunta: p.t,
-        tipo_resposta: p.tr,
-        obrigatorio: p.ob,
-        placeholder: p.ph,
-        opcoes_lista: p.op,
-      })),
-      created_at: new Date().toISOString(),
-    };
-  } catch (err) {
-    console.warn("Falha ao descompactar hash autônomo da pesquisa:", err);
-    return null;
-  }
+export function decompressSurveyFromHash(_hash: string): Pesquisa | null {
+  return null;
 }
 
 export function generatePublicSurveyLink(pesquisa: Pesquisa, origin?: string): string {
   const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
-  const hash = compressSurveyToHash(pesquisa);
+  const hash = pesquisa.url_hash || pesquisa.hash_publico || pesquisa.id;
   return `${base}/pesquisa/${hash}`;
 }
 
@@ -208,10 +92,26 @@ export async function getPesquisasList(companyId?: string | null): Promise<Pesqu
   return enrichPesquisas((data || []) as unknown as Pesquisa[]);
 }
 export async function getPesquisaByHash(token: string): Promise<Pesquisa | null> {
-  if (token.length < 20 || token.length > 200 || token.startsWith("s_")) return null;
-  const { data, error } = await supabase.rpc("get_public_survey", { _token: token });
-  if (error) throw new Error("Não foi possível carregar a pesquisa.");
-  return data as unknown as Pesquisa | null;
+  if (!token) return null;
+  // 1. Tenta RPC oficial de pesquisa pública
+  try {
+    const { data, error } = await supabase.rpc("get_public_survey", { _token: token });
+    if (!error && data) return data as unknown as Pesquisa;
+  } catch (err) {
+    console.warn("RPC get_public_survey falhou, tentando fallback direto:", err);
+  }
+  // 2. Fallback: busca diretamente por url_hash ou id
+  try {
+    const { data, error } = await supabase
+      .from("pesquisas")
+      .select("*, perguntas:pesquisa_perguntas(*)")
+      .or(`url_hash.eq.${token},id.eq.${token}`)
+      .maybeSingle();
+    if (!error && data) return data as unknown as Pesquisa;
+  } catch (err) {
+    console.warn("Fallback getPesquisaByHash falhou:", err);
+  }
+  return null;
 }
 export async function getPesquisaById(id: string): Promise<Pesquisa | null> {
   const { data, error } = await supabase.from("pesquisas").select("*, perguntas:pesquisa_perguntas(*)").eq("id", id).maybeSingle();

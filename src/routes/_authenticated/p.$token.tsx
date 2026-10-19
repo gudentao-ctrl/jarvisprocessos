@@ -24,10 +24,7 @@ const getPublicPlan = createServerFn({ method: "GET" })
 
 import { PublicSurveyView } from "@/components/nps/PublicSurveyView";
 
-export const Route = createFileRoute("/p/$token")({
-  ssr: false,
-  loader: async ({ params }) => {
-    // Se o token for um hash de pesquisa NPS/eNPS autônomo (prefixo s_ ou similar)
+export const Route = createFileRoute("/_authenticated/p/$token")({
   ssr: false,
   loader: async ({ params }) => {
     // Se o token for um hash de pesquisa NPS/eNPS autônomo (prefixo s_ ou similar)

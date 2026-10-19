@@ -2,6 +2,7 @@
 // Componente Público e Anônimo para Resposta de Pesquisas NPS e eNPS (Estilo Typeform - One Question at a Time)
 
 import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { getPesquisaByHash, saveRespostaPublica } from "@/lib/nps-storage";
 import { Pesquisa, PesquisaPergunta } from "@/lib/nps-types";
 import { Button } from "@/components/ui/button";
@@ -24,20 +25,6 @@ export interface PublicSurveyViewProps {
   hash: string;
 }
 
-export const Route = createFileRoute("/p/$hash")({
-  head: () => ({
-    meta: [
-      { title: "Pesquisa de Satisfação | Maia Consultoria" },
-      { name: "description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
-      { property: "og:title", content: "Pesquisa de Satisfação | Maia Consultoria" },
-      { property: "og:description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: PublicSurveyView,
-});
-
 export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
   const [pesquisa, setPesquisa] = useState<Pesquisa | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +46,34 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
         }
 
         const data = await getPesquisaByHash(hash);
+        if (data) {
+          // Resolve o logo do cliente caso não esteja direto no config_visual
+          const companyId = data.empresa_id || (data as any).company_id;
+          let logo = data.config_visual?.logo_url;
+          if (!logo && typeof window !== "undefined" && data.id) {
+            logo = localStorage.getItem(`maia_nps_logo_${data.id}`) || "";
+          }
+          if (!logo && companyId) {
+            try {
+              const { data: comp } = await supabase
+                .from("companies")
+                .select("public_company_logo_url")
+                .eq("id", companyId)
+                .maybeSingle();
+              if (comp?.public_company_logo_url) {
+                logo = comp.public_company_logo_url;
+              }
+            } catch (e) {
+              console.warn("Não foi possível carregar logo da empresa:", e);
+            }
+          }
+          if (logo && (!data.config_visual?.logo_url)) {
+            data.config_visual = {
+              ...(data.config_visual || {}),
+              logo_url: logo,
+            };
+          }
+        }
         setPesquisa(data);
       } catch (err) {
         console.error("Erro ao carregar pesquisa:", err);
@@ -464,7 +479,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
             )}
 
             {/* TIPO 4: MULTIPLA ESCOLHA (SELECIONAR UMA OPÇÃO) */}
-            {currentQuestion?.tipo_resposta === "choice" && (
+            {((currentQuestion?.tipo_resposta as string) === "choice" || currentQuestion?.tipo_resposta === "selecao_lista") && (
               <div className="space-y-2">
                 {(currentQuestion.opcoes_lista || []).map((opcao, optIdx) => {
                   const isSelected = answers[currentQuestion.id]?.valor_texto === opcao;
