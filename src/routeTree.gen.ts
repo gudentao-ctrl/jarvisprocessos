@@ -20,7 +20,7 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
-import { Route as PHashRouteImport } from './routes/p.$hash'
+
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PesquisaHashRouteImport } from './routes/pesquisa.$hash'
 import { Route as TesteIdRouteImport } from './routes/teste.$id'
