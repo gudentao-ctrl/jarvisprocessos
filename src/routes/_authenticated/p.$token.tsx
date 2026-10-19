@@ -22,7 +22,7 @@ const getPublicPlan = createServerFn({ method: "GET" })
     return row;
   });
 
-export const Route = createFileRoute("/_authenticated/p/$token")({
+export const Route = createFileRoute("/p/$token")({
   ssr: false,
   loader: async ({ params }) => {
     const plan = await getPublicPlan({ data: { token: params.token } });
