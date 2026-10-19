@@ -21,7 +21,6 @@ import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_a
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
 import { Route as PHashRouteImport } from './routes/p.$hash'
-import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as TesteIdRouteImport } from './routes/teste.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_authenticated/admin.permissoes'
@@ -51,6 +50,7 @@ import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authent
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
 import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
+import { Route as AuthenticatedPTokenRouteImport } from './routes/_authenticated/p.$token'
 import { Route as AuthenticatedPessoasAssessmentRouteImport } from './routes/_authenticated/pessoas/assessment'
 import { Route as AuthenticatedPessoasDashboardRouteImport } from './routes/_authenticated/pessoas/dashboard'
 import { Route as AuthenticatedPessoasMentoriasRouteImport } from './routes/_authenticated/pessoas/mentorias'
@@ -142,11 +142,6 @@ const DashboardTokenRoute = DashboardTokenRouteImport.update({
 const PHashRoute = PHashRouteImport.update({
   id: '/p/$hash',
   path: '/p/$hash',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PTokenRoute = PTokenRouteImport.update({
-  id: '/p/$token',
-  path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TesteIdRoute = TesteIdRouteImport.update({
@@ -316,6 +311,11 @@ const AuthenticatedOportunidadesIndexRoute =
     path: '/oportunidades/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPTokenRoute = AuthenticatedPTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPessoasAssessmentRoute =
   AuthenticatedPessoasAssessmentRouteImport.update({
     id: '/pessoas/assessment',
@@ -509,7 +509,6 @@ export interface FileRoutesByFullPath {
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$hash': typeof PHashRoute
-  '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -522,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
+  '/p/$token': typeof AuthenticatedPTokenRoute
   '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
@@ -583,7 +583,6 @@ export interface FileRoutesByTo {
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$hash': typeof PHashRoute
-  '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -596,6 +595,7 @@ export interface FileRoutesByTo {
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
+  '/p/$token': typeof AuthenticatedPTokenRoute
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
   '/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
@@ -657,7 +657,6 @@ export interface FileRoutesById {
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$hash': typeof PHashRoute
-  '/p/$token': typeof PTokenRoute
   '/teste/$id': typeof TesteIdRoute
   '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -670,6 +669,7 @@ export interface FileRoutesById {
   '/_authenticated/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
+  '/_authenticated/p/$token': typeof AuthenticatedPTokenRoute
   '/_authenticated/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/_authenticated/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/_authenticated/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
@@ -733,7 +733,6 @@ export interface FileRouteTypes {
     | '/c/$token'
     | '/dashboard/$token'
     | '/p/$hash'
-    | '/p/$token'
     | '/teste/$id'
     | '/admin/permissoes'
     | '/causa-raiz/$id'
@@ -746,6 +745,7 @@ export interface FileRouteTypes {
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
+    | '/p/$token'
     | '/pessoas/assessment'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
@@ -807,7 +807,6 @@ export interface FileRouteTypes {
     | '/c/$token'
     | '/dashboard/$token'
     | '/p/$hash'
-    | '/p/$token'
     | '/teste/$id'
     | '/admin/permissoes'
     | '/causa-raiz/$id'
@@ -820,6 +819,7 @@ export interface FileRouteTypes {
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
+    | '/p/$token'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
     | '/pessoas/nps'
@@ -880,7 +880,6 @@ export interface FileRouteTypes {
     | '/c/$token'
     | '/dashboard/$token'
     | '/p/$hash'
-    | '/p/$token'
     | '/teste/$id'
     | '/_authenticated/admin/permissoes'
     | '/_authenticated/causa-raiz/$id'
@@ -893,6 +892,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mapas/decisao'
     | '/_authenticated/mapas/dores'
     | '/_authenticated/mapas/informacao'
+    | '/_authenticated/p/$token'
     | '/_authenticated/pessoas/assessment'
     | '/_authenticated/pessoas/dashboard'
     | '/_authenticated/pessoas/mentorias'
@@ -951,7 +951,6 @@ export interface RootRouteChildren {
   CTokenRoute: typeof CTokenRoute
   DashboardTokenRoute: typeof DashboardTokenRoute
   PHashRoute: typeof PHashRoute
-  PTokenRoute: typeof PTokenRoute
   TesteIdRoute: typeof TesteIdRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
 }
@@ -1040,13 +1039,6 @@ declare module '@tanstack/react-router' {
       path: '/p/$hash'
       fullPath: '/p/$hash'
       preLoaderRoute: typeof PHashRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/p/$token': {
-      id: '/p/$token'
-      path: '/p/$token'
-      fullPath: '/p/$token'
-      preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/teste/$id': {
@@ -1250,6 +1242,13 @@ declare module '@tanstack/react-router' {
       path: '/oportunidades'
       fullPath: '/oportunidades/'
       preLoaderRoute: typeof AuthenticatedOportunidadesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/p/$token': {
+      id: '/_authenticated/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof AuthenticatedPTokenRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pessoas/assessment': {
@@ -1540,6 +1539,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMapasDecisaoRoute: typeof AuthenticatedMapasDecisaoRoute
   AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
   AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
+  AuthenticatedPTokenRoute: typeof AuthenticatedPTokenRoute
   AuthenticatedPessoasAssessmentRoute: typeof AuthenticatedPessoasAssessmentRouteWithChildren
   AuthenticatedPessoasDashboardRoute: typeof AuthenticatedPessoasDashboardRoute
   AuthenticatedPessoasMentoriasRoute: typeof AuthenticatedPessoasMentoriasRoute
@@ -1596,6 +1596,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMapasDecisaoRoute: AuthenticatedMapasDecisaoRoute,
   AuthenticatedMapasDoresRoute: AuthenticatedMapasDoresRoute,
   AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,
+  AuthenticatedPTokenRoute: AuthenticatedPTokenRoute,
   AuthenticatedPessoasAssessmentRoute:
     AuthenticatedPessoasAssessmentRouteWithChildren,
   AuthenticatedPessoasDashboardRoute: AuthenticatedPessoasDashboardRoute,
@@ -1651,7 +1652,6 @@ const rootRouteChildren: RootRouteChildren = {
   CTokenRoute: CTokenRoute,
   DashboardTokenRoute: DashboardTokenRoute,
   PHashRoute: PHashRoute,
-  PTokenRoute: PTokenRoute,
   TesteIdRoute: TesteIdRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
 }

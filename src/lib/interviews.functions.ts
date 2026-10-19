@@ -869,7 +869,7 @@ export const chunkAudioIfNeeded = createServerFn({ method: "POST" })
     const bytes = new Uint8Array(arrayBuffer);
     const CHUNK_SIZE = 18 * 1024 * 1024; // 18 MB por bloco
     const folder = interview.audio_path.includes("/")
-      ? interview.audio_path.split("/")[0]
+      ? interview.audio_path.slice(0, interview.audio_path.lastIndexOf("/"))
       : interview.id;
     const ext = interview.audio_path.split(".").pop() || "mp3";
     const contentType = interview.audio_mime || blob.type || "audio/mpeg";

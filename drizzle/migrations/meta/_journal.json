@@ -64,6 +64,13 @@
       "when": 1792200540059,
       "tag": "0008_delete_survey_transactionally",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792375225307,
+      "tag": "0009_isolate_company_storage_access",
+      "breakpoints": true
     }
   ]
 }

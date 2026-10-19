@@ -939,27 +939,9 @@ export const getDiagnostic = createServerFn({ method: "GET" })
       public_company_logo_url?: string | null;
       public_consultancy_logo_url?: string | null;
     } | null;
-    async function resolveLogo(value?: string | null) {
-      if (!value) return null;
-      try {
-        let url = value;
-        if (!/^https?:\/\//i.test(value)) {
-          const { data: signed } = await context.supabase.storage
-            .from("portal-logos")
-            .createSignedUrl(value, 600);
-          if (!signed?.signedUrl) return null;
-          url = signed.signedUrl;
-        }
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        let binary = "";
-        for (const byte of bytes) binary += String.fromCharCode(byte);
-        return `data:${response.headers.get("content-type") || "image/png"};base64,${btoa(binary)}`;
-      } catch {
-        return null;
-      }
-    }
+    const { reportLogoDataUrl } = await import("./report-logo.server");
+    const resolveLogo = (value?: string | null) => reportLogoDataUrl(context.supabase, value);
+
     const [companyLogo, consultancyLogo] = await Promise.all([
       resolveLogo(company?.public_company_logo_url),
       resolveLogo(company?.public_consultancy_logo_url),

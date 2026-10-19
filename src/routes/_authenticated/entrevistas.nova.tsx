@@ -98,7 +98,8 @@ function NewInterview() {
       if (!audioParts.length) throw new Error("Grave ou envie um áudio");
 
       // 1) upload each audio chunk with retry & backoff
-      const folder = crypto.randomUUID();
+      if (!companyId) throw new Error("Selecione uma empresa");
+      const folder = `${companyId}/${crypto.randomUUID()}`;
       const paths: string[] = [];
 
       for (let i = 0; i < audioParts.length; i++) {

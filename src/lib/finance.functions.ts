@@ -554,28 +554,8 @@ export const getBilledReport = createServerFn({ method: "GET" })
       .eq("id", data.company_id)
       .maybeSingle();
 
-    async function logoDataUrl(value: string | null | undefined): Promise<string | null> {
-      if (!value) return null;
-      try {
-        let url = value;
-        if (!/^https?:\/\//i.test(value)) {
-          const { data: signed } = await sb.storage
-            .from("portal-logos")
-            .createSignedUrl(value, 60 * 10);
-          if (!signed?.signedUrl) return null;
-          url = signed.signedUrl;
-        }
-        const res = await fetch(url);
-        if (!res.ok) return null;
-        const buf = new Uint8Array(await res.arrayBuffer());
-        let bin = "";
-        for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-        const type = res.headers.get("content-type") || "image/png";
-        return `data:${type};base64,${btoa(bin)}`;
-      } catch {
-        return null;
-      }
-    }
+    const { reportLogoDataUrl } = await import("./report-logo.server");
+    const logoDataUrl = (value?: string | null) => reportLogoDataUrl(sb, value);
 
     const [companyLogo, consultancyLogo] = await Promise.all([
       logoDataUrl(company?.public_company_logo_url),

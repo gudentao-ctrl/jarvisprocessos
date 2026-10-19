@@ -1817,6 +1817,24 @@ export type Database = {
           },
         ]
       }
+      legacy_file_company_bindings: {
+        Row: {
+          bucket_id: string
+          company_id: string
+          object_path: string
+        }
+        Insert: {
+          bucket_id: string
+          company_id: string
+          object_path: string
+        }
+        Update: {
+          bucket_id?: string
+          company_id?: string
+          object_path?: string
+        }
+        Relationships: []
+      }
       mentoria_sessoes: {
         Row: {
           acoes: Json | null
@@ -3871,6 +3889,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_company_file: {
+        Args: { _action: string; _bucket: string; _path: string }
+        Returns: boolean
+      }
       convert_crm_lead_to_company: {
         Args: { _lead_id: string }
         Returns: string
