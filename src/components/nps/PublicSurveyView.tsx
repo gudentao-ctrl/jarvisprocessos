@@ -274,9 +274,13 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
               Enviar outra resposta
             </button>
           </div>
-          <div className="pt-4 border-t border-black/10 flex items-center justify-center gap-1.5 text-xs opacity-75 font-medium">
-            <Sparkles className="h-4 w-4" style={{ color: visual.primary_color }} />
-            <span>Maia Consultoria Empresarial • Hub de Pessoas</span>
+          <div className="pt-4 border-t border-black/10 flex flex-col items-center justify-center gap-1.5 text-xs opacity-80 font-medium">
+            <img
+              src="/logo-consultoria-maia.png"
+              alt="Maia Consultoria"
+              className="h-8 max-w-[150px] object-contain opacity-90 drop-shadow-sm"
+            />
+            <span className="text-[11px] opacity-60">Maia Consultoria Empresarial • Hub de Pessoas</span>
           </div>
         </div>
       </div>
@@ -334,6 +338,18 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
           <div className="text-[11px] opacity-60 flex items-center justify-center gap-1.5">
             <Lock className="h-3.5 w-3.5" />
             <span>Acesso anônimo • Respostas 100% confidenciais</span>
+          </div>
+
+          {/* Logo da Consultoria Maia */}
+          <div className="pt-3 border-t border-black/10 flex flex-col items-center justify-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider opacity-50 font-semibold">
+              Realização & Metodologia
+            </span>
+            <img
+              src="/logo-consultoria-maia.png"
+              alt="Maia Consultoria"
+              className="h-10 sm:h-12 max-w-[190px] object-contain drop-shadow-sm opacity-90 hover:opacity-100 transition-opacity"
+            />
           </div>
         </div>
       </div>
@@ -561,8 +577,13 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
       </div>
 
       {/* Footer da Pesquisa Pública */}
-      <footer className="w-full p-4 text-center text-xs opacity-60">
-        <p>Pesquisa gerenciada via Plataforma Maia Consultoria Empresarial • Resposta 100% segura e anônima</p>
+      <footer className="w-full p-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-xs opacity-60">
+        <img
+          src="/logo-consultoria-maia.png"
+          alt="Maia Consultoria"
+          className="h-6 max-w-[120px] object-contain opacity-80"
+        />
+        <span>• Pesquisa gerenciada via Plataforma Maia Consultoria Empresarial • Resposta 100% segura e anônima</span>
       </footer>
     </div>
   );
