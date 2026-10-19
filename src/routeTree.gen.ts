@@ -21,6 +21,8 @@ import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_a
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
 import { Route as PHashRouteImport } from './routes/p.$hash'
+import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as PesquisaHashRouteImport } from './routes/pesquisa.$hash'
 import { Route as TesteIdRouteImport } from './routes/teste.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_authenticated/admin.permissoes'
@@ -142,6 +144,18 @@ const DashboardTokenRoute = DashboardTokenRouteImport.update({
 const PHashRoute = PHashRouteImport.update({
   id: '/p/$hash',
   path: '/p/$hash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PesquisaHashRoute = PesquisaHashRouteImport.update({
+  id: '/pesquisa/$hash',
+  path: '/pesquisa/$hash',
+  getParentRoute: () => rootRouteImport,
+} as any)
   getParentRoute: () => rootRouteImport,
 } as any)
 const TesteIdRoute = TesteIdRouteImport.update({
@@ -509,6 +523,8 @@ export interface FileRoutesByFullPath {
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$hash': typeof PHashRoute
+  '/p/$token': typeof PTokenRoute
+  '/pesquisa/$hash': typeof PesquisaHashRoute
   '/teste/$id': typeof TesteIdRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -583,6 +599,8 @@ export interface FileRoutesByTo {
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$hash': typeof PHashRoute
+  '/p/$token': typeof PTokenRoute
+  '/pesquisa/$hash': typeof PesquisaHashRoute
   '/teste/$id': typeof TesteIdRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -657,6 +675,8 @@ export interface FileRoutesById {
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
   '/p/$hash': typeof PHashRoute
+  '/p/$token': typeof PTokenRoute
+  '/pesquisa/$hash': typeof PesquisaHashRoute
   '/teste/$id': typeof TesteIdRoute
   '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -733,6 +753,8 @@ export interface FileRouteTypes {
     | '/c/$token'
     | '/dashboard/$token'
     | '/p/$hash'
+    | '/p/$token'
+    | '/pesquisa/$hash'
     | '/teste/$id'
     | '/admin/permissoes'
     | '/causa-raiz/$id'
@@ -807,6 +829,8 @@ export interface FileRouteTypes {
     | '/c/$token'
     | '/dashboard/$token'
     | '/p/$hash'
+    | '/p/$token'
+    | '/pesquisa/$hash'
     | '/teste/$id'
     | '/admin/permissoes'
     | '/causa-raiz/$id'
@@ -880,6 +904,8 @@ export interface FileRouteTypes {
     | '/c/$token'
     | '/dashboard/$token'
     | '/p/$hash'
+    | '/p/$token'
+    | '/pesquisa/$hash'
     | '/teste/$id'
     | '/_authenticated/admin/permissoes'
     | '/_authenticated/causa-raiz/$id'
@@ -951,6 +977,8 @@ export interface RootRouteChildren {
   CTokenRoute: typeof CTokenRoute
   DashboardTokenRoute: typeof DashboardTokenRoute
   PHashRoute: typeof PHashRoute
+  PTokenRoute: typeof PTokenRoute
+  PesquisaHashRoute: typeof PesquisaHashRoute
   TesteIdRoute: typeof TesteIdRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
 }
@@ -1039,6 +1067,22 @@ declare module '@tanstack/react-router' {
       path: '/p/$hash'
       fullPath: '/p/$hash'
       preLoaderRoute: typeof PHashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pesquisa/$hash': {
+      id: '/pesquisa/$hash'
+      path: '/pesquisa/$hash'
+      fullPath: '/pesquisa/$hash'
+      preLoaderRoute: typeof PesquisaHashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
       parentRoute: typeof rootRouteImport
     }
     '/teste/$id': {
@@ -1652,6 +1696,8 @@ const rootRouteChildren: RootRouteChildren = {
   CTokenRoute: CTokenRoute,
   DashboardTokenRoute: DashboardTokenRoute,
   PHashRoute: PHashRoute,
+  PTokenRoute: PTokenRoute,
+  PesquisaHashRoute: PesquisaHashRoute,
   TesteIdRoute: TesteIdRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
 }
