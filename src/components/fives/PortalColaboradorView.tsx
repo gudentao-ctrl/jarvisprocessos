@@ -25,6 +25,7 @@ import {
   Pencil,
   Trash2,
   Plus,
+  Camera,
   CheckCheck,
   Clock,
 } from "lucide-react";
@@ -118,23 +119,69 @@ export function PortalColaboradorView({
     setEditFotoDepois(foto.foto_depois_url);
   };
 
+  const handleOpenNovoMural = () => {
+    const defaultSectorId = selectedSectorId || (setores[0]?.id ?? "");
+    const setorObj = setores.find((s) => s.id === defaultSectorId);
+    const novaFoto: FivesMuralFoto = {
+      id: crypto.randomUUID(),
+      company_id: company.id,
+      titulo: "",
+      descricao: "",
+      foto_antes_url: "",
+      foto_depois_url: "",
+      setor_id: defaultSectorId,
+      setor_nome: setorObj?.nome_setor || "Geral",
+      data_registro: new Date().toISOString().slice(0, 10),
+    };
+    setEditMuralFoto(novaFoto);
+    setEditFotoTitulo("");
+    setEditFotoDescricao("");
+    setEditFotoSetorId(defaultSectorId);
+    setEditFotoAntes("");
+    setEditFotoDepois("");
+  };
+
+  const handleUploadMuralFoto = (
+    setter: (val: string) => void,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A foto excede o limite de 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setter(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveMural = async () => {
     if (!editMuralFoto) return;
-    if (!editFotoTitulo.trim()) { toast.error("Informe o título."); return; }
+    if (!editFotoTitulo.trim()) { toast.error("Informe o título da melhoria."); return; }
+    if (!editFotoAntes.trim()) { toast.error("Forneça a foto do 'Antes'."); return; }
+    if (!editFotoDepois.trim()) { toast.error("Forneça a foto do 'Depois'."); return; }
+
+    const isNovo = !muralFotos.some((f) => f.id === editMuralFoto.id);
+    const setorObj = setores.find((s) => s.id === editFotoSetorId);
+
     try {
       setSavingMural(true);
       await saveFivesMuralFoto({
         ...editMuralFoto,
+        company_id: company.id,
         titulo: editFotoTitulo.trim(),
         descricao: editFotoDescricao.trim(),
         setor_id: editFotoSetorId || null,
+        setor_nome: setorObj?.nome_setor || "Geral",
         foto_antes_url: editFotoAntes,
         foto_depois_url: editFotoDepois,
+        data_registro: editMuralFoto.data_registro || new Date().toISOString().slice(0, 10),
       });
-      toast.success("Registro do mural atualizado!");
+      toast.success(isNovo ? "Nova transformação adicionada ao mural com sucesso!" : "Registro do mural atualizado!");
       setEditMuralFoto(null);
     } catch (err: any) {
-      toast.error("Erro ao salvar: " + err?.message);
+      toast.error("Erro ao salvar no mural: " + err?.message);
     } finally {
       setSavingMural(false);
     }
@@ -652,7 +699,7 @@ export function PortalColaboradorView({
 
       {/* 4. MURAL "ANTES VS. DEPOIS" */}
       <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-amber-500" />
@@ -662,13 +709,37 @@ export function PortalColaboradorView({
               Evidências visuais de evolução prática e superação dos setores na implantação dos 5 Sensos.
             </p>
           </div>
+
+          {canEditPortal && (
+            <Button
+              onClick={handleOpenNovoMural}
+              size="sm"
+              className="font-bold text-xs shadow-md gap-1.5 shrink-0 text-white"
+              style={{ backgroundColor: secondaryColor }}
+            >
+              <Plus className="h-4 w-4" /> + Nova Transformação (Antes e Depois)
+            </Button>
+          )}
         </div>
 
         {muralFotos.length === 0 ? (
-          <Card className="p-8 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">
-              Nenhuma foto cadastrada no mural ainda. Registre transformações no painel de gestão!
+          <Card className="p-8 text-center border-dashed space-y-3">
+            <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+              <Camera className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-semibold text-muted-foreground">
+              Nenhuma transformação cadastrada no mural ainda.
             </p>
+            {canEditPortal && (
+              <Button
+                size="sm"
+                onClick={handleOpenNovoMural}
+                className="font-bold text-xs gap-1.5 text-white"
+                style={{ backgroundColor: secondaryColor }}
+              >
+                <Plus className="h-4 w-4" /> Cadastrar Primeira Transformação
+              </Button>
+            )}
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1109,25 +1180,37 @@ export function PortalColaboradorView({
         </Dialog>
       )}
 
-      {/* Modal Editar Antes e Depois */}
+      {/* Modal Adicionar / Editar Antes e Depois */}
       {editMuralFoto && (
         <Dialog open={!!editMuralFoto} onOpenChange={() => setEditMuralFoto(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base font-bold">
-                <Pencil className="h-4 w-4 text-primary" />
-                Editar Transformação "Antes vs. Depois"
+                {muralFotos.some((f) => f.id === editMuralFoto.id) ? (
+                  <>
+                    <Pencil className="h-4 w-4 text-primary" />
+                    Editar Transformação "Antes vs. Depois"
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 text-primary" />
+                    Nova Transformação "Antes vs. Depois"
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Atualize o título, a descrição e os links das evidências fotográficas deste setor.
+                {muralFotos.some((f) => f.id === editMuralFoto.id)
+                  ? "Atualize o título, a descrição e as evidências fotográficas deste setor."
+                  : "Registre a evolução prática do ambiente com fotos do estado inicial (Antes) e do resultado obtido (Depois)."}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-2">
               <div className="space-y-1">
-                <Label htmlFor="mural-titulo" className="text-xs font-semibold">Título do Ajuste *</Label>
+                <Label htmlFor="mural-titulo" className="text-xs font-semibold">Título do Ajuste / Transformação *</Label>
                 <Input
                   id="mural-titulo"
+                  placeholder="Ex: Organização e demarcação da bancada de ferramentas"
                   value={editFotoTitulo}
                   onChange={(e) => setEditFotoTitulo(e.target.value)}
                   className="text-xs"
@@ -1152,51 +1235,108 @@ export function PortalColaboradorView({
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="mural-desc" className="text-xs font-semibold">Descrição da Melhoria</Label>
+                <Label htmlFor="mural-desc" className="text-xs font-semibold">Descrição da Melhoria (Opcional)</Label>
                 <Textarea
                   id="mural-desc"
                   rows={2}
+                  placeholder="Descreva o que foi eliminado, reorganizado ou padronizado..."
                   value={editFotoDescricao}
                   onChange={(e) => setEditFotoDescricao(e.target.value)}
                   className="text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="foto-antes" className="text-xs font-semibold text-rose-600">URL Foto Antes</Label>
-                  <Input
-                    id="foto-antes"
-                    value={editFotoAntes}
-                    onChange={(e) => setEditFotoAntes(e.target.value)}
-                    className="text-xs"
-                  />
-                  {editFotoAntes && (
-                    <img src={editFotoAntes} alt="Preview Antes" className="h-20 w-full object-cover rounded-md border mt-1" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                {/* Foto do Antes */}
+                <div className="space-y-2 p-3 rounded-xl border border-rose-200 bg-rose-50/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
+                      <Camera className="h-3.5 w-3.5" /> Foto do ANTES *
+                    </Label>
+                    {editFotoAntes && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditFotoAntes("")}
+                        className="h-5 text-[10px] text-rose-600 hover:text-rose-700 p-0"
+                      >
+                        Trocar Foto
+                      </Button>
+                    )}
+                  </div>
+
+                  {editFotoAntes ? (
+                    <div className="relative h-28 w-full rounded-lg overflow-hidden border">
+                      <img src={editFotoAntes} alt="Preview Antes" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUploadMuralFoto(setEditFotoAntes, e)}
+                        className="text-[11px] cursor-pointer h-8"
+                      />
+                      <Input
+                        placeholder="Ou cole a URL da imagem..."
+                        value={editFotoAntes}
+                        onChange={(e) => setEditFotoAntes(e.target.value)}
+                        className="text-xs h-7"
+                      />
+                    </div>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="foto-depois" className="text-xs font-semibold text-emerald-600">URL Foto Depois</Label>
-                  <Input
-                    id="foto-depois"
-                    value={editFotoDepois}
-                    onChange={(e) => setEditFotoDepois(e.target.value)}
-                    className="text-xs"
-                  />
-                  {editFotoDepois && (
-                    <img src={editFotoDepois} alt="Preview Depois" className="h-20 w-full object-cover rounded-md border mt-1" />
+                {/* Foto do Depois */}
+                <div className="space-y-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                      <Camera className="h-3.5 w-3.5" /> Foto do DEPOIS *
+                    </Label>
+                    {editFotoDepois && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditFotoDepois("")}
+                        className="h-5 text-[10px] text-emerald-600 hover:text-emerald-700 p-0"
+                      >
+                        Trocar Foto
+                      </Button>
+                    )}
+                  </div>
+
+                  {editFotoDepois ? (
+                    <div className="relative h-28 w-full rounded-lg overflow-hidden border">
+                      <img src={editFotoDepois} alt="Preview Depois" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUploadMuralFoto(setEditFotoDepois, e)}
+                        className="text-[11px] cursor-pointer h-8"
+                      />
+                      <Input
+                        placeholder="Ou cole a URL da imagem..."
+                        value={editFotoDepois}
+                        onChange={(e) => setEditFotoDepois(e.target.value)}
+                        className="text-xs h-7"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={() => setEditMuralFoto(null)} className="text-xs">
                 Cancelar
               </Button>
               <Button size="sm" onClick={handleSaveMural} disabled={savingMural} className="text-xs font-bold">
-                {savingMural ? "Salvando..." : "Salvar Alterações"}
+                {savingMural ? "Salvando..." : muralFotos.some((f) => f.id === editMuralFoto.id) ? "Salvar Alterações" : "Publicar no Mural"}
               </Button>
             </DialogFooter>
           </DialogContent>
