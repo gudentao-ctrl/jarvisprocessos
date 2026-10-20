@@ -36,6 +36,7 @@ export const PERMISSION_CATALOG = [
     { key: "recrutamento", label: "Recrutamento", paths: ["/pessoas/recrutamento"] },
     { key: "mentorias", label: "Mentorias", paths: ["/pessoas/mentorias"] },
     { key: "nps_enps", label: "Pesquisas NPS e eNPS", paths: ["/pessoas/nps"] },
+    { key: "hub_5s", label: "HUB 5S Operacional", paths: ["/melhorias/5s"] },
   ] },
   { key: "portal", label: "Portal do cliente", tools: [
     { key: "portal_empresa", label: "Portal da empresa", paths: ["/c/"] },
