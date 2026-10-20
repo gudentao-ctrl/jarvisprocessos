@@ -102,6 +102,7 @@ export function PortalColaboradorView({
   const [cronoTitulo, setCronoTitulo] = useState("");
   const [cronoDtInicio, setCronoDtInicio] = useState("");
   const [cronoDtFim, setCronoDtFim] = useState("");
+  const [cronoDtExecucao, setCronoDtExecucao] = useState("");
   const [cronoResponsavel, setCronoResponsavel] = useState("");
   const [cronoStatus, setCronoStatus] = useState<FivesCronogramaProjeto["status"]>("PENDENTE");
   const [savingCrono, setSavingCrono] = useState(false);
@@ -154,6 +155,7 @@ export function PortalColaboradorView({
     setCronoTitulo(etapa.etapa_titulo);
     setCronoDtInicio(etapa.data_inicio || "");
     setCronoDtFim(etapa.data_fim || "");
+    setCronoDtExecucao(etapa.data_execucao || "");
     setCronoResponsavel(etapa.responsavel || "");
     setCronoStatus(etapa.status);
   };
@@ -167,6 +169,7 @@ export function PortalColaboradorView({
         etapa_titulo: cronoTitulo.trim() || editCronoEtapa.etapa_titulo,
         data_inicio: cronoDtInicio || null,
         data_fim: cronoDtFim || null,
+        data_execucao: cronoDtExecucao || null,
         responsavel: cronoResponsavel || null,
         status: cronoStatus,
         company_id: company.id,
@@ -980,17 +983,25 @@ export function PortalColaboradorView({
                         <h4 className="font-bold text-sm text-foreground">
                           {etapa.etapa_titulo}
                         </h4>
+                        {isEmAndamento && (
+                          <Badge
+                            className="text-[10px] font-black px-2.5 py-0.5 animate-pulse flex items-center gap-1 shadow-sm text-white"
+                            style={{ backgroundColor: secondaryColor }}
+                          >
+                            <Flame className="h-3 w-3 fill-current" />
+                            EM EXECUÇÃO
+                          </Badge>
+                        )}
                         <Badge
                           className={`text-[10px] font-bold ${
                             isConcluido
                               ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                               : isEmAndamento
-                              ? "text-white border-none"
+                              ? "bg-orange-100 text-orange-800 border-orange-300"
                               : "bg-slate-100 text-slate-700 border-slate-300"
                           }`}
-                          style={isEmAndamento ? { backgroundColor: secondaryColor } : undefined}
                         >
-                          {isConcluido ? "Concluído" : isEmAndamento ? "Em Andamento" : "Pendente"}
+                          {isConcluido ? "Concluído" : isEmAndamento ? "Fase Ativa" : "Pendente"}
                         </Badge>
                       </div>
 
@@ -1011,6 +1022,12 @@ export function PortalColaboradorView({
                             <Clock className="h-3 w-3" />
                             {etapa.data_inicio ? `Início: ${etapa.data_inicio}` : ""}
                             {etapa.data_fim ? ` • Prazo: ${etapa.data_fim}` : ""}
+                          </span>
+                        )}
+                        {etapa.data_execucao && (
+                          <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            Data de Execução: <strong>{etapa.data_execucao}</strong>
                           </span>
                         )}
                       </div>
@@ -1240,6 +1257,19 @@ export function PortalColaboradorView({
               </div>
 
               <div className="space-y-1">
+                <Label htmlFor="crono-dt-exec" className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Data de Execução / Realização
+                </Label>
+                <Input
+                  id="crono-dt-exec"
+                  type="date"
+                  value={cronoDtExecucao}
+                  onChange={(e) => setCronoDtExecucao(e.target.value)}
+                  className="text-xs border-emerald-300 bg-emerald-50/20"
+                />
+              </div>
+
+              <div className="space-y-1">
                 <Label htmlFor="crono-status" className="text-xs font-semibold">Status Atual</Label>
                 <select
                   id="crono-status"
@@ -1248,7 +1278,7 @@ export function PortalColaboradorView({
                   className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
                 >
                   <option value="PENDENTE">Pendente</option>
-                  <option value="EM_ANDAMENTO">Em Andamento</option>
+                  <option value="EM_ANDAMENTO">Em Execução (Etapa Atual do Projeto)</option>
                   <option value="CONCLUIDO">Concluído</option>
                 </select>
               </div>

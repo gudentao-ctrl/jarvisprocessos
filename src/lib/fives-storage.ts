@@ -278,41 +278,91 @@ function setLocalItem<T>(key: string, value: T): void {
   }
 }
 
+function isUuid(val?: string | null): boolean {
+  if (!val) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+}
+
 // ---------------------------------------------------------------------------
 // CONFIGURAÇÕES WHITELABEL
 // ---------------------------------------------------------------------------
 export async function getFivesConfig(companyId: string, companyName?: string): Promise<FivesConfiguracao> {
-  if (!companyId) return DEFAULT_CONFIG("demo", companyName);
+  if (!companyId || companyId === "default-company" || companyId === "demo") {
+    return DEFAULT_CONFIG("demo", companyName);
+  }
+
+  const validUuid = isUuid(companyId);
 
   try {
-    const { data, error } = await fivesDb
-      .from("fives_configuracoes" as any)
-      .select("*")
-      .eq("company_id", companyId)
-      .maybeSingle();
+    if (validUuid) {
+      const { data, error } = await fivesDb
+        .from("fives_configuracoes" as any)
+        .select("*")
+        .eq("company_id", companyId)
+        .maybeSingle();
 
-    if (!error && data) {
-      return {
-        id: data.id,
-        company_id: data.company_id,
-        url_hash: data.url_hash || `5s_${companyId.slice(0, 8)}`,
-        logo_url: data.logo_url,
-        header_banner_url: data.header_banner_url,
-        slogan_campanha: data.slogan_campanha,
-        primary_color: data.primary_color || "#3E100C",
-        secondary_color: data.secondary_color || "#E05A10",
-        bg_color: data.bg_color || "#FFF8F5",
-        senso_destaque_mes: data.senso_destaque_mes,
-        comite_membros: Array.isArray(data.comite_membros) ? data.comite_membros : [],
-      };
+      if (!error && data) {
+        let logo = data.logo_url;
+        if (!logo) {
+          try {
+            const { data: comp } = await supabase
+              .from("companies")
+              .select("public_company_logo_url")
+              .eq("id", companyId)
+              .maybeSingle();
+            if (comp?.public_company_logo_url) {
+              logo = comp.public_company_logo_url;
+            }
+          } catch {}
+        }
+
+        const configResult: FivesConfiguracao = {
+          id: data.id,
+          company_id: data.company_id,
+          url_hash: data.url_hash || `5s_${companyId.slice(0, 8)}`,
+          logo_url: logo,
+          header_banner_url: data.header_banner_url,
+          slogan_campanha: data.slogan_campanha,
+          primary_color: data.primary_color || "#3E100C",
+          secondary_color: data.secondary_color || "#E05A10",
+          bg_color: data.bg_color || "#FFF8F5",
+          senso_destaque_mes: data.senso_destaque_mes,
+          comite_membros: Array.isArray(data.comite_membros) ? data.comite_membros : [],
+        };
+
+        setLocalItem(`jarvis_5s_config_${companyId}`, configResult);
+        return configResult;
+      }
     }
   } catch (e) {
     console.warn("Tabela fives_configuracoes não encontrada ou sem acesso. Usando fallback.", e);
   }
 
+  // Tenta puxar a logo da empresa se houver
+  let companyLogo = "";
+  if (validUuid) {
+    try {
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("name, public_company_logo_url")
+        .eq("id", companyId)
+        .maybeSingle();
+      if (comp?.public_company_logo_url) {
+        companyLogo = comp.public_company_logo_url;
+      }
+      if (comp?.name && !companyName) {
+        companyName = comp.name;
+      }
+    } catch {}
+  }
+
   // Fallback Local
   const localKey = `jarvis_5s_config_${companyId}`;
-  return getLocalItem<FivesConfiguracao>(localKey, DEFAULT_CONFIG(companyId, companyName));
+  const def = DEFAULT_CONFIG(companyId, companyName);
+  if (companyLogo) {
+    def.logo_url = companyLogo;
+  }
+  return getLocalItem<FivesConfiguracao>(localKey, def);
 }
 
 export async function saveFivesConfig(config: Partial<FivesConfiguracao>): Promise<FivesConfiguracao> {
@@ -343,6 +393,8 @@ export async function saveFivesConfig(config: Partial<FivesConfiguracao>): Promi
 
     if (!error && data) {
       setLocalItem(`jarvis_5s_config_${companyId}`, data);
+      setLocalItem(`jarvis_5s_config_${payload.url_hash}`, data);
+      notify5SUpdate(companyId);
       return data as unknown as FivesConfiguracao;
     }
   } catch (e) {
@@ -350,6 +402,8 @@ export async function saveFivesConfig(config: Partial<FivesConfiguracao>): Promi
   }
 
   setLocalItem(`jarvis_5s_config_${companyId}`, payload);
+  setLocalItem(`jarvis_5s_config_${payload.url_hash}`, payload);
+  notify5SUpdate(companyId);
   return payload as unknown as FivesConfiguracao;
 }
 
@@ -362,14 +416,16 @@ export async function getFivesSetores(companyId: string): Promise<FivesSetor[]> 
   let setores: FivesSetor[] = [];
 
   try {
-    const { data, error } = await fivesDb
-      .from("fives_setores" as any)
-      .select("*")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: true });
+    if (isUuid(companyId)) {
+      const { data, error } = await fivesDb
+        .from("fives_setores" as any)
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      setores = data as unknown as FivesSetor[];
+      if (!error && data && data.length > 0) {
+        setores = data as unknown as FivesSetor[];
+      }
     }
   } catch (e) {
     console.warn("Erro ao buscar fives_setores:", e);
@@ -904,14 +960,16 @@ export async function deleteFivesMuralFoto(id: string, companyId: string): Promi
 // ---------------------------------------------------------------------------
 export async function getFivesEventos(companyId: string): Promise<FivesEvento[]> {
   try {
-    const { data, error } = await fivesDb
-      .from("fives_eventos" as any)
-      .select("*")
-      .eq("company_id", companyId)
-      .order("data_evento", { ascending: true });
+    if (isUuid(companyId)) {
+      const { data, error } = await fivesDb
+        .from("fives_eventos" as any)
+        .select("*")
+        .eq("company_id", companyId)
+        .order("data_evento", { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      return data as unknown as FivesEvento[];
+      if (!error && data && data.length > 0) {
+        return data as unknown as FivesEvento[];
+      }
     }
   } catch (e) {
     console.warn("Erro ao buscar eventos 5S:", e);
@@ -1004,23 +1062,25 @@ export async function deleteFivesEvento(id: string, companyId: string): Promise<
 // ---------------------------------------------------------------------------
 
 const ETAPAS_PADRAO_CRONOGRAMA: Omit<FivesCronogramaProjeto, "id" | "company_id" | "created_at">[] = [
-  { etapa_titulo: "Sensibilização e Formação do Comitê 5S", descricao: "Palestras de conscientização, definição dos membros do Comitê 5S e nomeação dos Guardiões de Setor.", data_inicio: null, data_fim: null, responsavel: "Maia Consultoria", status: "PENDENTE", ordem: 1 },
-  { etapa_titulo: "Mapeamento de Áreas e Treinamentos", descricao: "Definição das zonas/setores auditados, treinamento prático dos auditores internos e capacitação dos guardiões.", data_inicio: null, data_fim: null, responsavel: "Comitê 5S", status: "PENDENTE", ordem: 2 },
-  { etapa_titulo: "Grande Bota-Fora (Dia D)", descricao: "Mutirão geral de descarte com Cartão Vermelho aplicado em todos os setores simultaneamente.", data_inicio: null, data_fim: null, responsavel: "Comitê 5S + Guardiões", status: "PENDENTE", ordem: 3 },
-  { etapa_titulo: "Implantação dos Sensos (Seiri → Shitsuke)", descricao: "Ciclo sequencial de implantação dos 5 Sensos com treinamentos práticos por etapa e auditoria de verificação.", data_inicio: null, data_fim: null, responsavel: "Guardiões de Setor", status: "PENDENTE", ordem: 4 },
-  { etapa_titulo: "Ciclo de Auditorias Contínuas e Premiação", descricao: "Auditorias cruzadas mensais, apuração do Ranking de Setores, premiação Selo Ouro/Prata e reconhecimento dos destaques.", data_inicio: null, data_fim: null, responsavel: "Auditores + Maia Consultoria", status: "PENDENTE", ordem: 5 },
+  { etapa_titulo: "Sensibilização e Formação do Comitê 5S", descricao: "Palestras de conscientização, definição dos membros do Comitê 5S e nomeação dos Guardiões de Setor.", data_inicio: null, data_fim: null, data_execucao: null, responsavel: "Maia Consultoria", status: "PENDENTE", ordem: 1 },
+  { etapa_titulo: "Mapeamento de Áreas e Treinamentos", descricao: "Definição das zonas/setores auditados, treinamento prático dos auditores internos e capacitação dos guardiões.", data_inicio: null, data_fim: null, data_execucao: null, responsavel: "Comitê 5S", status: "PENDENTE", ordem: 2 },
+  { etapa_titulo: "Grande Bota-Fora (Dia D)", descricao: "Mutirão geral de descarte com Cartão Vermelho aplicado em todos os setores simultaneamente.", data_inicio: null, data_fim: null, data_execucao: null, responsavel: "Comitê 5S + Guardiões", status: "PENDENTE", ordem: 3 },
+  { etapa_titulo: "Implantação dos Sensos (Seiri → Shitsuke)", descricao: "Ciclo sequencial de implantação dos 5 Sensos com treinamentos práticos por etapa e auditoria de verificação.", data_inicio: null, data_fim: null, data_execucao: null, responsavel: "Guardiões de Setor", status: "PENDENTE", ordem: 4 },
+  { etapa_titulo: "Ciclo de Auditorias Contínuas e Premiação", descricao: "Auditorias cruzadas mensais, apuração do Ranking de Setores, premiação Selo Ouro/Prata e reconhecimento dos destaques.", data_inicio: null, data_fim: null, data_execucao: null, responsavel: "Auditores + Maia Consultoria", status: "PENDENTE", ordem: 5 },
 ];
 
 export async function getFivesCronogramaProjeto(companyId: string): Promise<FivesCronogramaProjeto[]> {
   try {
-    const { data, error } = await fivesDb
-      .from("fives_cronograma_projeto" as any)
-      .select("*")
-      .eq("company_id", companyId)
-      .order("ordem", { ascending: true });
+    if (isUuid(companyId)) {
+      const { data, error } = await fivesDb
+        .from("fives_cronograma_projeto" as any)
+        .select("*")
+        .eq("company_id", companyId)
+        .order("ordem", { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      return data as unknown as FivesCronogramaProjeto[];
+      if (!error && data && data.length > 0) {
+        return data as unknown as FivesCronogramaProjeto[];
+      }
     }
   } catch (e) {
     console.warn("Erro ao buscar cronograma 5S:", e);
@@ -1050,6 +1110,7 @@ export async function saveFivesCronogramaEtapa(etapa: Partial<FivesCronogramaPro
     descricao: etapa.descricao || null,
     data_inicio: etapa.data_inicio || null,
     data_fim: etapa.data_fim || null,
+    data_execucao: etapa.data_execucao || null,
     responsavel: etapa.responsavel || null,
     status: etapa.status || "PENDENTE",
     ordem: etapa.ordem ?? 1,
@@ -1189,33 +1250,92 @@ export async function getFivesPortalDataByHash(hash: string): Promise<FivesPorta
   if (!hash) return null;
 
   try {
-    // 1. Tenta buscar configuração com o hash correspondente
+    // 1. Tenta buscar configuração com o hash correspondente na tabela fives_configuracoes
     const { data: cfg } = await fivesDb
       .from("fives_configuracoes" as any)
-      .select("*, companies(id, name, public_company_logo_url)")
+      .select("*")
       .eq("url_hash", hash)
       .maybeSingle();
 
     if (cfg && cfg.company_id) {
-      const companyName = (cfg as any).companies?.name || "Empresa Parceira";
+      let companyName = "Empresa Parceira";
+      try {
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("id, name, public_company_logo_url")
+          .eq("id", cfg.company_id)
+          .maybeSingle();
+        if (comp?.name) companyName = comp.name;
+      } catch {}
       return getFivesPortalDataByCompanyId(cfg.company_id, companyName);
     }
 
-    // 2. Tenta buscar pelo public_token ou ID direto da company
-    const { data: comp } = await supabase
+    // 2. Se o hash for um UUID de company direto
+    const isDirectUuid = isUuid(hash);
+    if (isDirectUuid) {
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("id, name, public_company_logo_url")
+        .eq("id", hash)
+        .maybeSingle();
+      if (comp) {
+        return getFivesPortalDataByCompanyId(comp.id, comp.name);
+      }
+    }
+
+    // 3. Se o hash começar com 5s_, busca pela company cujo id começa com esse prefixo
+    if (hash.startsWith("5s_")) {
+      const prefix = hash.replace(/^5s_/, "");
+      // Tenta buscar no cache local da configuração primeiro
+      const localCfg = getLocalItem<FivesConfiguracao | null>(`jarvis_5s_config_${hash}`, null);
+      if (localCfg?.company_id) {
+        return getFivesPortalDataByCompanyId(localCfg.company_id);
+      }
+
+      // Busca na tabela companies
+      const { data: matchedComp } = await supabase
+        .from("companies")
+        .select("id, name, public_company_logo_url")
+        .ilike("id", `${prefix}%`)
+        .maybeSingle();
+      if (matchedComp) {
+        return getFivesPortalDataByCompanyId(matchedComp.id, matchedComp.name);
+      }
+    }
+
+    // 4. Tenta buscar pelo public_token da company
+    const { data: compToken } = await supabase
       .from("companies")
       .select("id, name, public_company_logo_url, public_token")
-      .or(`public_token.eq.${hash},id.eq.${hash}`)
+      .eq("public_token", hash)
       .maybeSingle();
 
-    if (comp) {
-      return getFivesPortalDataByCompanyId(comp.id, comp.name);
+    if (compToken) {
+      return getFivesPortalDataByCompanyId(compToken.id, compToken.name);
     }
   } catch (e) {
     console.warn("Erro ao buscar portal 5S por hash via Supabase:", e);
   }
 
-  // Fallback demo caso o hash comece com 5s_
+  // 5. Fallback local por hash
+  const localCfg = getLocalItem<FivesConfiguracao | null>(`jarvis_5s_config_${hash}`, null);
+  if (localCfg?.company_id) {
+    return getFivesPortalDataByCompanyId(localCfg.company_id);
+  }
+
+  // 6. Se nada encontrou, pega a primeira empresa cadastrada no sistema
+  try {
+    const { data: firstComp } = await supabase
+      .from("companies")
+      .select("id, name")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (firstComp) {
+      return getFivesPortalDataByCompanyId(firstComp.id, firstComp.name);
+    }
+  } catch {}
+
   const demoCompanyId = hash.replace(/^5s_/, "") || "demo";
   return getFivesPortalDataByCompanyId(demoCompanyId, "Indústria Modelo 5S");
 }

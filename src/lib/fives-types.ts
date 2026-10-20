@@ -194,6 +194,7 @@ export interface FivesCronogramaProjeto {
   descricao?: string | null;
   data_inicio?: string | null;
   data_fim?: string | null;
+  data_execucao?: string | null;
   responsavel?: string | null;
   status: "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO";
   ordem: number;

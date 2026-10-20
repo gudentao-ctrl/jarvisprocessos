@@ -1,7 +1,7 @@
 // src/components/fives/SetoresComiteConfigView.tsx
 // Gestão de Setores (Zonas), Comitê Organizador 5S e Personalização Whitelabel
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Settings,
   Users,
@@ -78,6 +78,17 @@ export function SetoresComiteConfigView({
   const [sensoDestaque, setSensoDestaque] = useState(config.senso_destaque_mes || "Seiso");
   const [savingConfig, setSavingConfig] = useState(false);
 
+  // Sincroniza estado quando a empresa ou config for atualizada
+  useEffect(() => {
+    setPrimaryColor(config.primary_color || "#3E100C");
+    setSecondaryColor(config.secondary_color || "#E05A10");
+    setBgColor(config.bg_color || "#FFF8F5");
+    setSlogan(config.slogan_campanha || "");
+    setLogoUrl(config.logo_url || "");
+    setBannerUrl(config.header_banner_url || "");
+    setSensoDestaque(config.senso_destaque_mes || "Seiso");
+  }, [config, companyId]);
+
   // Modal Setor
   const [isSetorModalOpen, setIsSetorModalOpen] = useState(false);
   const [editingSetorId, setEditingSetorId] = useState<string | null>(null);
@@ -124,6 +135,7 @@ export function SetoresComiteConfigView({
       await saveFivesConfig({
         id: config.id,
         company_id: companyId,
+        url_hash: config.url_hash || `5s_${companyId.slice(0, 8)}`,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         bg_color: bgColor,

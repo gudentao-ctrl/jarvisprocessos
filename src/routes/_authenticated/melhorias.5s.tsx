@@ -119,7 +119,18 @@ export default function Hub5SRouteComponent() {
       console.warn("Realtime 5S não disponível:", e);
     }
 
-    return () => { unsubscribe?.(); };
+    const handleLocalUpdate = (e: Event) => {
+      const ev = e as CustomEvent;
+      if (!ev.detail?.companyId || ev.detail.companyId === targetCompanyId) {
+        void loadData();
+      }
+    };
+    window.addEventListener("jarvis_5s_data_updated", handleLocalUpdate);
+
+    return () => {
+      unsubscribe?.();
+      window.removeEventListener("jarvis_5s_data_updated", handleLocalUpdate);
+    };
   }, [companyId, portalData?.company.id, loadData]);
 
   const handleOpenAuditoria = (setorId?: string) => {

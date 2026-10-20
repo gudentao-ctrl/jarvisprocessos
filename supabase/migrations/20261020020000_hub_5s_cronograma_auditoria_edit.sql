@@ -55,11 +55,14 @@ CREATE TABLE IF NOT EXISTS public.fives_cronograma_projeto (
     descricao TEXT,
     data_inicio DATE,
     data_fim DATE,
+    data_execucao DATE,
     responsavel VARCHAR(255),
     status VARCHAR(50) DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'EM_ANDAMENTO', 'CONCLUIDO')),
     ordem INT DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.fives_cronograma_projeto ADD COLUMN IF NOT EXISTS data_execucao DATE;
 
 -- Habilita RLS para o cronograma
 ALTER TABLE public.fives_cronograma_projeto ENABLE ROW LEVEL SECURITY;
