@@ -22,6 +22,11 @@ import {
   Filter,
   Flame,
   Info,
+  Pencil,
+  Trash2,
+  Plus,
+  CheckCheck,
+  Clock,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -37,7 +42,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 import type {
@@ -45,9 +54,11 @@ import type {
   FivesSetor,
   FivesMuralFoto,
   FivesInstrucaoTrabalho,
+  FivesCronogramaProjeto,
   Senso5S,
 } from "@/lib/fives-types";
 import { NOMES_SENSOS } from "@/lib/fives-types";
+import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
 
 interface PortalColaboradorViewProps {
@@ -64,6 +75,7 @@ export function PortalColaboradorView({
   selectedSectorIdFilter,
 }: PortalColaboradorViewProps) {
   const { config, company, setores, radarData, kpis, muralFotos, instrucoesTrabalho } = portalData;
+  const cronogramaProjeto = portalData.cronogramaProjeto ?? [];
 
   // Setor selecionado na Central de ITs
   const [selectedSectorId, setSelectedSectorId] = useState<string>(
@@ -75,6 +87,98 @@ export function PortalColaboradorView({
 
   // Modal de Zoom de Foto Antes/Depois
   const [zoomMuralFoto, setZoomMuralFoto] = useState<FivesMuralFoto | null>(null);
+
+  // Modal Editar Mural Foto
+  const [editMuralFoto, setEditMuralFoto] = useState<FivesMuralFoto | null>(null);
+  const [editFotoTitulo, setEditFotoTitulo] = useState("");
+  const [editFotoDescricao, setEditFotoDescricao] = useState("");
+  const [editFotoSetorId, setEditFotoSetorId] = useState("");
+  const [editFotoAntes, setEditFotoAntes] = useState("");
+  const [editFotoDepois, setEditFotoDepois] = useState("");
+  const [savingMural, setSavingMural] = useState(false);
+
+  // Modal Cronograma (editar etapa)
+  const [editCronoEtapa, setEditCronoEtapa] = useState<FivesCronogramaProjeto | null>(null);
+  const [cronoTitulo, setCronoTitulo] = useState("");
+  const [cronoDtInicio, setCronoDtInicio] = useState("");
+  const [cronoDtFim, setCronoDtFim] = useState("");
+  const [cronoResponsavel, setCronoResponsavel] = useState("");
+  const [cronoStatus, setCronoStatus] = useState<FivesCronogramaProjeto["status"]>("PENDENTE");
+  const [savingCrono, setSavingCrono] = useState(false);
+
+  const canEditPortal = !isPublic;
+
+  const handleOpenEditMural = (foto: FivesMuralFoto) => {
+    setEditMuralFoto(foto);
+    setEditFotoTitulo(foto.titulo);
+    setEditFotoDescricao(foto.descricao || "");
+    setEditFotoSetorId(foto.setor_id || "");
+    setEditFotoAntes(foto.foto_antes_url);
+    setEditFotoDepois(foto.foto_depois_url);
+  };
+
+  const handleSaveMural = async () => {
+    if (!editMuralFoto) return;
+    if (!editFotoTitulo.trim()) { toast.error("Informe o título."); return; }
+    try {
+      setSavingMural(true);
+      await saveFivesMuralFoto({
+        ...editMuralFoto,
+        titulo: editFotoTitulo.trim(),
+        descricao: editFotoDescricao.trim(),
+        setor_id: editFotoSetorId || null,
+        foto_antes_url: editFotoAntes,
+        foto_depois_url: editFotoDepois,
+      });
+      toast.success("Registro do mural atualizado!");
+      setEditMuralFoto(null);
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + err?.message);
+    } finally {
+      setSavingMural(false);
+    }
+  };
+
+  const handleDeleteMural = async (foto: FivesMuralFoto) => {
+    if (!confirm("Excluir este registro do Mural Antes vs. Depois?")) return;
+    try {
+      await deleteFivesMuralFoto(foto.id, foto.company_id);
+      toast.success("Foto removida do mural.");
+    } catch (err: any) {
+      toast.error("Erro ao excluir: " + err?.message);
+    }
+  };
+
+  const handleOpenEditCrono = (etapa: FivesCronogramaProjeto) => {
+    setEditCronoEtapa(etapa);
+    setCronoTitulo(etapa.etapa_titulo);
+    setCronoDtInicio(etapa.data_inicio || "");
+    setCronoDtFim(etapa.data_fim || "");
+    setCronoResponsavel(etapa.responsavel || "");
+    setCronoStatus(etapa.status);
+  };
+
+  const handleSaveCrono = async () => {
+    if (!editCronoEtapa) return;
+    try {
+      setSavingCrono(true);
+      await saveFivesCronogramaEtapa({
+        ...editCronoEtapa,
+        etapa_titulo: cronoTitulo.trim() || editCronoEtapa.etapa_titulo,
+        data_inicio: cronoDtInicio || null,
+        data_fim: cronoDtFim || null,
+        responsavel: cronoResponsavel || null,
+        status: cronoStatus,
+        company_id: company.id,
+      });
+      toast.success("Etapa do cronograma atualizada!");
+      setEditCronoEtapa(null);
+    } catch (err: any) {
+      toast.error("Erro ao salvar etapa: " + err?.message);
+    } finally {
+      setSavingCrono(false);
+    }
+  };
 
   // IT do Setor Atual
   const currentIT: FivesInstrucaoTrabalho | undefined = instrucoesTrabalho[selectedSectorId];
@@ -610,7 +714,28 @@ export function PortalColaboradorView({
                     <span className="flex items-center gap-1">
                       <Eye className="h-3 w-3" /> Clique para ampliar
                     </span>
-                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    {canEditPortal ? (
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEditMural(foto)}
+                          className="h-6 text-[10px] px-2 gap-1 rounded-md"
+                        >
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteMural(foto)}
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-rose-600"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -805,6 +930,110 @@ export function PortalColaboradorView({
         </div>
       </section>
 
+      {/* 6. CRONOGRAMA DA IMPLANTAÇÃO 5S (ROADMAP DO PROJETO) */}
+      <section className="space-y-4 pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Cronograma da Campanha 5S & Roadmap
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Acompanhamento do ciclo de implantação, marcos do projeto, Dia D e rodadas de auditorias contínuas.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {cronogramaProjeto.map((etapa, idx) => {
+            const isConcluido = etapa.status === "CONCLUIDO";
+            const isEmAndamento = etapa.status === "EM_ANDAMENTO";
+
+            return (
+              <Card
+                key={etapa.id}
+                className={`p-4 border transition-all ${
+                  isConcluido
+                    ? "border-emerald-300 bg-emerald-50/20 dark:border-emerald-800/40"
+                    : isEmAndamento
+                    ? "border-orange-400 bg-orange-50/20 shadow-sm dark:border-orange-700/50"
+                    : "border-muted bg-card opacity-85"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
+                        isConcluido
+                          ? "bg-emerald-600 text-white"
+                          : isEmAndamento
+                          ? "text-white"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      style={isEmAndamento ? { backgroundColor: secondaryColor } : undefined}
+                    >
+                      {isConcluido ? <CheckCheck className="h-4 w-4" /> : `#${etapa.ordem || idx + 1}`}
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-sm text-foreground">
+                          {etapa.etapa_titulo}
+                        </h4>
+                        <Badge
+                          className={`text-[10px] font-bold ${
+                            isConcluido
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                              : isEmAndamento
+                              ? "text-white border-none"
+                              : "bg-slate-100 text-slate-700 border-slate-300"
+                          }`}
+                          style={isEmAndamento ? { backgroundColor: secondaryColor } : undefined}
+                        >
+                          {isConcluido ? "Concluído" : isEmAndamento ? "Em Andamento" : "Pendente"}
+                        </Badge>
+                      </div>
+
+                      {etapa.descricao && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {etapa.descricao}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap pt-0.5">
+                        {etapa.responsavel && (
+                          <span>
+                            Responsável: <strong>{etapa.responsavel}</strong>
+                          </span>
+                        )}
+                        {(etapa.data_inicio || etapa.data_fim) && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {etapa.data_inicio ? `Início: ${etapa.data_inicio}` : ""}
+                            {etapa.data_fim ? ` • Prazo: ${etapa.data_fim}` : ""}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {canEditPortal && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenEditCrono(etapa)}
+                      className="text-xs font-semibold gap-1 shrink-0 self-end sm:self-center"
+                    >
+                      <Pencil className="h-3 w-3" /> Editar Etapa
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Modal QR Code do Setor */}
       <SectorQrModal
         isOpen={!!qrModalSector}
@@ -853,6 +1082,186 @@ export function PortalColaboradorView({
                 {zoomMuralFoto.descricao}
               </p>
             )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal Editar Antes e Depois */}
+      {editMuralFoto && (
+        <Dialog open={!!editMuralFoto} onOpenChange={() => setEditMuralFoto(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base font-bold">
+                <Pencil className="h-4 w-4 text-primary" />
+                Editar Transformação "Antes vs. Depois"
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Atualize o título, a descrição e os links das evidências fotográficas deste setor.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="mural-titulo" className="text-xs font-semibold">Título do Ajuste *</Label>
+                <Input
+                  id="mural-titulo"
+                  value={editFotoTitulo}
+                  onChange={(e) => setEditFotoTitulo(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="mural-setor" className="text-xs font-semibold">Setor / Zona Vinculada</Label>
+                <select
+                  id="mural-setor"
+                  value={editFotoSetorId}
+                  onChange={(e) => setEditFotoSetorId(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
+                >
+                  <option value="">Geral / Toda a Empresa</option>
+                  {setores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nome_setor}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="mural-desc" className="text-xs font-semibold">Descrição da Melhoria</Label>
+                <Textarea
+                  id="mural-desc"
+                  rows={2}
+                  value={editFotoDescricao}
+                  onChange={(e) => setEditFotoDescricao(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="foto-antes" className="text-xs font-semibold text-rose-600">URL Foto Antes</Label>
+                  <Input
+                    id="foto-antes"
+                    value={editFotoAntes}
+                    onChange={(e) => setEditFotoAntes(e.target.value)}
+                    className="text-xs"
+                  />
+                  {editFotoAntes && (
+                    <img src={editFotoAntes} alt="Preview Antes" className="h-20 w-full object-cover rounded-md border mt-1" />
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="foto-depois" className="text-xs font-semibold text-emerald-600">URL Foto Depois</Label>
+                  <Input
+                    id="foto-depois"
+                    value={editFotoDepois}
+                    onChange={(e) => setEditFotoDepois(e.target.value)}
+                    className="text-xs"
+                  />
+                  {editFotoDepois && (
+                    <img src={editFotoDepois} alt="Preview Depois" className="h-20 w-full object-cover rounded-md border mt-1" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditMuralFoto(null)} className="text-xs">
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveMural} disabled={savingMural} className="text-xs font-bold">
+                {savingMural ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal Editar Cronograma */}
+      {editCronoEtapa && (
+        <Dialog open={!!editCronoEtapa} onOpenChange={() => setEditCronoEtapa(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base font-bold">
+                <Calendar className="h-4 w-4 text-primary" />
+                Editar Etapa do Cronograma 5S
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Atualize o status, o responsável e as datas de início e conclusão desta fase do projeto.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="crono-titulo" className="text-xs font-semibold">Título da Etapa</Label>
+                <Input
+                  id="crono-titulo"
+                  value={cronoTitulo}
+                  onChange={(e) => setCronoTitulo(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="crono-resp" className="text-xs font-semibold">Responsável</Label>
+                <Input
+                  id="crono-resp"
+                  value={cronoResponsavel}
+                  onChange={(e) => setCronoResponsavel(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="crono-dt-ini" className="text-xs font-semibold">Data Início</Label>
+                  <Input
+                    id="crono-dt-ini"
+                    type="date"
+                    value={cronoDtInicio}
+                    onChange={(e) => setCronoDtInicio(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="crono-dt-fim" className="text-xs font-semibold">Data Fim / Prazo</Label>
+                  <Input
+                    id="crono-dt-fim"
+                    type="date"
+                    value={cronoDtFim}
+                    onChange={(e) => setCronoDtFim(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="crono-status" className="text-xs font-semibold">Status Atual</Label>
+                <select
+                  id="crono-status"
+                  value={cronoStatus}
+                  onChange={(e) => setCronoStatus(e.target.value as any)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
+                >
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="EM_ANDAMENTO">Em Andamento</option>
+                  <option value="CONCLUIDO">Concluído</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditCronoEtapa(null)} className="text-xs">
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveCrono} disabled={savingCrono} className="text-xs font-bold">
+                {savingCrono ? "Salvando..." : "Salvar Etapa"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

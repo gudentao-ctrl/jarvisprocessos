@@ -1,10 +1,11 @@
 // src/routes/p.5s.$hash.tsx
 // Rota Pública Oficial 100% Deslogada para o Portal do Colaborador 5S (/p/5s/:hash)
+// Com Realtime Supabase: Atualiza automaticamente ao salvar auditorias/configurações
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
-import { getFivesPortalDataByHash } from "@/lib/fives-storage";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Loader2, AlertCircle, Wifi, WifiOff } from "lucide-react";
+import { getFivesPortalDataByHash, subscribeFivesRealtime } from "@/lib/fives-storage";
 import type { FivesPortalData } from "@/lib/fives-types";
 import { PortalColaboradorView } from "@/components/fives/PortalColaboradorView";
 
@@ -29,34 +30,84 @@ function PublicFivesRouteComponent() {
 
   const [portalData, setPortalData] = useState<FivesPortalData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState(true);
+  const companyIdRef = useRef<string | null>(null);
+  const isFirstLoad = useRef(true);
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getFivesPortalDataByHash(hash);
-        if (!active) return;
-        if (!data) {
-          setError("Portal 5S não encontrado ou link expirado.");
-        } else {
-          setPortalData(data);
-        }
-      } catch (err: any) {
-        if (!active) return;
-        setError(err?.message || "Erro ao carregar dados do Portal 5S.");
-      } finally {
-        if (active) setLoading(false);
+  const loadData = useCallback(async (silent = false) => {
+    try {
+      if (!silent) {
+        if (isFirstLoad.current) setLoading(true);
+        else setRefreshing(true);
       }
+      setError(null);
+      const data = await getFivesPortalDataByHash(hash);
+      if (!data) {
+        setError("Portal 5S não encontrado ou link expirado.");
+      } else {
+        setPortalData(data);
+        companyIdRef.current = data.company.id;
+      }
+    } catch (err: any) {
+      setError(err?.message || "Erro ao carregar dados do Portal 5S.");
+    } finally {
+      if (isFirstLoad.current) {
+        setLoading(false);
+        isFirstLoad.current = false;
+      }
+      setRefreshing(false);
     }
-
-    void load();
-    return () => {
-      active = false;
-    };
   }, [hash]);
+
+  // Carregamento inicial
+  useEffect(() => {
+    void loadData(false);
+  }, [loadData]);
+
+  // Realtime: Subscrição Supabase assim que o companyId estiver disponível
+  useEffect(() => {
+    if (!companyIdRef.current) return;
+
+    let unsubscribe: (() => void) | null = null;
+
+    // Aguarda 300ms para garantir que o companyId foi preenchido
+    const timer = setTimeout(() => {
+      if (!companyIdRef.current) return;
+      try {
+        unsubscribe = subscribeFivesRealtime(companyIdRef.current, () => {
+          setConnected(true);
+          void loadData(true); // Recarregar silenciosamente sem loading spinner
+        });
+        setConnected(true);
+      } catch {
+        setConnected(false);
+      }
+    }, 300);
+
+    // Escuta também eventos locais cross-tab (quando o painel interno salva)
+    const handleLocalUpdate = (e: Event) => {
+      const ev = e as CustomEvent;
+      if (!ev.detail?.companyId || ev.detail.companyId === companyIdRef.current) {
+        void loadData(true);
+      }
+    };
+    window.addEventListener("jarvis_5s_data_updated", handleLocalUpdate);
+
+    return () => {
+      clearTimeout(timer);
+      unsubscribe?.();
+      window.removeEventListener("jarvis_5s_data_updated", handleLocalUpdate);
+    };
+  }, [portalData?.company.id, loadData]);
+
+  // Watch portalData to update companyIdRef
+  useEffect(() => {
+    if (portalData?.company.id) {
+      companyIdRef.current = portalData.company.id;
+    }
+  }, [portalData?.company.id]);
 
   if (loading) {
     return (
@@ -87,6 +138,21 @@ function PublicFivesRouteComponent() {
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8 max-w-7xl mx-auto">
+      {/* Indicador de Conexão Realtime */}
+      {refreshing && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Atualizando dados...
+        </div>
+      )}
+
+      {!connected && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-amber-500/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
+          <WifiOff className="h-3 w-3" />
+          Modo offline
+        </div>
+      )}
+
       <PortalColaboradorView
         portalData={portalData}
         isPublic={true}

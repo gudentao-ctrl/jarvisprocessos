@@ -11,7 +11,14 @@ export const NOMES_SENSOS: Record<Senso5S, { nome: string; significado: string; 
   Shitsuke: { nome: "Disciplina", significado: "Transformar os padrões em hábitos diários com autonomia", cor: "#8B5CF6" },
 };
 
-export type DestinacaoCartaoVermelho = "PENDENTE" | "DOACAO" | "SUCATA" | "RETORNO" | "LEILAO";
+export type DestinacaoCartaoVermelho =
+  | "PENDENTE"
+  | "EM_ANDAMENTO"
+  | "DOACAO"
+  | "SUCATA"
+  | "RETORNO"
+  | "LEILAO"
+  | "CONCLUIDO";
 
 export type FrequenciaLimpeza = "Diária" | "Semanal" | "Quinzenal" | "Mensal";
 
@@ -121,10 +128,24 @@ export interface FivesDescarteCartaoVermelho {
   data_limite?: string | null;
   destinacao_status: DestinacaoCartaoVermelho;
   destinacao_observacao?: string | null;
+  arquivado?: boolean;
+  data_conclusao?: string | null;
   created_at?: string;
 
   // Relação
   setor_nome?: string;
+}
+
+export interface FivesPerguntaCustomizada {
+  id: string;
+  company_id: string;
+  senso: Senso5S;
+  titulo_pergunta: string;
+  criterio_avaliacao: string;
+  ativo: boolean;
+  ordem: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface FivesMuralFoto {
@@ -166,6 +187,19 @@ export interface FivesRadarDataPoint {
   fullMark: 100;
 }
 
+export interface FivesCronogramaProjeto {
+  id: string;
+  company_id: string;
+  etapa_titulo: string;
+  descricao?: string | null;
+  data_inicio?: string | null;
+  data_fim?: string | null;
+  responsavel?: string | null;
+  status: "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO";
+  ordem: number;
+  created_at?: string;
+}
+
 export interface FivesPortalData {
   config: FivesConfiguracao;
   company: {
@@ -191,4 +225,6 @@ export interface FivesPortalData {
   instrucoesTrabalho: Record<string, FivesInstrucaoTrabalho>;
   cartoesVermelhos: FivesDescarteCartaoVermelho[];
   eventos: FivesEvento[];
+  perguntasCustomizadas?: FivesPerguntaCustomizada[];
+  cronogramaProjeto?: FivesCronogramaProjeto[];
 }

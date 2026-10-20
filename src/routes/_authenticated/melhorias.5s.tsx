@@ -2,7 +2,7 @@
 // Rota Autenticada Oficial do HUB 5S (Painel de Gestão e Operação 5S)
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -12,29 +12,30 @@ import {
   Settings,
   FileText,
   Loader2,
-  Building2,
-  Layers,
-  CheckCircle2,
   AlertCircle,
-  Eye,
   Plus,
-  ArrowRight,
+  BookOpen,
+  Wifi,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
 import { getMe } from "@/lib/access.functions";
-import { getFivesPortalDataByCompanyId } from "@/lib/fives-storage";
-import type { FivesPortalData, FivesSetor } from "@/lib/fives-types";
+import { getFivesPortalDataByCompanyId, subscribeFivesRealtime, notify5SUpdate, deleteFivesAuditoria } from "@/lib/fives-storage";
+import type { FivesPortalData, FivesAuditoria } from "@/lib/fives-types";
 
 import { PortalColaboradorView } from "@/components/fives/PortalColaboradorView";
 import { AuditoriaModal } from "@/components/fives/AuditoriaModal";
 import { CronogramaCartaoVermelhoView } from "@/components/fives/CronogramaCartaoVermelhoView";
 import { SetoresComiteConfigView } from "@/components/fives/SetoresComiteConfigView";
 import { RelatoriosExecutivosView } from "@/components/fives/RelatoriosExecutivosView";
+import { BancoQuestoesView } from "@/components/fives/BancoQuestoesView";
 
 export const Route = createFileRoute("/_authenticated/melhorias/5s")({
   ssr: false,
@@ -104,10 +105,40 @@ export default function Hub5SRouteComponent() {
     void loadData();
   }, [loadData]);
 
+  // Realtime: Subscrição Supabase para atualizar o painel automaticamente
+  useEffect(() => {
+    const targetCompanyId = companyId || portalData?.company.id;
+    if (!targetCompanyId) return;
+
+    let unsubscribe: (() => void) | null = null;
+    try {
+      unsubscribe = subscribeFivesRealtime(targetCompanyId, () => {
+        void loadData();
+      });
+    } catch (e) {
+      console.warn("Realtime 5S não disponível:", e);
+    }
+
+    return () => { unsubscribe?.(); };
+  }, [companyId, portalData?.company.id, loadData]);
+
   const handleOpenAuditoria = (setorId?: string) => {
     if (!canEdit) return;
     setTargetSetorId(setorId);
     setIsAuditoriaModalOpen(true);
+  };
+
+  const handleDeleteAuditoria = async (audId: string) => {
+    if (!canEdit) return;
+    if (!confirm("Tem certeza que deseja excluir esta auditoria? Os itens e planos de ação serão apagados permanentemente.")) return;
+    try {
+      const { deleteFivesAuditoria } = await import("@/lib/fives-storage");
+      await deleteFivesAuditoria(audId, portalData?.company.id);
+      toast.success("Auditoria excluída e scores recalculados.");
+      void loadData();
+    } catch (err: any) {
+      toast.error("Erro ao excluir auditoria: " + err?.message);
+    }
   };
 
   if (loading) {
@@ -179,7 +210,7 @@ export default function Hub5SRouteComponent() {
         onValueChange={setActiveTab}
         className="w-full space-y-6"
       >
-        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full bg-muted/60 p-1 rounded-xl">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full bg-muted/60 p-1 rounded-xl">
           <TabsTrigger value="portal" className="text-xs font-bold gap-1.5">
             <Sparkles className="h-3.5 w-3.5" /> Portal 5S
           </TabsTrigger>
@@ -194,6 +225,9 @@ export default function Hub5SRouteComponent() {
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="text-xs font-bold gap-1.5">
             <FileText className="h-3.5 w-3.5" /> Relatórios & PDFs
+          </TabsTrigger>
+          <TabsTrigger value="questoes" className="text-xs font-bold gap-1.5">
+            <BookOpen className="h-3.5 w-3.5" /> Banco de Questões
           </TabsTrigger>
         </TabsList>
 
@@ -290,6 +324,17 @@ export default function Hub5SRouteComponent() {
                           {aud.itens.filter((i) => i.nota < 4).length} Planos de Ação
                         </Badge>
                       )}
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); void handleDeleteAuditoria(aud.id); }}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600"
+                          title="Excluir Auditoria"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -326,6 +371,14 @@ export default function Hub5SRouteComponent() {
         {/* SEÇÃO 5: RELATÓRIOS EXECUTIVOS & DRE 5S */}
         <TabsContent value="relatorios">
           <RelatoriosExecutivosView portalData={portalData} />
+        </TabsContent>
+
+        {/* SEÇÃO 6: BANCO DE QUESTÕES CUSTOMIZADAS */}
+        <TabsContent value="questoes">
+          <BancoQuestoesView
+            companyId={portalData.company.id}
+            canEdit={canEdit}
+          />
         </TabsContent>
       </Tabs>
 

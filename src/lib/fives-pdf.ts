@@ -61,6 +61,33 @@ export async function generateCertificadoSetorPdf(params: CertificadoSetorParams
   doc.circle(13, height - 13, 2, "F");
   doc.circle(width - 13, height - 13, 2, "F");
 
+  // Cabeçalho Duplo: Logo / Nome Empresa Cliente à esquerda e Selo Maia Consultoria à direita
+  if (params.logoClienteUrl && params.logoClienteUrl.startsWith("data:image")) {
+    try {
+      doc.addImage(params.logoClienteUrl, "PNG", 20, 16, 35, 15);
+    } catch {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primaryRgb[0], primaryRgb[1], primaryRgb[2]);
+      doc.text(companyName.toUpperCase(), 20, 24);
+    }
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(primaryRgb[0], primaryRgb[1], primaryRgb[2]);
+    doc.text(companyName.toUpperCase(), 20, 24);
+  }
+
+  // Selo de Garantia Maia Consultoria à direita
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(secondaryRgb[0], secondaryRgb[1], secondaryRgb[2]);
+  doc.text("MAIA CONSULTORIA", width - 20, 22, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Selo de Garantia de Metodologia 5S", width - 20, 27, { align: "right" });
+
   // Cabeçalho
   doc.setTextColor(secondaryRgb[0], secondaryRgb[1], secondaryRgb[2]);
   doc.setFont("helvetica", "bold");

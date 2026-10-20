@@ -1,6 +1,6 @@
 export const PERMISSION_ACTIONS = ["read", "create", "update", "delete"] as const;
 export type PermissionAction = (typeof PERMISSION_ACTIONS)[number];
-export type AccessRole = "CLIENTE" | "CONSULTOR" | "GESTOR" | "SUPERADMIN";
+export type AccessRole = "CLIENTE" | "CONSULTOR" | "GESTOR" | "SUPERADMIN" | "AUDITOR_5S";
 export type PermissionMatrix = {
   version: 1;
   categories: Record<string, boolean>;
@@ -120,10 +120,14 @@ export function permissionsPreset(role: AccessRole): PermissionMatrix {
   for (const tool of ALL_PERMISSION_TOOLS) {
     const enabled = role === "SUPERADMIN" || role === "GESTOR" ||
       (role === "CONSULTOR" && !["financeiro", "crm", "portal"].includes(tool.category)) ||
-      (role === "CLIENTE" && ["portal_empresa", "portal_resultados", "indicadores_historico", "mapa_estrategico", "chamados_melhorias", "chamados_erros", "chamados_acompanhamento"].includes(tool.key));
+      (role === "CLIENTE" && ["portal_empresa", "portal_resultados", "indicadores_historico", "mapa_estrategico", "chamados_melhorias", "chamados_erros", "chamados_acompanhamento"].includes(tool.key)) ||
+      (role === "AUDITOR_5S" && tool.key === "hub_5s");
     result = setToolPermissions(result, tool.key, enabled);
     if (role === "CLIENTE" && enabled) {
       result.actions[tool.key] = { read: true, create: ["chamados_melhorias", "chamados_erros"].includes(tool.key), update: false, delete: false };
+    }
+    if (role === "AUDITOR_5S" && enabled) {
+      result.actions[tool.key] = { read: true, create: true, update: true, delete: false };
     }
   }
   return result;

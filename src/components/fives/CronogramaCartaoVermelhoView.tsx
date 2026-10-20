@@ -39,6 +39,7 @@ import {
   saveFivesDescarte,
   updateStatusDescarte,
   deleteFivesDescarte,
+  archivarDescarte,
   saveFivesEvento,
   deleteFivesEvento,
 } from "@/lib/fives-storage";
@@ -61,6 +62,8 @@ const STATUS_DESTINACAO_LABELS: Record<
   SUCATA: { label: "Sucata / Reciclagem", cor: "bg-slate-100 text-slate-800 border-slate-300", icon: Archive },
   RETORNO: { label: "Retorno ao Uso", cor: "bg-emerald-100 text-emerald-800 border-emerald-300", icon: RefreshCw },
   LEILAO: { label: "Leilão Interno", cor: "bg-purple-100 text-purple-800 border-purple-300", icon: Gavel },
+  EM_ANDAMENTO: { label: "Em Andamento", cor: "bg-sky-100 text-sky-800 border-sky-300", icon: RefreshCw },
+  CONCLUIDO: { label: "Concluído / Arquivado", cor: "bg-green-100 text-green-800 border-green-300", icon: CheckCircle2 },
 };
 
 export function CronogramaCartaoVermelhoView({
@@ -75,6 +78,7 @@ export function CronogramaCartaoVermelhoView({
 
   // Filtros Cartão Vermelho
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
+  const [showArquivados, setShowArquivados] = useState(false);
 
   // Modais
   const [isNovoCartaoOpen, setIsNovoCartaoOpen] = useState(false);
@@ -176,6 +180,17 @@ export function CronogramaCartaoVermelhoView({
     }
   };
 
+  const handleArquivarCartao = async (id: string) => {
+    if (!confirm("Marcar como Concluído e arquivar este item? Ele será movido para o Histórico.")) return;
+    try {
+      await archivarDescarte(id);
+      toast.success("Item arquivado no Histórico de Descartes.");
+      onRefresh();
+    } catch (err: any) {
+      toast.error("Erro ao arquivar: " + err?.message);
+    }
+  };
+
   const handleSalvarEvento = async () => {
     if (!novoEventoTitulo.trim()) {
       toast.error("Por favor informe o título do evento.");
@@ -235,7 +250,10 @@ export function CronogramaCartaoVermelhoView({
   };
 
   // Filtragem dos descartes
-  const descartesFiltrados = descartes.filter((d) => {
+  const descartesAtivos = descartes.filter((d) => !d.arquivado);
+  const descartesArquivados = descartes.filter((d) => d.arquivado);
+  const listaBase = showArquivados ? descartesArquivados : descartesAtivos;
+  const descartesFiltrados = listaBase.filter((d) => {
     if (statusFilter === "TODOS") return true;
     return d.destinacao_status === statusFilter;
   });
@@ -297,7 +315,7 @@ export function CronogramaCartaoVermelhoView({
             <div className="flex items-center gap-1.5 text-xs">
               <span className="font-semibold text-muted-foreground">Filtro de Status:</span>
               <div className="flex flex-wrap gap-1">
-                {["TODOS", "PENDENTE", "DOACAO", "SUCATA", "RETORNO", "LEILAO"].map((st) => (
+                {["TODOS", "PENDENTE", "DOACAO", "SUCATA", "RETORNO", "LEILAO", "EM_ANDAMENTO"].map((st) => (
                   <Button
                     key={st}
                     size="sm"
@@ -311,8 +329,23 @@ export function CronogramaCartaoVermelhoView({
               </div>
             </div>
 
-            <div className="text-xs text-muted-foreground">
-              Total em quarentena: <strong className="text-rose-600">{descartes.filter(d => d.destinacao_status === "PENDENTE").length} itens</strong>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant={showArquivados ? "default" : "outline"}
+                onClick={() => { setShowArquivados(!showArquivados); setStatusFilter("TODOS"); }}
+                className="h-7 text-[11px] px-3 gap-1.5 rounded-full"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                {showArquivados ? `Ativos (${descartesAtivos.length})` : `Histórico (${descartesArquivados.length})`}
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                {showArquivados ? (
+                  <span>Histórico arquivado: <strong className="text-green-700">{descartesArquivados.length} itens</strong></span>
+                ) : (
+                  <span>Em quarentena: <strong className="text-rose-600">{descartesAtivos.filter(d => d.destinacao_status === "PENDENTE").length} itens</strong></span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -398,7 +431,7 @@ export function CronogramaCartaoVermelhoView({
 
                     {/* Ações de Gestão (Se canEdit) */}
                     {canEdit && (
-                      <div className="p-3 bg-muted/30 border-t flex items-center justify-between gap-2">
+                      <div className="p-3 bg-muted/30 border-t flex flex-wrap items-center justify-between gap-2">
                         <select
                           value={item.destinacao_status}
                           onChange={(e) =>
@@ -410,20 +443,37 @@ export function CronogramaCartaoVermelhoView({
                           className="h-8 text-xs rounded border border-input bg-background px-2"
                         >
                           <option value="PENDENTE">Quarentena (Pendente)</option>
+                          <option value="EM_ANDAMENTO">Em Andamento</option>
                           <option value="DOACAO">Doação</option>
                           <option value="SUCATA">Sucata / Reciclar</option>
                           <option value="RETORNO">Retorno ao Setor</option>
                           <option value="LEILAO">Leilão Interno</option>
+                          <option value="CONCLUIDO">Concluído / Arquivado</option>
                         </select>
 
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteCartao(item.id)}
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {!item.arquivado && item.destinacao_status !== "CONCLUIDO" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleArquivarCartao(item.id)}
+                              className="h-8 text-xs px-2 gap-1 border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                              title="Marcar como Concluído e Arquivar"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              Arquivar
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteCartao(item.id)}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600"
+                            title="Excluir Registro"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </Card>

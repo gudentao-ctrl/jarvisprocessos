@@ -15,70 +15,151 @@ import {
   FivesEvento,
   FivesPortalData,
   FivesRadarDataPoint,
+  FivesCronogramaProjeto,
 } from "./fives-types";
 
 const fivesDb = supabase as any;
 
-// Perguntas Padrão do Checklist Oficial dos 5 Sensos
-export const CHECKLIST_PADRAO_5S: Array<{ senso: Senso5S; pergunta: string; dica: string }> = [
-  // 1. SEIRI (Utilização / Descarte)
+// Notificador de Atualização Global (Cross-Tab e Real-time Local)
+export function notify5SUpdate(companyId?: string) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("jarvis_5s_data_updated", { detail: { companyId } }));
+    try {
+      localStorage.setItem("jarvis_5s_last_update", Date.now().toString());
+    } catch {}
+  }
+}
+
+// Perguntas Padrão do Checklist Oficial dos 5 Sensos (Aprofundado: 4 Critérios por Senso = 20 Perguntas Técnicas)
+export const CHECKLIST_PADRAO_5S: Array<{ senso: Senso5S; pergunta: string; dica: string; ordem?: number }> = [
+  // 1. SEIRI (Utilização / Descarte de Excessos)
   {
     senso: "Seiri",
-    pergunta: "Itens desnecessários, quebrados ou obsoletos foram identificados e retirados do setor?",
-    dica: "Observe caixas paradas, ferramentas defeituosas ou materiais sem uso recente.",
+    pergunta: "Itens desnecessários, quebrados, obsoletos ou sem uso há mais de 30 dias foram identificados e retirados?",
+    dica: "Observe ferramentas danificadas, peças defeituosas, amostras antigas e materiais fora de especificação.",
+    ordem: 1,
   },
   {
     senso: "Seiri",
-    pergunta: "Documentos, papéis ou arquivos digitais desatualizados foram descartados ou arquivados?",
-    dica: "Verifique mesas, gaveteiros, quadros de avisos e pastas do setor.",
+    pergunta: "A sistemática de Cartão Vermelho (quarentena de descarte) está sendo aplicada corretamente no setor?",
+    dica: "Verifique se itens com descarte incerto possuem etiqueta com data limite e local demarcado de quarentena.",
+    ordem: 2,
+  },
+  {
+    senso: "Seiri",
+    pergunta: "Documentos em papel, pastas físicas e arquivos digitais do setor estão livres de duplicidades e versões vencidas?",
+    dica: "Cheque gavetas, arquivos de aço, quadros informativos e pastas na rede local ou nuvem.",
+    ordem: 3,
+  },
+  {
+    senso: "Seiri",
+    pergunta: "A quantidade de materiais, insumos e peças no posto de trabalho é estritamente a necessária para o turno/dia?",
+    dica: "Evitar superdimensionamento de estoque intermediário sobre bancadas e corredores de circulação.",
+    ordem: 4,
   },
 
-  // 2. SEITON (Organização / Ordenação)
+  // 2. SEITON (Organização / Ordenação e Endereçamento)
   {
     senso: "Seiton",
-    pergunta: "Materiais, ferramentas e equipamentos possuem locais demarcados com identificação visual?",
-    dica: "Cheque etiquetas, sombras no quadro de ferramentas e demarcação de solo.",
+    pergunta: "Todas as ferramentas, instrumentos e materiais possuem local fixo com identificação visual clara e inequívoca?",
+    dica: "Examine quadros de sombra, etiquetas identificadoras nas gavetas e prateleiras devidamente numeradas.",
+    ordem: 5,
   },
   {
     senso: "Seiton",
-    pergunta: "Corredores, rotas de fuga e áreas de circulação estão desobstruídos e sinalizados?",
-    dica: "Garantir acesso livre a extintores, painéis elétricos e portas de saída.",
+    pergunta: "Demarcações visuais no solo/bancadas delimitam adequadamente vias de pedestres, pallets e equipamentos móveis?",
+    dica: "Faixas amarelas/zebradas no piso conservadas, sem apagamento e respeitadas na operação diária.",
+    ordem: 6,
+  },
+  {
+    senso: "Seiton",
+    pergunta: "A disposição dos itens segue o princípio ergonômico de frequência de uso (mais usados ao alcance fácil)?",
+    dica: "Itens diários ao alcance das mãos sem exigir curvatura do corpo; itens pesados nas prateleiras inferiores.",
+    ordem: 7,
+  },
+  {
+    senso: "Seiton",
+    pergunta: "Rotas de fuga, extintores de incêndio, hidrantes, macas e painéis elétricos estão 100% desobstruídos e sinalizados?",
+    dica: "Área de segurança de pelo menos 1 metro de raio livre à frente de qualquer dispositivo emergencial.",
+    ordem: 8,
   },
 
-  // 3. SEISO (Limpeza / Inspeção)
+  // 3. SEISO (Limpeza / Inspeção de Fontes de Sujeira)
   {
     senso: "Seiso",
-    pergunta: "Bancadas, pisos, paredes e equipamentos estão limpos e livres de óleos, pós ou resíduos?",
-    dica: "A limpeza deve servir também como inspeção preventiva de quebras.",
+    pergunta: "Bancadas, pisos, painéis, máquinas e ferramentas estão limpos e livres de poeira, cavacos, graxa ou resíduos?",
+    dica: "A limpeza deve ser impecável tanto na superfície visível quanto nas partes internas e sob as bancadas.",
+    ordem: 9,
   },
   {
     senso: "Seiso",
-    pergunta: "Fontes de sujeira ou vazamentos foram eliminadas ou controladas diretamente na origem?",
-    dica: "Identificar de onde parte a contaminação para evitar repetição diária.",
+    pergunta: "A limpeza é realizada pelo operador com inspeção preventiva de quebras, folgas, ruídos e trincas mecânicas?",
+    dica: "O ato de limpar serve como primeira linha de defesa da manutenção autônoma do equipamento.",
+    ordem: 10,
+  },
+  {
+    senso: "Seiso",
+    pergunta: "Fontes geradoras de sujeira, respingos ou vazamentos de fluidos foram identificadas, contidas e bloqueadas?",
+    dica: "Eliminar a causa-raiz que gera a contaminação em vez de apenas limpar repetidamente o sintoma.",
+    ordem: 11,
+  },
+  {
+    senso: "Seiso",
+    pergunta: "Coletores de lixo estão identificados, com sacos adequados, tampa operante e coleta seletiva rigorosamente respeitada?",
+    dica: "Orgânico, recicláveis, contaminados e resíduos industriais separados sem misturas indevidas.",
+    ordem: 12,
   },
 
-  // 4. SEIKETSU (Padronização / Saúde e Higiene)
+  // 4. SEIKETSU (Padronização / Saúde, Higiene e Segurança)
   {
     senso: "Seiketsu",
-    pergunta: "A Instrução de Trabalho (IT) está visível e o setor segue o 'Padrão Ouro' de organização?",
-    dica: "Comparar a foto do estado ideal com a realidade visual encontrada no momento.",
+    pergunta: "A fotografia de referência do 'Padrão Ouro (Estado Ideal)' está visível no mural do setor e sendo cumprida?",
+    dica: "Compare a realidade atual do setor com a foto oficial homologada pela liderança e comitê 5S.",
+    ordem: 13,
   },
   {
     senso: "Seiketsu",
-    pergunta: "Condições de iluminação, ventilação, ergonomia e uso de EPIs estão adequadas?",
-    dica: "Atenção ao conforto e integridade física de quem atua no setor.",
+    pergunta: "A Instrução de Trabalho (IT) de Limpeza e a matriz de rotinas estão atualizadas, legíveis e afixadas no setor?",
+    dica: "Tabela com itens, procedimentos, periodicidades (diária/semanal/mensal) e responsáveis claros.",
+    ordem: 14,
+  },
+  {
+    senso: "Seiketsu",
+    pergunta: "As condições de iluminação, ruído, ventilação, climatização e postura ergonômica atendem aos padrões de bem-estar?",
+    dica: "Garantir ambiente sadio, seguro e confortável para a saúde física e mental dos colaboradores.",
+    ordem: 15,
+  },
+  {
+    senso: "Seiketsu",
+    pergunta: "Os Equipamentos de Proteção Individual (EPIs) exigidos para o setor estão em uso correto e bem conservados?",
+    dica: "Óculos, protetor auricular, calçado de segurança e luvas adequadas conforme matriz de risco do setor.",
+    ordem: 16,
   },
 
-  // 5. SHITSUKE (Disciplina / Autodisciplina)
+  // 5. SHITSUKE (Disciplina / Autodisciplina e Melhoria Contínua)
   {
     senso: "Shitsuke",
-    pergunta: "A equipe cumpre a rotina de limpeza e organização de forma autônoma sem cobrança?",
-    dica: "Avaliar o comprometimento natural e hábito dos colaboradores da área.",
+    pergunta: "Os colaboradores cumprem os procedimentos de 5S e padrões operacionais por hábito natural, sem necessidade de cobrança?",
+    dica: "Avalie a maturidade cultural da equipe: organização mantida mesmo no final de expediente ou picos de produção.",
+    ordem: 17,
   },
   {
     senso: "Shitsuke",
-    pergunta: "Planos de ação de auditorias anteriores foram executados dentro do prazo acordado?",
-    dica: "Verificar se as pendências e cartões vermelhos foram resolvidos.",
+    pergunta: "Todos os Planos de Ação decorrentes de auditorias anteriores foram executados dentro do prazo acordado?",
+    dica: "Verificar se há ações atrasadas ou pendências crônicas registradas no sistema do comitê.",
+    ordem: 18,
+  },
+  {
+    senso: "Shitsuke",
+    pergunta: "O Guardião do Setor lidera ativamente a manutenção dos padrões e participa com regularidade das reuniões do 5S?",
+    dica: "O líder do setor deve ser o exemplo vivo e facilitador das demandas e melhorias da equipe.",
+    ordem: 19,
+  },
+  {
+    senso: "Shitsuke",
+    pergunta: "A equipe propõe ativamente sugestões de melhoria contínua (Kaizen) para aperfeiçoar os padrões e ITs existentes?",
+    dica: "Valorizar ideias práticas dos operadores que tornam a limpeza e organização mais rápidas e seguras.",
+    ordem: 20,
   },
 ];
 
@@ -578,9 +659,46 @@ export async function saveFivesAuditoria(
     ...auditoriaPayload,
     itens: itensPayload as FivesAuditoriaItem[],
   };
-  setLocalItem(companyKey, [novaAuditoria, ...existing]);
+  const filtered = existing.filter((a) => a.id !== auditoriaId);
+  setLocalItem(companyKey, [novaAuditoria, ...filtered]);
+
+  if (auditoria.company_id) {
+    notify5SUpdate(auditoria.company_id);
+  }
 
   return novaAuditoria;
+}
+
+export async function deleteFivesAuditoria(id: string, companyId?: string): Promise<boolean> {
+  try {
+    await fivesDb.from("fives_auditoria_itens" as any).delete().eq("auditoria_id", id);
+    await fivesDb.from("fives_auditorias" as any).delete().eq("id", id);
+  } catch (e) {
+    console.warn("Erro ao excluir auditoria no Supabase:", e);
+  }
+
+  if (companyId) {
+    const companyKey = `jarvis_5s_auditorias_${companyId}`;
+    const existing = getLocalItem<FivesAuditoria[]>(companyKey, []);
+    setLocalItem(companyKey, existing.filter((a) => a.id !== id));
+    notify5SUpdate(companyId);
+  }
+  const globalExisting = getLocalItem<FivesAuditoria[]>("jarvis_5s_auditorias_global", []);
+  setLocalItem("jarvis_5s_auditorias_global", globalExisting.filter((a) => a.id !== id));
+  return true;
+}
+
+export async function updateFivesAuditoria(
+  auditoria: FivesAuditoria,
+  companyId?: string
+): Promise<FivesAuditoria> {
+  return saveFivesAuditoria(
+    {
+      ...auditoria,
+      company_id: companyId || (auditoria as any).company_id,
+    },
+    auditoria.itens
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -641,6 +759,8 @@ export async function saveFivesDescarte(descarte: Partial<FivesDescarteCartaoVer
     data_limite: descarte.data_limite || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 10),
     destinacao_status: descarte.destinacao_status || "PENDENTE",
     destinacao_observacao: descarte.destinacao_observacao || null,
+    arquivado: descarte.arquivado ?? false,
+    data_conclusao: descarte.data_conclusao || null,
     created_at: new Date().toISOString(),
   };
 
@@ -658,15 +778,28 @@ export async function updateStatusDescarte(
   status: DestinacaoCartaoVermelho,
   observacao?: string
 ): Promise<boolean> {
+  const isConcluido = status === "CONCLUIDO";
+  const update: Record<string, any> = {
+    destinacao_status: status,
+    destinacao_observacao: observacao || null,
+    arquivado: isConcluido,
+    data_conclusao: isConcluido ? new Date().toISOString() : null,
+  };
+
   try {
     await fivesDb
       .from("fives_descartes_cartao_vermelho" as any)
-      .update({ destinacao_status: status, destinacao_observacao: observacao || null })
+      .update(update)
       .eq("id", id);
+    notify5SUpdate();
   } catch (e) {
     console.warn("Erro ao atualizar status do descarte no Supabase:", e);
   }
   return true;
+}
+
+export async function archivarDescarte(id: string): Promise<boolean> {
+  return updateStatusDescarte(id, "CONCLUIDO", "Arquivado como concluído pelo gestor.");
 }
 
 export async function deleteFivesDescarte(id: string): Promise<boolean> {
@@ -745,7 +878,9 @@ export async function saveFivesMuralFoto(foto: Partial<FivesMuralFoto>): Promise
 
   const key = `jarvis_5s_mural_${companyId}`;
   const existing = getLocalItem<FivesMuralFoto[]>(key, []);
-  setLocalItem(key, [payload as FivesMuralFoto, ...existing]);
+  const filtered = existing.filter((f) => f.id !== payload.id);
+  setLocalItem(key, [payload as FivesMuralFoto, ...filtered]);
+  notify5SUpdate(companyId);
 
   return payload as FivesMuralFoto;
 }
@@ -760,6 +895,7 @@ export async function deleteFivesMuralFoto(id: string, companyId: string): Promi
   const key = `jarvis_5s_mural_${companyId}`;
   const existing = getLocalItem<FivesMuralFoto[]>(key, []);
   setLocalItem(key, existing.filter((f) => f.id !== id));
+  notify5SUpdate(companyId);
   return true;
 }
 
@@ -864,16 +1000,103 @@ export async function deleteFivesEvento(id: string, companyId: string): Promise<
 }
 
 // ---------------------------------------------------------------------------
+// CRONOGRAMA DA IMPLANTAÇÃO 5S (LINHA DO TEMPO DO PROJETO)
+// ---------------------------------------------------------------------------
+
+const ETAPAS_PADRAO_CRONOGRAMA: Omit<FivesCronogramaProjeto, "id" | "company_id" | "created_at">[] = [
+  { etapa_titulo: "Sensibilização e Formação do Comitê 5S", descricao: "Palestras de conscientização, definição dos membros do Comitê 5S e nomeação dos Guardiões de Setor.", data_inicio: null, data_fim: null, responsavel: "Maia Consultoria", status: "PENDENTE", ordem: 1 },
+  { etapa_titulo: "Mapeamento de Áreas e Treinamentos", descricao: "Definição das zonas/setores auditados, treinamento prático dos auditores internos e capacitação dos guardiões.", data_inicio: null, data_fim: null, responsavel: "Comitê 5S", status: "PENDENTE", ordem: 2 },
+  { etapa_titulo: "Grande Bota-Fora (Dia D)", descricao: "Mutirão geral de descarte com Cartão Vermelho aplicado em todos os setores simultaneamente.", data_inicio: null, data_fim: null, responsavel: "Comitê 5S + Guardiões", status: "PENDENTE", ordem: 3 },
+  { etapa_titulo: "Implantação dos Sensos (Seiri → Shitsuke)", descricao: "Ciclo sequencial de implantação dos 5 Sensos com treinamentos práticos por etapa e auditoria de verificação.", data_inicio: null, data_fim: null, responsavel: "Guardiões de Setor", status: "PENDENTE", ordem: 4 },
+  { etapa_titulo: "Ciclo de Auditorias Contínuas e Premiação", descricao: "Auditorias cruzadas mensais, apuração do Ranking de Setores, premiação Selo Ouro/Prata e reconhecimento dos destaques.", data_inicio: null, data_fim: null, responsavel: "Auditores + Maia Consultoria", status: "PENDENTE", ordem: 5 },
+];
+
+export async function getFivesCronogramaProjeto(companyId: string): Promise<FivesCronogramaProjeto[]> {
+  try {
+    const { data, error } = await fivesDb
+      .from("fives_cronograma_projeto" as any)
+      .select("*")
+      .eq("company_id", companyId)
+      .order("ordem", { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data as unknown as FivesCronogramaProjeto[];
+    }
+  } catch (e) {
+    console.warn("Erro ao buscar cronograma 5S:", e);
+  }
+
+  const localKey = `jarvis_5s_cronograma_${companyId}`;
+  const local = getLocalItem<FivesCronogramaProjeto[]>(localKey, []);
+  if (local.length > 0) return local;
+
+  // Retorna etapas padrão se não há nada cadastrado
+  return ETAPAS_PADRAO_CRONOGRAMA.map((e, idx) => ({
+    ...e,
+    id: `padrao-crono-${idx}`,
+    company_id: companyId,
+    created_at: new Date().toISOString(),
+  }));
+}
+
+export async function saveFivesCronogramaEtapa(etapa: Partial<FivesCronogramaProjeto>): Promise<FivesCronogramaProjeto> {
+  const companyId = etapa.company_id;
+  if (!companyId) throw new Error("company_id obrigatório.");
+
+  const payload: FivesCronogramaProjeto = {
+    id: etapa.id || crypto.randomUUID(),
+    company_id: companyId,
+    etapa_titulo: etapa.etapa_titulo || "Etapa 5S",
+    descricao: etapa.descricao || null,
+    data_inicio: etapa.data_inicio || null,
+    data_fim: etapa.data_fim || null,
+    responsavel: etapa.responsavel || null,
+    status: etapa.status || "PENDENTE",
+    ordem: etapa.ordem ?? 1,
+    created_at: etapa.created_at || new Date().toISOString(),
+  };
+
+  try {
+    await fivesDb.from("fives_cronograma_projeto" as any).upsert(payload);
+  } catch (e) {
+    console.warn("Erro ao salvar etapa de cronograma 5S:", e);
+  }
+
+  const localKey = `jarvis_5s_cronograma_${companyId}`;
+  const existing = getLocalItem<FivesCronogramaProjeto[]>(localKey, []);
+  const filtered = existing.filter((item) => item.id !== payload.id);
+  setLocalItem(localKey, [...filtered, payload].sort((a, b) => a.ordem - b.ordem));
+  notify5SUpdate(companyId);
+
+  return payload;
+}
+
+export async function deleteFivesCronogramaEtapa(id: string, companyId: string): Promise<boolean> {
+  try {
+    await fivesDb.from("fives_cronograma_projeto" as any).delete().eq("id", id);
+  } catch (e) {
+    console.warn("Erro ao excluir etapa de cronograma 5S:", e);
+  }
+
+  const localKey = `jarvis_5s_cronograma_${companyId}`;
+  const existing = getLocalItem<FivesCronogramaProjeto[]>(localKey, []);
+  setLocalItem(localKey, existing.filter((item) => item.id !== id));
+  notify5SUpdate(companyId);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // CONSOLIDAÇÃO DO PORTAL DO COLABORADOR 5S (PÚBLICO E AUTENTICADO)
 // ---------------------------------------------------------------------------
 export async function getFivesPortalDataByCompanyId(companyId: string, companyName?: string): Promise<FivesPortalData> {
-  const [config, setores, auditorias, descartes, mural, eventos] = await Promise.all([
+  const [config, setores, auditorias, descartes, mural, eventos, cronograma] = await Promise.all([
     getFivesConfig(companyId, companyName),
     getFivesSetores(companyId),
     getFivesAuditorias(companyId),
     getFivesDescartes(companyId),
     getFivesMuralFotos(companyId),
     getFivesEventos(companyId),
+    getFivesCronogramaProjeto(companyId),
   ]);
 
   // Carrega as ITs de cada setor
@@ -958,6 +1181,7 @@ export async function getFivesPortalDataByCompanyId(companyId: string, companyNa
     instrucoesTrabalho: itsMap,
     cartoesVermelhos: descartes,
     eventos,
+    cronogramaProjeto: cronograma,
   };
 }
 
@@ -994,4 +1218,137 @@ export async function getFivesPortalDataByHash(hash: string): Promise<FivesPorta
   // Fallback demo caso o hash comece com 5s_
   const demoCompanyId = hash.replace(/^5s_/, "") || "demo";
   return getFivesPortalDataByCompanyId(demoCompanyId, "Indústria Modelo 5S");
+}
+
+
+// ---------------------------------------------------------------------------
+// PERGUNTAS CUSTOMIZADAS POR EMPRESA
+// ---------------------------------------------------------------------------
+export async function getFivesPerguntasCustomizadas(companyId: string): Promise<import("./fives-types").FivesPerguntaCustomizada[]> {
+  try {
+    const { data, error } = await fivesDb
+      .from("fives_perguntas_customizadas" as any)
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("ativo", true)
+      .order("senso", { ascending: true })
+      .order("ordem", { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data as import("./fives-types").FivesPerguntaCustomizada[];
+    }
+  } catch (e) {
+    console.warn("Tabela fives_perguntas_customizadas não disponível. Usando checklist padrão.", e);
+  }
+  return [];
+}
+
+export async function saveFivesPerguntaCustomizada(
+  pergunta: Partial<import("./fives-types").FivesPerguntaCustomizada>
+): Promise<import("./fives-types").FivesPerguntaCustomizada> {
+  const payload = {
+    id: pergunta.id || crypto.randomUUID(),
+    company_id: pergunta.company_id,
+    senso: pergunta.senso,
+    titulo_pergunta: pergunta.titulo_pergunta || "",
+    criterio_avaliacao: pergunta.criterio_avaliacao || "",
+    ativo: pergunta.ativo ?? true,
+    ordem: pergunta.ordem ?? 1,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    await fivesDb.from("fives_perguntas_customizadas" as any).upsert(payload);
+  } catch (e) {
+    console.warn("Erro ao salvar pergunta customizada:", e);
+  }
+
+  return payload as import("./fives-types").FivesPerguntaCustomizada;
+}
+
+export async function deleteFivesPerguntaCustomizada(id: string, _companyId?: string): Promise<boolean> {
+  try {
+    await fivesDb.from("fives_perguntas_customizadas" as any).delete().eq("id", id);
+  } catch (e) {
+    console.warn("Erro ao excluir pergunta customizada:", e);
+  }
+  return true;
+}
+
+/**
+ * Retorna as perguntas do checklist para uma auditoria:
+ * Se a empresa tiver customizadas, usa-as; senão usa o checklist padrão técnico aprofundado.
+ */
+export async function getChecklistParaAuditoria(companyId: string): Promise<Array<{ senso: Senso5S; pergunta: string; dica: string; ordem?: number }>> {
+  const customizadas = await getFivesPerguntasCustomizadas(companyId);
+  if (customizadas.length >= 5) {
+    return customizadas.map((p) => ({
+      senso: p.senso,
+      pergunta: p.titulo_pergunta,
+      dica: p.criterio_avaliacao,
+      ordem: p.ordem,
+    }));
+  }
+  return CHECKLIST_PADRAO_5S;
+}
+
+// ---------------------------------------------------------------------------
+// REALTIME: Helpers para subscrições Supabase
+// ---------------------------------------------------------------------------
+export type FivesRealtimeCallback = () => void;
+
+/**
+ * Inicia escuta em tempo real nas tabelas críticas do 5S para a empresa especificada.
+ * Retorna função cleanup para remover todos os canais ao desmontar o componente.
+ */
+export function subscribeFivesRealtime(companyId: string, onUpdate: FivesRealtimeCallback): () => void {
+  const channelName = `fives_realtime_${companyId}_${Date.now()}`;
+
+  const channel = supabase
+    .channel(channelName)
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "fives_auditorias",
+    }, () => {
+      notify5SUpdate(companyId);
+      onUpdate();
+    })
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "fives_setores",
+    }, () => {
+      notify5SUpdate(companyId);
+      onUpdate();
+    })
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "fives_descartes_cartao_vermelho",
+    }, () => {
+      notify5SUpdate(companyId);
+      onUpdate();
+    })
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "fives_configuracoes",
+    }, () => {
+      notify5SUpdate(companyId);
+      onUpdate();
+    })
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "fives_mural_fotos",
+    }, () => {
+      notify5SUpdate(companyId);
+      onUpdate();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
