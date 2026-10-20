@@ -58,7 +58,7 @@ import type {
   Senso5S,
 } from "@/lib/fives-types";
 import { NOMES_SENSOS } from "@/lib/fives-types";
-import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa, formatFivesDate } from "@/lib/fives-storage";
+import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa, formatFivesDate, isUuid } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
 
 interface PortalColaboradorViewProps {
@@ -192,8 +192,13 @@ export function PortalColaboradorView({
   const secondaryColor = config.secondary_color || "#E05A10";
   const bgColor = config.bg_color || "#FFF8F5";
 
-  // Formatação do link público dinâmico por empresa
-  const portalHash = config.url_hash || company.id;
+  // Formatação do link público dinâmico por empresa:
+  // Usa SEMPRE o company.id se for UUID válido, garantindo unicidade por empresa
+  const portalHash = (company.id && isUuid(company.id))
+    ? company.id
+    : (config.url_hash && !config.url_hash.startsWith("5s_") && config.url_hash !== "demo" && config.url_hash !== "default")
+      ? config.url_hash
+      : company.id || "default";
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/p/5s/${portalHash}`
     : `https://jarvisprocessos.com/p/5s/${portalHash}`;

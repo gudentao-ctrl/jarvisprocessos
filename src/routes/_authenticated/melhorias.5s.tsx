@@ -52,7 +52,7 @@ export const Route = createFileRoute("/_authenticated/melhorias/5s")({
 });
 
 export default function Hub5SRouteComponent() {
-  const { companyId, company } = useCompanyFilter();
+  const { companyId, company, companies, setCompanyId } = useCompanyFilter();
   const getMeFn = useServerFn(getMe);
   const { data: profile } = useQuery({
     queryKey: ["me"],
@@ -199,9 +199,28 @@ export default function Hub5SRouteComponent() {
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {company?.name ? `Gestão ativa para ${company.name}` : "Gestão da qualidade e padrões 5S"}
-          </p>
+
+          {/* Seletor de Empresa Ativa */}
+          {companies && companies.length > 1 ? (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs font-semibold text-muted-foreground">Cliente Ativo:</span>
+              <select
+                value={companyId || portalData.company.id}
+                onChange={(e) => setCompanyId(e.target.value)}
+                className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-bold text-foreground focus:ring-1 focus:ring-primary shadow-sm"
+              >
+                {companies.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {company?.name ? `Gestão ativa para ${company.name}` : "Gestão da qualidade e padrões 5S"}
+            </p>
+          )}
         </div>
 
         {canEdit && (

@@ -290,9 +290,43 @@ function setLocalItem<T>(key: string, value: T): void {
   }
 }
 
-function isUuid(val?: string | null): boolean {
+export function isUuid(val?: string | null): boolean {
   if (!val) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+}
+
+// Helper para encontrar configuração local no navegador por UUID, hash ou prefixo
+function findLocalConfigByHashOrPrefix(targetHash: string): FivesConfiguracao | null {
+  if (typeof window === "undefined" || !targetHash) return null;
+
+  // 1. Tenta direto pelo hash no localStorage
+  const direct = getLocalItem<FivesConfiguracao | null>(`jarvis_5s_config_${targetHash}`, null);
+  if (direct && direct.company_id) return direct;
+
+  const rawPrefix = targetHash.replace(/^5s_/, "");
+
+  // 2. Itera todas as configurações salvas no localStorage
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("jarvis_5s_config_")) {
+        const item = getLocalItem<FivesConfiguracao | null>(k, null);
+        if (item && item.company_id) {
+          if (
+            item.url_hash === targetHash ||
+            item.company_id === targetHash ||
+            item.company_id === rawPrefix ||
+            (rawPrefix.length >= 6 && item.company_id.startsWith(rawPrefix)) ||
+            (rawPrefix.length >= 6 && item.company_id.replace(/-/g, "").startsWith(rawPrefix.replace(/-/g, "")))
+          ) {
+            return item;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1330,9 +1364,14 @@ export async function getFivesPortalDataByCompanyId(companyId: string, companyNa
 export async function getFivesPortalDataByHash(hash: string): Promise<FivesPortalData | null> {
   if (!hash) return null;
 
+  // 1. Tenta resolver primeiro pelo cache local do navegador
+  const localMatch = findLocalConfigByHashOrPrefix(hash);
+  if (localMatch && localMatch.company_id) {
+    return getFivesPortalDataByCompanyId(localMatch.company_id, localMatch.company_name || undefined);
+  }
+
   try {
-    // 1. Tenta buscar configuração com o hash correspondente na tabela fives_configuracoes
-    // Busca por url_hash OU por company_id (caso o hash seja o UUID da empresa)
+    // 2. Tenta buscar configuração com o hash correspondente na tabela fives_configuracoes
     let cfgQuery = fivesDb.from("fives_configuracoes" as any).select("*");
     if (isUuid(hash)) {
       cfgQuery = cfgQuery.or(`url_hash.eq.${hash},company_id.eq.${hash}`);
@@ -1342,61 +1381,69 @@ export async function getFivesPortalDataByHash(hash: string): Promise<FivesPorta
     const { data: cfg } = await cfgQuery.maybeSingle();
 
     if (cfg && cfg.company_id) {
-      let companyName = cfg.company_name || "Empresa Parceira";
+      let companyName = cfg.company_name;
+      if (!companyName) {
+        try {
+          const { data: comp } = await supabase
+            .from("companies")
+            .select("id, name, public_company_logo_url")
+            .eq("id", cfg.company_id)
+            .maybeSingle();
+          if (comp?.name) companyName = comp.name;
+        } catch {}
+      }
+      return getFivesPortalDataByCompanyId(cfg.company_id, companyName || undefined);
+    }
+
+    // 3. Se o hash for um UUID de company direto
+    const isDirectUuid = isUuid(hash);
+    if (isDirectUuid) {
+      let compName: string | undefined = undefined;
       try {
         const { data: comp } = await supabase
           .from("companies")
           .select("id, name, public_company_logo_url")
-          .eq("id", cfg.company_id)
+          .eq("id", hash)
           .maybeSingle();
-        if (comp?.name) companyName = comp.name;
+        if (comp?.name) compName = comp.name;
       } catch {}
-      return getFivesPortalDataByCompanyId(cfg.company_id, companyName);
+      return getFivesPortalDataByCompanyId(hash, compName);
     }
 
-    // 2. Se o hash for um UUID de company direto
-    const isDirectUuid = isUuid(hash);
-    if (isDirectUuid) {
-      const { data: comp } = await supabase
+    // 4. Se o hash começar com 5s_ ou for um slug/token, busca na lista de empresas
+    try {
+      const { data: allComps } = await supabase
         .from("companies")
-        .select("id, name, public_company_logo_url")
-        .eq("id", hash)
-        .maybeSingle();
-      if (comp) {
-        return getFivesPortalDataByCompanyId(comp.id, comp.name);
+        .select("id, name, public_company_logo_url, public_token")
+        .limit(100);
+
+      if (allComps && allComps.length > 0) {
+        const clean = hash.replace(/^5s_/, "").replace(/-/g, "").toLowerCase();
+
+        // Match por prefixo do UUID
+        let matched = allComps.find((c) => {
+          if (!c.id) return false;
+          const compClean = c.id.replace(/-/g, "").toLowerCase();
+          return compClean.startsWith(clean);
+        });
+
+        // Match por public_token
+        if (!matched) {
+          matched = allComps.find((c) => c.public_token === hash);
+        }
+
+        // Match por nome aproximado
+        if (!matched && clean.length >= 3) {
+          const searchName = hash.replace(/^5s_/, "").replace(/[-_]/g, " ").toLowerCase();
+          matched = allComps.find((c) => c.name && c.name.toLowerCase().includes(searchName));
+        }
+
+        if (matched) {
+          return getFivesPortalDataByCompanyId(matched.id, matched.name);
+        }
       }
-      return getFivesPortalDataByCompanyId(hash);
-    }
-
-    // 3. Se o hash começar com 5s_, busca pela company cujo id começa com esse prefixo
-    if (hash.startsWith("5s_")) {
-      const prefix = hash.replace(/^5s_/, "");
-      // Tenta buscar no cache local da configuração primeiro
-      const localCfg = getLocalItem<FivesConfiguracao | null>(`jarvis_5s_config_${hash}`, null);
-      if (localCfg?.company_id) {
-        return getFivesPortalDataByCompanyId(localCfg.company_id);
-      }
-
-      // Busca na tabela companies
-      const { data: matchedComp } = await supabase
-        .from("companies")
-        .select("id, name, public_company_logo_url")
-        .ilike("id", `${prefix}%`)
-        .maybeSingle();
-      if (matchedComp) {
-        return getFivesPortalDataByCompanyId(matchedComp.id, matchedComp.name);
-      }
-    }
-
-    // 4. Tenta buscar pelo public_token da company
-    const { data: compToken } = await supabase
-      .from("companies")
-      .select("id, name, public_company_logo_url, public_token")
-      .eq("public_token", hash)
-      .maybeSingle();
-
-    if (compToken) {
-      return getFivesPortalDataByCompanyId(compToken.id, compToken.name);
+    } catch (e) {
+      console.warn("Erro ao buscar empresas por match de hash:", e);
     }
   } catch (e) {
     console.warn("Erro ao buscar portal 5S por hash via Supabase:", e);
@@ -1408,21 +1455,8 @@ export async function getFivesPortalDataByHash(hash: string): Promise<FivesPorta
     return getFivesPortalDataByCompanyId(localCfg.company_id);
   }
 
-  // 6. Se nada encontrou, pega a primeira empresa cadastrada no sistema
-  try {
-    const { data: firstComp } = await supabase
-      .from("companies")
-      .select("id, name")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (firstComp) {
-      return getFivesPortalDataByCompanyId(firstComp.id, firstComp.name);
-    }
-  } catch {}
-
-  const demoCompanyId = hash.replace(/^5s_/, "") || "demo";
-  return getFivesPortalDataByCompanyId(demoCompanyId, "Indústria Modelo 5S");
+  // NUNCA substituir arbitrariamente pelos dados de outro cliente (Augusto Bogo, etc.)!
+  return null;
 }
 
 

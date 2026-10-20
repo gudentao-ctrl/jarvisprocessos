@@ -44,6 +44,7 @@ import {
   saveFivesSetor,
   deleteFivesSetor,
   saveFivesIT,
+  isUuid,
 } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
 
@@ -119,7 +120,11 @@ export function SetoresComiteConfigView({
   const [qrModalSector, setQrModalSector] = useState<FivesSetor | null>(null);
 
   // Link Público dinâmico por empresa
-  const portalHash = config.url_hash || companyId;
+  const portalHash = (companyId && isUuid(companyId))
+    ? companyId
+    : (config.url_hash && !config.url_hash.startsWith("5s_") && config.url_hash !== "demo" && config.url_hash !== "default")
+      ? config.url_hash
+      : companyId || "default";
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/p/5s/${portalHash}`
     : `https://jarvisprocessos.com/p/5s/${portalHash}`;
@@ -137,7 +142,7 @@ export function SetoresComiteConfigView({
         id: config.id,
         company_id: companyId,
         company_name: companyName,
-        url_hash: config.url_hash || companyId,
+        url_hash: (companyId && isUuid(companyId)) ? companyId : (config.url_hash || companyId),
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         bg_color: bgColor,
