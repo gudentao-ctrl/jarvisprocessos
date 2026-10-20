@@ -71,6 +71,13 @@
       "when": 1792375225307,
       "tag": "0009_isolate_company_storage_access",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792538551753,
+      "tag": "0010_restrict_file_binding_grants",
+      "breakpoints": true
     }
   ]
 }
