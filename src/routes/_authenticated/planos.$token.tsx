@@ -22,7 +22,7 @@ const getPublicPlan = createServerFn({ method: "GET" })
     return row;
   });
 
-export const Route = createFileRoute("/_authenticated/p/$token")({
+export const Route = createFileRoute("/_authenticated/planos/$token")({
   ssr: false,
   loader: async ({ params }) => {
     const plan = await getPublicPlan({ data: { token: params.token } });
@@ -52,7 +52,7 @@ const STATUSES = [
 function PublicPlan() {
   const { plan } = Route.useLoaderData();
   const { token } = Route.useParams();
-  const [status, setStatus] = useState(plan.status ?? "em_andamento");
+  const [status, setStatus] = useState<(typeof STATUSES)[number]["value"]>((["aberto", "em_andamento", "concluido"].includes(plan.status) ? plan.status : "em_andamento") as (typeof STATUSES)[number]["value"]);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
   const [done, setDone] = useState(false);
@@ -119,7 +119,7 @@ function PublicPlan() {
             <label className="text-xs font-medium text-muted-foreground">Status</label>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => setStatus(e.target.value as (typeof STATUSES)[number]["value"])}
               className="w-full border rounded-lg px-3 py-3 min-h-12 text-base bg-background"
             >
               {STATUSES.map((s) => (
