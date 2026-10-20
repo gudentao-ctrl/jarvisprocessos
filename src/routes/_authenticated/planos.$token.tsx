@@ -22,23 +22,12 @@ const getPublicPlan = createServerFn({ method: "GET" })
     return row;
   });
 
-import { PublicSurveyView } from "@/components/nps/PublicSurveyView";
-
-export const Route = createFileRoute("/_authenticated/p/$token")({
+export const Route = createFileRoute("/_authenticated/planos/$token")({
   ssr: false,
   loader: async ({ params }) => {
-    // Se o token for um hash de pesquisa NPS/eNPS autônomo (prefixo s_ ou similar)
-    if (params.token.startsWith("s_")) {
-      return { plan: null, surveyHash: params.token };
-    }
-    try {
-      const plan = await getPublicPlan({ data: { token: params.token } });
-      if (plan) return { plan, surveyHash: null };
-    } catch {
-      // Ignora erro de validação do token do plano para checar se é pesquisa
-    }
-    // Se não for plano de ação, verifica se pode ser uma pesquisa por hash
-    return { plan: null, surveyHash: params.token };
+    const plan = await getPublicPlan({ data: { token: params.token } });
+    if (!plan) throw notFound();
+    return { plan };
   },
   notFoundComponent: () => (
     <div className="min-h-screen grid place-items-center px-4">
@@ -50,20 +39,9 @@ export const Route = createFileRoute("/_authenticated/p/$token")({
       </div>
     </div>
   ),
-  component: UnifiedPublicRouteComponent,
-  head: () => ({ meta: [{ title: "Acesso Público — JARVIS / Maia" }] }),
+  component: PublicPlan,
+  head: () => ({ meta: [{ title: "Plano de ação — JARVIS" }, { name: "description", content: "Acompanhamento autorizado de planos de ação JARVIS." }, { property: "og:title", content: "Plano de ação — JARVIS" }, { property: "og:description", content: "Acompanhamento autorizado de planos de ação JARVIS." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
 });
-
-function UnifiedPublicRouteComponent() {
-  const data = Route.useLoaderData() as { plan: any; surveyHash: string | null };
-  const { token } = Route.useParams();
-
-  if (data?.surveyHash || !data?.plan) {
-    return <PublicSurveyView hash={data?.surveyHash || token} />;
-  }
-
-  return <PublicPlan plan={data.plan} token={token} />;
-}
 
 const STATUSES = [
   { value: "aberto", label: "Aberto" },
@@ -71,8 +49,10 @@ const STATUSES = [
   { value: "concluido", label: "Concluído" },
 ] as const;
 
-function PublicPlan({ plan, token }: { plan: any; token: string }) {
-  const [status, setStatus] = useState(plan.status ?? "em_andamento");
+function PublicPlan() {
+  const { plan } = Route.useLoaderData();
+  const { token } = Route.useParams();
+  const [status, setStatus] = useState<(typeof STATUSES)[number]["value"]>((["aberto", "em_andamento", "concluido"].includes(plan.status) ? plan.status : "em_andamento") as (typeof STATUSES)[number]["value"]);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
   const [done, setDone] = useState(false);
@@ -139,7 +119,7 @@ function PublicPlan({ plan, token }: { plan: any; token: string }) {
             <label className="text-xs font-medium text-muted-foreground">Status</label>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => setStatus(e.target.value as (typeof STATUSES)[number]["value"])}
               className="w-full border rounded-lg px-3 py-3 min-h-12 text-base bg-background"
             >
               {STATUSES.map((s) => (

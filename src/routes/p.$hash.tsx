@@ -1,8 +1,8 @@
-// src/components/nps/PublicSurveyView.tsx
-// Componente Público e Anônimo para Resposta de Pesquisas NPS e eNPS (Estilo Typeform - One Question at a Time)
+// src/routes/p.$hash.tsx
+// Rota Pública e Anônima para Resposta de Pesquisas NPS e eNPS (Estilo Typeform - One Question at a Time)
 
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute } from "@tanstack/react-router";
 import { getPesquisaByHash, saveRespostaPublica } from "@/lib/nps-storage";
 import { Pesquisa, PesquisaPergunta } from "@/lib/nps-types";
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,22 @@ import {
   Lock,
 } from "lucide-react";
 
-export interface PublicSurveyViewProps {
-  hash: string;
-}
+export const Route = createFileRoute("/p/$hash")({
+  head: () => ({
+    meta: [
+      { title: "Pesquisa de Satisfação | Maia Consultoria" },
+      { name: "description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
+      { property: "og:title", content: "Pesquisa de Satisfação | Maia Consultoria" },
+      { property: "og:description", content: "Sua opinião é fundamental para aprimorarmos nossa entrega contínua." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: PublicSurveyView,
+});
 
-export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
+export default function PublicSurveyView() {
+  const { hash } = Route.useParams();
   const [pesquisa, setPesquisa] = useState<Pesquisa | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
@@ -40,40 +51,12 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
       try {
         setLoading(true);
         // Verifica se já respondeu nesta sessão/navegador
-        const alreadyAnswered = typeof window !== "undefined" ? localStorage.getItem(`maia_nps_answered_${hash}`) : null;
+        const alreadyAnswered = localStorage.getItem(`maia_nps_answered_${hash}`);
         if (alreadyAnswered) {
           setIsCompleted(true);
         }
 
         const data = await getPesquisaByHash(hash);
-        if (data) {
-          // Resolve o logo do cliente caso não esteja direto no config_visual
-          const companyId = data.empresa_id || (data as any).company_id;
-          let logo = data.config_visual?.logo_url;
-          if (!logo && typeof window !== "undefined" && data.id) {
-            logo = localStorage.getItem(`maia_nps_logo_${data.id}`) || "";
-          }
-          if (!logo && companyId) {
-            try {
-              const { data: comp } = await supabase
-                .from("companies")
-                .select("public_company_logo_url")
-                .eq("id", companyId)
-                .maybeSingle();
-              if (comp?.public_company_logo_url) {
-                logo = comp.public_company_logo_url;
-              }
-            } catch (e) {
-              console.warn("Não foi possível carregar logo da empresa:", e);
-            }
-          }
-          if (logo && (!data.config_visual?.logo_url)) {
-            data.config_visual = {
-              ...(data.config_visual || {}),
-              logo_url: logo,
-            };
-          }
-        }
         setPesquisa(data);
       } catch (err) {
         console.error("Erro ao carregar pesquisa:", err);
@@ -182,9 +165,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
       await saveRespostaPublica(hash, itens);
 
       // Marca como respondido no navegador
-      if (typeof window !== "undefined") {
-        localStorage.setItem(`maia_nps_answered_${hash}`, "true");
-      }
+      localStorage.setItem(`maia_nps_answered_${hash}`, "true");
       setIsCompleted(true);
       toast.success("Respostas enviadas com sucesso!");
     } catch (err: any) {
@@ -237,7 +218,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-48 sm:max-h-64 max-w-[500px] sm:max-w-[720px] object-contain drop-shadow-lg"
+                className="max-h-24 sm:max-h-32 max-w-[300px] sm:max-w-[380px] object-contain drop-shadow-md"
               />
             </div>
           )}
@@ -257,30 +238,9 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
             {visual.thanks_msg || "Agradecemos imensamente pela sua participação! Suas respostas nos ajudam a evoluir continuamente."}
           </p>
 
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  localStorage.removeItem(`maia_nps_answered_${hash}`);
-                }
-                setIsCompleted(false);
-                setHasStarted(false);
-                setCurrentQuestionIndex(0);
-                setAnswers({});
-              }}
-              className="text-[11px] underline opacity-70 hover:opacity-100 transition-opacity"
-            >
-              Enviar outra resposta
-            </button>
-          </div>
-          <div className="pt-4 border-t border-black/10 flex flex-col items-center justify-center gap-1.5 text-xs opacity-80 font-medium">
-            <img
-              src="/logo-consultoria-maia.png"
-              alt="Maia Consultoria"
-              className="h-8 max-w-[150px] object-contain opacity-90 drop-shadow-sm"
-            />
-            <span className="text-[11px] opacity-60">Maia Consultoria Empresarial • Hub de Pessoas</span>
+          <div className="pt-4 border-t border-black/10 flex items-center justify-center gap-1.5 text-xs opacity-75 font-medium">
+            <Sparkles className="h-4 w-4" style={{ color: visual.primary_color }} />
+            <span>Maia Consultoria Empresarial • Hub de Pessoas</span>
           </div>
         </div>
       </div>
@@ -303,7 +263,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
-                className="max-h-48 sm:max-h-64 max-w-[500px] sm:max-w-[720px] object-contain drop-shadow-lg"
+                className="max-h-32 sm:max-h-44 max-w-[340px] sm:max-w-[480px] object-contain drop-shadow-lg"
               />
             </div>
           )}
@@ -338,18 +298,6 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
           <div className="text-[11px] opacity-60 flex items-center justify-center gap-1.5">
             <Lock className="h-3.5 w-3.5" />
             <span>Acesso anônimo • Respostas 100% confidenciais</span>
-          </div>
-
-          {/* Logo da Consultoria Maia */}
-          <div className="pt-3 border-t border-black/10 flex flex-col items-center justify-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider opacity-50 font-semibold">
-              Realização & Metodologia
-            </span>
-            <img
-              src="/logo-consultoria-maia.png"
-              alt="Maia Consultoria"
-              className="h-10 sm:h-12 max-w-[190px] object-contain drop-shadow-sm opacity-90 hover:opacity-100 transition-opacity"
-            />
           </div>
         </div>
       </div>
@@ -444,147 +392,170 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
                   })}
                 </div>
 
-                <div className="flex justify-between items-center text-[11px] opacity-70 px-1 pt-1 font-medium">
-                  <span className="text-rose-600 font-semibold">0 - Nada provável</span>
-                  <span className="text-emerald-600 font-semibold">10 - Extremamente provável</span>
+                <div className="flex justify-between text-[11px] opacity-70 px-1 font-medium">
+                  <span>0 - Pouco Provável</span>
+                  <span>5 - Neutro</span>
+                  <span>10 - Altamente Provável</span>
                 </div>
               </div>
             )}
 
-            {/* TIPO 2: AVALIAÇÃO DE ESTRELAS / NOTA 1 A 5 */}
+            {/* TIPO 2: RATING (1 a 5 Estrelas ou Botões) */}
             {currentQuestion?.tipo_resposta === "rating" && (
-              <div className="flex items-center justify-center gap-3 sm:gap-4 py-4">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const currentNota = answers[currentQuestion.id]?.valor_nota || 0;
-                  const isFilled = star <= currentNota;
-                  return (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => handleSelectScore(currentQuestion.id, star)}
-                      className="p-2 sm:p-3 rounded-2xl hover:scale-125 transition-transform duration-200 focus:outline-none"
-                    >
-                      <Star
-                        className={`h-9 w-9 sm:h-12 sm:w-12 transition-colors ${
-                          isFilled ? "fill-amber-400 text-amber-400 drop-shadow" : "text-black/20"
+              <div className="space-y-4">
+                <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                  {[1, 2, 3, 4, 5].map((stars) => {
+                    const isSelected = answers[currentQuestion.id]?.valor_nota === stars;
+                    return (
+                      <button
+                        key={stars}
+                        type="button"
+                        onClick={() => handleSelectScore(currentQuestion.id, stars)}
+                        className={`h-14 sm:h-16 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 border ${
+                          isSelected
+                            ? "text-white shadow-lg scale-105"
+                            : "bg-black/5 hover:bg-black/10 border-black/10"
                         }`}
-                      />
-                      <span className="block text-center text-xs font-bold mt-1 opacity-70">
-                        {star}
-                      </span>
-                    </button>
-                  );
-                })}
+                        style={{
+                          backgroundColor: isSelected ? visual.primary_color : undefined,
+                          borderColor: isSelected ? visual.primary_color : undefined,
+                        }}
+                      >
+                        <Star className={`h-5 w-5 ${isSelected ? "fill-white" : "fill-transparent"}`} />
+                        <span className="text-xs font-bold">{stars}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between text-[11px] opacity-70 px-1 font-medium">
+                  <span>1 - Muito Baixo / Insatisfeito</span>
+                  <span>5 - Excelente / Muito Satisfeito</span>
+                </div>
               </div>
             )}
 
-            {/* TIPO 3: TEXTO ABERTO */}
+            {/* TIPO 3: LISTA DE SELEÇÃO / MÚLTIPLA ESCOLHA */}
+            {currentQuestion?.tipo_resposta === "selecao_lista" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-2.5">
+                  {(currentQuestion.opcoes_lista && currentQuestion.opcoes_lista.length > 0
+                    ? currentQuestion.opcoes_lista
+                    : ["Opção 1", "Opção 2", "Opção 3"]
+                  ).map((opcao, opcIdx) => {
+                    const isSelected = answers[currentQuestion.id]?.valor_texto === opcao;
+                    return (
+                      <button
+                        key={opcIdx}
+                        type="button"
+                        onClick={() => {
+                          handleTextChange(currentQuestion.id, opcao);
+                          // Auto-advance suave após seleção
+                          setTimeout(() => {
+                            if (currentQuestionIndex < totalQuestions - 1) {
+                              setCurrentQuestionIndex((prev) => prev + 1);
+                            }
+                          }, 320);
+                        }}
+                        className={`w-full text-left p-4 rounded-2xl font-medium text-sm sm:text-base flex items-center justify-between transition-all duration-200 border ${
+                          isSelected
+                            ? "text-white shadow-md scale-[1.01]"
+                            : "bg-black/5 hover:bg-black/10 border-black/10"
+                        }`}
+                        style={{
+                          backgroundColor: isSelected ? visual.primary_color : undefined,
+                          borderColor: isSelected ? visual.primary_color : undefined,
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
+                              isSelected ? "bg-white text-black" : "bg-black/10 opacity-70"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + opcIdx)}
+                          </span>
+                          <span>{opcao}</span>
+                        </div>
+                        {isSelected && <CheckCircle2 className="h-5 w-5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TIPO 4: TEXTO ABERTO (Textarea) */}
             {currentQuestion?.tipo_resposta === "text_open" && (
               <div className="space-y-2">
                 <Textarea
                   rows={4}
                   value={answers[currentQuestion.id]?.valor_texto || ""}
                   onChange={(e) => handleTextChange(currentQuestion.id, e.target.value)}
-                  placeholder={currentQuestion.placeholder || "Escreva sua resposta com sinceridade..."}
-                  className="w-full text-sm sm:text-base p-4 rounded-2xl border-2 border-black/10 focus:border-opacity-100 bg-black/5 resize-none"
-                  style={{
-                    borderColor: answers[currentQuestion.id]?.valor_texto ? visual.primary_color : undefined,
+                  placeholder={currentQuestion.placeholder || "Digite seus comentários aqui..."}
+                  className="w-full text-sm leading-relaxed p-4 rounded-xl border border-black/20 focus:outline-none focus:ring-2 bg-black/5"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (currentQuestionIndex === totalQuestions - 1) {
+                        handleSubmit();
+                      } else {
+                        handleNext();
+                      }
+                    }
                   }}
                 />
-              </div>
-            )}
-
-            {/* TIPO 4: MULTIPLA ESCOLHA (SELECIONAR UMA OPÇÃO) */}
-            {((currentQuestion?.tipo_resposta as string) === "choice" || currentQuestion?.tipo_resposta === "selecao_lista") && (
-              <div className="space-y-2">
-                {(currentQuestion.opcoes_lista || []).map((opcao, optIdx) => {
-                  const isSelected = answers[currentQuestion.id]?.valor_texto === opcao;
-                  return (
-                    <button
-                      key={optIdx}
-                      type="button"
-                      onClick={() => {
-                        handleTextChange(currentQuestion.id, opcao);
-                        setTimeout(() => {
-                          if (currentQuestionIndex < totalQuestions - 1) {
-                            setCurrentQuestionIndex((prev) => prev + 1);
-                          }
-                        }, 300);
-                      }}
-                      className={`w-full p-4 rounded-2xl text-left text-sm sm:text-base font-semibold border-2 transition-all flex items-center justify-between ${
-                        isSelected
-                          ? "text-white shadow-md"
-                          : "bg-black/5 hover:bg-black/10 border-black/10"
-                      }`}
-                      style={{
-                        backgroundColor: isSelected ? visual.primary_color : undefined,
-                        borderColor: isSelected ? visual.primary_color : undefined,
-                      }}
-                    >
-                      <span>{opcao}</span>
-                      {isSelected && <CheckCircle2 className="h-5 w-5" />}
-                    </button>
-                  );
-                })}
+                <span className="text-[11px] opacity-60 block text-right">
+                  Dica: Pressione Enter para avançar
+                </span>
               </div>
             )}
           </div>
 
-          {/* Navegação Inferior (Voltar / Avançar / Concluir) */}
-          <div className="flex items-center justify-between pt-6 border-t border-black/10">
+          {/* Botões de Navegação Inferiores */}
+          <div className="flex items-center justify-between pt-4 border-t border-black/10">
             <Button
               type="button"
               variant="ghost"
               size="sm"
               disabled={currentQuestionIndex === 0}
               onClick={handlePrev}
-              className="text-xs font-semibold opacity-70 hover:opacity-100"
+              className="text-xs gap-1 font-medium disabled:opacity-30"
             >
-              <ArrowLeft className="h-4 w-4 mr-1.5" />
-              Anterior
+              <ArrowLeft className="h-3.5 w-3.5" /> Anterior
             </Button>
 
             {currentQuestionIndex < totalQuestions - 1 ? (
               <Button
                 type="button"
+                size="sm"
                 onClick={handleNext}
-                className="font-bold text-xs sm:text-sm px-6 rounded-full shadow-md text-white"
+                className="h-9 px-5 text-xs font-bold rounded-full text-white shadow-md transition-transform hover:scale-105"
                 style={{ backgroundColor: visual.primary_color }}
               >
-                Próxima
-                <ArrowRight className="h-4 w-4 ml-1.5" />
+                Próxima <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             ) : (
               <Button
                 type="button"
+                size="sm"
                 disabled={isSubmitting}
                 onClick={handleSubmit}
-                className="font-bold text-xs sm:text-sm px-7 rounded-full shadow-lg text-white"
+                className="h-10 px-6 text-xs font-black rounded-full text-white shadow-lg transition-transform hover:scale-105"
                 style={{ backgroundColor: visual.primary_color }}
               >
-                {isSubmitting ? (
-                  "Enviando..."
-                ) : (
-                  <>
-                    Finalizar Respostas
-                    <Send className="h-4 w-4 ml-2" />
-                  </>
-                )}
+                {isSubmitting ? "Enviando..." : "Enviar Respostas"}
+                <Send className="h-3.5 w-3.5 ml-1.5" />
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Footer da Pesquisa Pública */}
-      <footer className="w-full p-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-xs opacity-60">
-        <img
-          src="/logo-consultoria-maia.png"
-          alt="Maia Consultoria"
-          className="h-6 max-w-[120px] object-contain opacity-80"
-        />
-        <span>• Pesquisa gerenciada via Plataforma Maia Consultoria Empresarial • Resposta 100% segura e anônima</span>
-      </footer>
+      {/* Rodapé institucional sutil */}
+      <div className="p-3 text-center text-[10px] opacity-60">
+        Desenvolvido por Maia Consultoria Empresarial • Plataforma Jarvis
+      </div>
     </div>
   );
 }

@@ -26,7 +26,6 @@ import {
   Users,
   Landmark,
   Map,
-  Sparkles,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -98,7 +97,6 @@ const NAV = [
   { to: "/controle", icon: Radar, label: "Controle", permission: "gestao" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
   { to: "/pessoas/dashboard", icon: Users, label: "Pessoas", permission: "gestao" },
-  { to: "/melhorias/5s", icon: Sparkles, label: "HUB 5S", permission: "gestao" },
   { to: "/horas", icon: Clock, label: "Horas", permission: "horas" },
   { to: "/financeiro", icon: Wallet, label: "Financeiro Cliente", permission: "financeiro" },
   { to: "/financeiro-maia", icon: Landmark, label: "Financeiro Maia", permission: "financeiro" },

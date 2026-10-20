@@ -26,8 +26,8 @@ export const Route = createFileRoute("/_authenticated/admin/permissoes")({
   ] }),
 });
 
-const ROLES: AccessRole[] = ["CLIENTE", "CONSULTOR", "GESTOR", "SUPERADMIN", "AUDITOR_5S"];
-const ROLE_LABELS: Record<AccessRole, string> = { CLIENTE: "Cliente", CONSULTOR: "Consultor", GESTOR: "Gestor", SUPERADMIN: "SuperAdmin", AUDITOR_5S: "Auditor 5S" };
+const ROLES: AccessRole[] = ["CLIENTE", "CONSULTOR", "GESTOR", "SUPERADMIN"];
+const ROLE_LABELS: Record<AccessRole, string> = { CLIENTE: "Cliente", CONSULTOR: "Consultor", GESTOR: "Gestor", SUPERADMIN: "SuperAdmin" };
 const ACTION_LABELS = { read: "Ler", create: "Criar", update: "Editar", delete: "Excluir" };
 const switchClass = "data-[state=checked]:bg-permission-active";
 

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Mic, Award, AlertCircle, ArrowRight, Users, Plus, Briefcase, Smile, Sparkles } from "lucide-react";
+import { UserCheck, Mic, Award, AlertCircle, ArrowRight, Users, Plus, Briefcase, Smile } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
@@ -69,7 +69,7 @@ export default function PessoasDashboard() {
       </div>
 
       {/* Quick‑access cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card
           className="p-6 flex flex-col justify-between hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
           onClick={() => navigate({ to: "/pessoas/assessment" })}
@@ -129,27 +129,6 @@ export default function PessoasDashboard() {
           </div>
           <div className="mt-4 flex items-center text-xs font-medium text-emerald-600">
             Ver mentorias{" "}
-            <ArrowRight className="h-3.5 w-3.5 ml-1 transition-transform group-hover:translate-x-1" />
-          </div>
-        </Card>
-
-        <Card
-          className="p-6 flex flex-col justify-between hover:shadow-md hover:border-[#3E100C]/50 transition-all cursor-pointer group"
-          onClick={() => navigate({ to: "/melhorias/5s" })}
-        >
-          <div className="space-y-3">
-            <div className="h-10 w-10 rounded-lg bg-[#3E100C]/10 text-[#3E100C] dark:text-[#E05A10] flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-base">HUB 5S & Qualidade</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Portal público do colaborador, auditorias digitais, Padrão Ouro, ITs de limpeza e Cartão Vermelho.
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-xs font-medium text-[#3E100C] dark:text-[#E05A10]">
-            Acessar HUB 5S{" "}
             <ArrowRight className="h-3.5 w-3.5 ml-1 transition-transform group-hover:translate-x-1" />
           </div>
         </Card>

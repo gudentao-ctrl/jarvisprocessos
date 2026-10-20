@@ -1,0 +1,1 @@
+REVOKE ALL ON public.legacy_file_company_bindings FROM anon;

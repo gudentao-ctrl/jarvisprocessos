@@ -20,7 +20,7 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTemplateDocumentosRouteImport } from './routes/_authenticated/template-documentos'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as DashboardTokenRouteImport } from './routes/dashboard.$token'
-import { Route as PesquisaHashRouteImport } from './routes/pesquisa.$hash'
+import { Route as PHashRouteImport } from './routes/p.$hash'
 import { Route as TesteIdRouteImport } from './routes/teste.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_authenticated/admin.permissoes'
@@ -49,15 +49,14 @@ import { Route as AuthenticatedMapaIndexRouteImport } from './routes/_authentica
 import { Route as AuthenticatedMapasDecisaoRouteImport } from './routes/_authenticated/mapas.decisao'
 import { Route as AuthenticatedMapasDoresRouteImport } from './routes/_authenticated/mapas.dores'
 import { Route as AuthenticatedMapasInformacaoRouteImport } from './routes/_authenticated/mapas.informacao'
-import { Route as AuthenticatedMelhorias5sRouteImport } from './routes/_authenticated/melhorias.5s'
 import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
-import { Route as AuthenticatedPTokenRouteImport } from './routes/_authenticated/p.$token'
 import { Route as AuthenticatedPessoasAssessmentRouteImport } from './routes/_authenticated/pessoas/assessment'
 import { Route as AuthenticatedPessoasDashboardRouteImport } from './routes/_authenticated/pessoas/dashboard'
 import { Route as AuthenticatedPessoasMentoriasRouteImport } from './routes/_authenticated/pessoas/mentorias'
 import { Route as AuthenticatedPessoasNpsRouteImport } from './routes/_authenticated/pessoas/nps'
 import { Route as AuthenticatedPessoasRecrutamentoRouteImport } from './routes/_authenticated/pessoas/recrutamento'
 import { Route as AuthenticatedPlanosAcaoIndexRouteImport } from './routes/_authenticated/planos-acao.index'
+import { Route as AuthenticatedPlanosTokenRouteImport } from './routes/_authenticated/planos.$token'
 import { Route as AuthenticatedPopIndexRouteImport } from './routes/_authenticated/pop.index'
 import { Route as AuthenticatedPopIdRouteImport } from './routes/_authenticated/pop.$id'
 import { Route as AuthenticatedPriorizacaoIndexRouteImport } from './routes/_authenticated/priorizacao.index'
@@ -70,7 +69,6 @@ import { Route as AuthenticatedRelatorioExecutivoMensalIndexRouteImport } from '
 import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
-import { Route as P5sHashRouteImport } from './routes/p.5s.$hash'
 import { Route as AuthenticatedIndicadoresIdColetarRouteImport } from './routes/_authenticated/indicadores.$id.coletar'
 import { Route as AuthenticatedPessoasAssessmentIndexRouteImport } from './routes/_authenticated/pessoas/assessment/index'
 import { Route as AuthenticatedProcessosSugerirInterviewIdRouteImport } from './routes/_authenticated/processos.sugerir.$interviewId'
@@ -141,9 +139,9 @@ const DashboardTokenRoute = DashboardTokenRouteImport.update({
   path: '/dashboard/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PesquisaHashRoute = PesquisaHashRouteImport.update({
-  id: '/pesquisa/$hash',
-  path: '/pesquisa/$hash',
+const PHashRoute = PHashRouteImport.update({
+  id: '/p/$hash',
+  path: '/p/$hash',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TesteIdRoute = TesteIdRouteImport.update({
@@ -307,23 +305,12 @@ const AuthenticatedMapasInformacaoRoute =
     path: '/mapas/informacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedMelhorias5sRoute =
-  AuthenticatedMelhorias5sRouteImport.update({
-    id: '/melhorias/5s',
-    path: '/melhorias/5s',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedOportunidadesIndexRoute =
   AuthenticatedOportunidadesIndexRouteImport.update({
     id: '/oportunidades/',
     path: '/oportunidades/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedPTokenRoute = AuthenticatedPTokenRouteImport.update({
-  id: '/p/$token',
-  path: '/p/$token',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedPessoasAssessmentRoute =
   AuthenticatedPessoasAssessmentRouteImport.update({
     id: '/pessoas/assessment',
@@ -357,6 +344,12 @@ const AuthenticatedPlanosAcaoIndexRoute =
   AuthenticatedPlanosAcaoIndexRouteImport.update({
     id: '/planos-acao/',
     path: '/planos-acao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanosTokenRoute =
+  AuthenticatedPlanosTokenRouteImport.update({
+    id: '/planos/$token',
+    path: '/planos/$token',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPopIndexRoute = AuthenticatedPopIndexRouteImport.update({
@@ -426,11 +419,6 @@ const AuthenticatedTobeIndexRoute = AuthenticatedTobeIndexRouteImport.update({
   id: '/tobe/',
   path: '/tobe/',
   getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const P5sHashRoute = P5sHashRouteImport.update({
-  id: '/p/5s/$hash',
-  path: '/p/5s/$hash',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndicadoresIdColetarRoute =
   AuthenticatedIndicadoresIdColetarRouteImport.update({
@@ -521,7 +509,7 @@ export interface FileRoutesByFullPath {
   '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
-  '/pesquisa/$hash': typeof PesquisaHashRoute
+  '/p/$hash': typeof PHashRoute
   '/teste/$id': typeof TesteIdRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -534,17 +522,15 @@ export interface FileRoutesByFullPath {
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
-  '/melhorias/5s': typeof AuthenticatedMelhorias5sRoute
-  '/p/$token': typeof AuthenticatedPTokenRoute
   '/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
   '/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
   '/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
+  '/planos/$token': typeof AuthenticatedPlanosTokenRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
-  '/p/5s/$hash': typeof P5sHashRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario/': typeof AuthenticatedCalendarioIndexRoute
@@ -597,7 +583,7 @@ export interface FileRoutesByTo {
   '/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
-  '/pesquisa/$hash': typeof PesquisaHashRoute
+  '/p/$hash': typeof PHashRoute
   '/teste/$id': typeof TesteIdRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -610,15 +596,13 @@ export interface FileRoutesByTo {
   '/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
-  '/melhorias/5s': typeof AuthenticatedMelhorias5sRoute
-  '/p/$token': typeof AuthenticatedPTokenRoute
   '/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
   '/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
   '/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
+  '/planos/$token': typeof AuthenticatedPlanosTokenRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
-  '/p/5s/$hash': typeof P5sHashRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/calendario': typeof AuthenticatedCalendarioIndexRoute
@@ -673,7 +657,7 @@ export interface FileRoutesById {
   '/_authenticated/template-documentos': typeof AuthenticatedTemplateDocumentosRoute
   '/c/$token': typeof CTokenRoute
   '/dashboard/$token': typeof DashboardTokenRoute
-  '/pesquisa/$hash': typeof PesquisaHashRoute
+  '/p/$hash': typeof PHashRoute
   '/teste/$id': typeof TesteIdRoute
   '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/causa-raiz/$id': typeof AuthenticatedCausaRaizIdRoute
@@ -686,17 +670,15 @@ export interface FileRoutesById {
   '/_authenticated/mapas/decisao': typeof AuthenticatedMapasDecisaoRoute
   '/_authenticated/mapas/dores': typeof AuthenticatedMapasDoresRoute
   '/_authenticated/mapas/informacao': typeof AuthenticatedMapasInformacaoRoute
-  '/_authenticated/melhorias/5s': typeof AuthenticatedMelhorias5sRoute
-  '/_authenticated/p/$token': typeof AuthenticatedPTokenRoute
   '/_authenticated/pessoas/assessment': typeof AuthenticatedPessoasAssessmentRouteWithChildren
   '/_authenticated/pessoas/dashboard': typeof AuthenticatedPessoasDashboardRoute
   '/_authenticated/pessoas/mentorias': typeof AuthenticatedPessoasMentoriasRoute
   '/_authenticated/pessoas/nps': typeof AuthenticatedPessoasNpsRoute
   '/_authenticated/pessoas/recrutamento': typeof AuthenticatedPessoasRecrutamentoRoute
+  '/_authenticated/planos/$token': typeof AuthenticatedPlanosTokenRoute
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
-  '/p/5s/$hash': typeof P5sHashRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
   '/_authenticated/calendario/': typeof AuthenticatedCalendarioIndexRoute
@@ -751,7 +733,7 @@ export interface FileRouteTypes {
     | '/template-documentos'
     | '/c/$token'
     | '/dashboard/$token'
-    | '/pesquisa/$hash'
+    | '/p/$hash'
     | '/teste/$id'
     | '/admin/permissoes'
     | '/causa-raiz/$id'
@@ -764,17 +746,15 @@ export interface FileRouteTypes {
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
-    | '/melhorias/5s'
-    | '/p/$token'
     | '/pessoas/assessment'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
     | '/pessoas/nps'
     | '/pessoas/recrutamento'
+    | '/planos/$token'
     | '/pop/$id'
     | '/processos/$id'
     | '/projetos/$id'
-    | '/p/5s/$hash'
     | '/admin/'
     | '/analise-critica/'
     | '/calendario/'
@@ -827,7 +807,7 @@ export interface FileRouteTypes {
     | '/template-documentos'
     | '/c/$token'
     | '/dashboard/$token'
-    | '/pesquisa/$hash'
+    | '/p/$hash'
     | '/teste/$id'
     | '/admin/permissoes'
     | '/causa-raiz/$id'
@@ -840,15 +820,13 @@ export interface FileRouteTypes {
     | '/mapas/decisao'
     | '/mapas/dores'
     | '/mapas/informacao'
-    | '/melhorias/5s'
-    | '/p/$token'
     | '/pessoas/dashboard'
     | '/pessoas/mentorias'
     | '/pessoas/nps'
     | '/pessoas/recrutamento'
+    | '/planos/$token'
     | '/pop/$id'
     | '/processos/$id'
-    | '/p/5s/$hash'
     | '/admin'
     | '/analise-critica'
     | '/calendario'
@@ -902,7 +880,7 @@ export interface FileRouteTypes {
     | '/_authenticated/template-documentos'
     | '/c/$token'
     | '/dashboard/$token'
-    | '/pesquisa/$hash'
+    | '/p/$hash'
     | '/teste/$id'
     | '/_authenticated/admin/permissoes'
     | '/_authenticated/causa-raiz/$id'
@@ -915,17 +893,15 @@ export interface FileRouteTypes {
     | '/_authenticated/mapas/decisao'
     | '/_authenticated/mapas/dores'
     | '/_authenticated/mapas/informacao'
-    | '/_authenticated/melhorias/5s'
-    | '/_authenticated/p/$token'
     | '/_authenticated/pessoas/assessment'
     | '/_authenticated/pessoas/dashboard'
     | '/_authenticated/pessoas/mentorias'
     | '/_authenticated/pessoas/nps'
     | '/_authenticated/pessoas/recrutamento'
+    | '/_authenticated/planos/$token'
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
-    | '/p/5s/$hash'
     | '/_authenticated/admin/'
     | '/_authenticated/analise-critica/'
     | '/_authenticated/calendario/'
@@ -975,9 +951,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
   DashboardTokenRoute: typeof DashboardTokenRoute
-  PesquisaHashRoute: typeof PesquisaHashRoute
+  PHashRoute: typeof PHashRoute
   TesteIdRoute: typeof TesteIdRoute
-  P5sHashRoute: typeof P5sHashRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
 }
 
@@ -1060,11 +1035,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pesquisa/$hash': {
-      id: '/pesquisa/$hash'
-      path: '/pesquisa/$hash'
-      fullPath: '/pesquisa/$hash'
-      preLoaderRoute: typeof PesquisaHashRouteImport
+    '/p/$hash': {
+      id: '/p/$hash'
+      path: '/p/$hash'
+      fullPath: '/p/$hash'
+      preLoaderRoute: typeof PHashRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/teste/$id': {
@@ -1263,25 +1238,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMapasInformacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/melhorias/5s': {
-      id: '/_authenticated/melhorias/5s'
-      path: '/melhorias/5s'
-      fullPath: '/melhorias/5s'
-      preLoaderRoute: typeof AuthenticatedMelhorias5sRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/oportunidades/': {
       id: '/_authenticated/oportunidades/'
       path: '/oportunidades'
       fullPath: '/oportunidades/'
       preLoaderRoute: typeof AuthenticatedOportunidadesIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/p/$token': {
-      id: '/_authenticated/p/$token'
-      path: '/p/$token'
-      fullPath: '/p/$token'
-      preLoaderRoute: typeof AuthenticatedPTokenRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pessoas/assessment': {
@@ -1324,6 +1285,13 @@ declare module '@tanstack/react-router' {
       path: '/planos-acao'
       fullPath: '/planos-acao/'
       preLoaderRoute: typeof AuthenticatedPlanosAcaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planos/$token': {
+      id: '/_authenticated/planos/$token'
+      path: '/planos/$token'
+      fullPath: '/planos/$token'
+      preLoaderRoute: typeof AuthenticatedPlanosTokenRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pop/': {
@@ -1409,13 +1377,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/tobe/'
       preLoaderRoute: typeof AuthenticatedTobeIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/p/5s/$hash': {
-      id: '/p/5s/$hash'
-      path: '/p/5s/$hash'
-      fullPath: '/p/5s/$hash'
-      preLoaderRoute: typeof P5sHashRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/indicadores/$id/coletar': {
       id: '/_authenticated/indicadores/$id/coletar'
@@ -1579,13 +1540,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMapasDecisaoRoute: typeof AuthenticatedMapasDecisaoRoute
   AuthenticatedMapasDoresRoute: typeof AuthenticatedMapasDoresRoute
   AuthenticatedMapasInformacaoRoute: typeof AuthenticatedMapasInformacaoRoute
-  AuthenticatedMelhorias5sRoute: typeof AuthenticatedMelhorias5sRoute
-  AuthenticatedPTokenRoute: typeof AuthenticatedPTokenRoute
   AuthenticatedPessoasAssessmentRoute: typeof AuthenticatedPessoasAssessmentRouteWithChildren
   AuthenticatedPessoasDashboardRoute: typeof AuthenticatedPessoasDashboardRoute
   AuthenticatedPessoasMentoriasRoute: typeof AuthenticatedPessoasMentoriasRoute
   AuthenticatedPessoasNpsRoute: typeof AuthenticatedPessoasNpsRoute
   AuthenticatedPessoasRecrutamentoRoute: typeof AuthenticatedPessoasRecrutamentoRoute
+  AuthenticatedPlanosTokenRoute: typeof AuthenticatedPlanosTokenRoute
   AuthenticatedPopIdRoute: typeof AuthenticatedPopIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRouteWithChildren
@@ -1637,14 +1597,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMapasDecisaoRoute: AuthenticatedMapasDecisaoRoute,
   AuthenticatedMapasDoresRoute: AuthenticatedMapasDoresRoute,
   AuthenticatedMapasInformacaoRoute: AuthenticatedMapasInformacaoRoute,
-  AuthenticatedMelhorias5sRoute: AuthenticatedMelhorias5sRoute,
-  AuthenticatedPTokenRoute: AuthenticatedPTokenRoute,
   AuthenticatedPessoasAssessmentRoute:
     AuthenticatedPessoasAssessmentRouteWithChildren,
   AuthenticatedPessoasDashboardRoute: AuthenticatedPessoasDashboardRoute,
   AuthenticatedPessoasMentoriasRoute: AuthenticatedPessoasMentoriasRoute,
   AuthenticatedPessoasNpsRoute: AuthenticatedPessoasNpsRoute,
   AuthenticatedPessoasRecrutamentoRoute: AuthenticatedPessoasRecrutamentoRoute,
+  AuthenticatedPlanosTokenRoute: AuthenticatedPlanosTokenRoute,
   AuthenticatedPopIdRoute: AuthenticatedPopIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRouteWithChildren,
@@ -1693,9 +1652,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
   DashboardTokenRoute: DashboardTokenRoute,
-  PesquisaHashRoute: PesquisaHashRoute,
+  PHashRoute: PHashRoute,
   TesteIdRoute: TesteIdRoute,
-  P5sHashRoute: P5sHashRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
 }
 export const routeTree = rootRouteImport

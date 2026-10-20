@@ -8,25 +8,15 @@ import {
   ConfigVisualPesquisa,
 } from "./nps-types";
 
+// Survey links contain only a random invitation token, never definitions or responses.
+export function compressSurveyToHash(survey: Partial<Pesquisa>): string { return survey.url_hash || ""; }
+export function decompressSurveyFromHash(_hash: string): Pesquisa | null { return null; }
+export function generatePublicSurveyLink(survey: Pesquisa, origin?: string): string {
+  return `${origin || (typeof window !== "undefined" ? window.location.origin : "")}/p/${survey.url_hash}`;
+}
 export const NPS_REALTIME_CHANNEL = "maia_nps_sync_hub_v1";
 
 // ---------------------------------------------------------------------------
-// GERAÇÃO E RESOLUÇÃO DE LINKS PÚBLICOS DE PESQUISA (NPS / eNPS)
-// ---------------------------------------------------------------------------
-export function compressSurveyToHash(survey: Partial<Pesquisa>): string {
-  return survey.url_hash || survey.hash_publico || survey.id || "";
-}
-
-export function decompressSurveyFromHash(_hash: string): Pesquisa | null {
-  return null;
-}
-
-export function generatePublicSurveyLink(pesquisa: Pesquisa, origin?: string): string {
-  const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
-  const hash = pesquisa.url_hash || pesquisa.hash_publico || pesquisa.id;
-  return `${base}/pesquisa/${hash}`;
-}
-
 // CÁLCULO DO SCORE NPS E DISTRIBUIÇÃO
 // ---------------------------------------------------------------------------
 export function calcularNpsScores(respostasNotas: number[]) {
@@ -92,26 +82,10 @@ export async function getPesquisasList(companyId?: string | null): Promise<Pesqu
   return enrichPesquisas((data || []) as unknown as Pesquisa[]);
 }
 export async function getPesquisaByHash(token: string): Promise<Pesquisa | null> {
-  if (!token) return null;
-  // 1. Tenta RPC oficial de pesquisa pública
-  try {
-    const { data, error } = await supabase.rpc("get_public_survey", { _token: token });
-    if (!error && data) return data as unknown as Pesquisa;
-  } catch (err) {
-    console.warn("RPC get_public_survey falhou, tentando fallback direto:", err);
-  }
-  // 2. Fallback: busca diretamente por url_hash ou id
-  try {
-    const { data, error } = await supabase
-      .from("pesquisas")
-      .select("*, perguntas:pesquisa_perguntas(*)")
-      .or(`url_hash.eq.${token},id.eq.${token}`)
-      .maybeSingle();
-    if (!error && data) return data as unknown as Pesquisa;
-  } catch (err) {
-    console.warn("Fallback getPesquisaByHash falhou:", err);
-  }
-  return null;
+  if (token.length < 20 || token.length > 200 || token.startsWith("s_")) return null;
+  const { data, error } = await supabase.rpc("get_public_survey", { _token: token });
+  if (error) throw new Error("Não foi possível carregar a pesquisa.");
+  return data as unknown as Pesquisa | null;
 }
 export async function getPesquisaById(id: string): Promise<Pesquisa | null> {
   const { data, error } = await supabase.from("pesquisas").select("*, perguntas:pesquisa_perguntas(*)").eq("id", id).maybeSingle();
@@ -135,18 +109,6 @@ export async function deletePesquisa(id: string): Promise<boolean> {
   if (error || !data) throw new Error("Não foi possível excluir a pesquisa.");
   return true;
 }
-export async function resetRespostasPesquisa(pesquisaId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("pesquisa_respostas")
-    .delete()
-    .eq("pesquisa_id", pesquisaId);
-  if (error) {
-    console.error("Erro ao reiniciar pesquisa:", error);
-    throw new Error("Não foi possível apagar os dados preenchidos desta pesquisa.");
-  }
-  return true;
-}
-
 export async function getRespostasByPesquisa(id: string): Promise<PesquisaResposta[]> {
   const { data, error } = await supabase.from("pesquisa_respostas").select("*, itens:pesquisa_respostas_itens(*)").eq("pesquisa_id", id).order("created_at", { ascending: false });
   if (error) throw new Error("Não foi possível consultar as respostas.");

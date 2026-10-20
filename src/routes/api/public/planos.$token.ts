@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/planos/$token")({
         if (!authorization?.startsWith("Bearer ")) return new Response("Entre na sua conta", { status: 401 });
         const { createClient } = await import("@supabase/supabase-js");
         const url = process.env.SUPABASE_URL;
-        const key = process.env.SUPABASE_ANON_KEY;
+        const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
         if (!url || !key) return new Response("Serviço indisponível", { status: 503 });
         const sb = createClient(url, key, {
           auth: { persistSession: false, autoRefreshToken: false },
@@ -52,17 +52,17 @@ export const Route = createFileRoute("/api/public/planos/$token")({
         const newDesc = ((plan.description as string) ?? "") + note;
         if (newDesc.length > 50000) return new Response("Limite de comentários atingido", { status: 400 });
 
-        const { error } = await sb
+        const guarded = sb
           .from("action_plans")
           .update({
             status: parsed.data.status,
             description: newDesc,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", plan.id)
-          .eq("description", plan.description ?? "")
-          .select("id");
+          .eq("id", plan.id);
+        const { data: updated, error } = await (plan.description === null ? guarded.is("description", null) : guarded.eq("description", plan.description)).select("id");
         if (error) return new Response("Não foi possível atualizar o plano", { status: 500 });
+        if (!updated?.length) return new Response("O plano foi alterado por outra pessoa; recarregue e tente novamente", { status: 409 });
 
         return Response.json({ ok: true });
       },

@@ -364,7 +364,16 @@ function NpsDashboardPage() {
                 <div className="p-5 space-y-4">
                   {/* Topo do Card */}
                   <div className="flex items-start justify-between gap-2">
-                    
+                    <Badge
+                      variant="outline"
+                      className={
+                        isNps
+                          ? "bg-orange-50 text-[#E05A10] border-orange-200"
+                          : "bg-purple-50 text-purple-700 border-purple-200"
+                      }
+                    >
+                      {pesquisa.tipo.toUpperCase()}
+                    </Badge>
 
                     <div className="flex items-center gap-1.5">
                       <Badge
@@ -439,7 +448,7 @@ function NpsDashboardPage() {
                   {/* Hash / Link de Acesso */}
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t">
                     <span className="font-mono truncate max-w-[170px]" title={linkHash}>
-                      /pesquisa/{linkHash}
+                      /p/{linkHash}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button
@@ -542,9 +551,6 @@ function NpsDashboardPage() {
           onClose={() => setIsRelatorioOpen(false)}
           pesquisa={selectedPesquisaParaRelatorio}
           relatorio={relatorioData}
-          onResetSuccess={async () => {
-            await carregarPesquisas();
-          }}
         />
       )}
     </div>
