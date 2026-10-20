@@ -118,10 +118,11 @@ export function SetoresComiteConfigView({
   // Modal QR Code
   const [qrModalSector, setQrModalSector] = useState<FivesSetor | null>(null);
 
-  // Link Público
+  // Link Público dinâmico por empresa
+  const portalHash = config.url_hash || companyId;
   const publicUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/p/5s/${config.url_hash || "default"}`
-    : `https://jarvisprocessos.com/p/5s/${config.url_hash || "default"}`;
+    ? `${window.location.origin}/p/5s/${portalHash}`
+    : `https://jarvisprocessos.com/p/5s/${portalHash}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -135,7 +136,8 @@ export function SetoresComiteConfigView({
       await saveFivesConfig({
         id: config.id,
         company_id: companyId,
-        url_hash: config.url_hash || `5s_${companyId.slice(0, 8)}`,
+        company_name: companyName,
+        url_hash: config.url_hash || companyId,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         bg_color: bgColor,

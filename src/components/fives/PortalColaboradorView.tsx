@@ -58,7 +58,7 @@ import type {
   Senso5S,
 } from "@/lib/fives-types";
 import { NOMES_SENSOS } from "@/lib/fives-types";
-import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa } from "@/lib/fives-storage";
+import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa, formatFivesDate } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
 
 interface PortalColaboradorViewProps {
@@ -192,10 +192,11 @@ export function PortalColaboradorView({
   const secondaryColor = config.secondary_color || "#E05A10";
   const bgColor = config.bg_color || "#FFF8F5";
 
-  // Formatação do link público
+  // Formatação do link público dinâmico por empresa
+  const portalHash = config.url_hash || company.id;
   const publicUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/p/5s/${config.url_hash || "default"}`
-    : `https://jarvisprocessos.com/p/5s/${config.url_hash || "default"}`;
+    ? `${window.location.origin}/p/5s/${portalHash}`
+    : `https://jarvisprocessos.com/p/5s/${portalHash}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -1020,14 +1021,14 @@ export function PortalColaboradorView({
                         {(etapa.data_inicio || etapa.data_fim) && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {etapa.data_inicio ? `Início: ${etapa.data_inicio}` : ""}
-                            {etapa.data_fim ? ` • Prazo: ${etapa.data_fim}` : ""}
+                            {etapa.data_inicio ? `Início: ${formatFivesDate(etapa.data_inicio)}` : ""}
+                            {etapa.data_fim ? ` • Prazo: ${formatFivesDate(etapa.data_fim)}` : ""}
                           </span>
                         )}
                         {etapa.data_execucao && (
-                          <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            Data de Execução: <strong>{etapa.data_execucao}</strong>
+                          <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            Data de Execução: <strong>{formatFivesDate(etapa.data_execucao)}</strong>
                           </span>
                         )}
                       </div>

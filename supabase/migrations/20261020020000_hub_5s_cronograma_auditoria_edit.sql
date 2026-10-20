@@ -90,3 +90,17 @@ EXCEPTION WHEN OTHERS THEN
     -- Já incluído ou sem permissão direta
     NULL;
 END $$;
+
+-- 4. Adicionar company_name em fives_configuracoes e garantir acesso de leitura à tabela companies para anon
+ALTER TABLE public.fives_configuracoes ADD COLUMN IF NOT EXISTS company_name TEXT;
+
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Public anon select companies" ON public.companies;
+    CREATE POLICY "Public anon select companies"
+    ON public.companies
+    FOR SELECT TO anon
+    USING (true);
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;

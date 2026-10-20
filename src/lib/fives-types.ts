@@ -43,6 +43,7 @@ export interface FivesComiteMembro {
 export interface FivesConfiguracao {
   id: string;
   company_id: string;
+  company_name?: string | null;
   url_hash: string;
   logo_url?: string | null;
   header_banner_url?: string | null;

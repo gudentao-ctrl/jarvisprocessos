@@ -163,11 +163,23 @@ export const CHECKLIST_PADRAO_5S: Array<{ senso: Senso5S; pergunta: string; dica
   },
 ];
 
+// Helper de Formatação de Data Brasileira (DD/MM/AAAA)
+export function formatFivesDate(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  if (dateStr.includes("/")) return dateStr;
+  const parts = dateStr.split("T")[0].split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
 // Dados Iniciais de Demonstração (Whitelabel Default)
 const DEFAULT_CONFIG = (companyId: string, companyName?: string): FivesConfiguracao => ({
   id: `cfg-${companyId}`,
   company_id: companyId,
-  url_hash: `5s_${companyId.slice(0, 8)}`,
+  company_name: companyName || "Empresa Parceira",
+  url_hash: companyId,
   logo_url: "",
   header_banner_url: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1400&auto=format&fit=crop&q=80",
   slogan_campanha: `Programa 5S ${companyName ? "• " + companyName : ""}: Um lugar para cada coisa e cada coisa no seu lugar.`,
@@ -303,15 +315,19 @@ export async function getFivesConfig(companyId: string, companyName?: string): P
 
       if (!error && data) {
         let logo = data.logo_url;
-        if (!logo) {
+        let cName = data.company_name || companyName;
+        if (!logo || !cName) {
           try {
             const { data: comp } = await supabase
               .from("companies")
-              .select("public_company_logo_url")
+              .select("name, public_company_logo_url")
               .eq("id", companyId)
               .maybeSingle();
-            if (comp?.public_company_logo_url) {
+            if (comp?.public_company_logo_url && !logo) {
               logo = comp.public_company_logo_url;
+            }
+            if (comp?.name && !cName) {
+              cName = comp.name;
             }
           } catch {}
         }
@@ -319,7 +335,8 @@ export async function getFivesConfig(companyId: string, companyName?: string): P
         const configResult: FivesConfiguracao = {
           id: data.id,
           company_id: data.company_id,
-          url_hash: data.url_hash || `5s_${companyId.slice(0, 8)}`,
+          company_name: cName || "Empresa Parceira",
+          url_hash: data.url_hash || companyId,
           logo_url: logo,
           header_banner_url: data.header_banner_url,
           slogan_campanha: data.slogan_campanha,
@@ -331,7 +348,51 @@ export async function getFivesConfig(companyId: string, companyName?: string): P
         };
 
         setLocalItem(`jarvis_5s_config_${companyId}`, configResult);
+        setLocalItem(`jarvis_5s_config_${configResult.url_hash}`, configResult);
         return configResult;
+      }
+
+      // Se ainda não existir configuração no banco para este UUID, cria a inicial automaticamente
+      if (!error && !data) {
+        let compLogo = "";
+        let compName = companyName;
+        try {
+          const { data: comp } = await supabase
+            .from("companies")
+            .select("name, public_company_logo_url")
+            .eq("id", companyId)
+            .maybeSingle();
+          if (comp?.public_company_logo_url) compLogo = comp.public_company_logo_url;
+          if (comp?.name) compName = comp.name;
+        } catch {}
+
+        const initialConfig = {
+          id: crypto.randomUUID(),
+          company_id: companyId,
+          company_name: compName || "Empresa Parceira",
+          url_hash: companyId,
+          logo_url: compLogo || null,
+          header_banner_url: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1400&auto=format&fit=crop&q=80",
+          slogan_campanha: `Programa 5S ${compName ? "• " + compName : ""}: Um lugar para cada coisa e cada coisa no seu lugar.`,
+          primary_color: "#3E100C",
+          secondary_color: "#E05A10",
+          bg_color: "#FFF8F5",
+          senso_destaque_mes: "Seiso (Limpeza)",
+          comite_membros: [],
+        };
+
+        try {
+          const { data: inserted } = await fivesDb
+            .from("fives_configuracoes" as any)
+            .upsert(initialConfig, { onConflict: "company_id" })
+            .select()
+            .maybeSingle();
+          if (inserted) {
+            setLocalItem(`jarvis_5s_config_${companyId}`, inserted);
+            setLocalItem(`jarvis_5s_config_${companyId}`, inserted);
+            return inserted as FivesConfiguracao;
+          }
+        } catch {}
       }
     }
   } catch (e) {
@@ -372,7 +433,8 @@ export async function saveFivesConfig(config: Partial<FivesConfiguracao>): Promi
   const payload = {
     id: config.id || crypto.randomUUID(),
     company_id: companyId,
-    url_hash: config.url_hash || `5s_${companyId.slice(0, 8)}`,
+    company_name: config.company_name || null,
+    url_hash: config.url_hash || companyId,
     logo_url: config.logo_url || null,
     header_banner_url: config.header_banner_url || null,
     slogan_campanha: config.slogan_campanha || "Praticar o 5S é transformar nosso ambiente com disciplina e excelência.",
@@ -516,6 +578,7 @@ function updateSetorCache(companyId: string, setor: FivesSetor) {
   if (idx >= 0) existing[idx] = { ...existing[idx], ...setor };
   else existing.push(setor);
   setLocalItem(key, existing);
+  notify5SUpdate(companyId);
 }
 
 export async function deleteFivesSetor(id: string, companyId: string): Promise<boolean> {
@@ -528,6 +591,7 @@ export async function deleteFivesSetor(id: string, companyId: string): Promise<b
   const key = `jarvis_5s_setores_${companyId}`;
   const existing = getLocalItem<FivesSetor[]>(key, []);
   setLocalItem(key, existing.filter((s) => s.id !== id));
+  notify5SUpdate(companyId);
   return true;
 }
 
@@ -626,6 +690,7 @@ export async function saveFivesIT(it: Partial<FivesInstrucaoTrabalho>): Promise<
 
     if (!error && data) {
       setLocalItem(`jarvis_5s_it_${setorId}`, data);
+      notify5SUpdate();
       return data as unknown as FivesInstrucaoTrabalho;
     }
   } catch (e) {
@@ -633,6 +698,7 @@ export async function saveFivesIT(it: Partial<FivesInstrucaoTrabalho>): Promise<
   }
 
   setLocalItem(`jarvis_5s_it_${setorId}`, payload);
+  notify5SUpdate();
   return payload as unknown as FivesInstrucaoTrabalho;
 }
 
@@ -1040,6 +1106,7 @@ export async function saveFivesEvento(evento: Partial<FivesEvento>): Promise<Fiv
   const key = `jarvis_5s_eventos_${companyId}`;
   const existing = getLocalItem<FivesEvento[]>(key, []);
   setLocalItem(key, [...existing, payload as FivesEvento]);
+  notify5SUpdate(companyId);
 
   return payload as FivesEvento;
 }
@@ -1054,6 +1121,7 @@ export async function deleteFivesEvento(id: string, companyId: string): Promise<
   const key = `jarvis_5s_eventos_${companyId}`;
   const existing = getLocalItem<FivesEvento[]>(key, []);
   setLocalItem(key, existing.filter((e) => e.id !== id));
+  notify5SUpdate(companyId);
   return true;
 }
 
@@ -1217,11 +1285,24 @@ export async function getFivesPortalDataByCompanyId(companyId: string, companyNa
     0
   );
 
+  let resolvedCompanyName = companyName || config.company_name;
+  if ((!resolvedCompanyName || resolvedCompanyName === "Empresa Cliente" || resolvedCompanyName === "Empresa Parceira") && isUuid(companyId)) {
+    try {
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("name, public_company_logo_url")
+        .eq("id", companyId)
+        .maybeSingle();
+      if (comp?.name) resolvedCompanyName = comp.name;
+    } catch {}
+  }
+  if (!resolvedCompanyName) resolvedCompanyName = "Empresa Cliente";
+
   return {
     config,
     company: {
       id: companyId,
-      name: companyName || "Empresa Cliente",
+      name: resolvedCompanyName,
       logo_url: config.logo_url || null,
       primary_color: config.primary_color,
       secondary_color: config.secondary_color,
@@ -1251,14 +1332,17 @@ export async function getFivesPortalDataByHash(hash: string): Promise<FivesPorta
 
   try {
     // 1. Tenta buscar configuração com o hash correspondente na tabela fives_configuracoes
-    const { data: cfg } = await fivesDb
-      .from("fives_configuracoes" as any)
-      .select("*")
-      .eq("url_hash", hash)
-      .maybeSingle();
+    // Busca por url_hash OU por company_id (caso o hash seja o UUID da empresa)
+    let cfgQuery = fivesDb.from("fives_configuracoes" as any).select("*");
+    if (isUuid(hash)) {
+      cfgQuery = cfgQuery.or(`url_hash.eq.${hash},company_id.eq.${hash}`);
+    } else {
+      cfgQuery = cfgQuery.eq("url_hash", hash);
+    }
+    const { data: cfg } = await cfgQuery.maybeSingle();
 
     if (cfg && cfg.company_id) {
-      let companyName = "Empresa Parceira";
+      let companyName = cfg.company_name || "Empresa Parceira";
       try {
         const { data: comp } = await supabase
           .from("companies")
@@ -1281,6 +1365,7 @@ export async function getFivesPortalDataByHash(hash: string): Promise<FivesPorta
       if (comp) {
         return getFivesPortalDataByCompanyId(comp.id, comp.name);
       }
+      return getFivesPortalDataByCompanyId(hash);
     }
 
     // 3. Se o hash começar com 5s_, busca pela company cujo id começa com esse prefixo

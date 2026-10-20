@@ -361,6 +361,7 @@ export default function Hub5SRouteComponent() {
             setores={portalData.setores}
             descartes={portalData.cartoesVermelhos}
             eventos={portalData.eventos}
+            cronogramaProjeto={portalData.cronogramaProjeto}
             canEdit={canEdit}
             onRefresh={loadData}
           />

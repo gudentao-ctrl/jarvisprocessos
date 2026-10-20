@@ -18,6 +18,10 @@ import {
   Gavel,
   Check,
   Filter,
+  Flame,
+  Pencil,
+  CheckCheck,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
@@ -34,6 +38,7 @@ import type {
   FivesEvento,
   FivesSetor,
   DestinacaoCartaoVermelho,
+  FivesCronogramaProjeto,
 } from "@/lib/fives-types";
 import {
   saveFivesDescarte,
@@ -42,6 +47,9 @@ import {
   archivarDescarte,
   saveFivesEvento,
   deleteFivesEvento,
+  saveFivesCronogramaEtapa,
+  deleteFivesCronogramaEtapa,
+  formatFivesDate,
 } from "@/lib/fives-storage";
 
 interface CronogramaCartaoVermelhoViewProps {
@@ -49,6 +57,7 @@ interface CronogramaCartaoVermelhoViewProps {
   setores: FivesSetor[];
   descartes: FivesDescarteCartaoVermelho[];
   eventos: FivesEvento[];
+  cronogramaProjeto?: FivesCronogramaProjeto[];
   canEdit: boolean;
   onRefresh: () => void;
 }
@@ -71,10 +80,59 @@ export function CronogramaCartaoVermelhoView({
   setores,
   descartes,
   eventos,
+  cronogramaProjeto = [],
   canEdit,
   onRefresh,
 }: CronogramaCartaoVermelhoViewProps) {
-  const [activeTab, setActiveTab] = useState<"cartao-vermelho" | "eventos">("cartao-vermelho");
+  const [activeTab, setActiveTab] = useState<"roadmap" | "cartao-vermelho" | "eventos">("roadmap");
+
+  // Edição de Etapa do Cronograma
+  const [editCronoEtapa, setEditCronoEtapa] = useState<FivesCronogramaProjeto | null>(null);
+  const [cronoTitulo, setCronoTitulo] = useState("");
+  const [cronoDesc, setCronoDesc] = useState("");
+  const [cronoResp, setCronoResp] = useState("");
+  const [cronoDtInicio, setCronoDtInicio] = useState("");
+  const [cronoDtFim, setCronoDtFim] = useState("");
+  const [cronoDtExecucao, setCronoDtExecucao] = useState("");
+  const [cronoStatus, setCronoStatus] = useState<"PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO">("PENDENTE");
+  const [savingCrono, setSavingCrono] = useState(false);
+
+  const handleOpenEditCrono = (etapa: FivesCronogramaProjeto) => {
+    setEditCronoEtapa(etapa);
+    setCronoTitulo(etapa.etapa_titulo);
+    setCronoDesc(etapa.descricao || "");
+    setCronoResp(etapa.responsavel || "");
+    setCronoDtInicio(etapa.data_inicio || "");
+    setCronoDtFim(etapa.data_fim || "");
+    setCronoDtExecucao(etapa.data_execucao || "");
+    setCronoStatus(etapa.status);
+  };
+
+  const handleSaveCrono = async () => {
+    if (!editCronoEtapa) return;
+    try {
+      setSavingCrono(true);
+      await saveFivesCronogramaEtapa({
+        id: editCronoEtapa.id,
+        company_id: companyId,
+        etapa_titulo: cronoTitulo,
+        descricao: cronoDesc,
+        responsavel: cronoResp,
+        data_inicio: cronoDtInicio || null,
+        data_fim: cronoDtFim || null,
+        data_execucao: cronoDtExecucao || null,
+        status: cronoStatus,
+        ordem: editCronoEtapa.ordem,
+      });
+      toast.success("Etapa do cronograma atualizada com sucesso!");
+      setEditCronoEtapa(null);
+      onRefresh();
+    } catch (err: any) {
+      toast.error("Erro ao salvar etapa: " + err?.message);
+    } finally {
+      setSavingCrono(false);
+    }
+  };
 
   // Filtros Cartão Vermelho
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
@@ -297,7 +355,11 @@ export function CronogramaCartaoVermelhoView({
         onValueChange={(v: any) => setActiveTab(v)}
         className="w-full"
       >
-        <TabsList className="grid grid-cols-2 max-w-md">
+        <TabsList className="grid grid-cols-3 max-w-lg">
+          <TabsTrigger value="roadmap" className="text-xs font-bold gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Roadmap 5S ({cronogramaProjeto.length || 5})
+          </TabsTrigger>
           <TabsTrigger value="cartao-vermelho" className="text-xs font-bold gap-1.5">
             <AlertOctagon className="h-3.5 w-3.5 text-rose-600" />
             Cartão Vermelho ({descartes.length})
@@ -308,7 +370,121 @@ export function CronogramaCartaoVermelhoView({
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: CARTÃO VERMELHO (SEIRI) */}
+        {/* TAB 1: ROADMAP & CRONOGRAMA DA IMPLANTAÇÃO 5S */}
+        <TabsContent value="roadmap" className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border">
+            <div>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Linha do Tempo da Implantação 5S
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Acompanhe e atualize os marcos, data de execução real e o status de cada etapa do projeto.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {cronogramaProjeto.map((etapa, idx) => {
+              const isConcluido = etapa.status === "CONCLUIDO";
+              const isEmAndamento = etapa.status === "EM_ANDAMENTO";
+
+              return (
+                <Card
+                  key={etapa.id}
+                  className={`p-4 border transition-all ${
+                    isConcluido
+                      ? "border-emerald-300 bg-emerald-50/20 dark:border-emerald-800/40"
+                      : isEmAndamento
+                      ? "border-orange-400 bg-orange-50/30 shadow-md ring-1 ring-orange-300 dark:border-orange-700/50"
+                      : "border-muted bg-card opacity-85"
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
+                          isConcluido
+                            ? "bg-emerald-600 text-white"
+                            : isEmAndamento
+                            ? "bg-orange-500 text-white"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {isConcluido ? <CheckCheck className="h-4 w-4" /> : `#${etapa.ordem || idx + 1}`}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-sm text-foreground">
+                            {etapa.etapa_titulo}
+                          </h4>
+                          {isEmAndamento && (
+                            <Badge className="text-[10px] font-black px-2.5 py-0.5 animate-pulse flex items-center gap-1 shadow-sm bg-orange-500 text-white">
+                              <Flame className="h-3 w-3 fill-current" />
+                              EM EXECUÇÃO
+                            </Badge>
+                          )}
+                          <Badge
+                            className={`text-[10px] font-bold ${
+                              isConcluido
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                : isEmAndamento
+                                ? "bg-orange-100 text-orange-800 border-orange-300"
+                                : "bg-slate-100 text-slate-700 border-slate-300"
+                            }`}
+                          >
+                            {isConcluido ? "Concluído" : isEmAndamento ? "Fase Ativa" : "Pendente"}
+                          </Badge>
+                        </div>
+
+                        {etapa.descricao && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {etapa.descricao}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap pt-0.5">
+                          {etapa.responsavel && (
+                            <span>
+                              Responsável: <strong>{etapa.responsavel}</strong>
+                            </span>
+                          )}
+                          {(etapa.data_inicio || etapa.data_fim) && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {etapa.data_inicio ? `Início: ${formatFivesDate(etapa.data_inicio)}` : ""}
+                              {etapa.data_fim ? ` • Prazo: ${formatFivesDate(etapa.data_fim)}` : ""}
+                            </span>
+                          )}
+                          {etapa.data_execucao && (
+                            <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              Data de Execução: <strong>{formatFivesDate(etapa.data_execucao)}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {canEdit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEditCrono(etapa)}
+                        className="text-xs font-semibold gap-1 shrink-0 self-end sm:self-center"
+                      >
+                        <Pencil className="h-3 w-3" /> Editar Etapa
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* TAB 2: CARTÃO VERMELHO (SEIRI) */}
         <TabsContent value="cartao-vermelho" className="space-y-4 pt-2">
           {/* Barra de Filtros */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 p-3 rounded-xl border">
@@ -823,6 +999,105 @@ export function CronogramaCartaoVermelhoView({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Editar Etapa do Cronograma */}
+      {editCronoEtapa && (
+        <Dialog open={!!editCronoEtapa} onOpenChange={() => setEditCronoEtapa(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Editar Etapa #{editCronoEtapa.ordem} do Cronograma 5S
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Defina datas previstas, data de execução real, responsável e status de conclusão.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="crm-crono-title" className="text-xs font-semibold">Título da Etapa</Label>
+                <Input
+                  id="crm-crono-title"
+                  value={cronoTitulo}
+                  onChange={(e) => setCronoTitulo(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="crm-crono-resp" className="text-xs font-semibold">Responsável</Label>
+                <Input
+                  id="crm-crono-resp"
+                  value={cronoResp}
+                  onChange={(e) => setCronoResp(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="crm-crono-dt-ini" className="text-xs font-semibold">Data Início</Label>
+                  <Input
+                    id="crm-crono-dt-ini"
+                    type="date"
+                    value={cronoDtInicio}
+                    onChange={(e) => setCronoDtInicio(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="crm-crono-dt-fim" className="text-xs font-semibold">Data Fim / Prazo</Label>
+                  <Input
+                    id="crm-crono-dt-fim"
+                    type="date"
+                    value={cronoDtFim}
+                    onChange={(e) => setCronoDtFim(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="crm-crono-dt-exec" className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Data de Execução / Realização
+                </Label>
+                <Input
+                  id="crm-crono-dt-exec"
+                  type="date"
+                  value={cronoDtExecucao}
+                  onChange={(e) => setCronoDtExecucao(e.target.value)}
+                  className="text-xs border-emerald-300 bg-emerald-50/20"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="crm-crono-status" className="text-xs font-semibold">Status Atual</Label>
+                <select
+                  id="crm-crono-status"
+                  value={cronoStatus}
+                  onChange={(e) => setCronoStatus(e.target.value as any)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
+                >
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="EM_ANDAMENTO">Em Execução (Etapa Atual do Projeto)</option>
+                  <option value="CONCLUIDO">Concluído</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditCronoEtapa(null)} className="text-xs">
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveCrono} disabled={savingCrono} className="text-xs font-bold">
+                {savingCrono ? "Salvando..." : "Salvar Etapa"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
