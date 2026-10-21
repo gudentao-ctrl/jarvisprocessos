@@ -109,6 +109,12 @@ export async function deletePesquisa(id: string): Promise<boolean> {
   if (error || !data) throw new Error("Não foi possível excluir a pesquisa.");
   return true;
 }
+// Apaga somente as respostas coletadas desta pesquisa; as permissões do banco decidem quem pode apagar.
+export async function resetRespostasPesquisa(pesquisaId: string): Promise<boolean> {
+  const { error } = await supabase.from("pesquisa_respostas").delete().eq("pesquisa_id", pesquisaId);
+  if (error) throw new Error("Não foi possível apagar os dados preenchidos desta pesquisa.");
+  return true;
+}
 export async function getRespostasByPesquisa(id: string): Promise<PesquisaResposta[]> {
   const { data, error } = await supabase.from("pesquisa_respostas").select("*, itens:pesquisa_respostas_itens(*)").eq("pesquisa_id", id).order("created_at", { ascending: false });
   if (error) throw new Error("Não foi possível consultar as respostas.");
