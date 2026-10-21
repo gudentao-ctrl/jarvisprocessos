@@ -35,3 +35,5 @@
 - Preserve answered survey question identities and semantics; delete surveys transactionally after authorization to avoid partial removal and foreign-key failures.
 - Financial shared-store reads and writes must fail explicitly on database errors and never mutate a process-global fallback; worker memory is neither persistence nor tenant isolation.
 - Load map export libraries only when exporting, run independent People summary reads concurrently, and use the active-company context as the map's single company source; this reduces initial work and prevents stale-company races.
+- Authorize storage objects by company prefix or recorded legacy company binding plus the granular tool action, and embed report logos only by downloading private logo-bucket paths; never fetch stored URLs server-side.
+- Keep anonymous survey links on their own route; authenticated token pages must use distinct paths so the router never resolves a public link to a login-only page.
