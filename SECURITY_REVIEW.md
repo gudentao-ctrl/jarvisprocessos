@@ -37,3 +37,11 @@
 - Fourteen focused tests passed. Fresh dependency scan found no known advisories in 70 registry production dependencies; basic security scan found no issues. Latest preview build signal was OK.
 - Linter flags on three private tables without client policies are intentional fail-closed isolation; token-scoped public survey functions intentionally use validated SECURITY DEFINER execution.
 - Fresh live policy inspection confirms candidates have no anonymous policies and authenticated access uses company/tool/action gates; calendar and document-template gates are RESTRICTIVE, so permissive company policies do not bypass them. Historical blanket candidate policies flagged by repository review are not present in the live policy inventory.
+## Controlled penetration test — 2026-10-20
+- Files: interview audio, POP sources and logos now require the matching company permission; legacy files are bound to their company records. Signed-out listing returned no files; SuperAdmin logo downloads and file listings still work.
+- Report logos are read only from the private logo bucket under the caller's permissions, with type and 5MB limits; arbitrary, internal and traversal destinations are rejected by regression tests.
+- Action-plan updates require a valid signed-in user with update permission for that company, accept only known statuses, cap appended history and reject concurrent overwrites. Signed-out, forged-session, invalid-status and unknown-link attempts were rejected without data changes.
+- Signed-out reads of personal, financial, permission, Google-token and survey-answer data returned no rows or were denied; signed-out permission-grant and file-check calls were denied; malformed survey tokens returned nothing.
+- The action-plan page moved off the survey address because both used the same address and blocked anonymous NPS/eNPS links.
+- Mobile check: both active Augusto Bogo survey links opened anonymously and showed the first question; no response was submitted.
+- Sixteen focused tests passed. Not performed: load/denial-of-service testing, restricted non-admin account testing, external infrastructure testing.
