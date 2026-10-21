@@ -8,6 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import {
   Download,
   Users,
@@ -20,16 +31,19 @@ import {
   AlertTriangle,
   Calendar,
   ExternalLink,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import type { Pesquisa, NpsRelatorioConsolidado } from "@/lib/nps-types";
+import { resetRespostasPesquisa } from "@/lib/nps-storage";
 
 interface PesquisaRelatorioModalProps {
   isOpen: boolean;
   onClose: () => void;
   pesquisa: Pesquisa;
   relatorio: NpsRelatorioConsolidado;
+  onResetSuccess?: () => void;
 }
 
 export function PesquisaRelatorioModal({
@@ -37,8 +51,12 @@ export function PesquisaRelatorioModal({
   onClose,
   pesquisa,
   relatorio,
+  onResetSuccess,
 }: PesquisaRelatorioModalProps) {
   const [activeTab, setActiveTab] = useState<"visao_geral" | "questoes" | "feedbacks">("visao_geral");
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [confirmInput, setConfirmInput] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   const zonaColor = useMemo(() => {
     switch (relatorio.zona) {
@@ -117,45 +135,85 @@ export function PesquisaRelatorioModal({
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
-        {/* Header com Identidade Visual Maia */}
-        <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-[#3E100C]/5 via-[#E05A10]/5 to-transparent">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  className={
-                    pesquisa.tipo === "enps"
-                      ? "bg-purple-100 text-purple-800 border-purple-200"
-                      : "bg-orange-100 text-[#E05A10] border-orange-200"
-                  }
-                >
-                  {pesquisa.tipo.toUpperCase()}
-                </Badge>
-                <DialogTitle className="text-xl font-bold text-[#3E100C]">
-                  {pesquisa.titulo}
-                </DialogTitle>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Análise de satisfação consolidada • {relatorio.totalRespostas} resposta(s) coletada(s)
-              </p>
-            </div>
+  // Reiniciar Pesquisa (apaga apenas os dados preenchidos desta pesquisa)
+  const handleResetSurvey = async () => {
+    if (confirmInput.trim().toUpperCase() !== "CONFIRMAR") {
+      toast.error("Digite exatamente CONFIRMAR para autorizar a reinicialização.");
+      return;
+    }
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportExcel}
-                className="border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 text-xs font-semibold"
-              >
-                <Download className="h-4 w-4 mr-1.5" />
-                Exportar para Excel (.xlsx)
-              </Button>
+    try {
+      setIsResetting(true);
+      await resetRespostasPesquisa(pesquisa.id);
+      toast.success("Pesquisa reiniciada com sucesso! Todos os dados coletados foram apagados.");
+      setIsResetConfirmOpen(false);
+      setConfirmInput("");
+      if (onResetSuccess) {
+        onResetSuccess();
+      }
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao reiniciar pesquisa.");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+          {/* Header com Identidade Visual Maia */}
+          <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-[#3E100C]/5 via-[#E05A10]/5 to-transparent">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={
+                      pesquisa.tipo === "enps"
+                        ? "bg-purple-100 text-purple-800 border-purple-200"
+                        : "bg-orange-100 text-[#E05A10] border-orange-200"
+                    }
+                  >
+                    {pesquisa.tipo.toUpperCase()}
+                  </Badge>
+                  <DialogTitle className="text-xl font-bold text-[#3E100C]">
+                    {pesquisa.titulo}
+                  </DialogTitle>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Análise de satisfação consolidada • {relatorio.totalRespostas} resposta(s) coletada(s)
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setConfirmInput("");
+                    setIsResetConfirmOpen(true);
+                  }}
+                  className="border-rose-300 text-rose-700 hover:bg-rose-50 hover:text-rose-800 text-xs font-semibold"
+                  title="Apaga as respostas coletadas para começar uma nova coleta nesta mesma pesquisa"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                  Reiniciar Pesquisa
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportExcel}
+                  className="border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 text-xs font-semibold"
+                >
+                  <Download className="h-4 w-4 mr-1.5" />
+                  Exportar para Excel (.xlsx)
+                </Button>
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
         {/* Abas e Conteúdo */}
         <Tabs
@@ -469,7 +527,20 @@ export function PesquisaRelatorioModal({
             </TabsContent>
           </div>
 
-          <DialogFooter className="p-4 border-t bg-muted/10">
+          <DialogFooter className="p-4 border-t bg-muted/10 flex items-center justify-between sm:justify-between w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setConfirmInput("");
+                setIsResetConfirmOpen(true);
+              }}
+              className="border-rose-300 text-rose-700 hover:bg-rose-50 hover:text-rose-800 text-xs font-semibold"
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+              Reiniciar Pesquisa
+            </Button>
+
             <Button variant="outline" onClick={onClose}>
               Fechar Relatório
             </Button>
@@ -477,5 +548,68 @@ export function PesquisaRelatorioModal({
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    {/* Diálogo de Confirmação Crítica para Reiniciar Pesquisa */}
+    <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-2 text-rose-600 mb-1">
+            <div className="h-9 w-9 rounded-full bg-rose-100 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+            </div>
+            <AlertDialogTitle className="text-lg font-bold text-rose-700">
+              Tem certeza que deseja reiniciar a pesquisa?
+            </AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="space-y-3 pt-2 text-sm text-foreground">
+            <p>
+              Esta ação <strong>apagará permanentemente todas as {relatorio.totalRespostas} resposta(s) preenchidas</strong> desta pesquisa (<span className="font-semibold text-rose-700">{pesquisa.titulo}</span>).
+            </p>
+            <p className="text-xs text-muted-foreground bg-rose-50 border border-rose-200 p-2.5 rounded-lg text-rose-900">
+              ⚠️ <strong>Atenção:</strong> A estrutura das perguntas, link público e logotipo serão mantidos intactos, permitindo iniciar uma nova coleta do zero. Essa operação não pode ser desfeita.
+            </p>
+            <div className="space-y-1.5 pt-2">
+              <label className="text-xs font-medium text-foreground block">
+                Para autorizar, digite <strong className="text-rose-700 uppercase font-mono">CONFIRMAR</strong> abaixo:
+              </label>
+              <Input
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder="Digite CONFIRMAR"
+                className="font-mono text-sm border-rose-300 focus-visible:ring-rose-500 uppercase"
+                autoFocus
+              />
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="mt-4 gap-2">
+          <AlertDialogCancel
+            disabled={isResetting}
+            onClick={() => {
+              setConfirmInput("");
+              setIsResetConfirmOpen(false);
+            }}
+          >
+            Cancelar
+          </AlertDialogCancel>
+          <Button
+            variant="destructive"
+            disabled={confirmInput.trim().toUpperCase() !== "CONFIRMAR" || isResetting}
+            onClick={handleResetSurvey}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs"
+          >
+            {isResetting ? (
+              "Apagando dados..."
+            ) : (
+              <>
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                Sim, Apagar Dados e Reiniciar
+              </>
+            )}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
