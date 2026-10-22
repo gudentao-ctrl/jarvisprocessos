@@ -120,14 +120,11 @@ export function SetoresComiteConfigView({
   const [qrModalSector, setQrModalSector] = useState<FivesSetor | null>(null);
 
   // Link Público dinâmico por empresa
-  const portalHash = (companyId && isUuid(companyId))
-    ? companyId
-    : (config.url_hash && !config.url_hash.startsWith("5s_") && config.url_hash !== "demo" && config.url_hash !== "default")
-      ? config.url_hash
-      : companyId || "default";
+  // O link público usa o código aleatório da empresa, nunca o identificador interno.
+  const portalHash = config.url_hash || "";
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/p/5s/${portalHash}`
-    : `https://jarvisprocessos.com/p/5s/${portalHash}`;
+    : `https://jarvisprocessos.lovable.app/p/5s/${portalHash}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -142,7 +139,6 @@ export function SetoresComiteConfigView({
         id: config.id,
         company_id: companyId,
         company_name: companyName,
-        url_hash: (companyId && isUuid(companyId)) ? companyId : (config.url_hash || companyId),
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         bg_color: bgColor,
