@@ -1124,6 +1124,502 @@ export type Database = {
           },
         ]
       }
+      fives_auditoria_itens: {
+        Row: {
+          auditoria_id: string
+          foto_evidencia_url: string | null
+          id: string
+          nota: number
+          observacao: string | null
+          pergunta: string
+          plano_acao_o_que: string | null
+          plano_acao_prazo: string | null
+          plano_acao_responsavel: string | null
+          plano_acao_status: string
+          senso: string
+        }
+        Insert: {
+          auditoria_id: string
+          foto_evidencia_url?: string | null
+          id?: string
+          nota: number
+          observacao?: string | null
+          pergunta: string
+          plano_acao_o_que?: string | null
+          plano_acao_prazo?: string | null
+          plano_acao_responsavel?: string | null
+          plano_acao_status?: string
+          senso: string
+        }
+        Update: {
+          auditoria_id?: string
+          foto_evidencia_url?: string | null
+          id?: string
+          nota?: number
+          observacao?: string | null
+          pergunta?: string
+          plano_acao_o_que?: string | null
+          plano_acao_prazo?: string | null
+          plano_acao_responsavel?: string | null
+          plano_acao_status?: string
+          senso?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_auditoria_itens_auditoria_id_fkey"
+            columns: ["auditoria_id"]
+            isOneToOne: false
+            referencedRelation: "fives_auditorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_auditorias: {
+        Row: {
+          auditor_nome: string | null
+          auditor_user_id: string | null
+          created_at: string
+          data_auditoria: string
+          id: string
+          nota_final_percent: number
+          observacoes_gerais: string | null
+          setor_id: string
+          status_conclusao: string
+        }
+        Insert: {
+          auditor_nome?: string | null
+          auditor_user_id?: string | null
+          created_at?: string
+          data_auditoria?: string
+          id?: string
+          nota_final_percent: number
+          observacoes_gerais?: string | null
+          setor_id: string
+          status_conclusao?: string
+        }
+        Update: {
+          auditor_nome?: string | null
+          auditor_user_id?: string | null
+          created_at?: string
+          data_auditoria?: string
+          id?: string
+          nota_final_percent?: number
+          observacoes_gerais?: string | null
+          setor_id?: string
+          status_conclusao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_auditorias_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "fives_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_configuracoes: {
+        Row: {
+          bg_color: string
+          comite_membros: Json
+          company_id: string
+          company_name: string | null
+          created_at: string
+          header_banner_url: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string
+          secondary_color: string
+          senso_destaque_mes: string | null
+          slogan_campanha: string | null
+          updated_at: string
+          url_hash: string
+        }
+        Insert: {
+          bg_color?: string
+          comite_membros?: Json
+          company_id: string
+          company_name?: string | null
+          created_at?: string
+          header_banner_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string
+          secondary_color?: string
+          senso_destaque_mes?: string | null
+          slogan_campanha?: string | null
+          updated_at?: string
+          url_hash?: string
+        }
+        Update: {
+          bg_color?: string
+          comite_membros?: Json
+          company_id?: string
+          company_name?: string | null
+          created_at?: string
+          header_banner_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string
+          secondary_color?: string
+          senso_destaque_mes?: string | null
+          slogan_campanha?: string | null
+          updated_at?: string
+          url_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_configuracoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_cronograma_projeto: {
+        Row: {
+          company_id: string
+          created_at: string
+          data_execucao: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string | null
+          etapa_titulo: string
+          id: string
+          ordem: number
+          responsavel: string | null
+          status: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data_execucao?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          etapa_titulo: string
+          id?: string
+          ordem?: number
+          responsavel?: string | null
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data_execucao?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          etapa_titulo?: string
+          id?: string
+          ordem?: number
+          responsavel?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_cronograma_projeto_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_descartes_cartao_vermelho: {
+        Row: {
+          arquivado: boolean
+          created_at: string
+          data_conclusao: string | null
+          data_limite: string | null
+          destinacao_observacao: string | null
+          destinacao_status: string
+          foto_url: string | null
+          id: string
+          item_descricao: string
+          localizacao: string | null
+          setor_id: string
+        }
+        Insert: {
+          arquivado?: boolean
+          created_at?: string
+          data_conclusao?: string | null
+          data_limite?: string | null
+          destinacao_observacao?: string | null
+          destinacao_status?: string
+          foto_url?: string | null
+          id?: string
+          item_descricao: string
+          localizacao?: string | null
+          setor_id: string
+        }
+        Update: {
+          arquivado?: boolean
+          created_at?: string
+          data_conclusao?: string | null
+          data_limite?: string | null
+          destinacao_observacao?: string | null
+          destinacao_status?: string
+          foto_url?: string | null
+          id?: string
+          item_descricao?: string
+          localizacao?: string | null
+          setor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_descartes_cartao_vermelho_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "fives_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_eventos: {
+        Row: {
+          company_id: string
+          concluido: boolean
+          created_at: string
+          data_evento: string
+          descricao: string | null
+          horario: string | null
+          id: string
+          responsavel: string | null
+          setor_id: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          company_id: string
+          concluido?: boolean
+          created_at?: string
+          data_evento: string
+          descricao?: string | null
+          horario?: string | null
+          id?: string
+          responsavel?: string | null
+          setor_id?: string | null
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          company_id?: string
+          concluido?: boolean
+          created_at?: string
+          data_evento?: string
+          descricao?: string | null
+          horario?: string | null
+          id?: string
+          responsavel?: string | null
+          setor_id?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_eventos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fives_eventos_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "fives_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_instrucoes_trabalho: {
+        Row: {
+          created_at: string
+          documento_url: string | null
+          foto_padrao_ouro_url: string | null
+          id: string
+          rotina_limpeza: Json
+          setor_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          documento_url?: string | null
+          foto_padrao_ouro_url?: string | null
+          id?: string
+          rotina_limpeza?: Json
+          setor_id: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          documento_url?: string | null
+          foto_padrao_ouro_url?: string | null
+          id?: string
+          rotina_limpeza?: Json
+          setor_id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_instrucoes_trabalho_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: true
+            referencedRelation: "fives_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_mural_fotos: {
+        Row: {
+          company_id: string
+          created_at: string
+          data_registro: string | null
+          descricao: string | null
+          foto_antes_url: string
+          foto_depois_url: string
+          id: string
+          setor_id: string | null
+          titulo: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data_registro?: string | null
+          descricao?: string | null
+          foto_antes_url: string
+          foto_depois_url: string
+          id?: string
+          setor_id?: string | null
+          titulo: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data_registro?: string | null
+          descricao?: string | null
+          foto_antes_url?: string
+          foto_depois_url?: string
+          id?: string
+          setor_id?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_mural_fotos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fives_mural_fotos_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "fives_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_perguntas_customizadas: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          criterio_avaliacao: string
+          id: string
+          ordem: number
+          senso: string
+          titulo_pergunta: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          criterio_avaliacao?: string
+          id?: string
+          ordem?: number
+          senso: string
+          titulo_pergunta: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          criterio_avaliacao?: string
+          id?: string
+          ordem?: number
+          senso?: string
+          titulo_pergunta?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_perguntas_customizadas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fives_setores: {
+        Row: {
+          auditor_nome: string | null
+          auditor_user_id: string | null
+          company_id: string
+          created_at: string
+          descricao: string | null
+          guardiao_nome: string | null
+          guardiao_user_id: string | null
+          id: string
+          meta_nota: number
+          nome_setor: string
+          updated_at: string
+        }
+        Insert: {
+          auditor_nome?: string | null
+          auditor_user_id?: string | null
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          guardiao_nome?: string | null
+          guardiao_user_id?: string | null
+          id?: string
+          meta_nota?: number
+          nome_setor: string
+          updated_at?: string
+        }
+        Update: {
+          auditor_nome?: string | null
+          auditor_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          guardiao_nome?: string | null
+          guardiao_user_id?: string | null
+          id?: string
+          meta_nota?: number
+          nome_setor?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fives_setores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_oauth_states: {
         Row: {
           expires_at: string
@@ -3902,6 +4398,7 @@ export type Database = {
         Returns: Json
       }
       delete_survey: { Args: { _id: string }; Returns: boolean }
+      get_fives_portal: { Args: { _hash: string }; Returns: Json }
       get_public_survey: { Args: { _token: string }; Returns: Json }
       has_company_permission: {
         Args: { _action?: string; _company_id: string; _tool: string }

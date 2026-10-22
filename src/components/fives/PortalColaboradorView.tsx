@@ -241,14 +241,11 @@ export function PortalColaboradorView({
 
   // Formatação do link público dinâmico por empresa:
   // Usa SEMPRE o company.id se for UUID válido, garantindo unicidade por empresa
-  const portalHash = (company.id && isUuid(company.id))
-    ? company.id
-    : (config.url_hash && !config.url_hash.startsWith("5s_") && config.url_hash !== "demo" && config.url_hash !== "default")
-      ? config.url_hash
-      : company.id || "default";
+  // O link público usa o código aleatório da empresa, nunca o identificador interno.
+  const portalHash = config.url_hash || "";
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/p/5s/${portalHash}`
-    : `https://jarvisprocessos.com/p/5s/${portalHash}`;
+    : `https://jarvisprocessos.lovable.app/p/5s/${portalHash}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);

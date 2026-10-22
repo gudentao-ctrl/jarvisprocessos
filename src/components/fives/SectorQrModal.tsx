@@ -27,8 +27,8 @@ export function SectorQrModal({
   if (!setor) return null;
 
   const publicUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/p/5s/${config.url_hash || "default"}?setor=${encodeURIComponent(setor.id)}`
-    : `https://jarvisprocessos.com/p/5s/${config.url_hash || "default"}`;
+    ? `${window.location.origin}/p/5s/${config.url_hash || ""}?setor=${encodeURIComponent(setor.id)}`
+    : `https://jarvisprocessos.lovable.app/p/5s/${config.url_hash || ""}`;
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(
     publicUrl
