@@ -79,7 +79,7 @@ function PublicFivesRouteComponent() {
         unsubscribe = subscribeFivesRealtime(companyIdRef.current, () => {
           setConnected(true);
           void loadData(true); // Recarregar silenciosamente sem loading spinner
-        });
+        }, 60_000);
         setConnected(true);
       } catch {
         setConnected(false);

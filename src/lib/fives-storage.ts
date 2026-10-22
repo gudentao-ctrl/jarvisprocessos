@@ -835,14 +835,14 @@ const REALTIME_TABLES = [
   "fives_cronograma_projeto",
 ];
 
-/** Escuta mudanças (usuários logados) e, para o portal público, atualiza a cada minuto. */
-export function subscribeFivesRealtime(companyId: string, onUpdate: FivesRealtimeCallback): () => void {
+/** Escuta mudanças (usuários logados); o portal público pode pedir atualização periódica. */
+export function subscribeFivesRealtime(companyId: string, onUpdate: FivesRealtimeCallback, pollMs?: number): () => void {
   let channel = supabase.channel(`fives_realtime_${companyId}_${Date.now()}`);
   REALTIME_TABLES.forEach((table) => {
     channel = channel.on("postgres_changes" as any, { event: "*", schema: "public", table }, () => onUpdate());
   });
   channel.subscribe();
-  const timer = typeof window !== "undefined" ? window.setInterval(onUpdate, 60_000) : undefined;
+  const timer = pollMs && typeof window !== "undefined" ? window.setInterval(onUpdate, pollMs) : undefined;
   return () => {
     if (timer) window.clearInterval(timer);
     void supabase.removeChannel(channel);
