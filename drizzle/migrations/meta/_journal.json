@@ -78,6 +78,13 @@
       "when": 1792538551753,
       "tag": "0010_restrict_file_binding_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792640289918,
+      "tag": "0011_hub_5s_secure_storage",
+      "breakpoints": true
     }
   ]
 }
