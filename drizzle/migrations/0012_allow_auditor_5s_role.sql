@@ -1,0 +1,2 @@
+ALTER TABLE public.user_company_permissions DROP CONSTRAINT IF EXISTS user_company_permissions_role_check;
+ALTER TABLE public.user_company_permissions ADD CONSTRAINT user_company_permissions_role_check CHECK (role IN ('SUPERADMIN','GESTOR','CONSULTOR','CLIENTE','AUDITOR_5S'));

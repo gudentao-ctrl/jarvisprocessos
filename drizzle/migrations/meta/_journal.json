@@ -85,6 +85,13 @@
       "when": 1792640289918,
       "tag": "0011_hub_5s_secure_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792640525100,
+      "tag": "0012_allow_auditor_5s_role",
+      "breakpoints": true
     }
   ]
 }
