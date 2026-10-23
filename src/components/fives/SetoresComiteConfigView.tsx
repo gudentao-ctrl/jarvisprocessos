@@ -1,6 +1,7 @@
 // src/components/fives/SetoresComiteConfigView.tsx
 // Gestão de Setores (Zonas), Comitê Organizador 5S e Personalização Whitelabel
 
+import { compressImageFile } from "@/lib/image-compress";
 import React, { useState, useEffect } from "react";
 import {
   Settings,
@@ -163,13 +164,9 @@ export function SetoresComiteConfigView({
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("A imagem selecionada ultrapassa 4MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setter(reader.result as string);
-    reader.readAsDataURL(file);
+    compressImageFile(file, 1600)
+      .then(setter)
+      .catch((err: Error) => toast.error(err.message));
   };
 
   // Abrir Modal Setor
