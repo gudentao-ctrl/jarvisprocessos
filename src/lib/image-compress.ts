@@ -1,5 +1,5 @@
 // Reduz fotos (inclusive as tiradas pelo celular) antes de salvar, para que
-// carreguem rápido no site e no aplicativo.
+// carreguem rápido no site e no aplicativo do celular.
 export const MAX_ORIGINAL_IMAGE_BYTES = 25 * 1024 * 1024;
 
 export async function compressImageFile(file: File, maxSide = 1280, quality = 0.8): Promise<string> {
