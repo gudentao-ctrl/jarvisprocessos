@@ -48,3 +48,4 @@
 - [x] Pessoas: validar identidade cadastral, eliminar resultados fictícios e individualizar integralmente os laudos
 - [x] Pessoas: corrigir idade pelo nascimento cadastrado e auditar conteúdo e apresentação do PDF real
 - [x] SuperAdmin: otimizar liberação de acessos com busca, catálogo de ferramentas por grupo e seleção em lote
+- [x] Recuperar HUB 5S e ajustes de NPS apagados por atualização anterior; dados do 5S no banco para aparecer no celular
