@@ -61,6 +61,7 @@ import type {
 import { NOMES_SENSOS } from "@/lib/fives-types";
 import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa, formatFivesDate, isUuid } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
+import fivesBanner from "@/assets/fives-banner.jpg";
 
 interface PortalColaboradorViewProps {
   portalData: FivesPortalData;
@@ -254,6 +255,10 @@ export function PortalColaboradorView({
 
   // Cor do Big Number Nota Global
   const globalScore = kpis.notaMediaGlobal || 0;
+  const hasAuditorias = (kpis.totalAuditorias || 0) > 0;
+  const isImageSrc = (v?: string | null) => !!v && /^(https:\/\/|data:image\/)/i.test(v);
+  const logoSrc = [config.logo_url, company.logo_url].find(isImageSrc) || null;
+  const bannerSrc = isImageSrc(config.header_banner_url) ? (config.header_banner_url as string) : fivesBanner;
   const globalScoreColor =
     globalScore >= 90 ? "text-emerald-600" : globalScore >= 80 ? "text-amber-500" : "text-rose-600";
   const globalScoreBadge =
@@ -276,15 +281,13 @@ export function PortalColaboradorView({
         <div
           className="h-44 sm:h-52 w-full bg-gradient-to-r relative"
           style={{
-            backgroundImage: config.header_banner_url
-              ? `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.75)), url(${config.header_banner_url})`
-              : `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.65)), url(${bannerSrc})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
           {isPublic && (
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <div className="absolute top-3 inset-x-3 sm:inset-x-auto sm:right-4 z-10 flex items-center justify-between sm:justify-end gap-2">
               <Badge className="bg-black/60 text-white backdrop-blur-md border-white/20 px-3 py-1 text-xs">
                 <Sparkles className="h-3 w-3 mr-1 text-amber-400" /> Portal Oficial 5S
               </Badge>
@@ -300,7 +303,7 @@ export function PortalColaboradorView({
           )}
 
           {!isPublic && (
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <div className="absolute top-3 inset-x-3 sm:inset-x-auto sm:right-4 z-10 flex flex-wrap items-center justify-end gap-2">
               <Button
                 size="sm"
                 variant="secondary"
@@ -323,9 +326,9 @@ export function PortalColaboradorView({
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
             {/* Logo da Empresa */}
             <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white p-2 shadow-2xl border-4 border-background flex items-center justify-center overflow-hidden shrink-0">
-              {config.logo_url || company.logo_url ? (
+              {logoSrc ? (
                 <img
-                  src={config.logo_url || company.logo_url || ""}
+                  src={logoSrc}
                   alt={company.name}
                   className="max-h-full max-w-full object-contain"
                 />
@@ -393,12 +396,14 @@ export function PortalColaboradorView({
               <span className="text-3xl font-black text-amber-600">
                 {kpis.setorCampeao?.ultima_nota ? `${kpis.setorCampeao.ultima_nota.toFixed(1)}%` : "--"}
               </span>
-              <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold">
-                <Sparkles className="h-3 w-3 mr-1 text-amber-600" /> Selo Ouro
-              </Badge>
+              {kpis.setorCampeao?.selo === "Ouro" && (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold">
+                  <Sparkles className="h-3 w-3 mr-1 text-amber-600" /> Selo Ouro
+                </Badge>
+              )}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">
-              Guardião: <strong className="text-foreground">{kpis.setorCampeao?.guardiao_nome || "Comitê"}</strong>
+              Guardião: <strong className="text-foreground">{kpis.setorCampeao ? kpis.setorCampeao.guardiao_nome || "Comitê" : "aguardando a primeira auditoria"}</strong>
             </p>
           </CardContent>
         </Card>
@@ -413,11 +418,11 @@ export function PortalColaboradorView({
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline justify-between">
-              <span className={`text-3xl font-black ${globalScoreColor}`}>
-                {globalScore.toFixed(1)}%
+              <span className={`text-3xl font-black ${hasAuditorias ? globalScoreColor : "text-muted-foreground"}`}>
+                {hasAuditorias ? `${globalScore.toFixed(1)}%` : "--"}
               </span>
-              <Badge variant="outline" className={`font-bold ${globalScoreBadge}`}>
-                {globalScore >= 90 ? "Excelente (Ouro)" : globalScore >= 80 ? "Bom (Prata)" : "Atenção"}
+              <Badge variant="outline" className={`font-bold ${hasAuditorias ? globalScoreBadge : "text-muted-foreground"}`}>
+                {!hasAuditorias ? "Sem auditorias" : globalScore >= 90 ? "Excelente (Ouro)" : globalScore >= 80 ? "Bom (Prata)" : "Atenção"}
               </Badge>
             </div>
             <Progress
@@ -508,11 +513,11 @@ export function PortalColaboradorView({
           <CardContent className="pt-2">
             <div className="h-72 w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData} outerRadius="75%">
+                <RadarChart data={radarData} outerRadius="68%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
                   <PolarGrid stroke="#e2e8f0" />
                   <PolarAngleAxis
-                    dataKey="nome"
-                    tick={{ fill: "#4b5563", fontSize: 12, fontWeight: 600 }}
+                    dataKey="senso"
+                    tick={{ fill: "#4b5563", fontSize: 11, fontWeight: 600 }}
                   />
                   <PolarRadiusAxis
                     angle={90}
@@ -558,21 +563,21 @@ export function PortalColaboradorView({
 
         {/* Leaderboard Gamificado dos Setores (7 Colunas no Desktop) */}
         <Card className="lg:col-span-7 border shadow-sm">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                Ranking Oficial dos Setores (Leaderboard)
+              <CardTitle className="text-lg font-bold flex items-start gap-2">
+                <Trophy className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                Ranking Oficial dos Setores
               </CardTitle>
               <CardDescription>
                 Gamificação contínua e distribuição de selos de conformidade
               </CardDescription>
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <Badge variant="outline" className="whitespace-nowrap bg-amber-50 text-amber-800 border-amber-300">
                 Ouro &ge; 90%
               </Badge>
-              <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300">
+              <Badge variant="outline" className="whitespace-nowrap bg-slate-100 text-slate-700 border-slate-300">
                 Prata &ge; 80%
               </Badge>
               <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-300">
@@ -698,9 +703,9 @@ export function PortalColaboradorView({
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              Mural "Antes vs. Depois" — Transformações Visuais
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-start gap-2 leading-snug">
+              <Sparkles className="h-5 w-5 shrink-0 mt-0.5 text-amber-500" />
+              Mural Antes e Depois
             </h2>
             <p className="text-xs text-muted-foreground">
               Evidências visuais de evolução prática e superação dos setores na implantação dos 5 Sensos.
@@ -825,9 +830,9 @@ export function PortalColaboradorView({
       <section id="central-its-section" className="space-y-4 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <FileText className="h-5 w-5" style={{ color: secondaryColor }} />
-              Central de ITs & Padrões de Limpeza por Setor
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-start gap-2 leading-snug">
+              <FileText className="h-5 w-5 shrink-0 mt-0.5" style={{ color: secondaryColor }} />
+              Padrões de Limpeza por Setor
             </h2>
             <p className="text-xs text-muted-foreground">
               Consulte o Padrão Ouro do local e as rotinas diárias, semanais e mensais de organização e asseio.
@@ -1011,9 +1016,9 @@ export function PortalColaboradorView({
       <section className="space-y-4 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Cronograma da Campanha 5S & Roadmap
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-start gap-2 leading-snug">
+              <Calendar className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+              Cronograma da Campanha 5S
             </h2>
             <p className="text-xs text-muted-foreground">
               Acompanhamento do ciclo de implantação, marcos do projeto, Dia D e rodadas de auditorias contínuas.
