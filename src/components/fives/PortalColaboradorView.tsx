@@ -1,6 +1,7 @@
 // src/components/fives/PortalColaboradorView.tsx
 // Componente Principal do Portal do Colaborador 5S (Público e Integrado)
 
+import { compressImageFile } from "@/lib/image-compress";
 import React, { useState, useMemo } from "react";
 import {
   Trophy,
@@ -148,13 +149,9 @@ export function PortalColaboradorView({
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("A foto excede o limite de 5MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setter(reader.result as string);
-    reader.readAsDataURL(file);
+    compressImageFile(file)
+      .then(setter)
+      .catch((err: Error) => toast.error(err.message));
   };
 
   const handleSaveMural = async () => {

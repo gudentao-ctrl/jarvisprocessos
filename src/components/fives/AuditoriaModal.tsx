@@ -1,6 +1,7 @@
 // src/components/fives/AuditoriaModal.tsx
 // Formulário Digital de Auditoria 5S com Passo a Passo, Evidências e Planos de Ação
 
+import { compressImageFile } from "@/lib/image-compress";
 import React, { useState, useMemo } from "react";
 import {
   Dialog,
@@ -119,18 +120,12 @@ export function AuditoriaModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("A imagem excede 4MB. Por favor selecione uma imagem menor.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      handleUpdateItem(itemId, { foto_evidencia_url: result });
-      toast.success("Foto de evidência anexada!");
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file)
+      .then((result) => {
+        handleUpdateItem(itemId, { foto_evidencia_url: result });
+        toast.success("Foto de evidência anexada!");
+      })
+      .catch((err: Error) => toast.error(err.message));
   };
 
   // Navegar entre sensos

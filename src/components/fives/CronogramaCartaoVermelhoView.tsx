@@ -1,6 +1,7 @@
 // src/components/fives/CronogramaCartaoVermelhoView.tsx
 // Gestão do Cartão Vermelho (Seiri/Descartes) e Calendário de Eventos / Dias D
 
+import { compressImageFile } from "@/lib/image-compress";
 import React, { useState } from "react";
 import {
   Calendar as CalendarIcon,
@@ -169,15 +170,9 @@ export function CronogramaCartaoVermelhoView({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Imagem muito pesada (máx 4MB).");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setNovoFotoUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file)
+      .then(setNovoFotoUrl)
+      .catch((err: Error) => toast.error(err.message));
   };
 
   const handleSalvarCartaoVermelho = async () => {
