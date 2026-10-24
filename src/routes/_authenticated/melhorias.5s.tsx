@@ -26,9 +26,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
+import { usePermissions } from "@/hooks/usePermissions";
 import { getMe } from "@/lib/access.functions";
-import { getFivesPortalDataByCompanyId, subscribeFivesRealtime, notify5SUpdate, deleteFivesAuditoria } from "@/lib/fives-storage";
-import type { FivesPortalData, FivesAuditoria } from "@/lib/fives-types";
+import { getFivesPortalDataByCompanyId, subscribeFivesRealtime } from "@/lib/fives-storage";
+import { importLegacyFivesData, legacyFivesCompanyIds } from "@/lib/fives-legacy-import";
+import type { FivesPortalData } from "@/lib/fives-types";
 
 import { PortalColaboradorView } from "@/components/fives/PortalColaboradorView";
 import { AuditoriaModal } from "@/components/fives/AuditoriaModal";
@@ -52,28 +54,21 @@ export const Route = createFileRoute("/_authenticated/melhorias/5s")({
 });
 
 export default function Hub5SRouteComponent() {
-  const { companyId, company, companies, setCompanyId } = useCompanyFilter();
+  const { companyId: selectedCompanyId, company: selectedCompany, companies, setCompanyId, loading: companiesLoading } = useCompanyFilter();
+  // Sem empresa escolhida no filtro (comum no celular), abre a primeira empresa disponível
+  // em vez de um painel vazio, para que computador e celular mostrem os mesmos dados.
+  const company = selectedCompany ?? (companies as any[])[0] ?? null;
+  const companyId: string | null = selectedCompanyId || company?.id || null;
   const getMeFn = useServerFn(getMe);
   const { data: profile } = useQuery({
     queryKey: ["me"],
     queryFn: () => getMeFn(),
   });
+  const { hasAccess } = usePermissions();
 
-  // Determinar permissões (RBAC)
+  // Permissões: as mesmas regras que o banco aplica (ferramenta HUB 5S da empresa exibida).
   const isSuperadmin = !!profile?.isSuperadmin;
-  const isGestorOrConsultor =
-    isSuperadmin ||
-    !!profile?.memberships?.some(
-      (m: any) =>
-        (!companyId || m.company_id === companyId) &&
-        (m.member_role === "gestor" ||
-          m.member_role === "consultor" ||
-          m.member_role === "admin" ||
-          m.permissions?.gestao === true)
-    );
-
-  // Perfil CLIENTE tem apenas visualização (Modo Leitura)
-  const canEdit = isSuperadmin || isGestorOrConsultor;
+  const canEdit = isSuperadmin || (!!companyId && hasAccess("hub_5s", "update", companyId));
 
   const [activeTab, setActiveTab] = useState<string>("portal");
   const [portalData, setPortalData] = useState<FivesPortalData | null>(null);
@@ -86,24 +81,51 @@ export default function Hub5SRouteComponent() {
 
   // Carregar dados do HUB 5S para a empresa selecionada
   const loadData = useCallback(async () => {
+    if (companiesLoading) return;
     try {
       setLoading(true);
       setError(null);
-      const targetCompanyId = companyId || "default-company";
-      const targetCompanyName = company?.name || "Empresa Cliente";
-
-      const data = await getFivesPortalDataByCompanyId(targetCompanyId, targetCompanyName);
+      if (!companyId) {
+        setPortalData(null);
+        setError("Nenhuma empresa liberada para o HUB 5S neste usuário.");
+        return;
+      }
+      const data = await getFivesPortalDataByCompanyId(companyId, company?.name || undefined);
       setPortalData(data);
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar dados do HUB 5S.");
     } finally {
       setLoading(false);
     }
-  }, [companyId, company?.name]);
+  }, [companiesLoading, companyId, company?.name]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  // Recupera, uma única vez, dados 5S que a versão antiga guardou só neste computador.
+  const importRan = useRef(false);
+  useEffect(() => {
+    if (importRan.current || !profile || !companies?.length) return;
+    const pending = legacyFivesCompanyIds().filter((id) => companies.some((c: any) => c.id === id));
+    if (pending.length === 0) return;
+    importRan.current = true;
+    void (async () => {
+      let total = 0;
+      for (const id of pending) {
+        if (!isSuperadmin && !hasAccess("hub_5s", "create", id)) continue;
+        try {
+          total += (await importLegacyFivesData(id)).imported;
+        } catch (err: any) {
+          toast.error("Não foi possível enviar os dados 5S deste computador: " + (err?.message || "tente novamente."));
+        }
+      }
+      if (total > 0) {
+        toast.success(`${total} registro(s) do 5S salvos neste computador foram enviados e já aparecem no celular.`);
+        void loadData();
+      }
+    })();
+  }, [profile, companies, isSuperadmin, hasAccess, loadData]);
 
   // Realtime: Subscrição Supabase para atualizar o painel automaticamente
   useEffect(() => {
