@@ -26,9 +26,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 import { useCompanyFilter } from "@/hooks/useCompanyFilter";
+import { usePermissions } from "@/hooks/usePermissions";
 import { getMe } from "@/lib/access.functions";
-import { getFivesPortalDataByCompanyId, subscribeFivesRealtime, notify5SUpdate, deleteFivesAuditoria } from "@/lib/fives-storage";
-import type { FivesPortalData, FivesAuditoria } from "@/lib/fives-types";
+import { getFivesPortalDataByCompanyId, subscribeFivesRealtime } from "@/lib/fives-storage";
+import { importLegacyFivesData, legacyFivesCompanyIds } from "@/lib/fives-legacy-import";
+import type { FivesPortalData } from "@/lib/fives-types";
 
 import { PortalColaboradorView } from "@/components/fives/PortalColaboradorView";
 import { AuditoriaModal } from "@/components/fives/AuditoriaModal";
