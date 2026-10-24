@@ -54,7 +54,11 @@ export const Route = createFileRoute("/_authenticated/melhorias/5s")({
 });
 
 export default function Hub5SRouteComponent() {
-  const { companyId, company, companies, setCompanyId } = useCompanyFilter();
+  const { companyId: selectedCompanyId, company: selectedCompany, companies, setCompanyId, loading: companiesLoading } = useCompanyFilter();
+  // Sem empresa escolhida no filtro (comum no celular), abre a primeira empresa disponível
+  // em vez de um painel vazio, para que computador e celular mostrem os mesmos dados.
+  const company = selectedCompany ?? (companies as any[])[0] ?? null;
+  const companyId: string | null = selectedCompanyId || company?.id || null;
   const getMeFn = useServerFn(getMe);
   const { data: profile } = useQuery({
     queryKey: ["me"],
@@ -62,9 +66,9 @@ export default function Hub5SRouteComponent() {
   });
   const { hasAccess } = usePermissions();
 
-  // Permissões: as mesmas regras que o banco aplica (ferramenta HUB 5S da empresa ativa).
+  // Permissões: as mesmas regras que o banco aplica (ferramenta HUB 5S da empresa exibida).
   const isSuperadmin = !!profile?.isSuperadmin;
-  const canEdit = isSuperadmin || hasAccess("hub_5s", "update");
+  const canEdit = isSuperadmin || (!!companyId && hasAccess("hub_5s", "update", companyId));
 
   const [activeTab, setActiveTab] = useState<string>("portal");
   const [portalData, setPortalData] = useState<FivesPortalData | null>(null);
@@ -77,20 +81,23 @@ export default function Hub5SRouteComponent() {
 
   // Carregar dados do HUB 5S para a empresa selecionada
   const loadData = useCallback(async () => {
+    if (companiesLoading) return;
     try {
       setLoading(true);
       setError(null);
-      const targetCompanyId = companyId || "default-company";
-      const targetCompanyName = company?.name || "Empresa Cliente";
-
-      const data = await getFivesPortalDataByCompanyId(targetCompanyId, targetCompanyName);
+      if (!companyId) {
+        setPortalData(null);
+        setError("Nenhuma empresa liberada para o HUB 5S neste usuário.");
+        return;
+      }
+      const data = await getFivesPortalDataByCompanyId(companyId, company?.name || undefined);
       setPortalData(data);
     } catch (err: any) {
       setError(err?.message || "Erro ao carregar dados do HUB 5S.");
     } finally {
       setLoading(false);
     }
-  }, [companyId, company?.name]);
+  }, [companiesLoading, companyId, company?.name]);
 
   useEffect(() => {
     void loadData();
