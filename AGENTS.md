@@ -38,4 +38,6 @@
 - Authorize storage objects by company prefix or recorded legacy company binding plus the granular tool action, and embed report logos only by downloading private logo-bucket paths; never fetch stored URLs server-side.
 - Keep anonymous survey links on their own route; authenticated token pages must use distinct paths so the router never resolves a public link to a login-only page.
 - HUB 5S data lives only in company-scoped tables guarded by the `hub_5s` tool actions; the public 5S portal reads through a random-code RPC, never company ids or browser storage, so desktop, phone and QR links show the same data.
+- Legacy `jarvis_5s_*` browser keys are only read by the one-time importer, which uploads them with stable ids and then deletes them; this recovers pre-database data without reintroducing browser persistence.
+- When a tool is added to the permission catalog, backfill existing permission rows per role preset; rows saved before the tool existed lack its key and the database denies it.
 - Before overwriting files during sync, diff against the latest externally pushed commits; external pushes (e.g. HUB 5S, NPS reset) must be preserved, not reverted.

@@ -49,3 +49,4 @@
 - [x] Pessoas: corrigir idade pelo nascimento cadastrado e auditar conteúdo e apresentação do PDF real
 - [x] SuperAdmin: otimizar liberação de acessos com busca, catálogo de ferramentas por grupo e seleção em lote
 - [x] Recuperar HUB 5S e ajustes de NPS apagados por atualização anterior; dados do 5S no banco para aparecer no celular
+- [x] HUB 5S: dados do computador não apareciam no celular (LD Iluminação) — liberar 5S nos acessos antigos, recuperar dados guardados no navegador e abrir empresa padrão no celular
