@@ -68,11 +68,20 @@ function legacyKeysFor(companyId: string): string[] {
   return keys;
 }
 
-/** Indica se este navegador ainda guarda dados 5S antigos desta empresa. */
-export function hasLegacyFivesData(companyId: string): boolean {
-  if (typeof window === "undefined" || !isUuid(companyId)) return false;
-  return legacyKeysFor(companyId).some((k) => k !== `jarvis_5s_config_${companyId}`) ||
-    !!readJson<FivesConfiguracao>(`jarvis_5s_config_${companyId}`);
+/** Empresas que ainda têm dados 5S antigos guardados neste navegador. */
+export function legacyFivesCompanyIds(): string[] {
+  if (typeof window === "undefined") return [];
+  const ids = new Set<string>();
+  const re = /^jarvis_5s_(?:config|setores|auditorias|mural|eventos|cronograma)_([0-9a-f-]{36})$/i;
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const match = re.exec(window.localStorage.key(i) || "");
+      if (match && isUuid(match[1])) ids.add(match[1]);
+    }
+  } catch {
+    return [];
+  }
+  return [...ids];
 }
 
 function isDemoSetor(s: FivesSetor, companyId: string): boolean {
