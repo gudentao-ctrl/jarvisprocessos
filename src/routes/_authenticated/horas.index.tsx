@@ -75,7 +75,7 @@ export const Route = createFileRoute("/_authenticated/horas/")({
   }),
 });
 
-export const EXPENSE_CATEGORIES_CONFIG = [
+const EXPENSE_CATEGORIES_CONFIG = [
   {
     key: "alimentacao",
     label: "Alimentação",

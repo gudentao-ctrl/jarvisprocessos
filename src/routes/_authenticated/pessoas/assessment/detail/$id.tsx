@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/pessoas/assessment/detail/
   component: DetailPage,
 });
 
-export default function DetailPage() {
+function DetailPage() {
   const { id } = Route.useParams();
   const [reportData, setReportData] = useState<CandidatePsychometricResult | null>(null);
   const [loadError, setLoadError] = useState("");

@@ -70,7 +70,7 @@ export const Route = createFileRoute("/_authenticated/pessoas/recrutamento")({
   component: RecrutamentoKanbanView,
 });
 
-export default function RecrutamentoKanbanView() {
+function RecrutamentoKanbanView() {
   const navigate = useNavigate();
   const { companyId, company, companies } = useCompanyFilter();
 

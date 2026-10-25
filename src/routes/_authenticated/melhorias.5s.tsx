@@ -53,7 +53,7 @@ export const Route = createFileRoute("/_authenticated/melhorias/5s")({
   component: Hub5SRouteComponent,
 });
 
-export default function Hub5SRouteComponent() {
+function Hub5SRouteComponent() {
   const { companyId: selectedCompanyId, company: selectedCompany, companies, setCompanyId, loading: companiesLoading } = useCompanyFilter();
   // Sem empresa escolhida no filtro (comum no celular), abre a primeira empresa disponível
   // em vez de um painel vazio, para que computador e celular mostrem os mesmos dados.
