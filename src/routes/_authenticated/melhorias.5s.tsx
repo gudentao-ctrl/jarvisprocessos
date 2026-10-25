@@ -288,6 +288,8 @@ export default function Hub5SRouteComponent() {
           <PortalColaboradorView
             portalData={portalData}
             isPublic={false}
+            canEdit={canEdit}
+            onRefresh={loadData}
             onOpenAuditoria={handleOpenAuditoria}
           />
         </TabsContent>

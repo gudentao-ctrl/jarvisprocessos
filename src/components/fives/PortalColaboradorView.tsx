@@ -62,11 +62,14 @@ import type {
 import { NOMES_SENSOS } from "@/lib/fives-types";
 import { saveFivesMuralFoto, deleteFivesMuralFoto, saveFivesCronogramaEtapa, deleteFivesCronogramaEtapa, formatFivesDate, isUuid } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
+import { ITEditorDialog } from "./ITEditorDialog";
 import fivesBanner from "@/assets/fives-banner.jpg";
 
 interface PortalColaboradorViewProps {
   portalData: FivesPortalData;
   isPublic?: boolean;
+  canEdit?: boolean;
+  onRefresh?: () => void;
   onOpenAuditoria?: (setorId?: string) => void;
   selectedSectorIdFilter?: string | null;
 }
@@ -74,6 +77,8 @@ interface PortalColaboradorViewProps {
 export function PortalColaboradorView({
   portalData,
   isPublic = false,
+  canEdit = false,
+  onRefresh,
   onOpenAuditoria,
   selectedSectorIdFilter,
 }: PortalColaboradorViewProps) {
@@ -228,9 +233,11 @@ export function PortalColaboradorView({
     }
   };
 
-  // IT do Setor Atual
-  const currentIT: FivesInstrucaoTrabalho | undefined = instrucoesTrabalho[selectedSectorId];
-  const currentSetor = setores.find((s) => s.id === selectedSectorId);
+  // IT do Setor Atual (cai no primeiro setor quando a seleção ainda não existe)
+  const currentSetor = setores.find((s) => s.id === selectedSectorId) ?? setores[0];
+  const currentIT: FivesInstrucaoTrabalho | undefined = currentSetor ? instrucoesTrabalho[currentSetor.id] : undefined;
+  const canEditIT = !isPublic && canEdit && !!currentSetor;
+  const [itEditorOpen, setItEditorOpen] = useState(false);
 
   // Cores dinâmicas whitelabel
   const primaryColor = config.primary_color || "#3E100C";
@@ -847,6 +854,12 @@ export function PortalColaboradorView({
           )}
         </div>
 
+        {setores.length === 0 && !isPublic && (
+          <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
+            Para cadastrar o Padrão Ouro e a rotina de limpeza, crie primeiro um setor na aba <strong>Zonas, Comitê &amp; Marca</strong>.
+          </div>
+        )}
+
         {/* Seletor de Setor */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap flex items-center gap-1">
@@ -922,6 +935,16 @@ export function PortalColaboradorView({
                 </div>
               </div>
 
+              {canEditIT && (
+                <Button onClick={() => setItEditorOpen(true)} className="w-full text-xs font-bold">
+                  {currentIT?.foto_padrao_ouro_url ? (
+                    <><Pencil className="h-3.5 w-3.5 mr-2" /> Editar Padrão Ouro</>
+                  ) : (
+                    <><Camera className="h-3.5 w-3.5 mr-2" /> Cadastrar foto do Padrão Ouro</>
+                  )}
+                </Button>
+              )}
+
               {currentIT?.documento_url && (
                 <a
                   href={currentIT.documento_url}
@@ -939,24 +962,50 @@ export function PortalColaboradorView({
 
           {/* Tabela de Rotina de Limpeza */}
           <Card className="lg:col-span-7 border shadow-sm">
-            <CardHeader className="pb-3 border-b bg-muted/20 flex flex-row items-center justify-between">
+            <CardHeader className="pb-3 border-b bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 space-y-0">
               <div>
                 <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   Tabela de Rotina de Limpeza & Conservação
                 </CardTitle>
                 <CardDescription>
                   Passo a passo operacional, produtos e periodicidades exigidas
                 </CardDescription>
               </div>
+              {canEditIT && (
+                <Button size="sm" onClick={() => setItEditorOpen(true)} className="font-bold text-xs w-full sm:w-auto shrink-0">
+                  {currentIT?.rotina_limpeza?.length ? (
+                    <><Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar rotina</>
+                  ) : (
+                    <><Plus className="h-3.5 w-3.5 mr-1.5" /> Cadastrar rotina</>
+                  )}
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               {(!currentIT || !currentIT.rotina_limpeza || currentIT.rotina_limpeza.length === 0) ? (
                 <div className="p-8 text-center text-muted-foreground text-xs">
-                  Nenhuma rotina cadastrada para este setor ainda.
+                  {currentSetor ? "Nenhuma rotina cadastrada para este setor ainda." : "Cadastre um setor para montar a rotina de limpeza."}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  {/* Celular: um cartão por item */}
+                  <div className="sm:hidden divide-y">
+                    {currentIT.rotina_limpeza.map((item) => (
+                      <div key={item.id} className="p-4 space-y-1.5 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-sm text-foreground">{item.item_local}</span>
+                          <Badge variant="outline" className="text-[10px] font-bold shrink-0">{item.frequencia}</Badge>
+                        </div>
+                        {item.procedimento && <p className="text-muted-foreground">{item.procedimento}</p>}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                          {item.produto_epi && <span>Produto/EPI: <strong className="text-foreground">{item.produto_epi}</strong></span>}
+                          {item.responsavel && <span>Responsável: <strong className="text-foreground">{item.responsavel}</strong></span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b bg-muted/40 font-semibold text-muted-foreground">
@@ -1002,11 +1051,22 @@ export function PortalColaboradorView({
                       ))}
                     </tbody>
                   </table>
-                </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
         </div>
+
+        {canEditIT && (
+          <ITEditorDialog
+            open={itEditorOpen}
+            onOpenChange={setItEditorOpen}
+            setor={currentSetor ?? null}
+            existing={currentIT ?? null}
+            onSaved={onRefresh}
+          />
+        )}
       </section>
 
       {/* 6. CRONOGRAMA DA IMPLANTAÇÃO 5S (ROADMAP DO PROJETO) */}
