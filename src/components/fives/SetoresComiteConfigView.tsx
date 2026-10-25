@@ -793,6 +793,7 @@ export function SetoresComiteConfigView({
       <ITEditorDialog
         open={isItModalOpen}
         onOpenChange={setIsItModalOpen}
+        companyId={companyId}
         setor={setores.find((s) => s.id === itSetorId) ?? null}
         existing={itSetorId ? instrucoesTrabalho[itSetorId] : null}
         onSaved={onRefresh}
