@@ -9,13 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { compressImageFile } from "@/lib/image-compress";
-import { saveFivesIT } from "@/lib/fives-storage";
+import { saveFivesIT, saveFivesSetor } from "@/lib/fives-storage";
 import type { FivesInstrucaoTrabalho, FivesRotinaLimpezaItem, FivesSetor, FrequenciaLimpeza } from "@/lib/fives-types";
 
 interface ITEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Setor a editar; quando vazio, o próprio formulário cria um novo setor. */
   setor: FivesSetor | null;
+  companyId: string;
   existing?: FivesInstrucaoTrabalho | null;
   onSaved?: () => void;
 }
@@ -31,7 +33,10 @@ function novoItem(): FivesRotinaLimpezaItem {
   };
 }
 
-export function ITEditorDialog({ open, onOpenChange, setor, existing, onSaved }: ITEditorDialogProps) {
+export function ITEditorDialog({ open, onOpenChange, setor, companyId, existing, onSaved }: ITEditorDialogProps) {
+  const isNovoSetor = !setor;
+  const [setorNome, setSetorNome] = useState("");
+  const [guardiao, setGuardiao] = useState("");
   const [titulo, setTitulo] = useState("");
   const [foto, setFoto] = useState("");
   const [documentoUrl, setDocumentoUrl] = useState("");
@@ -39,8 +44,10 @@ export function ITEditorDialog({ open, onOpenChange, setor, existing, onSaved }:
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!open || !setor) return;
-    setTitulo(existing?.titulo || `IT 5S - Padrão de Limpeza e Organização (${setor.nome_setor})`);
+    if (!open) return;
+    setSetorNome("");
+    setGuardiao("");
+    setTitulo(existing?.titulo || (setor ? `IT 5S - Padrão de Limpeza e Organização (${setor.nome_setor})` : ""));
     setFoto(existing?.foto_padrao_ouro_url || "");
     setDocumentoUrl(existing?.documento_url || "");
     setRotinas(existing?.rotina_limpeza?.length ? existing.rotina_limpeza : [novoItem()]);
@@ -58,15 +65,15 @@ export function ITEditorDialog({ open, onOpenChange, setor, existing, onSaved }:
   };
 
   const handleSave = async () => {
-    if (!setor) return;
-    if (!titulo.trim()) { toast.error("Informe o título da instrução."); return; }
+    if (isNovoSetor && !setorNome.trim()) { toast.error("Informe o nome do setor."); return; }
     const itens = rotinas.filter((r) => r.item_local.trim() || r.procedimento.trim());
     try {
       setSaving(true);
+      const alvo = setor ?? await saveFivesSetor({ company_id: companyId, nome_setor: setorNome.trim(), guardiao_nome: guardiao.trim(), meta_nota: 90 });
       await saveFivesIT({
-        id: existing?.id,
-        setor_id: setor.id,
-        titulo: titulo.trim(),
+        id: setor ? existing?.id : undefined,
+        setor_id: alvo.id,
+        titulo: titulo.trim() || `IT 5S - Padrão de Limpeza e Organização (${alvo.nome_setor})`,
         foto_padrao_ouro_url: foto || null,
         documento_url: documentoUrl.trim() || null,
         rotina_limpeza: itens,
@@ -87,7 +94,7 @@ export function ITEditorDialog({ open, onOpenChange, setor, existing, onSaved }:
         <div className="p-4 sm:p-5 border-b bg-card pr-10">
           <DialogTitle className="text-base font-bold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary shrink-0" />
-            Padrão de Limpeza • {setor?.nome_setor}
+            {setor ? `Padrão de Limpeza • ${setor.nome_setor}` : "Novo setor e padrão de limpeza"}
           </DialogTitle>
           <DialogDescription className="text-xs">
             Foto do Padrão Ouro e tabela de rotina de limpeza do setor.
@@ -95,9 +102,22 @@ export function ITEditorDialog({ open, onOpenChange, setor, existing, onSaved }:
         </div>
 
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+          {isNovoSetor && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border bg-muted/30">
+              <div>
+                <Label className="text-xs font-semibold">Nome do setor *</Label>
+                <Input value={setorNome} onChange={(e) => setSetorNome(e.target.value)} placeholder="Ex.: Almoxarifado" className="text-sm mt-1 h-10" />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Guardião do setor</Label>
+                <Input value={guardiao} onChange={(e) => setGuardiao(e.target.value)} placeholder="Responsável pelo setor" className="text-sm mt-1 h-10" />
+              </div>
+            </div>
+          )}
+
           <div>
-            <Label className="text-xs font-semibold">Título da instrução *</Label>
-            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} className="text-sm mt-1 h-10" />
+            <Label className="text-xs font-semibold">Título da instrução</Label>
+            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="IT 5S - Padrão de Limpeza e Organização" className="text-sm mt-1 h-10" />
           </div>
 
           {/* Padrão Ouro */}

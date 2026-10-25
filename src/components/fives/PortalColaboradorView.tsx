@@ -236,8 +236,10 @@ export function PortalColaboradorView({
   // IT do Setor Atual (cai no primeiro setor quando a seleção ainda não existe)
   const currentSetor = setores.find((s) => s.id === selectedSectorId) ?? setores[0];
   const currentIT: FivesInstrucaoTrabalho | undefined = currentSetor ? instrucoesTrabalho[currentSetor.id] : undefined;
-  const canEditIT = !isPublic && canEdit && !!currentSetor;
+  const canEditIT = !isPublic && canEdit;
   const [itEditorOpen, setItEditorOpen] = useState(false);
+  const [itNovoSetor, setItNovoSetor] = useState(false);
+  const openITEditor = (novoSetor = false) => { setItNovoSetor(novoSetor || !currentSetor); setItEditorOpen(true); };
 
   // Cores dinâmicas whitelabel
   const primaryColor = config.primary_color || "#3E100C";
@@ -843,20 +845,29 @@ export function PortalColaboradorView({
             </p>
           </div>
 
-          {currentSetor && (
-            <Button
-              variant="outline"
-              onClick={() => setQrModalSector(currentSetor)}
-              className="border-primary/40 text-primary font-bold shadow-sm"
-            >
-              <QrCode className="h-4 w-4 mr-2" /> Gerar QR Code do Setor
-            </Button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {canEditIT && (
+              <Button onClick={() => openITEditor(true)} className="font-bold shadow-sm">
+                <Plus className="h-4 w-4 mr-2" /> Novo setor com padrão de limpeza
+              </Button>
+            )}
+            {currentSetor && (
+              <Button
+                variant="outline"
+                onClick={() => setQrModalSector(currentSetor)}
+                className="border-primary/40 text-primary font-bold shadow-sm"
+              >
+                <QrCode className="h-4 w-4 mr-2" /> Gerar QR Code do Setor
+              </Button>
+            )}
+          </div>
         </div>
 
         {setores.length === 0 && !isPublic && (
           <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
-            Para cadastrar o Padrão Ouro e a rotina de limpeza, crie primeiro um setor na aba <strong>Zonas, Comitê &amp; Marca</strong>.
+            {canEditIT
+              ? "Nenhum setor cadastrado ainda. Use os botões abaixo para criar o primeiro setor junto com a foto do Padrão Ouro e a rotina de limpeza."
+              : "Nenhum setor cadastrado ainda. Peça ao gestor do 5S para cadastrar os setores."}
           </div>
         )}
 
@@ -936,7 +947,7 @@ export function PortalColaboradorView({
               </div>
 
               {canEditIT && (
-                <Button onClick={() => setItEditorOpen(true)} className="w-full text-xs font-bold">
+                <Button onClick={() => openITEditor()} className="w-full text-xs font-bold">
                   {currentIT?.foto_padrao_ouro_url ? (
                     <><Pencil className="h-3.5 w-3.5 mr-2" /> Editar Padrão Ouro</>
                   ) : (
@@ -973,7 +984,7 @@ export function PortalColaboradorView({
                 </CardDescription>
               </div>
               {canEditIT && (
-                <Button size="sm" onClick={() => setItEditorOpen(true)} className="font-bold text-xs w-full sm:w-auto shrink-0">
+                <Button size="sm" onClick={() => openITEditor()} className="font-bold text-xs w-full sm:w-auto shrink-0">
                   {currentIT?.rotina_limpeza?.length ? (
                     <><Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar rotina</>
                   ) : (
@@ -1062,8 +1073,9 @@ export function PortalColaboradorView({
           <ITEditorDialog
             open={itEditorOpen}
             onOpenChange={setItEditorOpen}
-            setor={currentSetor ?? null}
-            existing={currentIT ?? null}
+            companyId={company.id}
+            setor={itNovoSetor ? null : currentSetor ?? null}
+            existing={itNovoSetor ? null : currentIT ?? null}
             onSaved={onRefresh}
           />
         )}
