@@ -934,6 +934,7 @@ export function PortalColaboradorView({
                 )}
               </div>
 
+              {currentSetor && (
               <div className="bg-muted/30 p-3 rounded-lg border text-xs space-y-1">
                 <div className="font-bold text-foreground">
                   Título da Instrução: {currentIT?.titulo || `IT 5S - ${currentSetor?.nome_setor}`}
@@ -945,6 +946,7 @@ export function PortalColaboradorView({
                   Meta de Conformidade: <strong>{currentSetor?.meta_nota}%</strong>
                 </div>
               </div>
+              )}
 
               {canEditIT && (
                 <Button onClick={() => openITEditor()} className="w-full text-xs font-bold">
