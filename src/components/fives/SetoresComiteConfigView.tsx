@@ -48,6 +48,7 @@ import {
   isUuid,
 } from "@/lib/fives-storage";
 import { SectorQrModal } from "./SectorQrModal";
+import { ITEditorDialog } from "./ITEditorDialog";
 
 interface SetoresComiteConfigViewProps {
   companyId: string;
@@ -104,11 +105,6 @@ export function SetoresComiteConfigView({
   // Modal IT e Padrão Ouro
   const [isItModalOpen, setIsItModalOpen] = useState(false);
   const [itSetorId, setItSetorId] = useState<string | null>(null);
-  const [itTitulo, setItTitulo] = useState("");
-  const [itFotoPadraoOuro, setItFotoPadraoOuro] = useState("");
-  const [itDocumentoUrl, setItDocumentoUrl] = useState("");
-  const [itRotinas, setItRotinas] = useState<FivesRotinaLimpezaItem[]>([]);
-  const [savingIT, setSavingIT] = useState(false);
 
   // Modal Comitê Membro
   const [isComiteModalOpen, setIsComiteModalOpen] = useState(false);
@@ -231,78 +227,7 @@ export function SetoresComiteConfigView({
   // Modal IT
   const handleOpenItModal = (setorId: string) => {
     setItSetorId(setorId);
-    const existing = instrucoesTrabalho[setorId];
-    if (existing) {
-      setItTitulo(existing.titulo);
-      setItFotoPadraoOuro(existing.foto_padrao_ouro_url || "");
-      setItDocumentoUrl(existing.documento_url || "");
-      setItRotinas(existing.rotina_limpeza || []);
-    } else {
-      const s = setores.find((x) => x.id === setorId);
-      setItTitulo(`IT 5S - Padrão de Limpeza e Organização (${s?.nome_setor || "Setor"})`);
-      setItFotoPadraoOuro("");
-      setItDocumentoUrl("");
-      setItRotinas([
-        {
-          id: "rotina-1",
-          item_local: "Bancadas e Mesas de Trabalho",
-          procedimento: "Recolher papéis, higienizar com álcool 70% e alinhar equipamentos",
-          produto_epi: "Álcool 70%, Pano microfibra",
-          frequencia: "Diária",
-          responsavel: "Operador do Setor",
-        },
-      ]);
-    }
     setIsItModalOpen(true);
-  };
-
-  const handleAddRotinaItem = () => {
-    setItRotinas((prev) => [
-      ...prev,
-      {
-        id: `rotina-${Date.now()}`,
-        item_local: "",
-        procedimento: "",
-        produto_epi: "",
-        frequencia: "Semanal",
-        responsavel: "",
-      },
-    ]);
-  };
-
-  const handleRemoveRotinaItem = (id: string) => {
-    setItRotinas((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  const handleUpdateRotinaItem = (id: string, updates: Partial<FivesRotinaLimpezaItem>) => {
-    setItRotinas((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
-    );
-  };
-
-  const handleSaveIT = async () => {
-    if (!itSetorId) return;
-
-    try {
-      setSavingIT(true);
-      const existing = instrucoesTrabalho[itSetorId];
-      await saveFivesIT({
-        id: existing?.id,
-        setor_id: itSetorId,
-        titulo: itTitulo,
-        foto_padrao_ouro_url: itFotoPadraoOuro || null,
-        documento_url: itDocumentoUrl || null,
-        rotina_limpeza: itRotinas,
-      });
-
-      toast.success("Instrução de Trabalho e Padrão Ouro salvos!");
-      setIsItModalOpen(false);
-      onRefresh();
-    } catch (err: any) {
-      toast.error("Erro ao salvar IT: " + (err?.message || "Tente novamente"));
-    } finally {
-      setSavingIT(false);
-    }
   };
 
   // Comitê
@@ -865,181 +790,13 @@ export function SetoresComiteConfigView({
       </Dialog>
 
       {/* MODAL IT & PADRÃO OURO */}
-      <Dialog open={isItModalOpen} onOpenChange={setIsItModalOpen}>
-        <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col p-0 overflow-hidden bg-background rounded-2xl shadow-2xl border">
-          <div className="p-5 border-b bg-card">
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Instrução de Trabalho & Padrão Ouro de Limpeza
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Configure a foto de referência de excelência e a matriz de rotinas de higienização do setor.
-            </DialogDescription>
-          </div>
-
-          <div className="p-6 overflow-y-auto space-y-5 flex-1">
-            <div>
-              <Label className="text-xs font-semibold">Título Oficial da IT *</Label>
-              <Input
-                value={itTitulo}
-                onChange={(e) => setItTitulo(e.target.value)}
-                className="text-xs mt-1 h-9"
-              />
-            </div>
-
-            {/* Foto Padrão Ouro */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Foto do Padrão Ouro (Estado Ideal de Conservação)
-              </Label>
-              <div className="flex items-center gap-3">
-                <div className="w-28 h-20 rounded-xl border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                  {itFotoPadraoOuro ? (
-                    <img
-                      src={itFotoPadraoOuro}
-                      alt="Padrão Ouro"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground">Sem foto</span>
-                  )}
-                </div>
-                <div className="space-y-1 flex-1">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(setItFotoPadraoOuro, e)}
-                    className="text-xs h-8 file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-primary file:text-white"
-                  />
-                  <Input
-                    placeholder="Ou cole a URL direta da imagem..."
-                    value={itFotoPadraoOuro}
-                    onChange={(e) => setItFotoPadraoOuro(e.target.value)}
-                    className="text-xs h-7"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Link para PDF Externo */}
-            <div>
-              <Label className="text-xs font-semibold">URL do Documento PDF Oficial (Opcional)</Label>
-              <Input
-                placeholder="https://drive.google.com/... ou link interno"
-                value={itDocumentoUrl}
-                onChange={(e) => setItDocumentoUrl(e.target.value)}
-                className="text-xs mt-1 h-8"
-              />
-            </div>
-
-            {/* Tabela de Rotinas de Limpeza */}
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-xs text-foreground">
-                    Itens da Rotina de Limpeza & Frequência
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    Defina o que limpar, com qual produto e com que periodicidade.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAddRotinaItem}
-                  className="h-7 text-xs font-semibold"
-                >
-                  <Plus className="h-3 w-3 mr-1" /> + Item na Rotina
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {itRotinas.map((r, idx) => (
-                  <div
-                    key={r.id}
-                    className="p-3 bg-muted/30 rounded-xl border grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs"
-                  >
-                    <div className="sm:col-span-3">
-                      <Input
-                        placeholder="Item / Local"
-                        value={r.item_local}
-                        onChange={(e) =>
-                          handleUpdateRotinaItem(r.id, { item_local: e.target.value })
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="sm:col-span-4">
-                      <Input
-                        placeholder="Procedimento de Limpeza"
-                        value={r.procedimento}
-                        onChange={(e) =>
-                          handleUpdateRotinaItem(r.id, { procedimento: e.target.value })
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <Input
-                        placeholder="Produto/EPI"
-                        value={r.produto_epi}
-                        onChange={(e) =>
-                          handleUpdateRotinaItem(r.id, { produto_epi: e.target.value })
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <select
-                        value={r.frequencia}
-                        onChange={(e) =>
-                          handleUpdateRotinaItem(r.id, {
-                            frequencia: e.target.value as FrequenciaLimpeza,
-                          })
-                        }
-                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-[11px]"
-                      >
-                        <option value="Diária">Diária</option>
-                        <option value="Semanal">Semanal</option>
-                        <option value="Quinzenal">Quinzenal</option>
-                        <option value="Mensal">Mensal</option>
-                      </select>
-                    </div>
-                    <div className="sm:col-span-1 flex justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRemoveRotinaItem(r.id)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 border-t bg-card flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsItModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSaveIT}
-              disabled={savingIT}
-              className="bg-primary text-white font-bold"
-            >
-              {savingIT ? "Salvando..." : "Salvar IT & Padrão Ouro"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ITEditorDialog
+        open={isItModalOpen}
+        onOpenChange={setIsItModalOpen}
+        setor={setores.find((s) => s.id === itSetorId) ?? null}
+        existing={itSetorId ? instrucoesTrabalho[itSetorId] : null}
+        onSaved={onRefresh}
+      />
 
       {/* MODAL MEMBRO COMITÊ */}
       <Dialog open={isComiteModalOpen} onOpenChange={setIsComiteModalOpen}>
