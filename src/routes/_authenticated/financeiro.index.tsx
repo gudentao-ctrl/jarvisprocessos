@@ -115,7 +115,7 @@ const fmtHours = (h: number) => {
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 
-export const EXPENSE_CATEGORIES_CONFIG = [
+const EXPENSE_CATEGORIES_CONFIG = [
   {
     key: "alimentacao",
     label: "Alimentação",

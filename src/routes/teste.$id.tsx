@@ -28,7 +28,7 @@ export const Route = createFileRoute("/teste/$id")({
 const ITEMS_PER_PAGE = 10;
 const TOTAL_PAGES = Math.ceil(bancoQuestoes.length / ITEMS_PER_PAGE); // 24 páginas
 
-export default function CandidatoTestePage() {
+function CandidatoTestePage() {
   const { id } = Route.useParams();
   const loadAssessment = useServerFn(getPublicAssessment);
   const startAssessment = useServerFn(startPublicAssessment);

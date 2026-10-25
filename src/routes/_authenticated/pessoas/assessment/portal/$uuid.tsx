@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_authenticated/pessoas/assessment/portal/
   component: PortalRedirect,
 });
 
-export default function PortalRedirect() {
+function PortalRedirect() {
   const { uuid } = Route.useParams();
   const navigate = useNavigate();
 

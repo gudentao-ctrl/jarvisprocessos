@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/pessoas/dashboard")({
   component: PessoasDashboard,
 });
 
-export default function PessoasDashboard() {
+function PessoasDashboard() {
   const navigate = useNavigate();
   const { companyId, company } = useCompanyFilter();
   const [summary, setSummary] = useState({ colaboradores: 0, recrutamento: 0, mentorias: 0, npsCount: 0, alertas: 1 });

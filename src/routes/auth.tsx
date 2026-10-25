@@ -48,7 +48,7 @@ function friendlyAuthError(err: unknown): string {
   return msg || "Erro ao autenticar";
 }
 
-export function AuthPage() {
+function AuthPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
   const destination = safeRedirect(redirect);
