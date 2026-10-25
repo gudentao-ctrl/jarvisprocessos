@@ -1076,7 +1076,7 @@ export function PortalColaboradorView({
             companyId={company.id}
             setor={itNovoSetor ? null : currentSetor ?? null}
             existing={itNovoSetor ? null : currentIT ?? null}
-            onSaved={onRefresh}
+            onSaved={(id) => { setSelectedSectorId(id); onRefresh?.(); }}
           />
         )}
       </section>

@@ -19,7 +19,7 @@ interface ITEditorDialogProps {
   setor: FivesSetor | null;
   companyId: string;
   existing?: FivesInstrucaoTrabalho | null;
-  onSaved?: () => void;
+  onSaved?: (setorId: string) => void;
 }
 
 function novoItem(): FivesRotinaLimpezaItem {
@@ -80,7 +80,7 @@ export function ITEditorDialog({ open, onOpenChange, setor, companyId, existing,
       });
       toast.success("Padrão de limpeza do setor salvo!");
       onOpenChange(false);
-      onSaved?.();
+      onSaved?.(alvo.id);
     } catch (err: any) {
       toast.error("Erro ao salvar: " + (err?.message || "tente novamente"));
     } finally {
