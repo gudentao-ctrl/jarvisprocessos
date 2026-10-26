@@ -632,7 +632,7 @@ export async function exportMapaPdf(opts: {
         },
         columnStyles: {
           0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
-          1: { cellWidth: 116 }, // Amplo espaço para texto e detalhes completos
+          1: { cellWidth: 130 }, // Amplo espaço para texto e detalhes completos
           2: { cellWidth: 42 },
           3: { cellWidth: 20, halign: "center" },
           4: { cellWidth: 26, halign: "center", fontStyle: "bold" },
