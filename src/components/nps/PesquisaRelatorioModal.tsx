@@ -34,7 +34,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import type { Pesquisa, NpsRelatorioConsolidado } from "@/lib/nps-types";
 import { resetRespostasPesquisa } from "@/lib/nps-storage";
 
@@ -74,8 +73,9 @@ export function PesquisaRelatorioModal({
   }, [relatorio.zona]);
 
   // Exportar para Excel usando XLSX
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
+      const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
 
       // Aba 1: Resumo Executivo
