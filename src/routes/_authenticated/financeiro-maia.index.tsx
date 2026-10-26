@@ -24,7 +24,6 @@ import {
 } from "@/lib/maia-finance.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { getMe } from "@/lib/access.functions";
-import { exportMaiaDrePdf } from "@/lib/maia-dre-pdf";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1374,7 +1373,7 @@ function DreSection({ selectedMonth }: { selectedMonth: string }) {
         <Button
           className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold"
           disabled={isLoading || !dre}
-          onClick={() => dre && exportMaiaDrePdf(dre)}
+          onClick={async () => { if (!dre) return; const { exportMaiaDrePdf } = await import("@/lib/maia-dre-pdf"); exportMaiaDrePdf(dre); }}
         >
           <FileDown className="h-4 w-4" /> Gerar PDF de Fechamento Maia
         </Button>

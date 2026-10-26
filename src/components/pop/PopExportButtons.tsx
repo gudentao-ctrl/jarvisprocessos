@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { FileDown, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { popProcessName, type PopContent } from "@/lib/pop-types";
-import { buildPopPdf } from "./pop-pdf";
 
 function fileBase(pop: PopContent) {
   return `POP-${(popProcessName(pop) || "processo").replace(/\W+/g, "-").toLowerCase()}`;
@@ -16,8 +15,9 @@ export function ExportPopPdfButton({
   pop: PopContent;
   companyName?: string;
 }) {
-  function exportPdf() {
+  async function exportPdf() {
     try {
+      const { buildPopPdf } = await import("./pop-pdf");
       buildPopPdf(pop, companyName).save(`${fileBase(pop)}.pdf`);
       toast.success("PDF gerado");
     } catch (e: any) {

@@ -82,7 +82,7 @@ import { DreVisualConciliacao } from "@/components/finance/DreVisualConciliacao"
 import { GerarFaturaModal } from "@/components/finance/GerarFaturaModal";
 import { RegistrarPagamentoModal } from "@/components/finance/RegistrarPagamentoModal";
 import { AnexarNfModal } from "@/components/finance/AnexarNfModal";
-import { exportBilledPdf, type BilledPdfMode } from "@/lib/invoice-pdf";
+import type { BilledPdfMode } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

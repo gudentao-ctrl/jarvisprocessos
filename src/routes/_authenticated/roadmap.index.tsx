@@ -69,7 +69,6 @@ import {
   getDefaultRoadmapCockpitData,
   type RoadmapCockpitData,
 } from "@/lib/torre-controle-storage";
-import { exportRoadmapExecutivePdf } from "@/lib/roadmap-pdf";
 
 export const Route = createFileRoute("/_authenticated/roadmap/")({ component: Page });
 
@@ -169,8 +168,9 @@ function CockpitExecutivoView({
     toast.success("Cockpit regerado com IA cruzando diagnósticos e finanças!");
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     try {
+      const { exportRoadmapExecutivePdf } = await import("@/lib/roadmap-pdf");
       exportRoadmapExecutivePdf(data, companyName);
       toast.success("Status Report Executivo (PDF) gerado com sucesso!");
     } catch (err) {
