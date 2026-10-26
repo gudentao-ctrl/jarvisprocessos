@@ -351,7 +351,6 @@ function PublicDashboard() {
           />
         </section>
 
-        <ImpactNetworkPortal data={d} />
 
         {/* ================ Section 1 — Indicators ================ */}
         <section className="space-y-4">
