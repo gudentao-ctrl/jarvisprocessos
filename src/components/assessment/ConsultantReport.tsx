@@ -42,7 +42,6 @@ import {
   Award,
 } from "lucide-react";
 import { toast } from "sonner";
-import { generateAssessmentReport } from "@/lib/pdf-generator";
 
 interface ConsultantReportProps {
   data: CandidatePsychometricResult;
@@ -99,6 +98,7 @@ export function ConsultantReport({ data, onExportPdf }: ConsultantReportProps) {
         },
       };
 
+      const { generateAssessmentReport } = await import("@/lib/pdf-generator");
       const blob = await generateAssessmentReport(pdfCandidate);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

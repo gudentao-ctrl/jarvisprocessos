@@ -33,7 +33,6 @@ import { MentoradoDetail } from "@/components/mentoria/MentoradoDetail";
 import { AtendimentoModal } from "@/components/mentoria/AtendimentoModal";
 import { FinalizarMentoriaModal } from "@/components/mentoria/FinalizarMentoriaModal";
 import { NovoMentoradoModal } from "@/components/mentoria/NovoMentoradoModal";
-import { generateMentoriaFinalReportPDF } from "@/utils/mentoriaPdfGenerator";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pessoas/mentorias")({
@@ -142,6 +141,7 @@ function MentoriasPage() {
   const handleDownloadFinalReport = async (mentorado: Mentorado) => {
     try {
       const compName = companies?.find((c) => c.id === mentorado.company_id)?.name || company?.name || "Empresa Cliente";
+      const { generateMentoriaFinalReportPDF } = await import("@/utils/mentoriaPdfGenerator");
       const pdf = await generateMentoriaFinalReportPDF(mentorado, mentorado.parecer_final || "", compName);
       pdf.download();
       toast.success("Relatório de Conclusão baixado com sucesso!");

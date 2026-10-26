@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
 import {
   EXECUTIVE_PILLARS,
   type ExecutiveDiagnosticContent,
@@ -35,9 +34,10 @@ export function ExportDiagnosticPdfButton({
 }) {
   const [busy, setBusy] = useState(false);
 
-  function exportPdf() {
+  async function exportPdf() {
     setBusy(true);
     try {
+      const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
       const W = pdf.internal.pageSize.getWidth();
       const H = pdf.internal.pageSize.getHeight();

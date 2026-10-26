@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CandidaturaFunil } from "@/lib/recrutamento-types";
-import { generatePropostaAdmissaoPDF } from "@/utils/propostaAdmissaoPdfGenerator";
 
 interface CandidatoContratadoModalProps {
   candidatura: CandidaturaFunil | null;
@@ -48,11 +47,12 @@ export default function CandidatoContratadoModal({
   const proposta = candidatura.proposta_contratacao;
   const avaliacaoCliente = candidatura.avaliacao_cliente;
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!candidato || !vaga || !proposta) {
       toast.error("Dados incompletos para download da proposta.");
       return;
     }
+    const { generatePropostaAdmissaoPDF } = await import("@/utils/propostaAdmissaoPdfGenerator");
     const doc = generatePropostaAdmissaoPDF({
       candidato,
       vaga,

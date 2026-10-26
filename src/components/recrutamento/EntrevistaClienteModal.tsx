@@ -37,7 +37,6 @@ import {
 import { toast } from "sonner";
 import { CandidaturaFunil, AvaliacaoCliente } from "@/lib/recrutamento-types";
 import { avancarEtapaCandidatura } from "@/lib/recrutamento-storage";
-import { generatePropostaAdmissaoPDF } from "@/utils/propostaAdmissaoPdfGenerator";
 
 interface EntrevistaClienteModalProps {
   candidatura: CandidaturaFunil | null;
@@ -74,13 +73,14 @@ export default function EntrevistaClienteModal({
   const [propostaAceita, setPropostaAceita] = useState(avaliacaoAtual?.proposta_aceita ?? true);
   const [loading, setLoading] = useState(false);
 
-  const handleGerarPDF = () => {
+  const handleGerarPDF = async () => {
     if (!candidato || !vaga || !proposta) {
       toast.error("Dados da proposta ou candidato incompletos para geração do PDF.");
       return;
     }
 
     try {
+      const { generatePropostaAdmissaoPDF } = await import("@/utils/propostaAdmissaoPdfGenerator");
       const doc = generatePropostaAdmissaoPDF({
         candidato,
         vaga,

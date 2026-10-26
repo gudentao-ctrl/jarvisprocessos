@@ -23,7 +23,6 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Mentorado } from "@/lib/mentoria-types";
-import { generateMentoriaFinalReportPDF } from "@/utils/mentoriaPdfGenerator";
 import { toast } from "sonner";
 
 export function FinalizarMentoriaModal({
@@ -57,6 +56,7 @@ export function FinalizarMentoriaModal({
     setGeneratingPdf(true);
     try {
       // 1. Gera o PDF oficial do relatório
+      const { generateMentoriaFinalReportPDF } = await import("@/utils/mentoriaPdfGenerator");
       const pdf = await generateMentoriaFinalReportPDF(mentorado, parecer, companyName);
 
       // Cria URL para o blob

@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { Canvg } from "canvg";
+import type { jsPDF } from "jspdf";
+// Bibliotecas de PDF carregadas só ao exportar, para não pesar a abertura da tela.
+let autoTable: (typeof import("jspdf-autotable"))["default"];
 import {
   Dialog,
   DialogContent,
@@ -155,7 +155,9 @@ export function ExportProcessPdfButton(props: ExportProcessPdfProps) {
         else effFormat = "a4";
       }
 
-      const pdf = new jsPDF({ unit: "mm", format: effFormat as any, orientation: effOrientation });
+      const [{ jsPDF: JsPDF }, autoTableMod] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+      autoTable = autoTableMod.default;
+      const pdf = new JsPDF({ unit: "mm", format: effFormat as any, orientation: effOrientation });
 
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
@@ -825,6 +827,7 @@ async function svgToPng(
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, w, h);
+  const { Canvg } = await import("canvg");
   const v = await Canvg.from(ctx, svg, { ignoreDimensions: true, ignoreClear: true });
   v.resize(w, h, "xMidYMid meet");
   await v.render();
