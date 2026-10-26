@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas-pro";
-import jsPDF from "jspdf";
 
 export function ExportPdfButton({ filename = "relatorio.pdf" }: { filename?: string }) {
   const [busy, setBusy] = useState(false);
@@ -16,6 +14,7 @@ export function ExportPdfButton({ filename = "relatorio.pdf" }: { filename?: str
       const pages = Array.from(root.querySelectorAll<HTMLElement>(".report-page"));
       if (!pages.length) throw new Error("Nenhum bloco visível");
 
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas-pro"), import("jspdf")]);
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
