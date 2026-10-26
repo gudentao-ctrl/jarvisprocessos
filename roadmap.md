@@ -51,3 +51,4 @@
 - [x] Recuperar HUB 5S e ajustes de NPS apagados por atualização anterior; dados do 5S no banco para aparecer no celular
 - [x] HUB 5S: dados do computador não apareciam no celular (LD Iluminação) — liberar 5S nos acessos antigos, recuperar dados guardados no navegador e abrir empresa padrão no celular
 - [x] HUB 5S celular: botões para cadastrar foto do Padrão Ouro e tabela de rotina de limpeza direto no Portal 5S
+- [x] Desempenho PC/celular: telas carregam sob demanda; PDFs e planilhas carregam só ao exportar
