@@ -475,48 +475,72 @@ export async function exportMapaPdf(opts: {
       const diretriz = roots[dIdx];
       const children = diretriz.children || [];
 
+      // Medidas do bloco: título quebrado em linhas na largura livre à esquerda dos metadados
+      const boxW = PAGE_W - 2 * MARGIN_X;
+      const metaText = `Avanço: ${diretriz.progress_pct}%  ·  Status: ${statusLabel(diretriz.status)}  ·  (${children.length} ${children.length === 1 ? "ação" : "ações"})`;
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7.5);
+      const metaW = pdf.getTextWidth(metaText);
+      const titleMaxW = boxW - 6 - metaW - 6 - 6;
+      pdf.setFontSize(9);
+      const titleLines = pdf.splitTextToSize(
+        `DIRETRIZ ${dIdx + 1}: ${diretriz.title}`,
+        titleMaxW,
+      ) as string[];
+      const TITLE_LH = 4;
+      let descLines: string[] = [];
+      if (diretriz.observations) {
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(7);
+        descLines = (
+          pdf.splitTextToSize(diretriz.observations, boxW - 12) as string[]
+        ).slice(0, 4);
+      }
+      const DESC_LH = 3.2;
+      const dirBoxH =
+        3.5 + titleLines.length * TITLE_LH + (descLines.length ? 1 + descLines.length * DESC_LH : 0) + 1.5;
+
       // Quebra de página se não houver espaço suficiente para o cabeçalho da diretriz + 1 linha da tabela
-      if (cursorY + 36 > CONTENT_BOTTOM) {
+      if (cursorY + dirBoxH + 26 > CONTENT_BOTTOM) {
         pdf.addPage();
         drawContentHeader(pdf, company, pilar.name);
         cursorY = 24;
       }
 
       // Bloco da Diretriz (Mãe)
-      const dirBoxH = diretriz.observations ? 14 : 10;
       pdf.setFillColor(241, 245, 249);
       pdf.setDrawColor(...COLOR_BORDER);
       pdf.setLineWidth(0.3);
-      pdf.roundedRect(MARGIN_X, cursorY, PAGE_W - 2 * MARGIN_X, dirBoxH, 1.5, 1.5, "FD");
+      pdf.roundedRect(MARGIN_X, cursorY, boxW, dirBoxH, 1.5, 1.5, "FD");
 
       // Indicador vertical colorido à esquerda
       pdf.setFillColor(...pillarBg);
       pdf.roundedRect(MARGIN_X, cursorY, 2.5, dirBoxH, 1, 1, "F");
 
-      // Título da Diretriz
+      // Título da Diretriz (multilinha, sem invadir os metadados)
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(...COLOR_PRIMARY);
-      pdf.text(`DIRETRIZ ${dIdx + 1}: ${diretriz.title}`, MARGIN_X + 6, cursorY + 6);
+      const titleY = cursorY + 6;
+      titleLines.forEach((line, i) => {
+        pdf.text(line, MARGIN_X + 6, titleY + i * TITLE_LH);
+      });
 
-      // Metadados à direita
+      // Metadados à direita (alinhados à primeira linha do título)
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(7.5);
       pdf.setTextColor(...COLOR_ACCENT);
-      pdf.text(
-        `Avanço: ${diretriz.progress_pct}%  ·  Status: ${statusLabel(diretriz.status)}  ·  (${children.length} ${children.length === 1 ? "ação" : "ações"})`,
-        PAGE_W - MARGIN_X - 6,
-        cursorY + 6,
-        { align: "right" },
-      );
+      pdf.text(metaText, PAGE_W - MARGIN_X - 6, titleY, { align: "right" });
 
-      // Descrição breve se existir
-      if (diretriz.observations) {
+      // Descrição completa (até 4 linhas)
+      if (descLines.length) {
         pdf.setFont("helvetica", "italic");
         pdf.setFontSize(7);
         pdf.setTextColor(...COLOR_MUTED);
-        const desc = pdf.splitTextToSize(diretriz.observations, PAGE_W - 2 * MARGIN_X - 12);
-        pdf.text(desc[0] || "", MARGIN_X + 6, cursorY + 11);
+        const descY = titleY + (titleLines.length - 1) * TITLE_LH + 1 + DESC_LH + 0.5;
+        descLines.forEach((line, i) => {
+          pdf.text(line, MARGIN_X + 6, descY + i * DESC_LH);
+        });
       }
 
       cursorY += dirBoxH + 2;
@@ -608,7 +632,7 @@ export async function exportMapaPdf(opts: {
         },
         columnStyles: {
           0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
-          1: { cellWidth: 116 }, // Amplo espaço para texto e detalhes completos
+          1: { cellWidth: 130 }, // Amplo espaço para texto e detalhes completos
           2: { cellWidth: 42 },
           3: { cellWidth: 20, halign: "center" },
           4: { cellWidth: 26, halign: "center", fontStyle: "bold" },
