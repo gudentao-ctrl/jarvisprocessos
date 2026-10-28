@@ -393,7 +393,7 @@ export function PortalColaboradorView({
 
       {/* Navegação rápida entre as seções (celular) */}
       {isPublic && (
-        <nav className="sm:hidden sticky top-0 z-30 -mx-3 px-3 py-2 bg-background/90 backdrop-blur-md border-b">
+        <nav className="sm:hidden sticky top-0 z-30 -mx-3 px-3 py-2 bg-background/95 backdrop-blur-md border-b shadow-sm">
           <div className="flex gap-2 overflow-x-auto scrollbar-none">
             {quickNav.map((item) => (
               <button
@@ -429,7 +429,7 @@ export function PortalColaboradorView({
 
         {/* Setor Campeão */}
         <Card className="p-3.5 sm:p-4 rounded-2xl border shadow-sm relative overflow-hidden bg-gradient-to-br from-amber-500/15 via-card to-card">
-          <Trophy className="absolute -right-2 -top-2 h-16 w-16 text-amber-500/15" />
+          <Trophy className="absolute -right-3 -bottom-3 h-16 w-16 text-amber-500/10" />
           <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
             <Trophy className="h-3.5 w-3.5" /> Campeão
           </p>
