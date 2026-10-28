@@ -706,37 +706,35 @@ export function PortalColaboradorView({
       </section>
 
       {/* 4. MURAL "ANTES VS. DEPOIS" */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-start gap-2 leading-snug">
-              <Sparkles className="h-5 w-5 shrink-0 mt-0.5 text-amber-500" />
-              Mural Antes e Depois
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Evidências visuais de evolução prática e superação dos setores na implantação dos 5 Sensos.
-            </p>
-          </div>
+      <section id="mural" className="space-y-4 scroll-mt-16">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <SectionTitle
+            icon={<Sparkles className="h-5 w-5" />}
+            color={secondaryColor}
+            title="Mural Antes e Depois"
+            subtitle="A evolução real dos setores com os 5 Sensos."
+          />
 
           {canEditPortal && (
             <Button
               onClick={handleOpenNovoMural}
               size="sm"
-              className="font-bold text-xs shadow-md gap-1.5 shrink-0 text-white"
+              className="font-bold text-xs shadow-md gap-1.5 shrink-0 text-white h-9 w-full sm:w-auto"
               style={{ backgroundColor: secondaryColor }}
             >
-              <Plus className="h-4 w-4" /> + Nova Transformação (Antes e Depois)
+              <Plus className="h-4 w-4" /> Nova transformação
             </Button>
           )}
         </div>
 
         {muralFotos.length === 0 ? (
-          <Card className="p-8 text-center border-dashed space-y-3">
-            <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-              <Camera className="h-6 w-6" />
+          <Card className="p-6 sm:p-8 text-center border-dashed rounded-2xl space-y-3 bg-gradient-to-br from-amber-50/60 to-transparent dark:from-amber-950/10">
+            <div className="flex justify-center gap-2">
+              <div className="h-16 w-14 rounded-lg bg-rose-100 text-rose-700 text-[9px] font-black flex items-end justify-center pb-1 rotate-[-6deg] shadow-sm">ANTES</div>
+              <div className="h-16 w-14 rounded-lg bg-emerald-100 text-emerald-700 text-[9px] font-black flex items-end justify-center pb-1 rotate-[6deg] shadow-sm">DEPOIS</div>
             </div>
             <p className="text-sm font-semibold text-muted-foreground">
-              Nenhuma transformação cadastrada no mural ainda.
+              Nenhuma transformação no mural ainda.
             </p>
             {canEditPortal && (
               <Button
@@ -745,19 +743,19 @@ export function PortalColaboradorView({
                 className="font-bold text-xs gap-1.5 text-white"
                 style={{ backgroundColor: secondaryColor }}
               >
-                <Plus className="h-4 w-4" /> Cadastrar Primeira Transformação
+                <Camera className="h-4 w-4" /> Cadastrar primeira transformação
               </Button>
             )}
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-2 scrollbar-none">
             {muralFotos.map((foto) => (
               <Card
                 key={foto.id}
-                className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
+                className="w-[85%] shrink-0 snap-center md:w-auto overflow-hidden border shadow-sm hover:shadow-md transition-shadow group cursor-pointer rounded-2xl"
                 onClick={() => setZoomMuralFoto(foto)}
               >
-                <div className="grid grid-cols-2 h-48 bg-muted relative">
+                <div className="grid grid-cols-2 h-44 sm:h-48 bg-muted relative">
                   {/* Foto Antes */}
                   <div className="relative border-r overflow-hidden">
                     <img
