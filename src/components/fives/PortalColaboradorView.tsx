@@ -833,19 +833,16 @@ export function PortalColaboradorView({
       </section>
 
       {/* 5. CENTRAL DE ITS & PADRÕES DE LIMPEZA POR SETOR */}
-      <section id="central-its-section" className="space-y-4 pt-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-start gap-2 leading-snug">
-              <FileText className="h-5 w-5 shrink-0 mt-0.5" style={{ color: secondaryColor }} />
-              Padrões de Limpeza por Setor
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Consulte o Padrão Ouro do local e as rotinas diárias, semanais e mensais de organização e asseio.
-            </p>
-          </div>
+      <section id="central-its-section" className="space-y-4 pt-2 scroll-mt-16">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <SectionTitle
+            icon={<FileText className="h-5 w-5" />}
+            color={secondaryColor}
+            title="Padrões de Limpeza por Setor"
+            subtitle="Padrão Ouro do local e rotinas diárias, semanais e mensais."
+          />
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="grid grid-cols-1 sm:flex gap-2">
             {canEditIT && (
               <Button onClick={() => openITEditor(true)} className="font-bold shadow-sm">
                 <Plus className="h-4 w-4 mr-2" /> Novo setor com padrão de limpeza
@@ -857,7 +854,7 @@ export function PortalColaboradorView({
                 onClick={() => setQrModalSector(currentSetor)}
                 className="border-primary/40 text-primary font-bold shadow-sm"
               >
-                <QrCode className="h-4 w-4 mr-2" /> Gerar QR Code do Setor
+                <QrCode className="h-4 w-4 mr-2" /> QR Code do setor
               </Button>
             )}
           </div>
@@ -872,9 +869,10 @@ export function PortalColaboradorView({
         )}
 
         {/* Seletor de Setor */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {setores.length > 0 && (
+        <div className="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap flex items-center gap-1">
-            <Filter className="h-3.5 w-3.5" /> Filtrar Setor:
+            <Filter className="h-3.5 w-3.5" /> Setor:
           </span>
           {setores.map((s) => (
             <Button
@@ -882,7 +880,7 @@ export function PortalColaboradorView({
               size="sm"
               variant={selectedSectorId === s.id ? "default" : "outline"}
               onClick={() => setSelectedSectorId(s.id)}
-              className={`rounded-full text-xs font-semibold shrink-0 ${
+              className={`rounded-full text-xs font-semibold shrink-0 h-8 ${
                 selectedSectorId === s.id
                   ? "text-white shadow-sm"
                   : "hover:bg-muted text-muted-foreground"
@@ -897,37 +895,41 @@ export function PortalColaboradorView({
             </Button>
           ))}
         </div>
+        )}
 
         {/* Detalhes da IT e Padrão Ouro */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* Card do Padrão Ouro (Estado Ideal) */}
-          <Card className="lg:col-span-5 border shadow-sm overflow-hidden flex flex-col justify-between">
-            <CardHeader className="pb-3 bg-muted/20 border-b">
-              <div className="flex items-center justify-between">
+          <Card className="lg:col-span-5 border shadow-sm overflow-hidden flex flex-col justify-between rounded-2xl">
+            <CardHeader className="p-4 sm:p-5 pb-3 bg-muted/20 border-b">
+              <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  Padrão Ouro (Estado Ideal)
+                  <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+                  Padrão Ouro
                 </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-bold border-amber-300 text-amber-700 bg-amber-50">
-                  Referência Visual
+                <Badge variant="outline" className="text-[10px] font-bold border-amber-300 text-amber-700 bg-amber-50 shrink-0">
+                  Estado ideal
                 </Badge>
               </div>
-              <CardDescription>
-                Fotografia oficial do setor no seu melhor estado de conservação
+              <CardDescription className="text-xs">
+                Foto oficial do setor no seu melhor estado
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
-              <div className="w-full h-56 rounded-xl overflow-hidden bg-muted border relative shadow-inner flex items-center justify-center">
+              <div className="w-full aspect-[4/3] sm:aspect-auto sm:h-56 rounded-xl overflow-hidden border relative flex items-center justify-center bg-gradient-to-br from-amber-50 via-muted/40 to-muted dark:from-amber-950/20">
                 {currentIT?.foto_padrao_ouro_url ? (
                   <img
                     src={currentIT.foto_padrao_ouro_url}
                     alt={`Padrão Ouro - ${currentSetor?.nome_setor}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 ) : (
                   <div className="text-center p-6 space-y-2">
-                    <Sparkles className="h-10 w-10 text-amber-500/50 mx-auto" />
-                    <p className="text-xs text-muted-foreground">
+                    <div className="h-14 w-14 rounded-2xl bg-card shadow-sm flex items-center justify-center mx-auto">
+                      <Camera className="h-7 w-7 text-amber-500" />
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground max-w-[220px] mx-auto">
                       Foto do Padrão Ouro ainda não cadastrada para este setor.
                     </p>
                   </div>
@@ -974,15 +976,15 @@ export function PortalColaboradorView({
           </Card>
 
           {/* Tabela de Rotina de Limpeza */}
-          <Card className="lg:col-span-7 border shadow-sm">
-            <CardHeader className="pb-3 border-b bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 space-y-0">
+          <Card className="lg:col-span-7 border shadow-sm rounded-2xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 pb-3 border-b bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 space-y-0">
               <div>
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  Tabela de Rotina de Limpeza & Conservação
+                  Rotina de Limpeza
                 </CardTitle>
-                <CardDescription>
-                  Passo a passo operacional, produtos e periodicidades exigidas
+                <CardDescription className="text-xs">
+                  O que limpar, como, com qual produto e quando
                 </CardDescription>
               </div>
               {canEditIT && (
