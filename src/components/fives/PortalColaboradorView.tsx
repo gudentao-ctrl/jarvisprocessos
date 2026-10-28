@@ -500,42 +500,36 @@ export function PortalColaboradorView({
       </section>
 
       {/* 3. GRÁFICO DE TEIA / RADAR + LEADERBOARD GAMIFICADO */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section id="ranking" className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 scroll-mt-16">
         {/* Gráfico Radar (5 Colunas no Desktop) */}
-        <Card className="lg:col-span-5 border shadow-sm">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5" style={{ color: secondaryColor }} />
-                  Radar Geral dos 5 Sensos
-                </CardTitle>
-                <CardDescription>
-                  Desempenho consolidado nos 5 pilares metodológicos
-                </CardDescription>
-              </div>
-            </div>
+        <Card className="lg:col-span-5 border shadow-sm rounded-2xl">
+          <CardHeader className="p-4 sm:p-6 pb-0 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: secondaryColor }} />
+              Radar dos 5 Sensos
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Desempenho consolidado em cada pilar
+            </CardDescription>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="h-72 w-full flex items-center justify-center">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-2">
+            <div className="h-60 sm:h-72 w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData} outerRadius="68%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
+                <RadarChart data={radarData} outerRadius="70%" margin={{ top: 8, right: 28, bottom: 8, left: 28 }}>
                   <PolarGrid stroke="#e2e8f0" />
                   <PolarAngleAxis
                     dataKey="senso"
-                    tick={{ fill: "#4b5563", fontSize: 11, fontWeight: 600 }}
+                    tick={{ fill: "#4b5563", fontSize: 11, fontWeight: 700 }}
                   />
-                  <PolarRadiusAxis
-                    angle={90}
-                    domain={[0, 100]}
-                    tick={{ fill: "#9ca3af", fontSize: 10 }}
-                  />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
                   <Radar
                     name="Média Atual"
                     dataKey="score"
-                    stroke={primaryColor}
+                    stroke={secondaryColor}
+                    strokeWidth={2}
                     fill={secondaryColor}
-                    fillOpacity={0.45}
+                    fillOpacity={0.35}
+                    dot={{ r: 3, fill: secondaryColor }}
                   />
                   <Tooltip
                     formatter={(value: any) => [`${Number(value).toFixed(1)}%`, "Conformidade"]}
@@ -552,14 +546,18 @@ export function PortalColaboradorView({
             </div>
 
             {/* Legenda Resumida dos Sensos */}
-            <div className="grid grid-cols-5 gap-1 pt-3 border-t text-center">
+            <div className="space-y-2 pt-3 border-t">
               {radarData.map((d) => (
-                <div key={d.senso} className="p-1 rounded bg-muted/30">
-                  <span className="block text-[10px] font-bold text-muted-foreground truncate">
-                    {d.senso}
-                  </span>
-                  <span className="text-xs font-black" style={{ color: primaryColor }}>
-                    {d.score.toFixed(0)}%
+                <div key={d.senso} className="flex items-center gap-3">
+                  <span className="w-16 text-[11px] font-bold text-muted-foreground truncate">{d.senso}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${Math.max(0, Math.min(100, d.score))}%`, backgroundColor: secondaryColor }}
+                    />
+                  </div>
+                  <span className="w-10 text-right text-xs font-black text-foreground">
+                    {hasAuditorias ? `${d.score.toFixed(0)}%` : "--"}
                   </span>
                 </div>
               ))}
@@ -568,33 +566,36 @@ export function PortalColaboradorView({
         </Card>
 
         {/* Leaderboard Gamificado dos Setores (7 Colunas no Desktop) */}
-        <Card className="lg:col-span-7 border shadow-sm">
-          <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Card className="lg:col-span-7 border shadow-sm rounded-2xl">
+          <CardHeader className="p-4 sm:p-6 pb-3 space-y-2">
             <div>
-              <CardTitle className="text-lg font-bold flex items-start gap-2">
-                <Trophy className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                Ranking Oficial dos Setores
+              <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500 shrink-0" />
+                Ranking dos Setores
               </CardTitle>
-              <CardDescription>
-                Gamificação contínua e distribuição de selos de conformidade
+              <CardDescription className="text-xs">
+                Selos de conformidade por setor
               </CardDescription>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
-              <Badge variant="outline" className="whitespace-nowrap bg-amber-50 text-amber-800 border-amber-300">
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <Badge variant="outline" className="whitespace-nowrap bg-amber-50 text-amber-800 border-amber-300 text-[10px]">
                 Ouro &ge; 90%
               </Badge>
-              <Badge variant="outline" className="whitespace-nowrap bg-slate-100 text-slate-700 border-slate-300">
+              <Badge variant="outline" className="whitespace-nowrap bg-slate-100 text-slate-700 border-slate-300 text-[10px]">
                 Prata &ge; 80%
               </Badge>
-              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-300">
-                &lt; 80%
+              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-300 text-[10px]">
+                Atenção &lt; 80%
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-2.5">
             {setores.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                Nenhum setor cadastrado até o momento.
+              <div className="text-center py-8 space-y-2">
+                <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto">
+                  <Trophy className="h-6 w-6" />
+                </div>
+                <p className="text-sm text-muted-foreground">Nenhum setor cadastrado ainda.</p>
               </div>
             ) : (
               setores.map((setor, idx) => {
@@ -604,16 +605,22 @@ export function PortalColaboradorView({
                 const isTerceiro = idx === 2;
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={setor.id}
-                    className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                    onClick={() => {
+                      setSelectedSectorId(setor.id);
+                      const el = document.getElementById("central-its-section");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    title="Ver padrão de limpeza do setor"
+                    className={`w-full text-left p-3 rounded-2xl border transition-all active:scale-[0.99] ${
                       isPrimeiro
                         ? "bg-amber-500/10 border-amber-300 shadow-sm"
                         : "bg-card hover:bg-muted/30 border-border"
                     }`}
                   >
-                    {/* Posição e Nome */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-3">
                       <div
                         className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 shadow-sm ${
                           isPrimeiro
@@ -629,75 +636,43 @@ export function PortalColaboradorView({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <h4 className="font-bold text-sm truncate text-foreground">
                             {setor.nome_setor}
                           </h4>
                           {setor.selo === "Ouro" && (
-                            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] py-0 px-1.5 font-bold">
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] py-0 px-1.5 font-bold shrink-0">
                               Ouro
                             </Badge>
                           )}
                           {setor.selo === "Prata" && (
-                            <Badge className="bg-slate-100 text-slate-800 border-slate-300 text-[10px] py-0 px-1.5 font-bold">
+                            <Badge className="bg-slate-100 text-slate-800 border-slate-300 text-[10px] py-0 px-1.5 font-bold shrink-0">
                               Prata
                             </Badge>
                           )}
                           {setor.selo === "Atencao" && (
-                            <Badge className="bg-rose-100 text-rose-800 border-rose-300 text-[10px] py-0 px-1.5 font-bold">
+                            <Badge className="bg-rose-100 text-rose-800 border-rose-300 text-[10px] py-0 px-1.5 font-bold shrink-0">
                               Atenção
                             </Badge>
                           )}
                         </div>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          Guardião: {setor.guardiao_nome || "Comitê"} | Meta: {setor.meta_nota}%
+                          {setor.guardiao_nome || "Comitê"} · Meta {setor.meta_nota}%
                         </p>
                       </div>
-                    </div>
 
-                    {/* Barra de Progresso e Nota */}
-                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                      <div className="w-28 sm:w-32 hidden md:block">
-                        <Progress value={nota} className="h-2" />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="text-right">
-                          <span className="text-base font-black text-foreground">
-                            {nota > 0 ? `${nota.toFixed(1)}%` : "Pendente"}
-                          </span>
-                        </div>
-
-                        {/* Indicador de Tendência */}
-                        <div className="w-6 flex justify-center">
-                          {setor.tendencia === "up" && (
-                            <TrendingUp className="h-4 w-4 text-emerald-600" />
-                          )}
-                          {setor.tendencia === "down" && (
-                            <TrendingDown className="h-4 w-4 text-rose-600" />
-                          )}
-                          {setor.tendencia === "stable" && (
-                            <Minus className="h-4 w-4 text-slate-400" />
-                          )}
-                        </div>
-
-                        {/* Botão para ver IT do setor */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedSectorId(setor.id);
-                            const el = document.getElementById("central-its-section");
-                            if (el) el.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                          title="Ver IT de Limpeza do Setor"
-                        >
-                          IT <ChevronRight className="h-3 w-3 ml-0.5" />
-                        </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className={`text-base font-black ${nota > 0 ? "text-foreground" : "text-xs font-semibold text-muted-foreground"}`}>
+                          {nota > 0 ? `${nota.toFixed(1)}%` : "Pendente"}
+                        </span>
+                        {setor.tendencia === "up" && <TrendingUp className="h-4 w-4 text-emerald-600" />}
+                        {setor.tendencia === "down" && <TrendingDown className="h-4 w-4 text-rose-600" />}
+                        {setor.tendencia === "stable" && <Minus className="h-4 w-4 text-slate-400" />}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
-                  </div>
+                    <Progress value={nota} className="h-1.5 mt-2.5" />
+                  </button>
                 );
               })
             )}
