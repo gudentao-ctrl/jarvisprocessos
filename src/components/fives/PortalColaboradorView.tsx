@@ -259,6 +259,18 @@ export function PortalColaboradorView({
     toast.success("Link público do Portal 5S copiado com sucesso!");
   };
 
+  const handleShare = async () => {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: `Portal 5S · ${company.name}`, url: publicUrl });
+        return;
+      } catch {
+        // usuário cancelou ou o navegador recusou; cai na cópia do link
+      }
+    }
+    handleCopyLink();
+  };
+
   // Cor do Big Number Nota Global
   const globalScore = kpis.notaMediaGlobal || 0;
   const hasAuditorias = (kpis.totalAuditorias || 0) > 0;
@@ -270,9 +282,20 @@ export function PortalColaboradorView({
   const globalScoreBadge =
     globalScore >= 90 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : globalScore >= 80 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-rose-50 text-rose-700 border-rose-200";
 
+  const quickNav = [
+    { id: "visao-geral", label: "Visão geral" },
+    { id: "ranking", label: "Ranking" },
+    { id: "mural", label: "Antes e Depois" },
+    { id: "central-its-section", label: "Padrões" },
+    { id: "cronograma", label: "Cronograma" },
+  ];
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div
-      className="min-h-screen space-y-8 pb-16 transition-colors duration-300"
+      className="min-h-screen space-y-6 sm:space-y-8 pb-16 transition-colors duration-300"
       style={
         {
           "--company-primary": primaryColor,
@@ -282,220 +305,175 @@ export function PortalColaboradorView({
       }
     >
       {/* 1. HEADER WHITELABEL */}
-      <header className="relative overflow-hidden rounded-2xl shadow-xl border bg-card">
-        {/* Banner de Capa */}
+      <header className="relative overflow-hidden rounded-3xl shadow-xl border bg-card">
+        {/* Banner de Capa com nome da empresa sobreposto */}
         <div
-          className="h-44 sm:h-52 w-full bg-gradient-to-r relative"
+          className="relative h-60 sm:h-72 w-full"
           style={{
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.65)), url(${bannerSrc})`,
+            backgroundImage: `url(${bannerSrc})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
-          {isPublic && (
-            <div className="absolute top-3 inset-x-3 sm:inset-x-auto sm:right-4 z-10 flex items-center justify-between sm:justify-end gap-2">
-              <Badge className="bg-black/60 text-white backdrop-blur-md border-white/20 px-3 py-1 text-xs">
-                <Sparkles className="h-3 w-3 mr-1 text-amber-400" /> Portal Oficial 5S
-              </Badge>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
+
+          <div className="absolute top-3 inset-x-3 sm:top-4 sm:inset-x-5 z-10 flex items-center justify-between gap-2">
+            <Badge className="bg-black/50 text-white backdrop-blur-md border-white/20 px-2.5 py-1 text-[11px] font-semibold hover:bg-black/50">
+              <Sparkles className="h-3 w-3 mr-1 text-amber-400" /> Portal Oficial 5S
+            </Badge>
+            {isPublic ? (
               <Button
                 size="sm"
-                variant="outline"
-                onClick={handleCopyLink}
-                className="bg-white/90 hover:bg-white text-slate-800 text-xs shadow-md border-none h-7"
+                onClick={handleShare}
+                className="h-8 rounded-full bg-white/90 hover:bg-white text-slate-900 text-xs font-semibold shadow-md border-none"
               >
                 <Share2 className="h-3.5 w-3.5 mr-1" /> Compartilhar
               </Button>
-            </div>
-          )}
-
-          {!isPublic && (
-            <div className="absolute top-3 inset-x-3 sm:inset-x-auto sm:right-4 z-10 flex flex-wrap items-center justify-end gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleCopyLink}
-                className="bg-white/90 hover:bg-white text-slate-800 text-xs shadow-md"
-              >
-                <Share2 className="h-3.5 w-3.5 mr-1" /> Copiar Link Público
-              </Button>
-              <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs">
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir no Navegador
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  onClick={handleCopyLink}
+                  className="h-8 rounded-full bg-white/90 hover:bg-white text-slate-900 text-xs font-semibold shadow-md border-none"
+                >
+                  <Share2 className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Copiar link público</span><span className="sm:hidden">Link</span>
                 </Button>
-              </a>
-            </div>
-          )}
-        </div>
+                <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="h-8 rounded-full bg-white/15 hover:bg-white/25 text-white border-white/30 text-xs backdrop-blur-md">
+                    <ExternalLink className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Abrir no navegador</span><span className="sm:hidden">Abrir</span>
+                  </Button>
+                </a>
+              </div>
+            )}
+          </div>
 
-        {/* Informações da Empresa & Slogan */}
-        <div className="p-6 sm:p-8 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-16 sm:-mt-14">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
-            {/* Logo da Empresa */}
-            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white p-2 shadow-2xl border-4 border-background flex items-center justify-center overflow-hidden shrink-0">
+          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 flex items-end gap-3 sm:gap-5">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-2xl ring-2 ring-white/70 flex items-center justify-center overflow-hidden shrink-0">
               {logoSrc ? (
-                <img
-                  src={logoSrc}
-                  alt={company.name}
-                  className="max-h-full max-w-full object-contain"
-                />
+                <img src={logoSrc} alt={company.name} className="max-h-full max-w-full object-contain" />
               ) : (
                 <div
-                  className="w-full h-full rounded-xl flex items-center justify-center font-black text-2xl text-white shadow-inner"
+                  className="w-full h-full rounded-xl flex items-center justify-center font-black text-xl sm:text-3xl text-white"
                   style={{ backgroundColor: primaryColor }}
                 >
                   {company.name.slice(0, 2).toUpperCase()}
                 </div>
               )}
             </div>
-
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-                  {company.name}
-                </h1>
-                <Badge
-                  variant="outline"
-                  className="font-bold text-xs px-2.5 py-0.5 border-primary/30"
-                  style={{ color: primaryColor, backgroundColor: `${primaryColor}10` }}
-                >
-                  Programa 5S Maia
-                </Badge>
-              </div>
-              <p className="text-sm font-medium text-muted-foreground italic max-w-xl">
-                "{config.slogan_campanha || "Cuidar do nosso espaço de trabalho é valorizar as pessoas e a excelência operacional."}"
-              </p>
-            </div>
-          </div>
-
-          {/* Botão de Nova Auditoria (se não for público) */}
-          {!isPublic && onOpenAuditoria && (
-            <div className="mt-2 sm:mt-0">
-              <Button
-                onClick={() => onOpenAuditoria()}
-                className="shadow-lg text-white font-bold px-6 h-11"
+            <div className="min-w-0 pb-0.5">
+              <span
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm"
                 style={{ backgroundColor: secondaryColor }}
               >
-                <Sparkles className="h-4 w-4 mr-2" /> Realizar Nova Auditoria
-              </Button>
+                Programa 5S Maia
+              </span>
+              <h1 className="mt-1.5 text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight drop-shadow-md line-clamp-2">
+                {company.name}
+              </h1>
             </div>
+          </div>
+        </div>
+
+        {/* Slogan + ação principal */}
+        <div className="px-4 py-3.5 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground italic leading-snug border-l-4 pl-3" style={{ borderColor: secondaryColor }}>
+            {config.slogan_campanha || "Cuidar do nosso espaço de trabalho é valorizar as pessoas e a excelência operacional."}
+          </p>
+          {!isPublic && onOpenAuditoria && (
+            <Button
+              onClick={() => onOpenAuditoria()}
+              className="shadow-lg text-white font-bold px-6 h-11 w-full sm:w-auto shrink-0"
+              style={{ backgroundColor: secondaryColor }}
+            >
+              <Sparkles className="h-4 w-4 mr-2" /> Realizar nova auditoria
+            </Button>
           )}
         </div>
       </header>
 
-      {/* 2. CARDS DE KPIS VISUAIS (BIG NUMBERS) */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Setor Campeão */}
-        <Card className="border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-background to-background">
-          <div className="absolute top-0 right-0 p-3 opacity-15">
-            <Trophy className="h-20 w-20 text-amber-500" />
+      {/* Navegação rápida entre as seções (celular) */}
+      {isPublic && (
+        <nav className="sm:hidden sticky top-0 z-30 -mx-3 px-3 py-2 bg-background/90 backdrop-blur-md border-b">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            {quickNav.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => scrollToSection(item.id)}
+                className="shrink-0 rounded-full border bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-sm active:scale-95 transition"
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-1.5 font-semibold text-xs uppercase tracking-wider text-amber-600">
-              <Trophy className="h-4 w-4 text-amber-500" /> Setor Campeão 5S
-            </CardDescription>
-            <CardTitle className="text-xl font-bold truncate">
-              {kpis.setorCampeao?.nome_setor || "Em apuração"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-black text-amber-600">
-                {kpis.setorCampeao?.ultima_nota ? `${kpis.setorCampeao.ultima_nota.toFixed(1)}%` : "--"}
-              </span>
-              {kpis.setorCampeao?.selo === "Ouro" && (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold">
-                  <Sparkles className="h-3 w-3 mr-1 text-amber-600" /> Selo Ouro
-                </Badge>
-              )}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Guardião: <strong className="text-foreground">{kpis.setorCampeao ? kpis.setorCampeao.guardiao_nome || "Comitê" : "aguardando a primeira auditoria"}</strong>
+        </nav>
+      )}
+
+      {/* 2. CARDS DE KPIS VISUAIS (BIG NUMBERS) */}
+      <section id="visao-geral" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 scroll-mt-16">
+        {/* Índice Geral (destaque) */}
+        <Card className="col-span-2 lg:col-span-1 p-4 rounded-2xl border shadow-sm flex items-center gap-4">
+          <ScoreRing value={globalScore} active={hasAuditorias} className={globalScoreColor} />
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Índice Geral 5S</p>
+            <Badge variant="outline" className={`font-bold ${hasAuditorias ? globalScoreBadge : "text-muted-foreground"}`}>
+              {!hasAuditorias ? "Sem auditorias" : globalScore >= 90 ? "Excelente (Ouro)" : globalScore >= 80 ? "Bom (Prata)" : "Atenção"}
+            </Badge>
+            <p className="text-[11px] text-muted-foreground">
+              {hasAuditorias
+                ? `${kpis.totalAuditorias} auditoria${kpis.totalAuditorias === 1 ? "" : "s"} realizada${kpis.totalAuditorias === 1 ? "" : "s"}`
+                : "Aguardando a primeira auditoria"}
             </p>
-          </CardContent>
+          </div>
         </Card>
 
-        {/* Nota Média Global */}
-        <Card className="border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-              Média Global da Empresa
-            </CardDescription>
-            <CardTitle className="text-xl font-bold">Índice Geral de 5S</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline justify-between">
-              <span className={`text-3xl font-black ${hasAuditorias ? globalScoreColor : "text-muted-foreground"}`}>
-                {hasAuditorias ? `${globalScore.toFixed(1)}%` : "--"}
-              </span>
-              <Badge variant="outline" className={`font-bold ${hasAuditorias ? globalScoreBadge : "text-muted-foreground"}`}>
-                {!hasAuditorias ? "Sem auditorias" : globalScore >= 90 ? "Excelente (Ouro)" : globalScore >= 80 ? "Bom (Prata)" : "Atenção"}
-              </Badge>
-            </div>
-            <Progress
-              value={globalScore}
-              className="h-2 mt-3"
-            />
-          </CardContent>
+        {/* Setor Campeão */}
+        <Card className="p-3.5 sm:p-4 rounded-2xl border shadow-sm relative overflow-hidden bg-gradient-to-br from-amber-500/15 via-card to-card">
+          <Trophy className="absolute -right-2 -top-2 h-16 w-16 text-amber-500/15" />
+          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+            <Trophy className="h-3.5 w-3.5" /> Campeão
+          </p>
+          <p className="mt-2 text-sm font-bold leading-tight text-foreground line-clamp-2">
+            {kpis.setorCampeao?.nome_setor || "Em apuração"}
+          </p>
+          <p className="mt-1 text-2xl font-black text-amber-600">
+            {kpis.setorCampeao?.ultima_nota ? `${kpis.setorCampeao.ultima_nota.toFixed(1)}%` : "--"}
+          </p>
+          {kpis.setorCampeao?.selo === "Ouro" && (
+            <Badge className="mt-1 bg-amber-100 text-amber-800 border-amber-300 font-bold text-[10px]">
+              <Sparkles className="h-3 w-3 mr-1 text-amber-600" /> Selo Ouro
+            </Badge>
+          )}
         </Card>
 
         {/* Senso do Mês */}
-        <Card className="border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-              Foco & Engajamento
-            </CardDescription>
-            <CardTitle className="text-xl font-bold truncate">
-              Senso em Destaque
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
-                style={{ backgroundColor: secondaryColor }}
-              >
-                <Flame className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-lg font-black truncate text-foreground">
-                  {kpis.sensoDestaqueMes}
-                </div>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  Campanha mensal ativa em todos os setores
-                </p>
-              </div>
-            </div>
-          </CardContent>
+        <Card className="p-3.5 sm:p-4 rounded-2xl border shadow-sm relative overflow-hidden">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Senso do mês</p>
+          <div
+            className="mt-2 w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
+            style={{ backgroundColor: secondaryColor }}
+          >
+            <Flame className="h-5 w-5" />
+          </div>
+          <p className="mt-2 text-sm font-black leading-tight text-foreground line-clamp-2">
+            {kpis.sensoDestaqueMes}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Campanha em todos os setores</p>
         </Card>
 
         {/* Quarentena & Planos de Ação */}
-        <Card className="border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-              Ações & Cartões Vermelhos
-            </CardDescription>
-            <CardTitle className="text-xl font-bold">Controle Operacional</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <div className="bg-muted/40 p-2 rounded-lg border">
-                <span className="block text-2xl font-black text-rose-600">
-                  {kpis.totalDescartes}
-                </span>
-                <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Cartão Vermelho
-                </span>
-              </div>
-              <div className="bg-muted/40 p-2 rounded-lg border">
-                <span className="block text-2xl font-black text-primary">
-                  {kpis.totalPlanosAcao}
-                </span>
-                <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Planos de Ação
-                </span>
-              </div>
+        <Card className="col-span-2 lg:col-span-1 p-3.5 sm:p-4 rounded-2xl border shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Controle operacional</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 p-2.5">
+              <span className="block text-2xl font-black text-rose-600">{kpis.totalDescartes}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Cartão vermelho</span>
             </div>
-          </CardContent>
+            <div className="rounded-xl bg-muted/50 border p-2.5">
+              <span className="block text-2xl font-black text-primary">{kpis.totalPlanosAcao}</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Planos de ação</span>
+            </div>
+          </div>
         </Card>
       </section>
 
