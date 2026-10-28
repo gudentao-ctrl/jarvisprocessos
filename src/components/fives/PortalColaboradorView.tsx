@@ -1084,76 +1084,72 @@ export function PortalColaboradorView({
       </section>
 
       {/* 6. CRONOGRAMA DA IMPLANTAÇÃO 5S (ROADMAP DO PROJETO) */}
-      <section className="space-y-4 pt-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-start gap-2 leading-snug">
-              <Calendar className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
-              Cronograma da Campanha 5S
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Acompanhamento do ciclo de implantação, marcos do projeto, Dia D e rodadas de auditorias contínuas.
-            </p>
-          </div>
-        </div>
+      <section id="cronograma" className="space-y-4 pt-2 scroll-mt-16">
+        <SectionTitle
+          icon={<Calendar className="h-5 w-5" />}
+          color={primaryColor}
+          title="Cronograma da Campanha"
+          subtitle="Etapas da implantação, Dia D e rodadas de auditoria."
+        />
 
-        <div className="space-y-3">
+        <ol className="relative space-y-3">
           {cronogramaProjeto.map((etapa, idx) => {
             const isConcluido = etapa.status === "CONCLUIDO";
             const isEmAndamento = etapa.status === "EM_ANDAMENTO";
+            const isLast = idx === cronogramaProjeto.length - 1;
 
             return (
-              <Card
-                key={etapa.id}
-                className={`p-4 border transition-all ${
-                  isConcluido
-                    ? "border-emerald-300 bg-emerald-50/20 dark:border-emerald-800/40"
-                    : isEmAndamento
-                    ? "border-orange-400 bg-orange-50/20 shadow-sm dark:border-orange-700/50"
-                    : "border-muted bg-card opacity-85"
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
-                        isConcluido
-                          ? "bg-emerald-600 text-white"
-                          : isEmAndamento
-                          ? "text-white"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                      style={isEmAndamento ? { backgroundColor: secondaryColor } : undefined}
-                    >
-                      {isConcluido ? <CheckCheck className="h-4 w-4" /> : `#${etapa.ordem || idx + 1}`}
-                    </div>
+              <li key={etapa.id} className="relative pl-12 sm:pl-14">
+                {!isLast && (
+                  <span
+                    aria-hidden
+                    className={`absolute left-[19px] sm:left-[23px] top-11 -bottom-3 w-0.5 ${isConcluido ? "bg-emerald-400" : "bg-border"}`}
+                  />
+                )}
+                <div
+                  className={`absolute left-0 top-2 h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center font-black text-xs ring-4 ring-background shadow-sm ${
+                    isConcluido
+                      ? "bg-emerald-600 text-white"
+                      : isEmAndamento
+                      ? "text-white"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                  style={isEmAndamento ? { backgroundColor: secondaryColor } : undefined}
+                >
+                  {isConcluido ? <CheckCheck className="h-4 w-4" /> : isEmAndamento ? <Flame className="h-4 w-4" /> : etapa.ordem || idx + 1}
+                </div>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-bold text-sm text-foreground">
-                          {etapa.etapa_titulo}
-                        </h4>
-                        {isEmAndamento && (
-                          <Badge
-                            className="text-[10px] font-black px-2.5 py-0.5 animate-pulse flex items-center gap-1 shadow-sm text-white"
-                            style={{ backgroundColor: secondaryColor }}
-                          >
-                            <Flame className="h-3 w-3 fill-current" />
-                            EM EXECUÇÃO
-                          </Badge>
-                        )}
+                <Card
+                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
+                    isConcluido
+                      ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-800/40 dark:bg-emerald-950/10"
+                      : isEmAndamento
+                      ? "border-orange-300 bg-orange-50/40 shadow-md dark:border-orange-700/50 dark:bg-orange-950/10"
+                      : "bg-card"
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Etapa {etapa.ordem || idx + 1}
+                        </span>
                         <Badge
-                          className={`text-[10px] font-bold ${
+                          className={`text-[10px] font-bold px-2 py-0 border ${
                             isConcluido
-                              ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
                               : isEmAndamento
-                              ? "bg-orange-100 text-orange-800 border-orange-300"
-                              : "bg-slate-100 text-slate-700 border-slate-300"
+                              ? "text-white border-transparent animate-pulse"
+                              : "bg-muted text-muted-foreground border-border hover:bg-muted"
                           }`}
+                          style={isEmAndamento ? { backgroundColor: secondaryColor } : undefined}
                         >
-                          {isConcluido ? "Concluído" : isEmAndamento ? "Fase Ativa" : "Pendente"}
+                          {isConcluido ? "Concluído" : isEmAndamento ? "Em execução" : "Pendente"}
                         </Badge>
                       </div>
+                      <h4 className="font-bold text-sm sm:text-base leading-snug text-foreground">
+                        {etapa.etapa_titulo}
+                      </h4>
 
                       {etapa.descricao && (
                         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1161,44 +1157,44 @@ export function PortalColaboradorView({
                         </p>
                       )}
 
-                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap pt-0.5">
+                      <div className="flex items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground flex-wrap pt-0.5">
                         {etapa.responsavel && (
-                          <span>
-                            Responsável: <strong>{etapa.responsavel}</strong>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5">
+                            Responsável: <strong className="text-foreground">{etapa.responsavel}</strong>
                           </span>
                         )}
                         {(etapa.data_inicio || etapa.data_fim) && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {etapa.data_inicio ? `Início: ${formatFivesDate(etapa.data_inicio)}` : ""}
-                            {etapa.data_fim ? ` • Prazo: ${formatFivesDate(etapa.data_fim)}` : ""}
+                            {etapa.data_inicio ? `Início ${formatFivesDate(etapa.data_inicio)}` : ""}
+                            {etapa.data_fim ? ` • Prazo ${formatFivesDate(etapa.data_fim)}` : ""}
                           </span>
                         )}
                         {etapa.data_execucao && (
-                          <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                          <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                            Data de Execução: <strong>{formatFivesDate(etapa.data_execucao)}</strong>
+                            Executado em {formatFivesDate(etapa.data_execucao)}
                           </span>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  {canEditPortal && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpenEditCrono(etapa)}
-                      className="text-xs font-semibold gap-1 shrink-0 self-end sm:self-center"
-                    >
-                      <Pencil className="h-3 w-3" /> Editar Etapa
-                    </Button>
-                  )}
-                </div>
-              </Card>
+                    {canEditPortal && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEditCrono(etapa)}
+                        className="text-xs font-semibold gap-1 shrink-0 w-full sm:w-auto"
+                      >
+                        <Pencil className="h-3 w-3" /> Editar etapa
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              </li>
             );
           })}
-        </div>
+        </ol>
       </section>
 
       {/* Modal QR Code do Setor */}
@@ -1514,6 +1510,64 @@ export function PortalColaboradorView({
           </DialogContent>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+function SectionTitle({
+  icon,
+  color,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  color: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div
+        className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+        style={{ backgroundColor: `${color}1A`, color }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <h2 className="text-lg sm:text-xl font-black tracking-tight text-foreground leading-tight">{title}</h2>
+        {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+function ScoreRing({ value, active, className }: { value: number; active: boolean; className: string }) {
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  const pct = active ? Math.max(0, Math.min(100, value)) : 0;
+  return (
+    <div className="relative h-24 w-24 shrink-0">
+      <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
+        <circle cx="40" cy="40" r={r} fill="none" strokeWidth="8" className="stroke-muted" />
+        <circle
+          cx="40"
+          cy="40"
+          r={r}
+          fill="none"
+          strokeWidth="8"
+          strokeLinecap="round"
+          stroke="currentColor"
+          strokeDasharray={c}
+          strokeDashoffset={c - (pct / 100) * c}
+          className={`${active ? className : "text-muted-foreground"} transition-all duration-700`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-xl font-black leading-none ${active ? className : "text-muted-foreground"}`}>
+          {active ? `${pct.toFixed(0)}%` : "--"}
+        </span>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">Índice</span>
+      </div>
     </div>
   );
 }
