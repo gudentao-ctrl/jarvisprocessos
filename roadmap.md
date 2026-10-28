@@ -52,3 +52,4 @@
 - [x] HUB 5S: dados do computador não apareciam no celular (LD Iluminação) — liberar 5S nos acessos antigos, recuperar dados guardados no navegador e abrir empresa padrão no celular
 - [x] HUB 5S celular: botões para cadastrar foto do Padrão Ouro e tabela de rotina de limpeza direto no Portal 5S
 - [x] Desempenho PC/celular: telas carregam sob demanda; PDFs e planilhas carregam só ao exportar
+- [x] HUB 5S celular: visual do Portal 5S mais bonito (capa com nome, resumo em grade, atalhos de seção, ranking, mural em carrossel, cronograma em linha do tempo)

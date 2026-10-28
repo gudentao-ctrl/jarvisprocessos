@@ -137,7 +137,7 @@ function PublicFivesRouteComponent() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-8 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background px-3 pt-3 pb-6 sm:p-8 max-w-7xl mx-auto">
       {/* Indicador de Conexão Realtime */}
       {refreshing && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg animate-pulse">

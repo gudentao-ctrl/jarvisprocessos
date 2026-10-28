@@ -205,10 +205,10 @@ function Hub5SRouteComponent() {
       {/* Título & Alçadas */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              HUB 5S • Excelência & Padrões Operacionais
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-tight text-foreground flex items-start gap-2">
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0 mt-0.5" />
+              <span>HUB 5S <span className="hidden sm:inline">• </span><span className="block sm:inline text-sm sm:text-2xl font-bold sm:font-black text-muted-foreground sm:text-foreground">Excelência & Padrões Operacionais</span></span>
             </h1>
             {!canEdit && (
               <Badge variant="outline" className="bg-muted text-muted-foreground font-semibold text-xs">
@@ -262,7 +262,7 @@ function Hub5SRouteComponent() {
         onValueChange={setActiveTab}
         className="w-full space-y-6"
       >
-        <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full bg-muted/60 p-1 rounded-xl">
+        <TabsList className="flex justify-start overflow-x-auto scrollbar-none h-auto sm:grid sm:grid-cols-6 w-full bg-muted/60 p-1 rounded-xl [&>button]:shrink-0 [&>button]:py-2">
           <TabsTrigger value="portal" className="text-xs font-bold gap-1.5">
             <Sparkles className="h-3.5 w-3.5" /> Portal 5S
           </TabsTrigger>
