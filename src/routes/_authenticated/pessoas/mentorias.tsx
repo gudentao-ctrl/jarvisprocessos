@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { LIVE_SYNC_EVENT } from "@/lib/live-sync";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,9 +62,9 @@ function MentoriasPage() {
   const [isFinalizarModalOpen, setIsFinalizarModalOpen] = useState(false);
   const [sessaoToEdit, setSessaoToEdit] = useState<MentoriaSessao | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const list = await getMentoradosList(companyId);
       setMentorados(list);
     } catch (err) {
@@ -76,6 +77,13 @@ function MentoriasPage() {
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // Refresh when another device saves changes.
+  useEffect(() => {
+    const refresh = () => { void loadData(true); };
+    window.addEventListener(LIVE_SYNC_EVENT, refresh);
+    return () => window.removeEventListener(LIVE_SYNC_EVENT, refresh);
   }, [loadData]);
 
   // Mentorado selecionado atual

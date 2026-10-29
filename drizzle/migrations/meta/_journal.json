@@ -92,6 +92,13 @@
       "when": 1792640525100,
       "tag": "0012_allow_auditor_5s_role",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793310987359,
+      "tag": "0013_live_sync_company_bell",
+      "breakpoints": true
     }
   ]
 }

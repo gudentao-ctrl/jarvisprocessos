@@ -249,15 +249,15 @@ function PerfilPage() {
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {profile.memberships.map((m: any) => (
                   <div
-                    key={m.companyId}
+                    key={m.company_id}
                     className="flex items-center justify-between rounded-md border p-2.5 text-sm"
                   >
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{m.companyName}</span>
+                      <span className="font-medium">{m.company_name ?? "Empresa"}</span>
                     </div>
                     <Badge variant="outline" className="text-xs capitalize">
-                      {m.role || "Membro"}
+                      {m.member_role || "Membro"}
                     </Badge>
                   </div>
                 ))}

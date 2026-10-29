@@ -37,3 +37,17 @@
 
 ## Limits
 - Local timings are not real-device or slow-network measurements; production start-file size must be re-checked after publishing.
+# Performance review — 2026-10-29
+
+## Changes
+- Instant PC ↔ phone sharing: saves on company data now ring a data-free doorbell per company (plus one for CRM/tickets). Open screens on other devices refresh by themselves about 1.5 s later; hidden screens refresh when reopened. One notification per company per save keeps bulk saves cheap, and notification failures never block a save.
+- People screens (summary, NPS, recruitment, mentoring) refresh silently on these events, without flashing a loading state.
+- Profile screen showed blank company names and a list warning; fixed.
+
+## Verification
+- Phone emulation (390×844) opened on Empresas; a save made through the normal signed-in API arrived and triggered a refresh in 1.57–1.71 s across three runs, with no page errors.
+- 25 main screens, signed in, second pass: phone 1.5–2.5 s, desktop 1.4–2.6 s (full page loads in local preview, heaviest is HUB 5S); no page errors, no horizontal overflow.
+- 18 automatic checks passed.
+
+## Limits
+- Local timings, not a real phone or slow mobile network. A personal agenda item without a company does not trigger instant refresh (it refreshes when the screen is reopened).

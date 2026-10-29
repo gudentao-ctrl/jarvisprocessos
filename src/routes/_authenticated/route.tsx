@@ -30,7 +30,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { ActiveCompanyProvider } from "@/lib/active-company";
+import { ActiveCompanyProvider, useActiveCompany } from "@/lib/active-company";
+import { useLiveSync } from "@/lib/live-sync";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toolsForPath } from "@/lib/permission-catalog";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
@@ -128,6 +129,11 @@ function AuthenticatedShell() {
   const me = useServerFn(getMe);
   const { data: profile } = useQuery({ queryKey: ["me"], queryFn: () => me() });
   const { hasAccess, canAccessPath, isPending: permissionsPending } = usePermissions();
+  const { companies: liveCompanies, companyId: liveCompanyId } = useActiveCompany();
+  useLiveSync(
+    liveCompanies.map((c) => c.id),
+    liveCompanyId,
+  );
   const hasPermission = (permission: string) => hasAccess(permission);
   const isManagerOrAdmin =
     !!profile?.isSuperadmin ||
