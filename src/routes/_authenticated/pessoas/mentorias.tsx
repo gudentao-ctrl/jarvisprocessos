@@ -62,9 +62,9 @@ function MentoriasPage() {
   const [isFinalizarModalOpen, setIsFinalizarModalOpen] = useState(false);
   const [sessaoToEdit, setSessaoToEdit] = useState<MentoriaSessao | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const list = await getMentoradosList(companyId);
       setMentorados(list);
     } catch (err) {
@@ -81,7 +81,7 @@ function MentoriasPage() {
 
   // Refresh when another device saves changes.
   useEffect(() => {
-    const refresh = () => { void loadData(); };
+    const refresh = () => { void loadData(true); };
     window.addEventListener(LIVE_SYNC_EVENT, refresh);
     return () => window.removeEventListener(LIVE_SYNC_EVENT, refresh);
   }, [loadData]);

@@ -71,9 +71,9 @@ function NpsDashboardPage() {
   // Link copiado feedback temporário
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
-  const carregarPesquisas = useCallback(async () => {
+  const carregarPesquisas = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const lista = await getPesquisas(companyId);
       setPesquisas(lista);
     } catch (err) {
@@ -90,7 +90,7 @@ function NpsDashboardPage() {
 
   // Refresh only authorized rows; never broadcast individual answers.
   useEffect(() => {
-    const refresh = () => { void carregarPesquisas(); };
+    const refresh = () => { void carregarPesquisas(true); };
     window.addEventListener("focus", refresh);
     window.addEventListener(LIVE_SYNC_EVENT, refresh);
     return () => {

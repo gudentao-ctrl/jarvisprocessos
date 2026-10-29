@@ -40,7 +40,7 @@ function PessoasDashboard() {
   useEffect(() => {
     let cancelled = false;
     async function loadSummary() {
-      setLoading(true);
+      if (liveTick === 0) setLoading(true);
       setUnavailable(false);
       let candQuery = supabase.from("candidates").select("id", { count: "exact", head: true });
       if (companyId) candQuery = candQuery.eq("company_id", companyId);
