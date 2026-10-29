@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { LIVE_SYNC_EVENT } from "@/lib/live-sync";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserCheck, Mic, Award, AlertCircle, ArrowRight, Users, Plus, Briefcase, Smile, Sparkles } from "lucide-react";
