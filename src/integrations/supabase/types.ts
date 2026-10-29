@@ -4389,6 +4389,7 @@ export type Database = {
         Args: { _action: string; _bucket: string; _path: string }
         Returns: boolean
       }
+      can_receive_bell: { Args: { _topic: string }; Returns: boolean }
       convert_crm_lead_to_company: {
         Args: { _lead_id: string }
         Returns: string
