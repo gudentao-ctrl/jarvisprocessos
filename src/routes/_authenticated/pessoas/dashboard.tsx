@@ -27,6 +27,14 @@ function PessoasDashboard() {
   const [summary, setSummary] = useState({ colaboradores: 0, recrutamento: 0, mentorias: 0, npsCount: 0, alertas: 1 });
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
+  const [liveTick, setLiveTick] = useState(0);
+
+  // Refresh when another device saves changes.
+  useEffect(() => {
+    const refresh = () => setLiveTick((n) => n + 1);
+    window.addEventListener(LIVE_SYNC_EVENT, refresh);
+    return () => window.removeEventListener(LIVE_SYNC_EVENT, refresh);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +63,7 @@ function PessoasDashboard() {
     }
     void loadSummary();
     return () => { cancelled = true; };
-  }, [companyId]);
+  }, [companyId, liveTick]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">

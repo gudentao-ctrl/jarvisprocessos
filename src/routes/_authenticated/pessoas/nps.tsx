@@ -1,4 +1,5 @@
 // src/routes/_authenticated/pessoas/nps.tsx
+import { LIVE_SYNC_EVENT } from "@/lib/live-sync";
 // Painel Administrativo de Gestão de Pesquisas NPS e eNPS (Hub de Pessoas - Bloco 26)
 
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -91,7 +92,11 @@ function NpsDashboardPage() {
   useEffect(() => {
     const refresh = () => { void carregarPesquisas(); };
     window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
+    window.addEventListener(LIVE_SYNC_EVENT, refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener(LIVE_SYNC_EVENT, refresh);
+    };
   }, [carregarPesquisas]);
 
   // Filtragem

@@ -1,4 +1,5 @@
 // src/routes/_authenticated/pessoas/recrutamento.tsx
+import { LIVE_SYNC_EVENT } from "@/lib/live-sync";
 // Rota principal do Applicant Tracking System (ATS) Kanban do Hub de Pessoas
 
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -126,6 +127,13 @@ function RecrutamentoKanbanView() {
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // Refresh when another device saves changes.
+  useEffect(() => {
+    const refresh = () => { void loadData(); };
+    window.addEventListener(LIVE_SYNC_EVENT, refresh);
+    return () => window.removeEventListener(LIVE_SYNC_EVENT, refresh);
   }, [loadData]);
 
   // Vaga mestre ativa exibida na Coluna 1
