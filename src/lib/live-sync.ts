@@ -60,7 +60,11 @@ export function useLiveSync(companyIds: string[], activeCompanyId: string | null
         const channel = supabase
           .channel(topic, { config: { private: true } })
           .on("broadcast", { event: "changed" }, schedule)
-          .subscribe();
+          .subscribe((status, err) => {
+            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+              console.warn("[live-sync]", topic, status, err?.message ?? "");
+            }
+          });
         channels.push(channel);
       }
     })();
