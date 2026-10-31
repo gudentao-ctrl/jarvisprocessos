@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 
 export const PILARES_MATURIDADE = [
   {
@@ -117,36 +116,6 @@ export interface MonthlyMaturityRecord {
   updated_at: string;
 }
 
-export interface DREItem {
-  id: string;
-  label: string;
-  amount: number;
-  isCustom?: boolean;
-}
-
-export interface MonthlyDRERecord {
-  id: string;
-  company_id: string;
-  month_year: string; // "YYYY-MM"
-  mode: "realizado" | "orcado";
-  receita_bruta_items: DREItem[];
-  deducoes_items: DREItem[];
-  custos_variaveis_items: DREItem[];
-  custos_fixos_items: DREItem[];
-  // Campos calculados
-  total_receita_bruta: number;
-  total_deducoes: number;
-  receita_liquida: number;
-  total_custos_variaveis: number;
-  margem_contribuicao: number;
-  margem_contribuicao_pct: number;
-  total_custos_fixos: number;
-  lucro_operacional: number;
-  lucro_operacional_pct: number;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface RoadmapCockpitData {
   company_id: string;
   last_updated: string;
@@ -199,13 +168,6 @@ export interface RoadmapCockpitData {
     };
   }>;
 }
-
-const STORAGE_KEYS = {
-  MATURITY: "jarvis_maturity_records_v1",
-  DRE: "jarvis_dre_records_v1",
-  ROADMAP: "jarvis_roadmap_cockpit_v1",
-};
-
 // -------------------------------------------------------------
 // MATURIDADE DA EMPRESA (Bloco 16 - Parte 1)
 // -------------------------------------------------------------
@@ -249,195 +211,6 @@ export function getDefaultMaturityRecord(companyId: string, monthYear: string): 
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-}
-
-export function getMaturityRecordsFromStorage(companyId: string): MonthlyMaturityRecord[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.MATURITY);
-    if (!raw) return [];
-    const list: MonthlyMaturityRecord[] = JSON.parse(raw);
-    return list.filter((r) => r.company_id === companyId);
-  } catch (err) {
-    console.error("Error reading maturity storage:", err);
-    return [];
-  }
-}
-
-export function saveMaturityRecord(record: MonthlyMaturityRecord): void {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.MATURITY);
-    const list: MonthlyMaturityRecord[] = raw ? JSON.parse(raw) : [];
-    const idx = list.findIndex(
-      (r) => r.company_id === record.company_id && r.month_year === record.month_year
-    );
-    if (idx >= 0) {
-      list[idx] = { ...record, updated_at: new Date().toISOString() };
-    } else {
-      list.push({ ...record, updated_at: new Date().toISOString() });
-    }
-    localStorage.setItem(STORAGE_KEYS.MATURITY, JSON.stringify(list));
-  } catch (err) {
-    console.error("Error saving maturity record:", err);
-  }
-}
-
-// -------------------------------------------------------------
-// DRE GERENCIAL (Bloco 16 - Parte 2)
-// -------------------------------------------------------------
-
-export function calculateDREMetrics(
-  receita_bruta: DREItem[],
-  deducoes: DREItem[],
-  custos_var: DREItem[],
-  custos_fix: DREItem[]
-) {
-  const total_receita_bruta = receita_bruta.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
-  const total_deducoes = deducoes.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
-  const receita_liquida = Math.max(0, total_receita_bruta - total_deducoes);
-
-  const total_custos_variaveis = custos_var.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
-  const margem_contribuicao = receita_liquida - total_custos_variaveis;
-  const margem_contribuicao_pct =
-    receita_liquida > 0 ? (margem_contribuicao / receita_liquida) * 100 : 0;
-
-  const total_custos_fixos = custos_fix.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
-  const lucro_operacional = margem_contribuicao - total_custos_fixos;
-  const lucro_operacional_pct =
-    receita_liquida > 0 ? (lucro_operacional / receita_liquida) * 100 : 0;
-
-  return {
-    total_receita_bruta,
-    total_deducoes,
-    receita_liquida,
-    total_custos_variaveis,
-    margem_contribuicao,
-    margem_contribuicao_pct: Number(margem_contribuicao_pct.toFixed(2)),
-    total_custos_fixos,
-    lucro_operacional,
-    lucro_operacional_pct: Number(lucro_operacional_pct.toFixed(2)),
-  };
-}
-
-export function getDefaultDRERecord(
-  companyId: string,
-  monthYear: string,
-  mode: "realizado" | "orcado" = "realizado"
-): MonthlyDRERecord {
-  const receita_bruta_items: DREItem[] = [
-    { id: "rb_1", label: "Venda de Mercadorias / Produtos", amount: 145000 },
-    { id: "rb_2", label: "Prestação de Serviços / Contratos", amount: 85000 },
-  ];
-  const deducoes_items: DREItem[] = [
-    { id: "dd_1", label: "Impostos s/ Vendas (Simples / ICMS / ISS)", amount: 18400 },
-    { id: "dd_2", label: "Devoluções e Descontos Concedidos", amount: 2600 },
-  ];
-  const custos_variaveis_items: DREItem[] = [
-    { id: "cv_1", label: "Custos com Matéria-Prima / Insumos (CMV)", amount: 62000 },
-    { id: "cv_2", label: "Comissões da Equipe Comercial", amount: 9200 },
-    { id: "cv_3", label: "Taxas de Cartão & Plataformas de Cobrança", amount: 4800 },
-    { id: "cv_4", label: "Fretes e Logística de Entrega", amount: 3500 },
-  ];
-  const custos_fixos_items: DREItem[] = [
-    { id: "cf_1", label: "Folha de Pagamento & Encargos (Equipe)", amount: 52000 },
-    { id: "cf_2", label: "Pró-Labore dos Sócios / Diretoria", amount: 18000 },
-    { id: "cf_3", label: "Aluguel, Condomínio & Infraestrutura", amount: 8500 },
-    { id: "cf_4", label: "Sistemas, Licenças & Softwares", amount: 3200 },
-    { id: "cf_5", label: "Despesas Administrativas & Contabilidade", amount: 4500 },
-    { id: "cf_6", label: "Marketing, Tráfego & Publicidade", amount: 6000 },
-  ];
-
-  const metrics = calculateDREMetrics(
-    receita_bruta_items,
-    deducoes_items,
-    custos_variaveis_items,
-    custos_fixos_items
-  );
-
-  return {
-    id: `${companyId}_${monthYear}_${mode}`,
-    company_id: companyId,
-    month_year: monthYear,
-    mode,
-    receita_bruta_items,
-    deducoes_items,
-    custos_variaveis_items,
-    custos_fixos_items,
-    ...metrics,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-}
-
-export function getDRERecordsFromStorage(companyId: string): MonthlyDRERecord[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.DRE);
-    if (!raw) return [];
-    const list: MonthlyDRERecord[] = JSON.parse(raw);
-    return list.filter((r) => r.company_id === companyId);
-  } catch (err) {
-    console.error("Error reading DRE storage:", err);
-    return [];
-  }
-}
-
-export function saveDRERecord(record: MonthlyDRERecord): void {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.DRE);
-    const list: MonthlyDRERecord[] = raw ? JSON.parse(raw) : [];
-    const idx = list.findIndex(
-      (r) =>
-        r.company_id === record.company_id &&
-        r.month_year === record.month_year &&
-        r.mode === record.mode
-    );
-    if (idx >= 0) {
-      list[idx] = { ...record, updated_at: new Date().toISOString() };
-    } else {
-      list.push({ ...record, updated_at: new Date().toISOString() });
-    }
-    localStorage.setItem(STORAGE_KEYS.DRE, JSON.stringify(list));
-  } catch (err) {
-    console.error("Error saving DRE record:", err);
-  }
-}
-
-/**
- * Clona o DRE do mês anterior para o mês alvo
- */
-export function clonePreviousMonthDRE(
-  companyId: string,
-  targetMonthYear: string,
-  mode: "realizado" | "orcado" = "realizado"
-): MonthlyDRERecord | null {
-  const records = getDRERecordsFromStorage(companyId).filter((r) => r.mode === mode);
-  if (records.length === 0) return null;
-
-  // Encontra o mês anterior mais próximo
-  const sorted = records
-    .filter((r) => r.month_year < targetMonthYear)
-    .sort((a, b) => b.month_year.localeCompare(a.month_year));
-
-  const source = sorted[0] || records[0];
-  if (!source) return null;
-
-  const cloned: MonthlyDRERecord = {
-    ...source,
-    id: `${companyId}_${targetMonthYear}_${mode}`,
-    month_year: targetMonthYear,
-    receita_bruta_items: source.receita_bruta_items.map((i) => ({ ...i, id: crypto.randomUUID() })),
-    deducoes_items: source.deducoes_items.map((i) => ({ ...i, id: crypto.randomUUID() })),
-    custos_variaveis_items: source.custos_variaveis_items.map((i) => ({ ...i, id: crypto.randomUUID() })),
-    custos_fixos_items: source.custos_fixos_items.map((i) => ({ ...i, id: crypto.randomUUID() })),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  saveDRERecord(cloned);
-  return cloned;
 }
 
 // -------------------------------------------------------------
@@ -643,10 +416,22 @@ export function getDefaultRoadmapCockpitData(
     ],
   };
 }
+// -------------------------------------------------------------
+// SINCRONIZAÇÃO COM DADOS REAIS (DRE + Maturidade salvos no banco)
+// -------------------------------------------------------------
+
+export interface DreSummaryForCockpit {
+  month_year: string;
+  receitaBruta: number;
+  custos: number;
+  resultado: number;
+  margemContribuicaoPct: number;
+}
 
 export function enrichCockpitWithTorreInputs(
-  companyId: string,
-  baseData: RoadmapCockpitData
+  baseData: RoadmapCockpitData,
+  dreRealizados: DreSummaryForCockpit[],
+  maturityRecords: MonthlyMaturityRecord[],
 ): RoadmapCockpitData {
   const result: RoadmapCockpitData = {
     ...baseData,
@@ -658,29 +443,20 @@ export function enrichCockpitWithTorreInputs(
     roi_timeline: [...baseData.roi_timeline],
   };
 
-  // 1. Sincronização automática da Maturidade da Empresa
-  const maturityRecords = getMaturityRecordsFromStorage(companyId).sort((a, b) =>
-    a.month_year.localeCompare(b.month_year)
-  );
-
-  if (maturityRecords.length > 0) {
-    const earliest = maturityRecords[0];
-    const latest = maturityRecords[maturityRecords.length - 1];
-
+  const maturity = [...maturityRecords].sort((a, b) => a.month_year.localeCompare(b.month_year));
+  if (maturity.length > 0) {
+    const earliest = maturity[0];
+    const latest = maturity[maturity.length - 1];
     result.radar_360.initial_month_label = `Diagnóstico (${earliest.month_year})`;
     result.radar_360.current_month_label = `Mês Atual (${latest.month_year})`;
-
     result.radar_360.pilars = result.radar_360.pilars.map((p, idx) => {
       const pilarId = idx + 1;
-      const initialScore = earliest.pilar_averages[pilarId] ?? p.mes_inicial;
-      const currentScore = latest.pilar_averages[pilarId] ?? p.mes_atual;
       return {
         ...p,
-        mes_inicial: initialScore,
-        mes_atual: currentScore,
+        mes_inicial: earliest.pilar_averages[pilarId] ?? p.mes_inicial,
+        mes_atual: latest.pilar_averages[pilarId] ?? p.mes_atual,
       };
     });
-
     const initAvg = earliest.global_average || 1;
     const currAvg = latest.global_average || 1;
     const growth = Number((((currAvg - initAvg) / initAvg) * 100).toFixed(1));
@@ -688,87 +464,32 @@ export function enrichCockpitWithTorreInputs(
     result.kpis.maturity_growth_note = `Evolução de ${initAvg.toFixed(1)}/5 para ${currAvg.toFixed(1)}/5 no Sincronismo 360°`;
   }
 
-  // 2. Sincronização automática da DRE Gerencial
-  const dreRecords = getDRERecordsFromStorage(companyId)
-    .filter((r) => r.mode === "realizado")
-    .sort((a, b) => a.month_year.localeCompare(b.month_year));
-
-  if (dreRecords.length > 0) {
-    const earliest = dreRecords[0];
-    const latest = dreRecords[dreRecords.length - 1];
-
-    if (earliest.total_receita_bruta > 0 && dreRecords.length > 1) {
-      const revGrowth = Number(
-        (
-          ((latest.total_receita_bruta - earliest.total_receita_bruta) /
-            earliest.total_receita_bruta) *
-          100
-        ).toFixed(1)
+  const dre = [...dreRealizados].sort((a, b) => a.month_year.localeCompare(b.month_year));
+  if (dre.length >= 2) {
+    const earliest = dre[0];
+    const latest = dre[dre.length - 1];
+    if (earliest.receitaBruta > 0) {
+      result.kpis.revenue_growth_pct = Number(
+        (((latest.receitaBruta - earliest.receitaBruta) / earliest.receitaBruta) * 100).toFixed(1),
       );
-      result.kpis.revenue_growth_pct = revGrowth;
-      const diff = latest.total_receita_bruta - earliest.total_receita_bruta;
-      result.kpis.revenue_growth_note = `${diff >= 0 ? "+" : ""}R$ ${Math.abs(diff).toLocaleString("pt-BR")} no faturamento mensal frente ao diagnóstico`;
-
-      const initialCosts = earliest.total_custos_variaveis + earliest.total_custos_fixos;
-      const currentCosts = latest.total_custos_variaveis + latest.total_custos_fixos;
-      if (initialCosts > 0) {
-        const costDiffPct = Number((((initialCosts - currentCosts) / initialCosts) * 100).toFixed(1));
+      const diff = latest.receitaBruta - earliest.receitaBruta;
+      result.kpis.revenue_growth_note = `${diff >= 0 ? "+" : "-"}R$ ${Math.abs(diff).toLocaleString("pt-BR")} no faturamento mensal frente ao diagnóstico`;
+      if (earliest.custos > 0) {
+        const costDiffPct = Number((((earliest.custos - latest.custos) / earliest.custos) * 100).toFixed(1));
         result.kpis.cost_reduction_pct = Math.max(0, costDiffPct);
       }
     }
-
-    // Se houver registros DRE, alimenta o timeline de ROI
-    if (dreRecords.length >= 2) {
-      result.roi_timeline = dreRecords.map((dre, idx) => {
-        const existingPin = baseData.roi_timeline[idx]?.intervention_pin;
-        return {
-          period: dre.month_year,
-          revenue: dre.total_receita_bruta,
-          costs: dre.total_custos_variaveis + dre.total_custos_fixos,
-          profit: dre.lucro_operacional,
-          intervention_pin: existingPin || {
-            title: `Fechamento ${dre.month_year}`,
-            front: "Financeiro",
-            description: `Margem de Contribuição: ${dre.margem_contribuicao_pct}%`,
-          },
-        };
-      });
-    }
+    result.roi_timeline = dre.map((d, idx) => ({
+      period: d.month_year,
+      revenue: d.receitaBruta,
+      costs: d.custos,
+      profit: d.resultado,
+      intervention_pin: baseData.roi_timeline[idx]?.intervention_pin || {
+        title: `Fechamento ${d.month_year}`,
+        front: "Financeiro",
+        description: `Margem de Contribuição: ${d.margemContribuicaoPct}%`,
+      },
+    }));
   }
-
   return result;
-}
-
-export function getRoadmapCockpitFromStorage(
-  companyId: string,
-  companyName: string = "Empresa"
-): RoadmapCockpitData {
-  if (typeof window === "undefined") return getDefaultRoadmapCockpitData(companyId, companyName);
-  try {
-    const raw = localStorage.getItem(`${STORAGE_KEYS.ROADMAP}_${companyId}`);
-    let parsed: RoadmapCockpitData;
-    if (!raw) {
-      parsed = getDefaultRoadmapCockpitData(companyId, companyName);
-    } else {
-      parsed = JSON.parse(raw);
-    }
-    // Enriquece com os dados reais da Torre de Controle
-    const enriched = enrichCockpitWithTorreInputs(companyId, parsed);
-    return enriched;
-  } catch (err) {
-    console.error("Error reading roadmap cockpit storage:", err);
-    return getDefaultRoadmapCockpitData(companyId, companyName);
-  }
-}
-
-export function saveRoadmapCockpitToStorage(data: RoadmapCockpitData): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(
-      `${STORAGE_KEYS.ROADMAP}_${data.company_id}`,
-      JSON.stringify({ ...data, last_updated: new Date().toISOString() })
-    );
-  } catch (err) {
-    console.error("Error saving roadmap cockpit storage:", err);
-  }
 }
