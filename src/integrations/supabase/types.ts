@@ -3582,6 +3582,38 @@ export type Database = {
           },
         ]
       }
+      roadmap_cockpits: {
+        Row: {
+          company_id: string
+          created_at: string
+          data: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_cockpits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roadmap_items: {
         Row: {
           area: string
@@ -3922,6 +3954,123 @@ export type Database = {
             columns: ["tobe_process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      torre_dre_records: {
+        Row: {
+          blocks: Json
+          company_id: string
+          created_at: string
+          id: string
+          mode: string
+          month_year: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          blocks?: Json
+          company_id: string
+          created_at?: string
+          id?: string
+          mode: string
+          month_year: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          blocks?: Json
+          company_id?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          month_year?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "torre_dre_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      torre_dre_templates: {
+        Row: {
+          blocks: Json
+          company_id: string
+          created_at: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          blocks?: Json
+          company_id: string
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          blocks?: Json
+          company_id?: string
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "torre_dre_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      torre_maturity_records: {
+        Row: {
+          answers: Json
+          company_id: string
+          created_at: string
+          id: string
+          month_year: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          answers?: Json
+          company_id: string
+          created_at?: string
+          id?: string
+          month_year: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          answers?: Json
+          company_id?: string
+          created_at?: string
+          id?: string
+          month_year?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "torre_maturity_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
