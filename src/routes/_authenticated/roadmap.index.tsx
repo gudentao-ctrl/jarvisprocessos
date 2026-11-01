@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { listRoadmap, saveRoadmapItem, deleteRoadmapItem } from "@/lib/analysis.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { useActiveCompany } from "@/lib/active-company";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePermissions } from "@/hooks/usePermissions";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +27,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
   Trash2,
@@ -34,17 +35,16 @@ import {
   Save,
   FileDown,
   Pencil,
-  Check,
   TrendingUp,
   TrendingDown,
   Target,
-  DollarSign,
   Layers,
   ArrowUpRight,
   ShieldAlert,
   CheckCircle2,
   Clock,
-  HelpCircle,
+  Building2,
+  Waves,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -64,13 +64,32 @@ import {
   CartesianGrid,
 } from "recharts";
 import {
-  getRoadmapCockpitFromStorage,
-  saveRoadmapCockpitToStorage,
+  enrichCockpitWithTorreInputs,
   getDefaultRoadmapCockpitData,
   type RoadmapCockpitData,
 } from "@/lib/torre-controle-storage";
+import {
+  fetchDreRecords,
+  fetchMaturityRecords,
+  fetchRoadmapCockpit,
+  importLegacyTorreData,
+  saveRoadmapCockpit,
+  summarizeDreForCockpit,
+} from "@/lib/torre-storage";
 
-export const Route = createFileRoute("/_authenticated/roadmap/")({ component: Page });
+export const Route = createFileRoute("/_authenticated/roadmap/")({
+  head: () => ({
+    meta: [
+      { title: "Roadmap & Gestão à Vista · Jarvis Processos" },
+      { name: "description", content: "Cockpit executivo do cliente: KPIs de impacto, iceberg do projeto, maturidade 360° e ROI." },
+      { property: "og:title", content: "Roadmap & Gestão à Vista · Jarvis Processos" },
+      { property: "og:description", content: "Cockpit executivo do cliente: KPIs de impacto, iceberg do projeto, maturidade 360° e ROI." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: Page,
+});
 
 const HORIZON_LABELS = {
   curto: "Curto prazo",
@@ -81,45 +100,46 @@ const HORIZON_LABELS = {
 const brl = (n: number) =>
   `R$ ${Number(n ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+type Front = RoadmapCockpitData["iceberg"]["underwater_milestones"][number]["front"];
+type Severity = RoadmapCockpitData["iceberg"]["surface_symptoms"][number]["severity"];
+const FRONTS: Front[] = ["Financeiro / Comercial", "Processos / BPM", "Pessoas / Cultura"];
+
 function Page() {
   const { company, companyId } = useActiveCompany();
   const [activeTab, setActiveTab] = useState<"cockpit" | "iniciativas">("cockpit");
 
   return (
-    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header com Navegação e Controles */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Roadmap & Gestão à Vista</h1>
-            <Badge variant="outline" className="text-primary font-semibold">
-              Cockpit Executivo
-            </Badge>
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {company ? `${company.name} · ` : ""}
-            Painel consolidado de impacto, maturidade 360°, infográfico do projeto e ROI.
+    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+      <div className="space-y-3 border-b pb-4 sm:flex sm:items-end sm:justify-between sm:gap-4 sm:space-y-0">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Cockpit executivo</p>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">Roadmap & Gestão à Vista</h1>
+          <p className="mt-1 truncate text-xs text-muted-foreground sm:text-sm">
+            {company ? company.name : "Selecione uma empresa"}
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full sm:w-auto">
-          <TabsList className="grid grid-cols-2 h-auto p-1 gap-1 w-full sm:w-auto">
-            <TabsTrigger value="cockpit" className="text-xs sm:text-sm py-2 min-h-[38px] sm:min-h-0">
-              Cockpit Executivo
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "cockpit" | "iniciativas")} className="w-full sm:w-auto">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:w-auto">
+            <TabsTrigger value="cockpit" className="min-h-[40px] py-2 text-xs sm:min-h-0 sm:text-sm">
+              Cockpit
             </TabsTrigger>
-            <TabsTrigger value="iniciativas" className="text-xs sm:text-sm py-2 min-h-[38px] sm:min-h-0">
-              Iniciativas por Horizonte
+            <TabsTrigger value="iniciativas" className="min-h-[40px] py-2 text-xs sm:min-h-0 sm:text-sm">
+              Iniciativas
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {activeTab === "cockpit" ? (
-        <CockpitExecutivoView
-          key={companyId || "default"}
-          companyId={companyId || "default"}
-          companyName={company?.name || "Empresa Ativa"}
-        />
+        companyId ? (
+          <CockpitExecutivoView key={companyId} companyId={companyId} companyName={company?.name || "Empresa"} />
+        ) : (
+          <Card className="p-8 text-center">
+            <Building2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+            <p className="text-sm font-semibold">Selecione uma empresa para ver o cockpit.</p>
+          </Card>
+        )
       ) : (
         <IniciativasView />
       )}
@@ -128,643 +148,555 @@ function Page() {
 }
 
 // =========================================================================
-// COCKPIT EXECUTIVO DE GESTÃO À VISTA (BLOCO 15)
+// COCKPIT EXECUTIVO DE GESTÃO À VISTA
 // =========================================================================
 
-function CockpitExecutivoView({
-  companyId,
-  companyName,
-}: {
-  companyId: string;
-  companyName: string;
-}) {
-  const [data, setData] = useState<RoadmapCockpitData>(() =>
-    getRoadmapCockpitFromStorage(companyId, companyName)
+function SectionTitle({ index, title, children }: { index: number; title: string; children?: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <p className="min-w-0 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="mr-1.5 inline-grid h-5 w-5 place-items-center rounded-full bg-primary/10 text-[10px] text-primary">
+          {index}
+        </span>
+        {title}
+      </p>
+      {children && <div className="flex shrink-0 items-center gap-1.5">{children}</div>}
+    </div>
   );
+}
+
+function CockpitExecutivoView({ companyId, companyName }: { companyId: string; companyName: string }) {
+  const qc = useQueryClient();
+  const { hasAccess } = usePermissions();
+  const canEdit = hasAccess("roadmap", "update") || hasAccess("roadmap", "create");
 
   useEffect(() => {
-    setData(getRoadmapCockpitFromStorage(companyId, companyName));
-  }, [companyId, companyName]);
+    let cancelled = false;
+    importLegacyTorreData(companyId)
+      .then((n) => {
+        if (!cancelled && n > 0) void qc.invalidateQueries({ queryKey: ["roadmap-cockpit", companyId] });
+      })
+      .catch((e) => console.warn("[roadmap] recuperação local", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, qc]);
 
-  // Modos de Edição Inline
+  const cockpitQ = useQuery({
+    queryKey: ["roadmap-cockpit", companyId],
+    queryFn: async () => {
+      const [saved, dre, maturity] = await Promise.all([
+        fetchRoadmapCockpit(companyId),
+        fetchDreRecords(companyId),
+        fetchMaturityRecords(companyId),
+      ]);
+      const base = saved ?? getDefaultRoadmapCockpitData(companyId, companyName);
+      return {
+        exists: !!saved,
+        data: enrichCockpitWithTorreInputs(base, summarizeDreForCockpit(dre), maturity),
+      };
+    },
+  });
+
+  const [draft, setDraft] = useState<RoadmapCockpitData | null>(null);
+  const data = draft ?? cockpitQ.data?.data ?? null;
   const [editingKpis, setEditingKpis] = useState(false);
   const [editingGaps, setEditingGaps] = useState(false);
-  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
 
-  // Handlers
-  const handleSave = () => {
-    saveRoadmapCockpitToStorage(data);
-    toast.success("Alterações salvas com sucesso!");
-    setEditingKpis(false);
-    setEditingGaps(false);
-    setEditingMilestoneId(null);
-  };
+  const saveMut = useMutation({
+    mutationFn: (next: RoadmapCockpitData) => saveRoadmapCockpit(companyId, next),
+    onSuccess: () => {
+      setDraft(null);
+      setEditingKpis(false);
+      setEditingGaps(false);
+      void qc.invalidateQueries({ queryKey: ["roadmap-cockpit", companyId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
-  const handleRegenerateWithAI = () => {
-    // Sincroniza e regenera síntese inteligente com base no sistema
-    const fresh = getDefaultRoadmapCockpitData(companyId, companyName);
-    setData(fresh);
-    saveRoadmapCockpitToStorage(fresh);
-    toast.success("Cockpit regerado com IA cruzando diagnósticos e finanças!");
+  const commit = (next: RoadmapCockpitData, message?: string) =>
+    saveMut.mutate(next, { onSuccess: () => message && toast.success(message) });
+
+  const patch = (next: RoadmapCockpitData) => setDraft(next);
+
+  const handleRegenerate = () => {
+    if (!window.confirm("Recriar o cockpit a partir do modelo e dos dados da Torre de Controle? As edições manuais serão substituídas.")) return;
+    commit(getDefaultRoadmapCockpitData(companyId, companyName), "Cockpit recriado com os dados da Torre de Controle.");
   };
 
   const handleExportPdf = async () => {
+    if (!data) return;
     try {
       const { exportRoadmapExecutivePdf } = await import("@/lib/roadmap-pdf");
       exportRoadmapExecutivePdf(data, companyName);
-      toast.success("Status Report Executivo (PDF) gerado com sucesso!");
+      toast.success("Status Report gerado.");
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao gerar PDF do relatório executivo.");
+      toast.error("Erro ao gerar o PDF do relatório.");
     }
   };
 
-  const addSurfaceSymptom = () => {
-    const text = prompt("Digite o novo sintoma ou dor do Diagnóstico 360°:");
-    if (!text) return;
-    const newSym = {
-      id: crypto.randomUUID(),
-      text,
-      severity: "alta" as const,
-    };
-    const updated = {
-      ...data,
-      iceberg: {
-        ...data.iceberg,
-        surface_symptoms: [...data.iceberg.surface_symptoms, newSym],
-      },
-    };
-    setData(updated);
-    saveRoadmapCockpitToStorage(updated);
-    toast.success("Sintoma adicionado.");
-  };
+  const chartTick = useMemo(() => ({ fill: "var(--muted-foreground)", fontSize: 10 }), []);
 
-  const removeSurfaceSymptom = (id: string) => {
-    const updated = {
-      ...data,
-      iceberg: {
-        ...data.iceberg,
-        surface_symptoms: data.iceberg.surface_symptoms.filter((s) => s.id !== id),
-      },
-    };
-    setData(updated);
-    saveRoadmapCockpitToStorage(updated);
-  };
+  if (cockpitQ.isError) {
+    return <Card className="p-6 text-center text-sm text-destructive">Não foi possível carregar o cockpit. Tente novamente.</Card>;
+  }
+  if (!data) {
+    return <Card className="p-6 text-center text-sm text-muted-foreground">Carregando cockpit…</Card>;
+  }
 
-  const addUnderwaterMilestone = () => {
-    const title = prompt("Título do marco submerso tratado:");
-    if (!title) return;
-    const impact = prompt("Impacto mensurável gerado:", "Otimização de rotinas e redução de retrabalho.") || "";
-    const newM = {
-      id: crypto.randomUUID(),
-      front: "Processos / BPM" as const,
-      title,
-      impact,
-      status: "resolvido" as const,
-    };
-    const updated = {
-      ...data,
-      iceberg: {
-        ...data.iceberg,
-        underwater_milestones: [...data.iceberg.underwater_milestones, newM],
-      },
-    };
-    setData(updated);
-    saveRoadmapCockpitToStorage(updated);
-    toast.success("Marco adicionado ao Subsolo Operacional.");
-  };
+  const kpiCards = [
+    { key: "revenue", label: "Faturamento", value: `${data.kpis.revenue_growth_pct >= 0 ? "+" : ""}${data.kpis.revenue_growth_pct}%`, note: data.kpis.revenue_growth_note, icon: TrendingUp, tone: "text-acc-emerald", border: "border-l-acc-emerald", pct: "revenue_growth_pct" as const, noteKey: "revenue_growth_note" as const },
+    { key: "maturity", label: "Maturidade", value: `+${data.kpis.maturity_growth_pct}%`, note: data.kpis.maturity_growth_note, icon: Target, tone: "text-acc-blue", border: "border-l-acc-blue", pct: "maturity_growth_pct" as const, noteKey: "maturity_growth_note" as const },
+    { key: "cost", label: "Custos", value: `-${data.kpis.cost_reduction_pct}%`, note: data.kpis.cost_reduction_note, icon: TrendingDown, tone: "text-acc-amber", border: "border-l-acc-amber", pct: "cost_reduction_pct" as const, noteKey: "cost_reduction_note" as const },
+    { key: "roi", label: "ROI", value: `${data.kpis.roi_multiplier}x`, note: "Retorno sobre o investimento em consultoria", icon: ArrowUpRight, tone: "text-acc-violet", border: "border-l-acc-violet", pct: "roi_multiplier" as const, noteKey: null },
+  ];
 
-  const removeUnderwaterMilestone = (id: string) => {
-    const updated = {
-      ...data,
-      iceberg: {
-        ...data.iceberg,
-        underwater_milestones: data.iceberg.underwater_milestones.filter((m) => m.id !== id),
-      },
-    };
-    setData(updated);
-    saveRoadmapCockpitToStorage(updated);
-  };
+  const dirty = draft !== null;
 
   return (
     <div className="space-y-6">
-      {/* Barra de Ações do Consultor (Human-in-the-Loop) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/40 p-3 rounded-xl border">
+      {/* Barra de ações */}
+      <Card className="space-y-3 p-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="h-4 w-4 text-primary" />
-          <span>Última sincronização: {new Date(data.last_updated).toLocaleString("pt-BR")}</span>
+          <Clock className="h-4 w-4 shrink-0 text-primary" />
+          <span className="min-w-0 truncate">
+            {cockpitQ.data?.exists
+              ? `Atualizado em ${new Date(data.last_updated).toLocaleString("pt-BR")}`
+              : "Modelo inicial — ajuste e salve para este cliente"}
+          </span>
+          {dirty && <Badge variant="outline" className="ml-auto shrink-0 text-[10px]">Não salvo</Badge>}
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRegenerateWithAI} className="gap-1.5 text-xs">
-            <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-            Regerar com IA
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={handleSave} className="gap-1.5 text-xs bg-card">
-            <Save className="h-3.5 w-3.5 text-emerald-600" />
-            Salvar Alterações
-          </Button>
-
-          <Button size="sm" onClick={handleExportPdf} className="gap-1.5 text-xs bg-primary text-primary-foreground shadow-sm">
-            <FileDown className="h-3.5 w-3.5" />
-            Gerar Status Report Executivo (PDF)
-          </Button>
-        </div>
-      </div>
-
-      {/* BLOCO 1: KPIS DE IMPACTO (TOPO DO PAINEL) */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            1. KPIs de Impacto & Valor Agregado
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setEditingKpis(!editingKpis)}
-            className="h-7 text-xs text-muted-foreground gap-1"
-          >
-            <Pencil className="h-3 w-3" />
-            {editingKpis ? "Concluir Edição" : "Editar KPIs"}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Faturamento */}
-          <Card className="p-4 border-l-4 border-l-emerald-500 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Crescimento de Faturamento</span>
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                <TrendingUp className="h-4 w-4" />
-              </div>
-            </div>
-            {editingKpis ? (
-              <div className="mt-2 space-y-1">
-                <Input
-                  type="number"
-                  value={data.kpis.revenue_growth_pct}
-                  onChange={(e) =>
-                    setData({
-                      ...data,
-                      kpis: { ...data.kpis, revenue_growth_pct: Number(e.target.value) || 0 },
-                    })
-                  }
-                  className="h-8 text-lg font-bold"
-                />
-                <Input
-                  value={data.kpis.revenue_growth_note}
-                  onChange={(e) =>
-                    setData({
-                      ...data,
-                      kpis: { ...data.kpis, revenue_growth_note: e.target.value },
-                    })
-                  }
-                  className="h-7 text-xs"
-                />
-              </div>
-            ) : (
-              <div className="mt-2">
-                <p className="text-3xl font-extrabold text-emerald-600 tabular-nums">
-                  +{data.kpis.revenue_growth_pct}%
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground leading-tight">
-                  {data.kpis.revenue_growth_note}
-                </p>
-              </div>
-            )}
-          </Card>
-
-          {/* Card 2: Maturidade */}
-          <Card className="p-4 border-l-4 border-l-sky-500 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Evolução da Maturidade</span>
-              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600">
-                <Target className="h-4 w-4" />
-              </div>
-            </div>
-            {editingKpis ? (
-              <div className="mt-2 space-y-1">
-                <Input
-                  type="number"
-                  value={data.kpis.maturity_growth_pct}
-                  onChange={(e) =>
-                    setData({
-                      ...data,
-                      kpis: { ...data.kpis, maturity_growth_pct: Number(e.target.value) || 0 },
-                    })
-                  }
-                  className="h-8 text-lg font-bold"
-                />
-                <Input
-                  value={data.kpis.maturity_growth_note}
-                  onChange={(e) =>
-                    setData({
-                      ...data,
-                      kpis: { ...data.kpis, maturity_growth_note: e.target.value },
-                    })
-                  }
-                  className="h-7 text-xs"
-                />
-              </div>
-            ) : (
-              <div className="mt-2">
-                <p className="text-3xl font-extrabold text-sky-600 tabular-nums">
-                  +{data.kpis.maturity_growth_pct}%
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground leading-tight">
-                  {data.kpis.maturity_growth_note}
-                </p>
-              </div>
-            )}
-          </Card>
-
-          {/* Card 3: Custos */}
-          <Card className="p-4 border-l-4 border-l-amber-500 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Otimização de Custos</span>
-              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600">
-                <TrendingDown className="h-4 w-4" />
-              </div>
-            </div>
-            {editingKpis ? (
-              <div className="mt-2 space-y-1">
-                <Input
-                  type="number"
-                  value={data.kpis.cost_reduction_pct}
-                  onChange={(e) =>
-                    setData({
-                      ...data,
-                      kpis: { ...data.kpis, cost_reduction_pct: Number(e.target.value) || 0 },
-                    })
-                  }
-                  className="h-8 text-lg font-bold"
-                />
-                <Input
-                  value={data.kpis.cost_reduction_note}
-                  onChange={(e) =>
-                    setData({
-                      ...data,
-                      kpis: { ...data.kpis, cost_reduction_note: e.target.value },
-                    })
-                  }
-                  className="h-7 text-xs"
-                />
-              </div>
-            ) : (
-              <div className="mt-2">
-                <p className="text-3xl font-extrabold text-amber-600 tabular-nums">
-                  -{data.kpis.cost_reduction_pct}%
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground leading-tight">
-                  {data.kpis.cost_reduction_note}
-                </p>
-              </div>
-            )}
-          </Card>
-
-          {/* Card 4: Multiplicador ROI */}
-          <Card className="p-4 border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Múltiplo de ROI</span>
-              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600">
-                <ArrowUpRight className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <p className="text-3xl font-extrabold text-indigo-600 tabular-nums">
-                {data.kpis.roi_multiplier}x
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground leading-tight">
-                Retorno financeiro líquido sobre o investimento em consultoria
-              </p>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* BLOCO 2: O INFOGRÁFICO INTERATIVO DO ICEBERG ("RAIO-X DO PROJETO") */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            2. Raio-X do Projeto: O Infográfico do Iceberg
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={addSurfaceSymptom} className="h-7 text-xs gap-1">
-              <Plus className="h-3 w-3" /> Sintoma Superfície
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={handleRegenerate} className="h-10 gap-1.5 text-xs sm:h-9">
+              <Sparkles className="h-4 w-4 text-acc-violet" /> Recriar
             </Button>
-            <Button variant="outline" size="sm" onClick={addUnderwaterMilestone} className="h-7 text-xs gap-1">
-              <Plus className="h-3 w-3" /> Marco Subsolo
+          )}
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => commit(data, "Cockpit salvo. Já aparece no computador e no celular.")}
+              disabled={saveMut.isPending}
+              className="h-10 gap-1.5 text-xs sm:h-9"
+            >
+              <Save className="h-4 w-4 text-acc-emerald" /> {saveMut.isPending ? "Salvando…" : "Salvar"}
             </Button>
+          )}
+          <Button size="sm" onClick={handleExportPdf} className="col-span-2 h-10 gap-1.5 text-xs sm:col-span-1 sm:h-9">
+            <FileDown className="h-4 w-4" /> Status Report (PDF)
+          </Button>
+        </div>
+      </Card>
+
+      {/* 1. KPIs */}
+      <section className="space-y-2">
+        <SectionTitle index={1} title="KPIs de impacto">
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditingKpis(!editingKpis)}
+              className="h-8 gap-1 text-xs text-muted-foreground"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              {editingKpis ? "Concluir" : "Editar"}
+            </Button>
+          )}
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+          {kpiCards.map((k) => (
+            <Card key={k.key} className={`min-w-0 border-l-4 p-3 sm:p-4 ${k.border}`}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="min-w-0 text-[10px] font-semibold uppercase leading-tight text-muted-foreground sm:text-xs">
+                  {k.label}
+                </span>
+                <k.icon className={`h-4 w-4 shrink-0 ${k.tone}`} />
+              </div>
+              {editingKpis ? (
+                <div className="mt-2 space-y-1">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    aria-label={`Valor de ${k.label}`}
+                    value={data.kpis[k.pct]}
+                    onChange={(e) => patch({ ...data, kpis: { ...data.kpis, [k.pct]: Number(e.target.value) || 0 } })}
+                    className="h-9 text-base font-bold"
+                  />
+                  {k.noteKey && (
+                    <Textarea
+                      rows={2}
+                      aria-label={`Descrição de ${k.label}`}
+                      value={data.kpis[k.noteKey]}
+                      onChange={(e) => patch({ ...data, kpis: { ...data.kpis, [k.noteKey!]: e.target.value } })}
+                      className="min-h-0 text-xs"
+                    />
+                  )}
+                </div>
+              ) : (
+                <>
+                  <p className={`mt-1.5 text-2xl font-extrabold tabular-nums sm:text-3xl ${k.tone}`}>{k.value}</p>
+                  <p className="mt-1 line-clamp-3 text-[11px] leading-snug text-muted-foreground sm:text-xs">{k.note}</p>
+                </>
+              )}
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* 2. Iceberg */}
+      <section className="space-y-2">
+        <SectionTitle index={2} title="Raio-X do projeto: iceberg" />
+        {canEdit && (
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <SymptomDialog onAdd={(s) => commit({ ...data, iceberg: { ...data.iceberg, surface_symptoms: [...data.iceberg.surface_symptoms, s] } }, "Sintoma adicionado.")} />
+            <MilestoneDialog onAdd={(m) => commit({ ...data, iceberg: { ...data.iceberg, underwater_milestones: [...data.iceberg.underwater_milestones, m] } }, "Marco adicionado.")} />
           </div>
-        </div>
+        )}
 
-        <div className="rounded-2xl border overflow-hidden shadow-sm">
-          {/* TOPO DO ICEBERG (SUPERFÍCIE - ACIMA D'ÁGUA) */}
-          <div className="bg-gradient-to-b from-sky-50 to-blue-100/60 dark:from-sky-950/30 dark:to-blue-900/20 p-5 border-b">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-sky-500 animate-pulse" />
-                <h3 className="font-bold text-sm text-sky-950 dark:text-sky-200">
-                  Superfície Visível: Sintomas e Dores Iniciais do Diagnóstico 360°
-                </h3>
-              </div>
-              <Badge variant="secondary" className="text-xs bg-sky-200/60 dark:bg-sky-900 text-sky-900 dark:text-sky-100">
-                Percepção da Diretoria
+        <div className="overflow-hidden rounded-2xl border shadow-sm">
+          {/* Superfície */}
+          <div className="border-b bg-acc-blue/10 p-3 sm:p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-acc-blue" />
+              <h3 className="min-w-0 text-sm font-bold">Superfície: sintomas do diagnóstico</h3>
+              <Badge variant="secondary" className="ml-auto hidden shrink-0 text-[10px] sm:inline-flex">
+                Percepção da diretoria
               </Badge>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3">
               {data.iceberg.surface_symptoms.map((symptom) => (
-                <div
-                  key={symptom.id}
-                  className="flex items-start justify-between gap-2 p-3 bg-white/90 dark:bg-slate-900/90 rounded-xl border shadow-xs"
-                >
-                  <div className="space-y-1">
+                <div key={symptom.id} className="flex items-start gap-2 rounded-xl border bg-card p-3">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <Badge
                       variant="outline"
                       className={`text-[10px] ${
                         symptom.severity === "critica"
-                          ? "border-red-400 text-red-600 bg-red-50 dark:bg-red-950/30"
+                          ? "border-destructive text-destructive"
                           : symptom.severity === "alta"
-                            ? "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/30"
-                            : "border-sky-400 text-sky-600 bg-sky-50 dark:bg-sky-950/30"
+                            ? "border-acc-amber text-acc-amber"
+                            : "border-acc-blue text-acc-blue"
                       }`}
                     >
                       {symptom.severity.toUpperCase()}
                     </Badge>
-                    <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-                      {symptom.text}
-                    </p>
+                    <p className="text-xs font-medium leading-relaxed">{symptom.text}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeSurfaceSymptom(symptom.id)}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Excluir sintoma"
+                      onClick={() =>
+                        commit({ ...data, iceberg: { ...data.iceberg, surface_symptoms: data.iceberg.surface_symptoms.filter((s) => s.id !== symptom.id) } })
+                      }
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               ))}
+              {data.iceberg.surface_symptoms.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum sintoma cadastrado.</p>
+              )}
             </div>
           </div>
 
-          {/* LINHA D'ÁGUA (DIVISOR VISUAL DO ICEBERG) */}
-          <div className="relative py-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-500 text-center text-white text-[11px] font-bold tracking-wider uppercase shadow-inner">
-            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/20 backdrop-blur-xs">
-              〰️ Nível de Percepção do Cliente vs. Trabalho Invisível da Consultoria 〰️
-            </span>
+          {/* Linha d'água */}
+          <div className="flex items-center justify-center gap-1.5 bg-acc-blue px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-primary-foreground sm:text-[11px]">
+            <Waves className="h-3.5 w-3.5 shrink-0" />
+            <span className="sm:hidden">Linha d'água · trabalho invisível</span>
+            <span className="hidden sm:inline">Nível de percepção do cliente vs. trabalho invisível da consultoria</span>
           </div>
 
-          {/* SUBSOLO OPERACIONAL (ABAIXO D'ÁGUA - O TRABALHO INVISÍVEL TRATADO) */}
-          <div className="bg-gradient-to-b from-blue-900/10 via-slate-900/10 to-indigo-950/20 p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="h-4 w-4 text-indigo-600" />
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                  Subsolo Operacional: Marcos Estruturados pelas 3 Frentes de Execução
-                </h3>
-              </div>
-              <Badge variant="outline" className="text-xs border-indigo-400 text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30">
-                Gargalos Ocultos Destrinchados
-              </Badge>
+          {/* Subsolo */}
+          <div className="space-y-3 bg-muted/40 p-3 sm:p-5">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 shrink-0 text-acc-violet" />
+              <h3 className="min-w-0 text-sm font-bold">Subsolo: marcos pelas 3 frentes</h3>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3">
               {data.iceberg.underwater_milestones.map((m) => {
-                const frontColor =
-                  m.front.startsWith("Financeiro")
-                    ? "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
-                    : m.front.startsWith("Processos")
-                      ? "border-sky-500 text-sky-700 bg-sky-50 dark:bg-sky-950/30"
-                      : "border-purple-500 text-purple-700 bg-purple-50 dark:bg-purple-950/30";
-
+                const frontColor = m.front.startsWith("Financeiro")
+                  ? "border-acc-emerald text-acc-emerald"
+                  : m.front.startsWith("Processos")
+                    ? "border-acc-blue text-acc-blue"
+                    : "border-acc-violet text-acc-violet";
                 return (
-                  <Card key={m.id} className="p-3.5 space-y-2 bg-card border hover:border-primary/50 transition-all">
+                  <Card key={m.id} className="space-y-2 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <Badge variant="outline" className={`text-[10px] font-semibold ${frontColor}`}>
                         {m.front}
                       </Badge>
-                      <div className="flex items-center gap-1">
+                      {canEdit && (
                         <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={() => removeUnderwaterMilestone(m.id)}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          size="icon"
+                          aria-label="Excluir marco"
+                          onClick={() =>
+                            commit({ ...data, iceberg: { ...data.iceberg, underwater_milestones: data.iceberg.underwater_milestones.filter((x) => x.id !== m.id) } })
+                          }
+                          className="-mr-1 -mt-1 h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </div>
+                      )}
                     </div>
-
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{m.title}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{m.impact}</p>
-
-                    <div className="flex items-center justify-between pt-1 border-t text-[11px]">
-                      <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {m.status === "resolvido" ? "Tratado & Homologado" : "Em Resolução"}
-                      </span>
-                    </div>
+                    <p className="text-xs font-bold">{m.title}</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{m.impact}</p>
+                    <button
+                      type="button"
+                      disabled={!canEdit}
+                      onClick={() =>
+                        commit({
+                          ...data,
+                          iceberg: {
+                            ...data.iceberg,
+                            underwater_milestones: data.iceberg.underwater_milestones.map((x) =>
+                              x.id === m.id ? { ...x, status: x.status === "resolvido" ? "em_andamento" : "resolvido" } : x,
+                            ),
+                          },
+                        })
+                      }
+                      className={`flex w-full items-center gap-1 border-t pt-2 text-[11px] font-medium ${m.status === "resolvido" ? "text-acc-emerald" : "text-acc-amber"}`}
+                    >
+                      {m.status === "resolvido" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+                      {m.status === "resolvido" ? "Tratado & homologado" : "Em resolução"}
+                    </button>
                   </Card>
                 );
               })}
+              {data.iceberg.underwater_milestones.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum marco cadastrado.</p>
+              )}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* BLOCO 3 & 4: RADAR DE MATURIDADE 360° & ROI DA CONSULTORIA (LADO A LADO) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* BLOCO 3: RADAR DE MATURIDADE 360° */}
-        <Card className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                3. Radar de Maturidade 360°
-              </p>
-              <h3 className="text-sm font-semibold text-foreground">
-                Visão Simultânea: Donos vs. Gestão vs. Colaboradores
-              </h3>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setEditingGaps(!editingGaps)}
-              className="h-7 text-xs text-muted-foreground gap-1"
-            >
-              <Pencil className="h-3 w-3" />
-              {editingGaps ? "Concluir" : "Editar Narrativa"}
-            </Button>
-          </div>
-
-          <div className="h-[320px] w-full">
+      {/* 3 & 4. Radar e ROI */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="space-y-3 p-3 sm:p-5">
+          <SectionTitle index={3} title="Radar de maturidade 360°">
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingGaps(!editingGaps)}
+                className="h-8 gap-1 text-xs text-muted-foreground"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {editingGaps ? "Concluir" : "Narrativa"}
+              </Button>
+            )}
+          </SectionTitle>
+          <p className="text-xs text-muted-foreground">Donos vs. gestão vs. colaboradores</p>
+          <div className="h-[300px] w-full sm:h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data.radar_360.pilars} outerRadius="75%">
-                <PolarGrid stroke="#cbd5e1" strokeDasharray="3 3" />
-                <PolarAngleAxis dataKey="shortName" tick={{ fill: "#64748b", fontSize: 11 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 5]} stroke="#94a3b8" />
-
-                {/* Donos / Diretoria */}
-                <Radar
-                  name="Donos / Diretoria"
-                  dataKey="donos"
-                  stroke="#8b5cf6"
-                  fill="#8b5cf6"
-                  fillOpacity={0.25}
-                />
-
-                {/* Gestão / Liderança */}
-                <Radar
-                  name="Gestão / Liderança"
-                  dataKey="gestao"
-                  stroke="#0284c7"
-                  fill="#0284c7"
-                  fillOpacity={0.2}
-                />
-
-                {/* Colaboradores / Operação */}
-                <Radar
-                  name="Colaboradores"
-                  dataKey="colaboradores"
-                  stroke="#10b981"
-                  fill="#10b981"
-                  fillOpacity={0.2}
-                />
-
-                {/* Evolução Atual */}
-                <Radar
-                  name="Evolução Atual"
-                  dataKey="mes_atual"
-                  stroke="#f59e0b"
-                  fill="#f59e0b"
-                  fillOpacity={0.15}
-                  strokeDasharray="4 4"
-                />
-
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+              <RadarChart data={data.radar_360.pilars} outerRadius="62%">
+                <PolarGrid stroke="var(--border)" strokeDasharray="3 3" />
+                <PolarAngleAxis dataKey="shortName" tick={chartTick} />
+                <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fontSize: 9 }} stroke="var(--border)" />
+                <Radar name="Donos" dataKey="donos" stroke="var(--acc-violet)" fill="var(--acc-violet)" fillOpacity={0.22} />
+                <Radar name="Gestão" dataKey="gestao" stroke="var(--acc-blue)" fill="var(--acc-blue)" fillOpacity={0.18} />
+                <Radar name="Colaboradores" dataKey="colaboradores" stroke="var(--acc-emerald)" fill="var(--acc-emerald)" fillOpacity={0.18} />
+                <Radar name="Atual" dataKey="mes_atual" stroke="var(--acc-amber)" fill="var(--acc-amber)" fillOpacity={0.12} strokeDasharray="4 4" />
+                <Legend wrapperStyle={{ fontSize: 11 }} iconSize={9} />
                 <RechartsTooltip />
               </RadarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Narrativa de Gaps Organizacionais */}
-          <div className="p-3 bg-muted/40 rounded-xl border space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
-              Diagnóstico de Gaps de Alinhamento:
+          <div className="space-y-1 rounded-xl border bg-muted/40 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <ShieldAlert className="h-3.5 w-3.5 text-acc-amber" /> Gaps de alinhamento
             </p>
             {editingGaps ? (
               <Textarea
-                rows={3}
+                rows={4}
                 value={data.radar_360.gaps_narrative}
-                onChange={(e) =>
-                  setData({
-                    ...data,
-                    radar_360: { ...data.radar_360, gaps_narrative: e.target.value },
-                  })
-                }
+                onChange={(e) => patch({ ...data, radar_360: { ...data.radar_360, gaps_narrative: e.target.value } })}
                 className="text-xs"
               />
             ) : (
-              <p className="text-xs text-foreground/90 leading-relaxed">
-                {data.radar_360.gaps_narrative}
-              </p>
+              <p className="text-xs leading-relaxed">{data.radar_360.gaps_narrative}</p>
             )}
           </div>
         </Card>
 
-        {/* BLOCO 4: ROI DA CONSULTORIA & GRÁFICOS DE TENDÊNCIA */}
-        <Card className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                4. ROI da Consultoria & Tendência Financeira
-              </p>
-              <h3 className="text-sm font-semibold text-foreground">
-                Evolução Cruzada: Faturamento vs. Custos Otimizados
-              </h3>
-            </div>
-            <Badge variant="outline" className="text-xs border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
-              Pins de Intervenção
-            </Badge>
-          </div>
-
-          <div className="h-[320px] w-full">
+        <Card className="space-y-3 p-3 sm:p-5">
+          <SectionTitle index={4} title="ROI e tendência financeira" />
+          <p className="text-xs text-muted-foreground">Faturamento vs. custos e resultado</p>
+          <div className="h-[260px] w-full sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data.roi_timeline}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="period" tick={{ fill: "#64748b", fontSize: 10 }} />
-                <YAxis
-                  tick={{ fill: "#64748b", fontSize: 10 }}
-                  tickFormatter={(val) => `R$ ${(val / 1000).toFixed(0)}k`}
-                />
-                <RechartsTooltip
-                  formatter={(val: any, name: any) => [brl(Number(val)), name]}
-                />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-
-                {/* Receita / Faturamento */}
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Faturamento Bruto"
-                  fill="#10b981"
-                  fillOpacity={0.15}
-                  stroke="#10b981"
-                  strokeWidth={2.5}
-                />
-
-                {/* Custos Totais */}
-                <Area
-                  type="monotone"
-                  dataKey="costs"
-                  name="Custos Totais"
-                  fill="#f43f5e"
-                  fillOpacity={0.1}
-                  stroke="#f43f5e"
-                  strokeWidth={2}
-                />
-
-                {/* Lucro Operacional */}
-                <Line
-                  type="monotone"
-                  dataKey="profit"
-                  name="Lucro Líquido"
-                  stroke="#2563eb"
-                  strokeWidth={3}
-                  dot={{ r: 5, fill: "#2563eb" }}
-                />
+              <ComposedChart data={data.roi_timeline} margin={{ left: -14, right: 6 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="period" tick={chartTick} interval="preserveStartEnd" tickFormatter={(v: string) => (v.length > 10 ? `${v.slice(0, 9)}…` : v)} />
+                <YAxis tick={chartTick} tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} />
+                <RechartsTooltip formatter={(val: unknown, name: unknown) => [brl(Number(val)), String(name)]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} iconSize={9} />
+                <Area type="monotone" dataKey="revenue" name="Faturamento" fill="var(--acc-emerald)" fillOpacity={0.15} stroke="var(--acc-emerald)" strokeWidth={2.5} />
+                <Area type="monotone" dataKey="costs" name="Custos" fill="var(--acc-red)" fillOpacity={0.1} stroke="var(--acc-red)" strokeWidth={2} />
+                <Line type="monotone" dataKey="profit" name="Lucro" stroke="var(--acc-blue)" strokeWidth={3} dot={{ r: 4 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Timeline de Pins de Intervenção */}
-          <div className="p-3 bg-muted/40 rounded-xl border space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground">
-              Pontos de Inflexão (Onde a Consultoria Agiu):
-            </p>
-            <div className="space-y-1.5 max-h-36 overflow-y-auto divide-y divide-border/60">
+          <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
+            <p className="text-xs font-semibold text-muted-foreground">Onde a consultoria agiu</p>
+            <ol className="relative space-y-3 border-l border-primary/30 pl-4">
               {data.roi_timeline.map((point, idx) => (
-                <div key={idx} className="pt-1.5 first:pt-0 flex items-start justify-between gap-2 text-xs">
-                  <div>
-                    <span className="font-semibold text-primary">{point.period}: </span>
-                    <span className="text-foreground/90">{point.intervention_pin?.title}</span>
-                    <span className="text-muted-foreground block text-[11px]">
-                      {point.intervention_pin?.description}
-                    </span>
+                <li key={idx} className="relative text-xs">
+                  <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className="font-semibold text-primary">{point.period}</span>
+                    {point.intervention_pin?.front && (
+                      <Badge variant="secondary" className="text-[10px]">{point.intervention_pin.front}</Badge>
+                    )}
                   </div>
-                  <Badge variant="secondary" className="shrink-0 text-[10px]">
-                    {point.intervention_pin?.front}
-                  </Badge>
-                </div>
+                  <p className="mt-0.5 font-medium">{point.intervention_pin?.title}</p>
+                  {point.intervention_pin?.description && (
+                    <p className="text-[11px] text-muted-foreground">{point.intervention_pin.description}</p>
+                  )}
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </Card>
       </div>
+
+      {dirty && canEdit && (
+        <div className="sticky bottom-0 z-10 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex gap-2 sm:justify-end">
+            <Button variant="outline" className="h-11 flex-1 sm:flex-none" onClick={() => { setDraft(null); setEditingKpis(false); setEditingGaps(false); }}>
+              Descartar
+            </Button>
+            <Button className="h-11 flex-1 gap-2 sm:flex-none" disabled={saveMut.isPending} onClick={() => commit(data, "Cockpit salvo.")}>
+              <Save className="h-4 w-4" /> {saveMut.isPending ? "Salvando…" : "Salvar alterações"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function SymptomDialog({ onAdd }: { onAdd: (s: RoadmapCockpitData["iceberg"]["surface_symptoms"][number]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [severity, setSeverity] = useState<Severity>("alta");
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-10 gap-1 text-xs sm:h-8">
+          <Plus className="h-3.5 w-3.5" /> Sintoma
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Novo sintoma da superfície</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="sym-text">Sintoma ou dor do diagnóstico</Label>
+            <Textarea id="sym-text" rows={3} value={text} onChange={(e) => setText(e.target.value)} />
+          </div>
+          <div>
+            <Label>Gravidade</Label>
+            <Select value={severity} onValueChange={(v) => setSeverity(v as Severity)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="critica">Crítica</SelectItem>
+                <SelectItem value="alta">Alta</SelectItem>
+                <SelectItem value="media">Média</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            className="h-11 w-full sm:w-auto"
+            disabled={!text.trim()}
+            onClick={() => {
+              onAdd({ id: crypto.randomUUID(), text: text.trim(), severity });
+              setText("");
+              setOpen(false);
+            }}
+          >
+            Adicionar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MilestoneDialog({ onAdd }: { onAdd: (m: RoadmapCockpitData["iceberg"]["underwater_milestones"][number]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [impact, setImpact] = useState("");
+  const [front, setFront] = useState<Front>("Processos / BPM");
+  const [status, setStatus] = useState<"resolvido" | "em_andamento">("em_andamento");
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-10 gap-1 text-xs sm:h-8">
+          <Plus className="h-3.5 w-3.5" /> Marco
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Novo marco do subsolo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="ms-title">Título</Label>
+            <Input id="ms-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="ms-impact">Impacto gerado</Label>
+            <Textarea id="ms-impact" rows={3} value={impact} onChange={(e) => setImpact(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Frente</Label>
+              <Select value={front} onValueChange={(v) => setFront(v as Front)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FRONTS.map((f) => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Situação</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as "resolvido" | "em_andamento")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="em_andamento">Em resolução</SelectItem>
+                  <SelectItem value="resolvido">Tratado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            className="h-11 w-full sm:w-auto"
+            disabled={!title.trim()}
+            onClick={() => {
+              onAdd({ id: crypto.randomUUID(), title: title.trim(), impact: impact.trim(), front, status });
+              setTitle("");
+              setImpact("");
+              setOpen(false);
+            }}
+          >
+            Adicionar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -783,10 +715,10 @@ function IniciativasView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Iniciativas por Horizonte</h2>
-          <p className="text-muted-foreground text-sm">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold tracking-tight sm:text-xl">Iniciativas por Horizonte</h2>
+          <p className="text-muted-foreground text-xs sm:text-sm">
             Planejamento tático e estratégico agrupado por curto, médio e longo prazo.
           </p>
         </div>
@@ -804,11 +736,14 @@ function IniciativasView() {
               <Card key={i.id}>
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="font-semibold text-sm">{i.title}</div>
+                    <div className="min-w-0 font-semibold text-sm">{i.title}</div>
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="ghost"
+                      aria-label="Excluir iniciativa"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={async () => {
+                        if (!window.confirm(`Excluir a iniciativa "${i.title}"?`)) return;
                         await delFn({ data: { id: i.id } });
                         qc.invalidateQueries({ queryKey: ["roadmap"] });
                       }}
@@ -894,7 +829,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
           Nova iniciativa
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova iniciativa</DialogTitle>
         </DialogHeader>
@@ -931,7 +866,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label>Horizonte</Label>
               <Select
@@ -1010,7 +945,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
                 onChange={(e) => setForm({ ...form, area: e.target.value })}
               />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Label>Tema</Label>
               <Input
                 value={form.theme}
@@ -1020,7 +955,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={submit}>Adicionar</Button>
+          <Button className="h-11 w-full sm:w-auto" onClick={submit}>Adicionar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
