@@ -435,21 +435,30 @@ function PainelDeControleTab({
 function MaturidadeTab({ companyId, companyName }: { companyId: string; companyName?: string }) {
   const monthOptions = useMemo(() => generateMonthOptions(), []);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthYear());
-
-  const [record, setRecord] = useState<MonthlyMaturityRecord>(() => {
-    const existing = getMaturityRecordsFromStorage(companyId);
-    const found = existing.find((r) => r.month_year === selectedMonth);
-    return found ?? getDefaultMaturityRecord(companyId, selectedMonth);
+  const qc = useQueryClient();
+  const recordsQ = useQuery({
+    queryKey: ["torre-maturity", companyId],
+    queryFn: () => fetchMaturityRecords(companyId),
   });
+  const savedRecord = recordsQ.data?.find((r) => r.month_year === selectedMonth);
+
+  const [record, setRecord] = useState<MonthlyMaturityRecord>(() =>
+    getDefaultMaturityRecord(companyId, selectedMonth),
+  );
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    const existing = getMaturityRecordsFromStorage(companyId);
-    const found = existing.find((r) => r.month_year === selectedMonth);
-    setRecord(found ?? getDefaultMaturityRecord(companyId, selectedMonth));
+    setDirty(false);
   }, [selectedMonth, companyId]);
+
+  useEffect(() => {
+    if (dirty) return;
+    setRecord(savedRecord ?? getDefaultMaturityRecord(companyId, selectedMonth));
+  }, [savedRecord, selectedMonth, companyId, dirty]);
 
   const updateAnswer = useCallback(
     (questionId: number, score: number) => {
+      setDirty(true);
       setRecord((prev) => {
         const newAnswers = { ...prev.answers, [questionId]: score };
         const { pilar_averages, global_average } = calculateMaturityAverages(newAnswers);
@@ -459,10 +468,17 @@ function MaturidadeTab({ companyId, companyName }: { companyId: string; companyN
     []
   );
 
-  const handleSave = () => {
-    saveMaturityRecord(record);
-    toast.success("Avaliação de maturidade salva com sucesso!");
-  };
+  const saveMut = useMutation({
+    mutationFn: () => saveMaturityRecord(record),
+    onSuccess: () => {
+      setDirty(false);
+      void qc.invalidateQueries({ queryKey: ["torre-maturity", companyId] });
+      void qc.invalidateQueries({ queryKey: ["roadmap-cockpit", companyId] });
+      toast.success("Avaliação de maturidade salva com sucesso!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const handleSave = () => saveMut.mutate();
 
   const scoreColor = (val: number) => {
     if (val >= 4.0) return "text-emerald-600";
