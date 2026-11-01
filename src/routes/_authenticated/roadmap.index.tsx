@@ -715,10 +715,10 @@ function IniciativasView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Iniciativas por Horizonte</h2>
-          <p className="text-muted-foreground text-sm">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold tracking-tight sm:text-xl">Iniciativas por Horizonte</h2>
+          <p className="text-muted-foreground text-xs sm:text-sm">
             Planejamento tático e estratégico agrupado por curto, médio e longo prazo.
           </p>
         </div>
@@ -736,11 +736,14 @@ function IniciativasView() {
               <Card key={i.id}>
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="font-semibold text-sm">{i.title}</div>
+                    <div className="min-w-0 font-semibold text-sm">{i.title}</div>
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="ghost"
+                      aria-label="Excluir iniciativa"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={async () => {
+                        if (!window.confirm(`Excluir a iniciativa "${i.title}"?`)) return;
                         await delFn({ data: { id: i.id } });
                         qc.invalidateQueries({ queryKey: ["roadmap"] });
                       }}
@@ -826,7 +829,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
           Nova iniciativa
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova iniciativa</DialogTitle>
         </DialogHeader>
@@ -863,7 +866,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label>Horizonte</Label>
               <Select
@@ -942,7 +945,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
                 onChange={(e) => setForm({ ...form, area: e.target.value })}
               />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Label>Tema</Label>
               <Input
                 value={form.theme}
@@ -952,7 +955,7 @@ function NewItemDialog({ onSaved }: { onSaved: () => void }) {
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={submit}>Adicionar</Button>
+          <Button className="h-11 w-full sm:w-auto" onClick={submit}>Adicionar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
