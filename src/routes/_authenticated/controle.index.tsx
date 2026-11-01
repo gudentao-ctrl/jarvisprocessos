@@ -153,6 +153,24 @@ function ControlePage() {
     navigate({ search: { tab: val } as any, replace: true });
   };
 
+  // Recupera uma única vez o que a versão antiga guardou só neste navegador.
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!companyId) return;
+    let cancelled = false;
+    importLegacyTorreData(companyId)
+      .then((n) => {
+        if (cancelled || n === 0) return;
+        void qc.invalidateQueries({ queryKey: ["torre-dre-records", companyId] });
+        void qc.invalidateQueries({ queryKey: ["torre-maturity", companyId] });
+        toast.success(`${n} registro(s) deste computador foram enviados para a nuvem.`);
+      })
+      .catch((e) => console.warn("[torre] recuperação local", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, qc]);
+
   if (!companyId) {
     return (
       <Card className="p-8 text-center">
@@ -212,11 +230,11 @@ function ControlePage() {
         </TabsContent>
 
         <TabsContent value="dre" className="space-y-4 mt-4">
-          <DRETab key={companyId} companyId={companyId} companyName={company?.name} />
+          <DreTab key={companyId} companyId={companyId} companyName={company?.name} />
         </TabsContent>
 
         <TabsContent value="evolucao" className="space-y-4 mt-4">
-          <EvolucaoFinanceiraTab key={companyId} companyId={companyId} companyName={company?.name} />
+          <EvolucaoFinanceiraTab key={companyId} companyId={companyId} />
         </TabsContent>
       </Tabs>
     </div>
