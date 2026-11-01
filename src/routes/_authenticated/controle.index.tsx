@@ -629,14 +629,17 @@ function MaturidadeTab({ companyId, companyName }: { companyId: string; companyN
           rows={3}
           placeholder="Anotações sobre a avaliação deste mês..."
           value={record.notes ?? ""}
-          onChange={(e) => setRecord((prev) => ({ ...prev, notes: e.target.value }))}
+          onChange={(e) => {
+            setDirty(true);
+            setRecord((prev) => ({ ...prev, notes: e.target.value }));
+          }}
         />
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} size="lg" className="gap-2">
+        <Button onClick={handleSave} size="lg" className="gap-2" disabled={saveMut.isPending}>
           <Save className="h-4 w-4" />
-          Salvar Avaliação
+          {saveMut.isPending ? "Salvando…" : "Salvar Avaliação"}
         </Button>
       </div>
     </>
