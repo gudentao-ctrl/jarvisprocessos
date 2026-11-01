@@ -374,7 +374,6 @@ export function DreTab({ companyId, companyName }: { companyId: string; companyN
                           type="number"
                           inputMode="decimal"
                           step="0.01"
-                          min="0"
                           placeholder="0,00"
                           disabled={!canWrite}
                           value={l.amount === 0 ? "" : l.amount}
