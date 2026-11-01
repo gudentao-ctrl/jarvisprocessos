@@ -47,41 +47,33 @@ import {
   Calendar,
   CheckCircle2,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-} from "recharts";
 import { PhaseMenu, PhaseGrid } from "@/components/PhaseMenu";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   PILARES_MATURIDADE,
   calculateMaturityAverages,
   getDefaultMaturityRecord,
-  getMaturityRecordsFromStorage,
-  saveMaturityRecord,
-  getDefaultDRERecord,
-  getDRERecordsFromStorage,
-  saveDRERecord,
-  calculateDREMetrics,
-  clonePreviousMonthDRE,
   type MonthlyMaturityRecord,
-  type MonthlyDRERecord,
-  type DREItem,
 } from "@/lib/torre-controle-storage";
+import { fetchMaturityRecords, importLegacyTorreData, saveMaturityRecord } from "@/lib/torre-storage";
+import { DreTab } from "@/components/torre/DreTab";
+import { EvolucaoFinanceiraTab } from "@/components/torre/EvolucaoFinanceiraTab";
 
 export const Route = createFileRoute("/_authenticated/controle/")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: typeof search.tab === "string" ? search.tab : "painel",
+  }),
+  head: () => ({
+    meta: [
+      { title: "Torre de Controle · Jarvis Processos" },
+      { name: "description", content: "Painel, maturidade, DRE personalizado do cliente e evolução financeira." },
+      { property: "og:title", content: "Torre de Controle · Jarvis Processos" },
+      { property: "og:description", content: "Painel, maturidade, DRE personalizado do cliente e evolução financeira." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: ControlePage,
 });
