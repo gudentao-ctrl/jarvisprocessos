@@ -221,199 +221,39 @@ export function getDefaultRoadmapCockpitData(
   companyId: string,
   companyName: string = "Empresa"
 ): RoadmapCockpitData {
+  // Ponto de partida em branco: nenhum número ou fato é inventado para o cliente.
+  // KPIs, radar e ROI são preenchidos pelos lançamentos reais da Torre de Controle ou editados pelo consultor.
+  void companyName;
   return {
     company_id: companyId,
     last_updated: new Date().toISOString(),
     kpis: {
-      revenue_growth_pct: 28.4,
-      revenue_growth_note: "+R$ 52.000 no faturamento mensal frente ao diagnóstico",
-      maturity_growth_pct: 42.5,
-      maturity_growth_note: "Evolução de 2.4/5 para 3.6/5 no Sincronismo 360°",
-      cost_reduction_pct: 18.2,
-      cost_reduction_note: "R$ 21.400/mês economizados em renegociações e processos",
-      roi_multiplier: 4.8,
+      revenue_growth_pct: 0,
+      revenue_growth_note: "Lance ao menos dois meses de DRE realizado para calcular",
+      maturity_growth_pct: 0,
+      maturity_growth_note: "Registre avaliações de maturidade para calcular",
+      cost_reduction_pct: 0,
+      cost_reduction_note: "Lance ao menos dois meses de DRE realizado para calcular",
+      roi_multiplier: 0,
     },
     iceberg: {
-      surface_symptoms: [
-        {
-          id: "s1",
-          text: "Sensação constante de apagar incêndios e falta de tempo dos donos",
-          severity: "critica",
-        },
-        {
-          id: "s2",
-          text: "Falta de previsibilidade do fluxo de caixa e margem real desconhecida",
-          severity: "critica",
-        },
-        {
-          id: "s3",
-          text: "Equipe sobrecarregada, retrabalho contínuo e atrasos na entrega",
-          severity: "alta",
-        },
-        {
-          id: "s4",
-          text: "Centralização extrema de decisões na diretoria sem delegação",
-          severity: "alta",
-        },
-        {
-          id: "s5",
-          text: "Desalinhamento entre metas comerciais e capacidade operacional",
-          severity: "media",
-        },
-      ],
-      underwater_milestones: [
-        {
-          id: "m1",
-          front: "Financeiro / Comercial",
-          title: "Implantação da DRE Gerencial & Revisão de Precificação",
-          impact: "Margem de contribuição ajustada de 38% para 49% e fim de produtos deficitários.",
-          status: "resolvido",
-        },
-        {
-          id: "m2",
-          front: "Processos / BPM",
-          title: "Mapeamento TO BE e Padronização dos Fluxos Principais",
-          impact: "Redução de 45% nos tempos de ciclo operacional e eliminação de retrabalhos críticos.",
-          status: "resolvido",
-        },
-        {
-          id: "m3",
-          front: "Pessoas / Cultura",
-          title: "Mapeamento Psicométrico (Big Five + DISC) & Reorganização de Papéis",
-          impact: "Alocação precisa de talentos por aptidão comportamental e estruturação de líderes.",
-          status: "resolvido",
-        },
-        {
-          id: "m4",
-          front: "Financeiro / Comercial",
-          title: "Renegociação de Fornecedores Chave e Enxugamento de Custos Fixos",
-          impact: "Economia recorrente de R$ 21.400 mensais no ponto de equilíbrio.",
-          status: "resolvido",
-        },
-        {
-          id: "m5",
-          front: "Processos / BPM",
-          title: "Elaboração e Homologação de POPs (Procedimentos Operacionais)",
-          impact: "Treinamento de 100% da operação e autonomia das equipes em tarefas diárias.",
-          status: "em_andamento",
-        },
-        {
-          id: "m6",
-          front: "Pessoas / Cultura",
-          title: "Rituais de Gestão à Vista e Alinhamento Semanal de Indicadores",
-          impact: "Eliminação do ruído de comunicação e prestação de contas objetiva por setor.",
-          status: "em_andamento",
-        },
-      ],
+      surface_symptoms: [],
+      underwater_milestones: [],
     },
     radar_360: {
-      initial_month_label: "Diagnóstico Inicial (Mês 1)",
-      current_month_label: "Acompanhamento Atual (Mês 3)",
+      initial_month_label: "Diagnóstico",
+      current_month_label: "Mês atual",
       pilars: [
-        {
-          pilar: "Clareza de Objetivos",
-          shortName: "Objetivos",
-          donos: 4.5,
-          gestao: 3.4,
-          colaboradores: 2.2,
-          mes_inicial: 2.3,
-          mes_atual: 3.8,
-        },
-        {
-          pilar: "Relacionamento e Comunicação",
-          shortName: "Comunicação",
-          donos: 4.0,
-          gestao: 3.1,
-          colaboradores: 2.5,
-          mes_inicial: 2.4,
-          mes_atual: 3.5,
-        },
-        {
-          pilar: "Remuneração e Reconhecimento",
-          shortName: "Remuneração",
-          donos: 4.2,
-          gestao: 2.8,
-          colaboradores: 2.0,
-          mes_inicial: 2.1,
-          mes_atual: 3.4,
-        },
-        {
-          pilar: "Estrutura Física e Pessoas",
-          shortName: "Pessoas",
-          donos: 3.8,
-          gestao: 3.0,
-          colaboradores: 2.6,
-          mes_inicial: 2.5,
-          mes_atual: 3.7,
-        },
-        {
-          pilar: "Estilo e Liderança",
-          shortName: "Liderança",
-          donos: 4.6,
-          gestao: 3.2,
-          colaboradores: 2.4,
-          mes_inicial: 2.2,
-          mes_atual: 3.6,
-        },
-        {
-          pilar: "Processos e Qualidade",
-          shortName: "Processos",
-          donos: 3.5,
-          gestao: 2.6,
-          colaboradores: 2.1,
-          mes_inicial: 2.0,
-          mes_atual: 3.9,
-        },
+        { pilar: "Clareza de Objetivos", shortName: "Objetivos", donos: 0, gestao: 0, colaboradores: 0, mes_inicial: 0, mes_atual: 0 },
+        { pilar: "Relacionamento e Comunicação", shortName: "Comunicação", donos: 0, gestao: 0, colaboradores: 0, mes_inicial: 0, mes_atual: 0 },
+        { pilar: "Remuneração e Reconhecimento", shortName: "Remuneração", donos: 0, gestao: 0, colaboradores: 0, mes_inicial: 0, mes_atual: 0 },
+        { pilar: "Estrutura Física e Pessoas", shortName: "Pessoas", donos: 0, gestao: 0, colaboradores: 0, mes_inicial: 0, mes_atual: 0 },
+        { pilar: "Estilo e Liderança", shortName: "Liderança", donos: 0, gestao: 0, colaboradores: 0, mes_inicial: 0, mes_atual: 0 },
+        { pilar: "Processos e Qualidade", shortName: "Processos", donos: 0, gestao: 0, colaboradores: 0, mes_inicial: 0, mes_atual: 0 },
       ],
-      gaps_narrative:
-        "O maior gap de percepção organizacional concentra-se em Clareza de Objetivos (Donos: 4.5 vs Colaboradores: 2.2) e Remuneração (Donos: 4.2 vs Colaboradores: 2.0). A consultoria já elevou a média global de maturidade de 2.2 para 3.7 através do alinhamento de metas e estruturação dos rituais de liderança.",
+      gaps_narrative: "",
     },
-    roi_timeline: [
-      {
-        period: "Mês 1 (Diagnóstico)",
-        revenue: 175000,
-        costs: 162000,
-        profit: 13000,
-        intervention_pin: {
-          title: "Raio-X Inicial & Apuração do Ponto de Equilíbrio",
-          front: "Financeiro",
-          description: "Descoberta de margem real e corte de despesas supérfluas.",
-        },
-      },
-      {
-        period: "Mês 2 (Fase TO BE)",
-        revenue: 192000,
-        costs: 154000,
-        profit: 38000,
-        intervention_pin: {
-          title: "Revisão da Precificação & Mapeamento de Gargalos",
-          front: "Comercial & BPM",
-          description: "Fim de contratos deficitários e eliminação de retrabalhos.",
-        },
-      },
-      {
-        period: "Mês 3 (Execução)",
-        revenue: 218000,
-        costs: 148000,
-        profit: 70000,
-        intervention_pin: {
-          title: "Reorganização de Equipe & Implantação de POPs",
-          front: "Pessoas & Processos",
-          description: "Aumento de 35% na capacidade produtiva com o mesmo time.",
-        },
-      },
-      {
-        period: "Mês 4 (Consolidação)",
-        revenue: 235000,
-        costs: 145000,
-        profit: 90000,
-        intervention_pin: {
-          title: "Gestão à Vista & Alavancagem Comercial",
-          front: "Estratégia",
-          description: "Previsibilidade de caixa e expansão da carteira lucrativa.",
-        },
-      },
-    ],
+    roi_timeline: [],
   };
 }
 // -------------------------------------------------------------
@@ -465,6 +305,19 @@ export function enrichCockpitWithTorreInputs(
   }
 
   const dre = [...dreRealizados].sort((a, b) => a.month_year.localeCompare(b.month_year));
+  if (dre.length >= 1) {
+    result.roi_timeline = dre.map((d, idx) => ({
+      period: d.month_year,
+      revenue: d.receitaBruta,
+      costs: d.custos,
+      profit: d.resultado,
+      intervention_pin: baseData.roi_timeline[idx]?.intervention_pin || {
+        title: `Fechamento ${d.month_year}`,
+        front: "Financeiro",
+        description: `Margem de Contribuição: ${d.margemContribuicaoPct}%`,
+      },
+    }));
+  }
   if (dre.length >= 2) {
     const earliest = dre[0];
     const latest = dre[dre.length - 1];
@@ -479,17 +332,6 @@ export function enrichCockpitWithTorreInputs(
         result.kpis.cost_reduction_pct = Math.max(0, costDiffPct);
       }
     }
-    result.roi_timeline = dre.map((d, idx) => ({
-      period: d.month_year,
-      revenue: d.receitaBruta,
-      costs: d.custos,
-      profit: d.resultado,
-      intervention_pin: baseData.roi_timeline[idx]?.intervention_pin || {
-        title: `Fechamento ${d.month_year}`,
-        front: "Financeiro",
-        description: `Margem de Contribuição: ${d.margemContribuicaoPct}%`,
-      },
-    }));
   }
   return result;
 }
