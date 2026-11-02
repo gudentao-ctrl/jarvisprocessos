@@ -520,7 +520,11 @@ function CockpitExecutivoView({ companyId, companyName }: { companyId: string; c
                 className="text-xs"
               />
             ) : (
-              <p className="text-xs leading-relaxed">{data.radar_360.gaps_narrative}</p>
+              <p className="text-xs leading-relaxed">
+                {data.radar_360.gaps_narrative || (
+                  <span className="text-muted-foreground">Sem narrativa registrada. Toque em “Narrativa” para descrever os gaps.</span>
+                )}
+              </p>
             )}
           </div>
         </Card>
@@ -528,6 +532,12 @@ function CockpitExecutivoView({ companyId, companyName }: { companyId: string; c
         <Card className="space-y-3 p-3 sm:p-5">
           <SectionTitle index={4} title="ROI e tendência financeira" />
           <p className="text-xs text-muted-foreground">Faturamento vs. custos e resultado</p>
+          {data.roi_timeline.length === 0 ? (
+            <p className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
+              Lance o DRE realizado na Torre de Controle para ver a tendência financeira do cliente.
+            </p>
+          ) : (
+          <>
           <div className="h-[260px] w-full sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data.roi_timeline} margin={{ left: -14, right: 6 }}>
@@ -562,6 +572,8 @@ function CockpitExecutivoView({ companyId, companyName }: { companyId: string; c
               ))}
             </ol>
           </div>
+          </>
+          )}
         </Card>
       </div>
 
