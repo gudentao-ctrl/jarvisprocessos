@@ -246,9 +246,9 @@ function CockpitExecutivoView({ companyId, companyName }: { companyId: string; c
   }
 
   const kpiCards = [
-    { key: "revenue", label: "Faturamento", value: `${data.kpis.revenue_growth_pct >= 0 ? "+" : ""}${data.kpis.revenue_growth_pct}%`, note: data.kpis.revenue_growth_note, icon: TrendingUp, tone: "text-acc-emerald", border: "border-l-acc-emerald", pct: "revenue_growth_pct" as const, noteKey: "revenue_growth_note" as const },
-    { key: "maturity", label: "Maturidade", value: `+${data.kpis.maturity_growth_pct}%`, note: data.kpis.maturity_growth_note, icon: Target, tone: "text-acc-blue", border: "border-l-acc-blue", pct: "maturity_growth_pct" as const, noteKey: "maturity_growth_note" as const },
-    { key: "cost", label: "Custos", value: `-${data.kpis.cost_reduction_pct}%`, note: data.kpis.cost_reduction_note, icon: TrendingDown, tone: "text-acc-amber", border: "border-l-acc-amber", pct: "cost_reduction_pct" as const, noteKey: "cost_reduction_note" as const },
+    { key: "revenue", label: "Faturamento", value: `${data.kpis.revenue_growth_pct > 0 ? "+" : ""}${data.kpis.revenue_growth_pct}%`, note: data.kpis.revenue_growth_note, icon: TrendingUp, tone: "text-acc-emerald", border: "border-l-acc-emerald", pct: "revenue_growth_pct" as const, noteKey: "revenue_growth_note" as const },
+    { key: "maturity", label: "Maturidade", value: `${data.kpis.maturity_growth_pct > 0 ? "+" : ""}${data.kpis.maturity_growth_pct}%`, note: data.kpis.maturity_growth_note, icon: Target, tone: "text-acc-blue", border: "border-l-acc-blue", pct: "maturity_growth_pct" as const, noteKey: "maturity_growth_note" as const },
+    { key: "cost", label: "Custos", value: `${data.kpis.cost_reduction_pct > 0 ? "-" : ""}${data.kpis.cost_reduction_pct}%`, note: data.kpis.cost_reduction_note, icon: TrendingDown, tone: "text-acc-amber", border: "border-l-acc-amber", pct: "cost_reduction_pct" as const, noteKey: "cost_reduction_note" as const },
     { key: "roi", label: "ROI", value: `${data.kpis.roi_multiplier}x`, note: "Retorno sobre o investimento em consultoria", icon: ArrowUpRight, tone: "text-acc-violet", border: "border-l-acc-violet", pct: "roi_multiplier" as const, noteKey: null },
   ];
 

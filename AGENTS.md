@@ -42,3 +42,4 @@
 - When a tool is added to the permission catalog, backfill existing permission rows per role preset; rows saved before the tool existed lack its key and the database denies it.
 - Before overwriting files during sync, diff against the latest externally pushed commits; external pushes (e.g. HUB 5S, NPS reset) must be preserved, not reverted.
 - Cross-device live updates use data-free database doorbells (`company-bell:<company id>` and `app-bell`) received only by authorized members, which refresh open screens through React Query or the shared live-sync window event; new company-scoped tables need the `jarvis_live_bell` trigger, and row data must never be broadcast.
+- Torre de Controle DRE models/records, maturity and Roadmap cockpits live only in company-scoped database tables; new cockpits start blank and KPIs/ROI derive from saved DRE and maturity, so devices agree and no client sees invented numbers.
