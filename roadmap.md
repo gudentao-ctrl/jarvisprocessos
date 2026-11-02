@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Roadmap no celular e DRE personalizado por cliente salvo na nuvem (sem dados fictícios)
+- [ ] Desempenho e tempo real: nova verificação computador/celular
+
 - [x] Segurança: testes controlados, corrigir acesso a arquivos, logos e links de ações; validar regressões sem testes de carga
 - [x] Pessoas: link de NPS/eNPS da Augusto Bogo não abre no celular para responder
 - [x] Desempenho: medir navegação autenticada no computador e celular, corrigir gargalos e repetir verificações; limites em PERFORMANCE_REVIEW.md
