@@ -71,6 +71,7 @@ import { Route as AuthenticatedRelatorioExecutivoMensalIndexRouteImport } from '
 import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
 import { Route as AuthenticatedRoadmapIndexRouteImport } from './routes/_authenticated/roadmap.index'
 import { Route as AuthenticatedTobeIndexRouteImport } from './routes/_authenticated/tobe.index'
+import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
 import { Route as P5sHashRouteImport } from './routes/p.5s.$hash'
 import { Route as AuthenticatedIndicadoresIdColetarRouteImport } from './routes/_authenticated/indicadores.$id.coletar'
 import { Route as AuthenticatedPessoasAssessmentIndexRouteImport } from './routes/_authenticated/pessoas/assessment/index'
@@ -434,6 +435,11 @@ const AuthenticatedTobeIndexRoute = AuthenticatedTobeIndexRouteImport.update({
   path: '/tobe/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
+  id: '/api/public/push-dispatch',
+  path: '/api/public/push-dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const P5sHashRoute = P5sHashRouteImport.update({
   id: '/p/5s/$hash',
   path: '/p/5s/$hash',
@@ -552,6 +558,7 @@ export interface FileRoutesByFullPath {
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
+  '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/p/5s/$hash': typeof P5sHashRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
@@ -627,6 +634,7 @@ export interface FileRoutesByTo {
   '/planos/$token': typeof AuthenticatedPlanosTokenRoute
   '/pop/$id': typeof AuthenticatedPopIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
+  '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/p/5s/$hash': typeof P5sHashRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/analise-critica': typeof AuthenticatedAnaliseCriticaIndexRoute
@@ -706,6 +714,7 @@ export interface FileRoutesById {
   '/_authenticated/pop/$id': typeof AuthenticatedPopIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRouteWithChildren
+  '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/p/5s/$hash': typeof P5sHashRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/analise-critica/': typeof AuthenticatedAnaliseCriticaIndexRoute
@@ -785,6 +794,7 @@ export interface FileRouteTypes {
     | '/pop/$id'
     | '/processos/$id'
     | '/projetos/$id'
+    | '/api/public/push-dispatch'
     | '/p/5s/$hash'
     | '/admin/'
     | '/analise-critica/'
@@ -860,6 +870,7 @@ export interface FileRouteTypes {
     | '/planos/$token'
     | '/pop/$id'
     | '/processos/$id'
+    | '/api/public/push-dispatch'
     | '/p/5s/$hash'
     | '/admin'
     | '/analise-critica'
@@ -938,6 +949,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pop/$id'
     | '/_authenticated/processos/$id'
     | '/_authenticated/projetos/$id'
+    | '/api/public/push-dispatch'
     | '/p/5s/$hash'
     | '/_authenticated/admin/'
     | '/_authenticated/analise-critica/'
@@ -991,6 +1003,7 @@ export interface RootRouteChildren {
   PHashRoute: typeof PHashRoute
   PesquisaHashRoute: typeof PesquisaHashRoute
   TesteIdRoute: typeof TesteIdRoute
+  ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   P5sHashRoute: typeof P5sHashRoute
   ApiPublicPlanosTokenRoute: typeof ApiPublicPlanosTokenRoute
 }
@@ -1431,6 +1444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTobeIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/push-dispatch': {
+      id: '/api/public/push-dispatch'
+      path: '/api/public/push-dispatch'
+      fullPath: '/api/public/push-dispatch'
+      preLoaderRoute: typeof ApiPublicPushDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/5s/$hash': {
       id: '/p/5s/$hash'
       path: '/p/5s/$hash'
@@ -1717,6 +1737,7 @@ const rootRouteChildren: RootRouteChildren = {
   PHashRoute: PHashRoute,
   PesquisaHashRoute: PesquisaHashRoute,
   TesteIdRoute: TesteIdRoute,
+  ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   P5sHashRoute: P5sHashRoute,
   ApiPublicPlanosTokenRoute: ApiPublicPlanosTokenRoute,
 }

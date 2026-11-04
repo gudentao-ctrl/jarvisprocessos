@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Avisos no celular e computador: novas solicitações/chamados para SuperAdmin e reuniões de equipe
+- [ ] Login: botão para mostrar a senha por alguns segundos
+- [ ] Sessão expira 24h após o login e pede a senha de novo
+
 - [x] Roadmap no celular e DRE personalizado por cliente salvo na nuvem (sem dados fictícios)
 - [ ] Desempenho e tempo real: nova verificação computador/celular
 

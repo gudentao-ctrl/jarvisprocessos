@@ -456,7 +456,10 @@ export type Database = {
           duration_min: number | null
           ends_at: string | null
           event_type: string
+          google_event_id: string | null
+          guest_emails: string[]
           id: string
+          is_internal_invite: boolean
           location: string
           minutes: string | null
           next_actions: Json | null
@@ -479,7 +482,10 @@ export type Database = {
           duration_min?: number | null
           ends_at?: string | null
           event_type?: string
+          google_event_id?: string | null
+          guest_emails?: string[]
           id?: string
+          is_internal_invite?: boolean
           location?: string
           minutes?: string | null
           next_actions?: Json | null
@@ -502,7 +508,10 @@ export type Database = {
           duration_min?: number | null
           ends_at?: string | null
           event_type?: string
+          google_event_id?: string | null
+          guest_emails?: string[]
           id?: string
+          is_internal_invite?: boolean
           location?: string
           minutes?: string | null
           next_actions?: Json | null
@@ -531,6 +540,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      calendar_locations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       candidates: {
         Row: {
@@ -3508,6 +3538,60 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_vapid_config: {
+        Row: {
+          created_at: string
+          id: number
+          private_jwk: Json
+          public_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          private_jwk: Json
+          public_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          private_jwk?: Json
+          public_key?: string
+        }
+        Relationships: []
+      }
       recrutamento_candidatos: {
         Row: {
           cpf: string | null
@@ -4174,6 +4258,45 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          link: string
+          pushed_at: string | null
+          read_at: string | null
+          source_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind: string
+          link?: string
+          pushed_at?: string | null
+          read_at?: string | null
+          source_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string
+          pushed_at?: string | null
+          read_at?: string | null
+          source_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4555,6 +4678,15 @@ export type Database = {
         Returns: boolean
       }
       is_access_superadmin: { Args: never; Returns: boolean }
+      register_push_subscription: {
+        Args: {
+          _auth: string
+          _endpoint: string
+          _p256dh: string
+          _user_agent: string
+        }
+        Returns: undefined
+      }
       remove_company_permissions: {
         Args: { _company_id: string; _user_id: string }
         Returns: undefined
