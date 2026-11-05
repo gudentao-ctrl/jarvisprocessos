@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Google Agenda: sincronização funcional e verificação de disponibilidade de cada participante antes de marcar reunião
+
 - [x] Avisos no celular e computador: novas solicitações/chamados para SuperAdmin e reuniões de equipe
 - [x] Login: botão para mostrar a senha por alguns segundos
 - [x] Sessão expira 24h após o login e pede a senha de novo
