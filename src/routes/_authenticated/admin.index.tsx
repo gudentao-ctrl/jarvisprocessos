@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import {
   adminListTickets,
   adminUpdateTicket,
@@ -529,8 +530,7 @@ function AdminPage() {
               {!userDraft.user_id && (
                 <div className="sm:col-span-2">
                   <Label>Senha temporária</Label>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     minLength={8}
                     value={userDraft.password}
                     onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
