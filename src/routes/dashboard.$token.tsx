@@ -57,10 +57,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutIfSessionExpired } from "@/lib/session-guard";
 
 export const Route = createFileRoute("/dashboard/$token")({
   ssr: false,
   beforeLoad: async ({ location }) => {
+    if (await signOutIfSessionExpired()) {
+      throw redirect({ to: "/auth", search: { redirect: location.href, expirou: true } });
+    }
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth", search: { redirect: location.href } });
   },

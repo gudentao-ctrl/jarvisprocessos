@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutIfSessionExpired } from "@/lib/session-guard";
 import {
   createCollectionByAccessToken,
   getIndicatorByAccessToken,
@@ -12,6 +13,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/c/$token")({
   ssr: false,
   beforeLoad: async ({ location }) => {
+    if (await signOutIfSessionExpired()) {
+      throw redirect({ to: "/auth", search: { redirect: location.href, expirou: true } });
+    }
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth", search: { redirect: location.href } });
   },

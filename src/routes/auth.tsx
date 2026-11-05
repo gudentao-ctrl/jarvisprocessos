@@ -7,12 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Mic, ShieldAlert } from "lucide-react";
+import { Clock, Mic, ShieldAlert } from "lucide-react";
+import { PasswordInput } from "@/components/PasswordInput";
+import { signOutIfSessionExpired } from "@/lib/session-guard";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; expirou?: boolean } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    expirou: search.expirou === true || search.expirou === "1" || search.expirou === 1 ? true : undefined,
   }),
   head: () => ({
     meta: [
@@ -50,7 +53,7 @@ function friendlyAuthError(err: unknown): string {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { redirect } = Route.useSearch();
+  const { redirect, expirou } = Route.useSearch();
   const destination = safeRedirect(redirect);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,9 +64,11 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    void (async () => {
+      if (await signOutIfSessionExpired()) return;
+      const { data } = await supabase.auth.getUser();
       if (data.user) navigate({ href: destination });
-    });
+    })();
   }, [destination, navigate]);
 
   async function signInWithRetry() {
@@ -134,6 +139,16 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">Consultoria Operacional</p>
         </div>
 
+        {expirou && (
+          <div
+            role="status"
+            className="mb-4 flex items-start gap-2 rounded-lg border bg-secondary p-3 text-xs text-secondary-foreground"
+          >
+            <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Por segurança, sua sessão termina 24 horas após o login. Entre novamente.</span>
+          </div>
+        )}
+
         <Tabs defaultValue="entrar">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="entrar">Entrar</TabsTrigger>
@@ -156,9 +171,8 @@ function AuthPage() {
               </div>
               <div>
                 <Label htmlFor="password">Senha</Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   required
                   minLength={6}
                   autoComplete="current-password"
@@ -240,9 +254,8 @@ function AuthPage() {
               </div>
               <div>
                 <Label htmlFor="password2">Senha</Label>
-                <Input
+                <PasswordInput
                   id="password2"
-                  type="password"
                   required
                   minLength={6}
                   autoComplete="new-password"
