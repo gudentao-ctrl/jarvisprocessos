@@ -35,6 +35,8 @@ import { useLiveSync } from "@/lib/live-sync";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toolsForPath } from "@/lib/permission-catalog";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
+import { NotificationBell } from "@/components/NotificationBell";
+import { signOutIfSessionExpired } from "@/lib/session-guard";
 import { AskAiFab } from "@/components/AskAiFab";
 import { getMe } from "@/lib/access.functions";
 import { permissionForPath } from "@/lib/access-control";
@@ -56,6 +58,9 @@ export const Route = createFileRoute("/_authenticated")({
       return {};
     }
 
+    if (await signOutIfSessionExpired()) {
+      throw redirect({ to: "/auth", search: { redirect: location.href, expirou: true } });
+    }
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth", search: { redirect: undefined } });
 
@@ -147,6 +152,31 @@ function AuthenticatedShell() {
       if (event === "SIGNED_OUT") router.invalidate();
     });
     return () => sub.subscription.unsubscribe();
+  }, [router]);
+
+  // Ask for the password again once the sign-in is 24 hours old, even if the app stays open.
+  useEffect(() => {
+    let busy = false;
+    const check = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        if (await signOutIfSessionExpired()) {
+          router.navigate({ to: "/auth", search: { expirou: true }, replace: true });
+        }
+      } finally {
+        busy = false;
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    const timer = setInterval(check, 60_000);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [router]);
 
   return (
@@ -247,11 +277,14 @@ function AuthenticatedShell() {
               </div>
               <span className="text-base font-bold tracking-tight">JARVIS</span>
             </div>
-            {showSwitcher && (
-              <div className="ml-auto min-w-0 max-w-[170px] sm:max-w-none">
-                <CompanySwitcher />
-              </div>
-            )}
+            <div className="ml-auto flex min-w-0 items-center gap-1">
+              {showSwitcher && (
+                <div className="min-w-0 max-w-[150px] sm:max-w-none">
+                  <CompanySwitcher />
+                </div>
+              )}
+              <NotificationBell />
+            </div>
           </header>
 
           <main className="flex-1 overflow-y-auto overscroll-contain">

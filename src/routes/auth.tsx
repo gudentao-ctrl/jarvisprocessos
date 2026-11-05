@@ -13,7 +13,7 @@ import { signOutIfSessionExpired } from "@/lib/session-guard";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; expirou?: boolean } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     expirou: search.expirou === true || search.expirou === "1" || search.expirou === 1 ? true : undefined,
   }),
