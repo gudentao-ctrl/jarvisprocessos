@@ -4220,6 +4220,36 @@ export type Database = {
           },
         ]
       }
+      user_calendar_feeds: {
+        Row: {
+          busy_cache: Json
+          cached_at: string | null
+          created_at: string
+          feed_ciphertext: string
+          last_error: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          busy_cache?: Json
+          cached_at?: string | null
+          created_at?: string
+          feed_ciphertext: string
+          last_error?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          busy_cache?: Json
+          cached_at?: string | null
+          created_at?: string
+          feed_ciphertext?: string
+          last_error?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_company_permissions: {
         Row: {
           company_id: string

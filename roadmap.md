@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Google Agenda: sincronização funcional e verificação de disponibilidade de cada participante antes de marcar reunião
+- [ ] Google Agenda sem configuração: cada pessoa cola o link privado da agenda no Meu Perfil; JARVIS mostra disponibilidade dos participantes ao marcar reunião; botão "Adicionar ao Google" em cada compromisso; remover a conexão antiga que não funcionava
 
 - [x] Avisos no celular e computador: novas solicitações/chamados para SuperAdmin e reuniões de equipe
 - [x] Login: botão para mostrar a senha por alguns segundos
