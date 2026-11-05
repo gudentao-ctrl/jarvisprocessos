@@ -1,8 +1,8 @@
 # Roadmap
 
-- [ ] Avisos no celular e computador: novas solicitações/chamados para SuperAdmin e reuniões de equipe
-- [ ] Login: botão para mostrar a senha por alguns segundos
-- [ ] Sessão expira 24h após o login e pede a senha de novo
+- [x] Avisos no celular e computador: novas solicitações/chamados para SuperAdmin e reuniões de equipe
+- [x] Login: botão para mostrar a senha por alguns segundos
+- [x] Sessão expira 24h após o login e pede a senha de novo
 
 - [x] Roadmap no celular e DRE personalizado por cliente salvo na nuvem (sem dados fictícios)
 - [ ] Desempenho e tempo real: nova verificação computador/celular
@@ -43,7 +43,7 @@
 - [x] CRM: confirmar conversão de lead fechado em empresa ativa e exibir empresas ativas
 - [x] Restringir dados financeiros às áreas e usuários autorizados
 - [x] Agenda: destacar reunião de alinhamento criada por gestor
-- [ ] Agenda pessoal: convites individuais e convite de todos os consultores
+- [x] Agenda pessoal: convites individuais e convite de todos os consultores
 - [x] Bloco 8: Conexão de Impacto e Profundidade no lugar de Relatório Operacional
 - [x] Bloco 9: Relatório Executivo Mensal em PDF no lugar de Relatório Por Empresa
 - [x] Relatório Executivo Mensal: corrigir geração e permitir selecionar/editar o conteúdo do PDF
