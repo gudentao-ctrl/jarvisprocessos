@@ -620,7 +620,7 @@ export async function exportMapaPdf(opts: {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(7.5);
     pdf.setTextColor(...COLOR_PRIMARY);
-    pdf.text("DISTRIBUIÇÃO POR RESPONSÁVEL:", cardX + 5, secY);
+    pdf.text("DISTRIBUIÇÃO POR RESPONSÁVEL PELA EXECUÇÃO:", cardX + 5, secY);
 
     secY += 4;
 
@@ -838,7 +838,7 @@ export async function exportMapaPdf(opts: {
           [
             "#",
             "Ação de Desdobramento & Detalhamento",
-            "Responsável / Setor",
+            "Responsável pela Execução / Setor",
             "Prazo",
             "Status",
             "Avanço",

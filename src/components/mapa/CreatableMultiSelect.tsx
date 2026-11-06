@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { X, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { X, Check, ChevronsUpDown, Plus, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface CreatableMultiSelectProps {
@@ -12,6 +11,10 @@ interface CreatableMultiSelectProps {
   searchPlaceholder?: string;
   emptyMessage?: string;
   allowCreate?: boolean;
+  allowEdit?: boolean;
+  allowDelete?: boolean;
+  onEditOption?: (oldValue: string, newValue: string) => void | Promise<void>;
+  onDeleteOption?: (valueToDelete: string) => void | Promise<void>;
   className?: string;
   badgeClassName?: string;
 }
@@ -24,13 +27,21 @@ export function CreatableMultiSelect({
   searchPlaceholder = "Buscar ou digitar novo...",
   emptyMessage = "Nenhuma opção encontrada",
   allowCreate = true,
+  allowEdit = true,
+  allowDelete = true,
+  onEditOption,
+  onDeleteOption,
   className,
   badgeClassName,
 }: CreatableMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [editingOption, setEditingOption] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -40,6 +51,7 @@ export function CreatableMultiSelect({
         !containerRef.current.contains(event.target as Node)
       ) {
         setOpen(false);
+        setEditingOption(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -49,7 +61,6 @@ export function CreatableMultiSelect({
   // Filtered options based on query
   const filteredOptions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    // Unique list of options, excluding already selected
     const unique = Array.from(new Set(options.map((o) => o.trim()).filter(Boolean)));
     if (!q) return unique;
     return unique.filter((opt) => opt.toLowerCase().includes(q));
@@ -83,7 +94,52 @@ export function CreatableMultiSelect({
 
   const handleRemove = (valToRemove: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    onChange(values.filter((v) => v !== valToRemove));
+    onChange(values.filter((v) => v.toLowerCase() !== valToRemove.toLowerCase()));
+  };
+
+  const handleStartEdit = (opt: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingOption(opt);
+    setEditingText(opt);
+    setTimeout(() => editInputRef.current?.focus(), 50);
+  };
+
+  const handleSaveEdit = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation();
+    if (!editingOption) return;
+    const newName = editingText.trim();
+    if (!newName || newName === editingOption) {
+      setEditingOption(null);
+      return;
+    }
+
+    if (onEditOption) {
+      await onEditOption(editingOption, newName);
+    }
+
+    // Update in selected values if present
+    if (values.some((v) => v.toLowerCase() === editingOption.toLowerCase())) {
+      onChange(
+        values.map((v) =>
+          v.toLowerCase() === editingOption.toLowerCase() ? newName : v
+        )
+      );
+    }
+    setEditingOption(null);
+  };
+
+  const handleDelete = async (opt: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Deseja excluir a opção "${opt}"?`)) return;
+
+    if (onDeleteOption) {
+      await onDeleteOption(opt);
+    }
+
+    // Remove from selected values if present
+    if (values.some((v) => v.toLowerCase() === opt.toLowerCase())) {
+      onChange(values.filter((v) => v.toLowerCase() !== opt.toLowerCase()));
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -92,7 +148,6 @@ export function CreatableMultiSelect({
       const q = query.trim();
       if (!q) return;
 
-      // If there's an exact or first match in filtered options, select it
       const exactMatch = filteredOptions.find(
         (o) => o.toLowerCase() === q.toLowerCase()
       );
@@ -102,10 +157,10 @@ export function CreatableMultiSelect({
         handleSelect(q);
       }
     } else if (e.key === "Backspace" && !query && values.length > 0) {
-      // Remove last tag on backspace if query is empty
       handleRemove(values[values.length - 1]);
     } else if (e.key === "Escape") {
       setOpen(false);
+      setEditingOption(null);
     }
   };
 
@@ -164,7 +219,7 @@ export function CreatableMultiSelect({
 
       {/* Dropdown Popover */}
       {open && (
-        <div className="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95">
+        <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95">
           <div className="p-1 space-y-0.5">
             {/* Create option */}
             {canCreate && (
@@ -185,19 +240,87 @@ export function CreatableMultiSelect({
               const isSelected = values.some(
                 (v) => v.toLowerCase() === opt.toLowerCase()
               );
+              const isEditing = editingOption === opt;
+
+              if (isEditing) {
+                return (
+                  <div
+                    key={opt}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-accent/70 rounded-sm"
+                  >
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSaveEdit();
+                        } else if (e.key === "Escape") {
+                          setEditingOption(null);
+                        }
+                      }}
+                      className="flex-1 bg-background border border-input rounded px-2 py-0.5 text-xs h-6 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveEdit}
+                      className="p-1 hover:bg-emerald-100 text-emerald-700 dark:hover:bg-emerald-950/60 dark:text-emerald-400 rounded transition-colors"
+                      title="Confirmar alteração"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingOption(null)}
+                      className="p-1 hover:bg-rose-100 text-rose-700 dark:hover:bg-rose-950/60 dark:text-rose-400 rounded transition-colors"
+                      title="Cancelar"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              }
+
               return (
-                <button
+                <div
                   key={opt}
-                  type="button"
                   onClick={() => handleSelect(opt)}
                   className={cn(
-                    "w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between transition-colors",
+                    "group flex items-center justify-between px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer select-none",
                     isSelected && "font-semibold bg-accent/40"
                   )}
                 >
-                  <span className="truncate">{opt}</span>
-                  {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0 ml-2" />}
-                </button>
+                  <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                    <span className="truncate">{opt}</span>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                  </div>
+
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                    {allowEdit && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleStartEdit(opt, e)}
+                        className="p-1 text-muted-foreground hover:text-primary hover:bg-background/80 rounded transition-colors"
+                        title="Editar nome da opção"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    )}
+                    {allowDelete && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(opt, e)}
+                        className="p-1 text-muted-foreground hover:text-rose-600 hover:bg-background/80 rounded transition-colors"
+                        title="Excluir opção"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               );
             })}
 

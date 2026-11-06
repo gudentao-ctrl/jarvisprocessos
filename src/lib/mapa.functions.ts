@@ -636,3 +636,110 @@ export const deleteMapaItem = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+
+export const renameMapaOption = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        company_id: z.string().uuid(),
+        field: z.enum(["origin", "responsible"]),
+        old_value: z.string().min(1),
+        new_value: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertPermission(context.supabase, data.company_id, "mapa_estrategico", "update");
+    const sb = context.supabase;
+
+    const { data: rows, error: selectError } = await sb
+      .from("action_plans")
+      .select("id, origin, responsible, observations")
+      .eq("company_id", data.company_id);
+
+    if (selectError) throw new Error(selectError.message);
+
+    const oldLower = data.old_value.toLowerCase().trim();
+    const newTrim = data.new_value.trim();
+
+    for (const r of rows ?? []) {
+      const currentVal = data.field === "origin" ? r.origin : r.responsible;
+      const parsed = parseMultiSelect(currentVal);
+      const hasMatch = parsed.some((v) => v.toLowerCase() === oldLower);
+
+      if (hasMatch) {
+        const updated = parsed.map((v) => (v.toLowerCase() === oldLower ? newTrim : v));
+        const formatted = formatMultiSelect(updated);
+
+        const meta = extractMeta(r.observations);
+        let updatedObs = r.observations;
+        if (meta && meta[data.field]) {
+          meta[data.field] = formatted;
+          updatedObs = `${cleanObservations(r.observations)} ${buildMetaTag(meta)}`.trim();
+        }
+
+        await (sb.from("action_plans") as any)
+          .update({
+            [data.field]: formatted,
+            observations: updatedObs,
+          })
+          .eq("id", r.id);
+      }
+    }
+
+    return { ok: true };
+  });
+
+export const deleteMapaOption = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        company_id: z.string().uuid(),
+        field: z.enum(["origin", "responsible"]),
+        value_to_delete: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertPermission(context.supabase, data.company_id, "mapa_estrategico", "update");
+    const sb = context.supabase;
+
+    const { data: rows, error: selectError } = await sb
+      .from("action_plans")
+      .select("id, origin, responsible, observations")
+      .eq("company_id", data.company_id);
+
+    if (selectError) throw new Error(selectError.message);
+
+    const targetLower = data.value_to_delete.toLowerCase().trim();
+
+    for (const r of rows ?? []) {
+      const currentVal = data.field === "origin" ? r.origin : r.responsible;
+      const parsed = parseMultiSelect(currentVal);
+      const hasMatch = parsed.some((v) => v.toLowerCase() === targetLower);
+
+      if (hasMatch) {
+        const updated = parsed.filter((v) => v.toLowerCase() !== targetLower);
+        const formatted = formatMultiSelect(updated);
+
+        const meta = extractMeta(r.observations);
+        let updatedObs = r.observations;
+        if (meta && meta[data.field]) {
+          meta[data.field] = formatted || null;
+          updatedObs = `${cleanObservations(r.observations)} ${buildMetaTag(meta)}`.trim();
+        }
+
+        await (sb.from("action_plans") as any)
+          .update({
+            [data.field]: formatted || null,
+            observations: updatedObs,
+          })
+          .eq("id", r.id);
+      }
+    }
+
+    return { ok: true };
+  });

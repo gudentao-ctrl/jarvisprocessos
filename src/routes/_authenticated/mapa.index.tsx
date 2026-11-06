@@ -6,6 +6,8 @@ import {
   getMapaData,
   saveMapaItem,
   deleteMapaItem,
+  renameMapaOption,
+  deleteMapaOption,
   DEFAULT_ORIGINS,
   parseMultiSelect,
   formatMultiSelect,
@@ -551,23 +553,213 @@ function MapaPage() {
     return mapaData.pillars;
   }, [mapaData]);
 
-  // Listas distintas de origens e responsáveis para seleção e filtros
+  const renameOptionFn = useServerFn(renameMapaOption);
+  const deleteOptionFn = useServerFn(deleteMapaOption);
+
+  // Custom & Deleted options local state (synced with localStorage)
+  const [extraOrigins, setExtraOrigins] = useState<string[]>(() => {
+    if (typeof window === "undefined" || !companyId) return [];
+    try {
+      const stored = localStorage.getItem(`mapa_custom_origins_${companyId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [deletedOrigins, setDeletedOrigins] = useState<string[]>(() => {
+    if (typeof window === "undefined" || !companyId) return [];
+    try {
+      const stored = localStorage.getItem(`mapa_deleted_origins_${companyId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [extraResponsibles, setExtraResponsibles] = useState<string[]>(() => {
+    if (typeof window === "undefined" || !companyId) return [];
+    try {
+      const stored = localStorage.getItem(`mapa_custom_responsibles_${companyId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [deletedResponsibles, setDeletedResponsibles] = useState<string[]>(() => {
+    if (typeof window === "undefined" || !companyId) return [];
+    try {
+      const stored = localStorage.getItem(`mapa_deleted_responsibles_${companyId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !companyId) return;
+    try {
+      const o = localStorage.getItem(`mapa_custom_origins_${companyId}`);
+      setExtraOrigins(o ? JSON.parse(o) : []);
+      const dO = localStorage.getItem(`mapa_deleted_origins_${companyId}`);
+      setDeletedOrigins(dO ? JSON.parse(dO) : []);
+      const r = localStorage.getItem(`mapa_custom_responsibles_${companyId}`);
+      setExtraResponsibles(r ? JSON.parse(r) : []);
+      const dR = localStorage.getItem(`mapa_deleted_responsibles_${companyId}`);
+      setDeletedResponsibles(dR ? JSON.parse(dR) : []);
+    } catch {
+      // ignore
+    }
+  }, [companyId]);
+
+  // Listas distintas de origens e responsáveis para seleção e filtros (considerando edição/exclusão)
   const availableOrigins = useMemo(() => {
     const set = new Set<string>();
-    DEFAULT_ORIGINS.forEach((o) => set.add(o));
+    DEFAULT_ORIGINS.forEach((o) => {
+      if (!deletedOrigins.some((d) => d.toLowerCase() === o.toLowerCase())) {
+        set.add(o);
+      }
+    });
+    extraOrigins.forEach((o) => {
+      if (!deletedOrigins.some((d) => d.toLowerCase() === o.toLowerCase())) {
+        set.add(o);
+      }
+    });
     (mapaData?.items ?? []).forEach((item) => {
-      parseMultiSelect(item.origin).forEach((o) => set.add(o));
+      parseMultiSelect(item.origin).forEach((o) => {
+        if (!deletedOrigins.some((d) => d.toLowerCase() === o.toLowerCase())) {
+          set.add(o);
+        }
+      });
     });
     return Array.from(set).sort();
-  }, [mapaData?.items]);
+  }, [mapaData?.items, extraOrigins, deletedOrigins]);
 
   const availableResponsibles = useMemo(() => {
     const set = new Set<string>();
+    extraResponsibles.forEach((r) => {
+      if (!deletedResponsibles.some((d) => d.toLowerCase() === r.toLowerCase())) {
+        set.add(r);
+      }
+    });
     (mapaData?.items ?? []).forEach((item) => {
-      parseMultiSelect(item.responsible).forEach((r) => set.add(r));
+      parseMultiSelect(item.responsible).forEach((r) => {
+        if (!deletedResponsibles.some((d) => d.toLowerCase() === r.toLowerCase())) {
+          set.add(r);
+        }
+      });
     });
     return Array.from(set).sort();
-  }, [mapaData?.items]);
+  }, [mapaData?.items, extraResponsibles, deletedResponsibles]);
+
+  const handleEditOrigin = async (oldVal: string, newVal: string) => {
+    if (!companyId) return;
+    try {
+      const updatedExtra = extraOrigins.map((o) =>
+        o.toLowerCase() === oldVal.toLowerCase() ? newVal : o
+      );
+      if (!updatedExtra.includes(newVal)) updatedExtra.push(newVal);
+      setExtraOrigins(updatedExtra);
+      localStorage.setItem(`mapa_custom_origins_${companyId}`, JSON.stringify(updatedExtra));
+
+      await renameOptionFn({
+        data: {
+          company_id: companyId,
+          field: "origin",
+          old_value: oldVal,
+          new_value: newVal,
+        },
+      });
+
+      qc.invalidateQueries({ queryKey: ["mapa", companyId] });
+      toast.success(`Origem "${oldVal}" renomeada para "${newVal}"!`);
+    } catch (err: any) {
+      toast.error(`Erro ao renomear origem: ${err?.message || "falha ao salvar"}`);
+    }
+  };
+
+  const handleDeleteOrigin = async (valToDelete: string) => {
+    if (!companyId) return;
+    try {
+      const updatedExtra = extraOrigins.filter(
+        (o) => o.toLowerCase() !== valToDelete.toLowerCase()
+      );
+      setExtraOrigins(updatedExtra);
+      localStorage.setItem(`mapa_custom_origins_${companyId}`, JSON.stringify(updatedExtra));
+
+      const updatedDeleted = Array.from(new Set([...deletedOrigins, valToDelete]));
+      setDeletedOrigins(updatedDeleted);
+      localStorage.setItem(`mapa_deleted_origins_${companyId}`, JSON.stringify(updatedDeleted));
+
+      await deleteOptionFn({
+        data: {
+          company_id: companyId,
+          field: "origin",
+          value_to_delete: valToDelete,
+        },
+      });
+
+      qc.invalidateQueries({ queryKey: ["mapa", companyId] });
+      toast.success(`Origem "${valToDelete}" excluída com sucesso!`);
+    } catch (err: any) {
+      toast.error(`Erro ao excluir origem: ${err?.message || "falha ao excluir"}`);
+    }
+  };
+
+  const handleEditResponsible = async (oldVal: string, newVal: string) => {
+    if (!companyId) return;
+    try {
+      const updatedExtra = extraResponsibles.map((r) =>
+        r.toLowerCase() === oldVal.toLowerCase() ? newVal : r
+      );
+      if (!updatedExtra.includes(newVal)) updatedExtra.push(newVal);
+      setExtraResponsibles(updatedExtra);
+      localStorage.setItem(`mapa_custom_responsibles_${companyId}`, JSON.stringify(updatedExtra));
+
+      await renameOptionFn({
+        data: {
+          company_id: companyId,
+          field: "responsible",
+          old_value: oldVal,
+          new_value: newVal,
+        },
+      });
+
+      qc.invalidateQueries({ queryKey: ["mapa", companyId] });
+      toast.success(`Responsável "${oldVal}" renomeado para "${newVal}"!`);
+    } catch (err: any) {
+      toast.error(`Erro ao renomear responsável: ${err?.message || "falha ao salvar"}`);
+    }
+  };
+
+  const handleDeleteResponsible = async (valToDelete: string) => {
+    if (!companyId) return;
+    try {
+      const updatedExtra = extraResponsibles.filter(
+        (r) => r.toLowerCase() !== valToDelete.toLowerCase()
+      );
+      setExtraResponsibles(updatedExtra);
+      localStorage.setItem(`mapa_custom_responsibles_${companyId}`, JSON.stringify(updatedExtra));
+
+      const updatedDeleted = Array.from(new Set([...deletedResponsibles, valToDelete]));
+      setDeletedResponsibles(updatedDeleted);
+      localStorage.setItem(`mapa_deleted_responsibles_${companyId}`, JSON.stringify(updatedDeleted));
+
+      await deleteOptionFn({
+        data: {
+          company_id: companyId,
+          field: "responsible",
+          value_to_delete: valToDelete,
+        },
+      });
+
+      qc.invalidateQueries({ queryKey: ["mapa", companyId] });
+      toast.success(`Responsável "${valToDelete}" excluído com sucesso!`);
+    } catch (err: any) {
+      toast.error(`Erro ao excluir responsável: ${err?.message || "falha ao excluir"}`);
+    }
+  };
 
   // Indicador visual: % de ações por frente estratégica por origem e por responsável
   const frenteDistribution = useMemo(() => {
@@ -992,7 +1184,7 @@ function MapaPage() {
                     onClick={() => setDistribTab("responsavel")}
                   >
                     <Users className="h-3 w-3" />
-                    Por Responsável
+                    Por Resp. pela Execução
                   </Button>
                 </div>
               </div>
@@ -1125,7 +1317,7 @@ function MapaPage() {
                   <div className="relative flex-1 min-w-[200px] max-w-sm">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Filtrar por ação, responsável ou observação..."
+                      placeholder="Filtrar por ação, responsável pela execução ou observação..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-8 h-9 text-xs"
@@ -1166,11 +1358,11 @@ function MapaPage() {
                     <SelectTrigger className="h-9 w-44 text-xs">
                       <div className="flex items-center gap-1.5 truncate">
                         <Users className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <SelectValue placeholder="Responsável" />
+                        <SelectValue placeholder="Responsável pela Execução" />
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os responsáveis</SelectItem>
+                      <SelectItem value="all">Todos os responsáveis pela execução</SelectItem>
                       {availableResponsibles.map((resp) => (
                         <SelectItem key={resp} value={resp} className="text-xs">
                           {resp}
@@ -1403,14 +1595,8 @@ function MapaPage() {
                                       )}
                                     </div>
 
-                                    {/* Sub-info: Responsável, Prazo, Observação */}
+                                    {/* Sub-info: Prazo, Observação */}
                                     <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                                      {diretriz.responsible && (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground/80">
-                                          <User className="h-3 w-3 text-muted-foreground" />
-                                          {diretriz.responsible}
-                                        </span>
-                                      )}
                                       {diretriz.due_date && (
                                         <span className="inline-flex items-center gap-1 text-[11px]">
                                           <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -1870,12 +2056,14 @@ function MapaPage() {
                     setItemForm({ ...itemForm, origin: formatMultiSelect(newVals) })
                   }
                   options={availableOrigins}
+                  onEditOption={handleEditOrigin}
+                  onDeleteOption={handleDeleteOrigin}
                   placeholder="Escolha ou digite uma origem..."
                   searchPlaceholder="Buscar ou adicionar origem..."
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Setor Responsável</Label>
+                <Label className="text-xs font-semibold">Setor</Label>
                 <Input
                   placeholder="Ex: Comercial, Operações, RH..."
                   value={itemForm.sector}
@@ -1974,7 +2162,9 @@ function MapaPage() {
                     setItemForm({ ...itemForm, responsible: formatMultiSelect(newVals) })
                   }
                   options={availableResponsibles}
-                  placeholder="Escolha ou digite um responsável..."
+                  onEditOption={handleEditResponsible}
+                  onDeleteOption={handleDeleteResponsible}
+                  placeholder="Escolha ou digite um responsável pela execução..."
                   searchPlaceholder="Buscar ou adicionar responsável..."
                 />
               </div>
