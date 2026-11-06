@@ -41,6 +41,7 @@ import { AskAiFab } from "@/components/AskAiFab";
 import { getMe } from "@/lib/access.functions";
 import { permissionForPath } from "@/lib/access-control";
 import { Button } from "@/components/ui/button";
+import ScrollBridge from "@/components/ScrollBridge";
 import {
   Sheet,
   SheetClose,
