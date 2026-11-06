@@ -10,7 +10,8 @@ import {
   listCalendarLocations,
   createCalendarLocation,
 } from "@/lib/calendar-events.functions";
-import { getGoogleCalendarStatus } from "@/lib/google-calendar.functions";
+import { AvailabilityPanel } from "@/components/AvailabilityPanel";
+import { googleCalendarTemplateUrl } from "@/lib/calendar-feed-url";
 import { getMe } from "@/lib/access.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,6 @@ function CalendarioPage() {
   const listC = useServerFn(listCompanies);
   const listLocs = useServerFn(listCalendarLocations);
   const createLocFn = useServerFn(createCalendarLocation);
-  const getGoogleStatusFn = useServerFn(getGoogleCalendarStatus);
   const getMeFn = useServerFn(getMe);
   const save = useServerFn(saveEvent);
   const del = useServerFn(deleteEvent);
@@ -117,10 +117,6 @@ function CalendarioPage() {
       (m: any) => m.role === "gestor" || m.permissions?.gestao === true,
     );
 
-  const { data: googleStatus } = useQuery({
-    queryKey: ["google-calendar-status"],
-    queryFn: () => getGoogleStatusFn(),
-  });
 
   const { data: locations = [] } = useQuery({
     queryKey: ["calendar-locations"],
@@ -247,7 +243,6 @@ function CalendarioPage() {
     setForm({
       ...emptyForm,
       starts_at: `${toISO(base)}T${hhmm}`,
-      sync_google: !!googleStatus?.connected,
     });
     setEmailInput("");
     setOpen(true);
@@ -266,7 +261,6 @@ function CalendarioPage() {
       project_id: e.project_id ?? "",
       is_internal_invite: !!e.is_internal_invite,
       guest_emails: Array.isArray(e.guest_emails) ? e.guest_emails : [],
-      sync_google: !!e.google_event_id || !!googleStatus?.connected,
     });
     setEmailInput("");
     setOpen(true);
@@ -287,7 +281,6 @@ function CalendarioPage() {
     setForm((prev) => ({
       ...prev,
       guest_emails: [...prev.guest_emails, email],
-      sync_google: googleStatus?.connected ? true : prev.sync_google,
     }));
     setEmailInput("");
   }
@@ -315,7 +308,6 @@ function CalendarioPage() {
       project_id: form.project_id || null,
       is_internal_invite: form.is_internal_invite,
       guest_emails: form.guest_emails,
-      sync_google: form.sync_google,
     });
   }
 
@@ -604,7 +596,7 @@ function CalendarioPage() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                Convidados por E-mail (Google Calendar)
+                Convidados por E-mail
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -645,36 +637,17 @@ function CalendarioPage() {
                 </div>
               )}
 
-              {/* Status da Sincronização Google */}
-              <div className="flex items-center justify-between rounded-md border bg-muted/20 p-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-blue-500" />
-                  <span>
-                    {googleStatus?.connected
-                      ? `Conectado ao Google Agenda (${googleStatus.email || "conta ativa"})`
-                      : "Google Agenda não conectado"}
-                  </span>
-                </div>
-                {googleStatus?.connected ? (
-                  <div className="flex items-center space-x-1.5">
-                    <Checkbox
-                      id="sync-google"
-                      checked={form.sync_google}
-                      onCheckedChange={(c) => setForm({ ...form, sync_google: !!c })}
-                    />
-                    <label htmlFor="sync-google" className="cursor-pointer font-medium">
-                      Enviar convite oficial
-                    </label>
-                  </div>
-                ) : (
-                  <Link
-                    to="/perfil"
-                    className="text-primary font-medium hover:underline inline-flex items-center gap-1"
-                  >
-                    Conectar no Perfil →
-                  </Link>
-                )}
-              </div>
+              <AvailabilityPanel
+                startsAt={form.starts_at}
+                endsAt={form.ends_at}
+                guestEmails={form.guest_emails}
+                allTeam={form.is_internal_invite}
+                onAddGuest={(email) =>
+                  setForm((prev) =>
+                    prev.guest_emails.includes(email) ? prev : { ...prev, guest_emails: [...prev.guest_emails, email] },
+                  )
+                }
+              />
             </div>
 
             <div>
@@ -805,10 +778,23 @@ function EventRow({ it, onEdit, onDelete }: { it: any; onEdit: () => void; onDel
               Convite Interno
             </Badge>
           )}
-          {it.googleEventId && (
-            <Badge variant="outline" className="text-[10px] py-0 text-blue-600 border-blue-300">
-              Google Calendar
-            </Badge>
+          {it.kind === "event" && (
+            <a
+              href={googleCalendarTemplateUrl({
+                title: it.title,
+                start: it.raw.starts_at,
+                end: it.raw.ends_at,
+                description: it.raw.description,
+                location: it.location,
+                guests: it.guestEmails,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(ev) => ev.stopPropagation()}
+              className="shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-secondary"
+            >
+              + Google Agenda
+            </a>
           )}
         </div>
         <p className="truncate text-xs text-muted-foreground mt-0.5">
