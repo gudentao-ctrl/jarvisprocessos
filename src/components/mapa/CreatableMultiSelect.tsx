@@ -1,0 +1,214 @@
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { X, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+interface CreatableMultiSelectProps {
+  values: string[];
+  onChange: (values: string[]) => void;
+  options: string[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
+  allowCreate?: boolean;
+  className?: string;
+  badgeClassName?: string;
+}
+
+export function CreatableMultiSelect({
+  values = [],
+  onChange,
+  options = [],
+  placeholder = "Selecione ou adicione...",
+  searchPlaceholder = "Buscar ou digitar novo...",
+  emptyMessage = "Nenhuma opção encontrada",
+  allowCreate = true,
+  className,
+  badgeClassName,
+}: CreatableMultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filtered options based on query
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    // Unique list of options, excluding already selected
+    const unique = Array.from(new Set(options.map((o) => o.trim()).filter(Boolean)));
+    if (!q) return unique;
+    return unique.filter((opt) => opt.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const canCreate = useMemo(() => {
+    if (!allowCreate) return false;
+    const q = query.trim();
+    if (!q) return false;
+    const alreadySelected = values.some(
+      (v) => v.toLowerCase() === q.toLowerCase()
+    );
+    const inFiltered = filteredOptions.some(
+      (opt) => opt.toLowerCase() === q.toLowerCase()
+    );
+    return !alreadySelected && !inFiltered;
+  }, [allowCreate, query, values, filteredOptions]);
+
+  const handleSelect = (val: string) => {
+    const clean = val.trim();
+    if (!clean) return;
+    if (values.some((v) => v.toLowerCase() === clean.toLowerCase())) {
+      // Toggle off
+      onChange(values.filter((v) => v.toLowerCase() !== clean.toLowerCase()));
+    } else {
+      // Add
+      onChange([...values, clean]);
+    }
+    setQuery("");
+  };
+
+  const handleRemove = (valToRemove: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    onChange(values.filter((v) => v !== valToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const q = query.trim();
+      if (!q) return;
+
+      // If there's an exact or first match in filtered options, select it
+      const exactMatch = filteredOptions.find(
+        (o) => o.toLowerCase() === q.toLowerCase()
+      );
+      if (exactMatch) {
+        handleSelect(exactMatch);
+      } else if (allowCreate) {
+        handleSelect(q);
+      }
+    } else if (e.key === "Backspace" && !query && values.length > 0) {
+      // Remove last tag on backspace if query is empty
+      handleRemove(values[values.length - 1]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div ref={containerRef} className={cn("relative w-full", className)}>
+      {/* Box containing selected badges and input trigger */}
+      <div
+        onClick={() => {
+          setOpen(true);
+          inputRef.current?.focus();
+        }}
+        className={cn(
+          "min-h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors",
+          "focus-within:ring-1 focus-within:ring-ring focus-within:border-ring cursor-text",
+          "flex flex-wrap items-center gap-1.5"
+        )}
+      >
+        {values.map((val) => (
+          <Badge
+            key={val}
+            variant="secondary"
+            className={cn(
+              "h-6 px-2 py-0 text-[11px] font-medium gap-1 max-w-[200px] truncate select-none bg-accent/60 text-foreground border border-border/60",
+              badgeClassName
+            )}
+          >
+            <span className="truncate">{val}</span>
+            <button
+              type="button"
+              onClick={(e) => handleRemove(val, e)}
+              className="text-muted-foreground hover:text-foreground focus:outline-none"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!open) setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={values.length === 0 ? placeholder : searchPlaceholder}
+          className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground text-xs h-6 py-0"
+        />
+
+        <div className="ml-auto flex items-center shrink-0 text-muted-foreground">
+          <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
+        </div>
+      </div>
+
+      {/* Dropdown Popover */}
+      {open && (
+        <div className="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95">
+          <div className="p-1 space-y-0.5">
+            {/* Create option */}
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => handleSelect(query)}
+                className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-2 font-semibold text-primary transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>
+                  Adicionar "<strong>{query.trim()}</strong>"
+                </span>
+              </button>
+            )}
+
+            {/* Existing filtered options */}
+            {filteredOptions.map((opt) => {
+              const isSelected = values.some(
+                (v) => v.toLowerCase() === opt.toLowerCase()
+              );
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => handleSelect(opt)}
+                  className={cn(
+                    "w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between transition-colors",
+                    isSelected && "font-semibold bg-accent/40"
+                  )}
+                >
+                  <span className="truncate">{opt}</span>
+                  {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0 ml-2" />}
+                </button>
+              );
+            })}
+
+            {filteredOptions.length === 0 && !canCreate && (
+              <div className="px-2.5 py-2 text-center text-xs text-muted-foreground">
+                {emptyMessage}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { PillarMeta, MapaItem, MapaCompanyInfo } from "./mapa.functions";
+import { parseMultiSelect, type PillarMeta, type MapaItem, type MapaCompanyInfo } from "./mapa.functions";
 
 /* ─── Dimensões e Cores Globais (A4 Paisagem) ─── */
 const PAGE_W = 297;
@@ -435,6 +435,241 @@ export async function exportMapaPdf(opts: {
   });
 
   /* ══════════════════════════════════════════════════════
+     PÁGINA 2: DISTRIBUIÇÃO ESTRATÉGICA POR FRENTE (ORIGEM & RESPONSÁVEL)
+     Indicador visual percentual (%) de ações por frente mapeadas por origem e responsável
+  ══════════════════════════════════════════════════════ */
+  pdf.addPage();
+  drawContentHeader(pdf, company, "DISTRIBUIÇÃO POR FRENTE");
+
+  let p2Y = 22;
+
+  // Banner Superior da Página 2
+  pdf.setFillColor(...COLOR_PRIMARY);
+  pdf.roundedRect(MARGIN_X, p2Y, PAGE_W - 2 * MARGIN_X, 10, 1.5, 1.5, "F");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9.5);
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("DISTRIBUIÇÃO ESTRATÉGICA DE AÇÕES POR FRENTE (ORIGEM & RESPONSÁVEL)", MARGIN_X + 4, p2Y + 6.2);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7);
+  pdf.text(
+    "Representatividade percentual (%) das ações de desdobramento por frente estratégica",
+    PAGE_W - MARGIN_X - 4,
+    p2Y + 6.2,
+    { align: "right" },
+  );
+
+  p2Y += 13;
+
+  // Para cada pilar (frente estratégica), desenhar um card executivo detalhado
+  const pilarCols = Math.min(pillars.length, 3);
+  const pilarCardW = (PAGE_W - 2 * MARGIN_X - (pilarCols - 1) * 6) / pilarCols;
+  const pilarCardH = 153;
+
+  pillars.slice(0, 3).forEach((pilar, pIdx) => {
+    const cardX = MARGIN_X + pIdx * (pilarCardW + 6);
+    const cardY = p2Y;
+
+    // Fundo do card
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(...COLOR_BORDER);
+    pdf.setLineWidth(0.4);
+    pdf.roundedRect(cardX, cardY, pilarCardW, pilarCardH, 2.5, 2.5, "FD");
+
+    // Header do Pilar
+    let headerColor: [number, number, number] = COLOR_PRIMARY;
+    if (pilar.key === "pessoas") headerColor = [124, 58, 237];
+    else if (pilar.key === "processo") headerColor = [37, 99, 235];
+    else if (pilar.key === "negocio") headerColor = [5, 150, 105];
+    else headerColor = [217, 119, 6];
+
+    pdf.setFillColor(...headerColor);
+    pdf.roundedRect(cardX, cardY, pilarCardW, 11, 2.5, 2.5, "F");
+    pdf.rect(cardX, cardY + 7, pilarCardW, 4, "F");
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(pilar.name, cardX + pilarCardW / 2, cardY + 5.5, { align: "center" });
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(6.5);
+    pdf.text(
+      `${pilar.total_desdobramentos} Ações Totais · ${pilar.progress_pct}% Avanço`,
+      cardX + pilarCardW / 2,
+      cardY + 9.2,
+      { align: "center" },
+    );
+
+    // Pegar ações deste pilar
+    const pAcoes = items.filter(
+      (i) => i.item_type !== "diretriz" && i.demand_type.toLowerCase() === pilar.key.toLowerCase(),
+    );
+    const totalAcoes = pAcoes.length;
+
+    // Calcular distribuição por Origem
+    const originMap: Record<string, number> = {};
+    pAcoes.forEach((a) => {
+      const origins = parseMultiSelect(a.origin);
+      if (origins.length === 0) {
+        originMap["Não definida"] = (originMap["Não definida"] || 0) + 1;
+      } else {
+        origins.forEach((o) => {
+          originMap[o] = (originMap[o] || 0) + 1;
+        });
+      }
+    });
+
+    const originBreakdown = Object.entries(originMap)
+      .map(([name, count]) => ({
+        name,
+        count,
+        pct: totalAcoes > 0 ? Math.round((count / totalAcoes) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Calcular distribuição por Responsável
+    const respMap: Record<string, number> = {};
+    pAcoes.forEach((a) => {
+      const resps = parseMultiSelect(a.responsible);
+      if (resps.length === 0) {
+        respMap["Não atribuído"] = (respMap["Não atribuído"] || 0) + 1;
+      } else {
+        resps.forEach((r) => {
+          respMap[r] = (respMap[r] || 0) + 1;
+        });
+      }
+    });
+
+    const respBreakdown = Object.entries(respMap)
+      .map(([name, count]) => ({
+        name,
+        count,
+        pct: totalAcoes > 0 ? Math.round((count / totalAcoes) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    let secY = cardY + 16;
+
+    // ── SUBSEÇÃO 1: POR ORIGEM ──
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(...COLOR_PRIMARY);
+    pdf.text("DISTRIBUIÇÃO POR ORIGEM:", cardX + 5, secY);
+
+    secY += 4;
+    const maxItems = 4;
+    const barWidth = pilarCardW - 10;
+
+    if (originBreakdown.length === 0) {
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(...COLOR_MUTED);
+      pdf.text("Nenhuma ação cadastrada.", cardX + 5, secY + 4);
+      secY += 10;
+    } else {
+      originBreakdown.slice(0, maxItems).forEach((item) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(...COLOR_SECONDARY);
+        const truncatedName = pdf.splitTextToSize(item.name, barWidth - 28) as string[];
+        pdf.text(truncatedName[0] || "", cardX + 5, secY + 3);
+
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(...COLOR_ACCENT);
+        pdf.text(`${item.pct}% (${item.count})`, cardX + pilarCardW - 5, secY + 3, { align: "right" });
+
+        // Barra visual horizontal de %
+        pdf.setFillColor(241, 245, 249);
+        pdf.roundedRect(cardX + 5, secY + 4.5, barWidth, 2.5, 0.8, 0.8, "F");
+
+        if (item.pct > 0) {
+          pdf.setFillColor(...COLOR_ACCENT);
+          pdf.roundedRect(
+            cardX + 5,
+            secY + 4.5,
+            (barWidth * Math.min(item.pct, 100)) / 100,
+            2.5,
+            0.8,
+            0.8,
+            "F",
+          );
+        }
+
+        secY += 10;
+      });
+      if (originBreakdown.length > maxItems) {
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(6);
+        pdf.setTextColor(...COLOR_MUTED);
+        pdf.text(`+ ${originBreakdown.length - maxItems} outras origens...`, cardX + 5, secY + 1);
+        secY += 4;
+      }
+    }
+
+    // Linha divisória interna
+    secY = Math.max(secY, cardY + 79);
+    pdf.setDrawColor(...COLOR_BORDER);
+    pdf.setLineWidth(0.3);
+    pdf.line(cardX + 5, secY, cardX + pilarCardW - 5, secY);
+    secY += 5;
+
+    // ── SUBSEÇÃO 2: POR RESPONSÁVEL ──
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(...COLOR_PRIMARY);
+    pdf.text("DISTRIBUIÇÃO POR RESPONSÁVEL:", cardX + 5, secY);
+
+    secY += 4;
+
+    if (respBreakdown.length === 0) {
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(...COLOR_MUTED);
+      pdf.text("Nenhum responsável cadastrado.", cardX + 5, secY + 4);
+    } else {
+      respBreakdown.slice(0, maxItems).forEach((item) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(...COLOR_SECONDARY);
+        const truncatedName = pdf.splitTextToSize(item.name, barWidth - 28) as string[];
+        pdf.text(truncatedName[0] || "", cardX + 5, secY + 3);
+
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(...headerColor);
+        pdf.text(`${item.pct}% (${item.count})`, cardX + pilarCardW - 5, secY + 3, { align: "right" });
+
+        // Barra visual horizontal de %
+        pdf.setFillColor(241, 245, 249);
+        pdf.roundedRect(cardX + 5, secY + 4.5, barWidth, 2.5, 0.8, 0.8, "F");
+
+        if (item.pct > 0) {
+          pdf.setFillColor(...headerColor);
+          pdf.roundedRect(
+            cardX + 5,
+            secY + 4.5,
+            (barWidth * Math.min(item.pct, 100)) / 100,
+            2.5,
+            0.8,
+            0.8,
+            "F",
+          );
+        }
+
+        secY += 10;
+      });
+      if (respBreakdown.length > maxItems) {
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(6);
+        pdf.setTextColor(...COLOR_MUTED);
+        pdf.text(`+ ${respBreakdown.length - maxItems} outros responsáveis...`, cardX + 5, secY + 1);
+      }
+    }
+  });
+
+  /* ══════════════════════════════════════════════════════
      PÁGINAS SEGUINTES: DETALHAMENTO COMPLETO POR PILAR
   ══════════════════════════════════════════════════════ */
 
@@ -572,10 +807,12 @@ export async function exportMapaPdf(opts: {
           actionCell += "\n" + details.join("\n");
         }
 
-        // Responsável, Setor e Origem
-        let respCell = sub.responsible || "—";
+        // Responsável, Setor e Origem (com suporte a múltipla seleção)
+        const resps = parseMultiSelect(sub.responsible);
+        let respCell = resps.length > 0 ? resps.join(", ") : "—";
         if (sub.sector) respCell += `\nSetor: ${sub.sector}`;
-        if (sub.origin) respCell += `\nOrigem: ${sub.origin}`;
+        const origins = parseMultiSelect(sub.origin);
+        if (origins.length > 0) respCell += `\nOrigem: ${origins.join(", ")}`;
 
         // Matriz GUT
         let gutCell = "—";

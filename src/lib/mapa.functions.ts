@@ -97,6 +97,31 @@ function extractMeta(obs?: string | null) {
   }
 }
 
+export const DEFAULT_ORIGINS = [
+  "Entrevista",
+  "Diagnóstico Inicial",
+  "Cronoanálise",
+  "Mapeamento de Processos",
+  "Reunião de Alinhamento",
+  "Auditoria 5S",
+  "Pesquisa de Clientes / NPS",
+  "Análise Financeira / DRE",
+  "Planejamento Estratégico",
+  "Rotina Operacional",
+] as const;
+
+export function parseMultiSelect(val?: string | null): string[] {
+  if (!val) return [];
+  return val
+    .split(/[,;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function formatMultiSelect(arr: string[]): string {
+  return Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean))).join(", ");
+}
+
 function cleanObservations(obs?: string | null) {
   if (!obs) return "";
   return obs.replace(META_TAG_REGEX, "").trim();

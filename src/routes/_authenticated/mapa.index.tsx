@@ -6,11 +6,16 @@ import {
   getMapaData,
   saveMapaItem,
   deleteMapaItem,
+  DEFAULT_ORIGINS,
+  parseMultiSelect,
+  formatMultiSelect,
   type PillarMeta,
   type MapaItem,
   type MapaCompanyInfo,
 } from "@/lib/mapa.functions";
 import { listCompanies } from "@/lib/interviews.functions";
+import { CreatableMultiSelect } from "@/components/mapa/CreatableMultiSelect";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useActiveCompany } from "@/lib/active-company";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Card } from "@/components/ui/card";
@@ -61,6 +66,11 @@ import {
   FileSpreadsheet,
   Eye,
   EyeOff,
+  Tag,
+  Filter,
+  Users,
+  BarChart3,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -266,6 +276,9 @@ function MapaPage() {
   // Navigation & Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [responsibleFilter, setResponsibleFilter] = useState<string>("all");
+  const [distribTab, setDistribTab] = useState<"origem" | "responsavel">("origem");
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
   // Modals state
@@ -538,10 +551,96 @@ function MapaPage() {
     return mapaData.pillars;
   }, [mapaData]);
 
+  // Listas distintas de origens e responsáveis para seleção e filtros
+  const availableOrigins = useMemo(() => {
+    const set = new Set<string>();
+    DEFAULT_ORIGINS.forEach((o) => set.add(o));
+    (mapaData?.items ?? []).forEach((item) => {
+      parseMultiSelect(item.origin).forEach((o) => set.add(o));
+    });
+    return Array.from(set).sort();
+  }, [mapaData?.items]);
+
+  const availableResponsibles = useMemo(() => {
+    const set = new Set<string>();
+    (mapaData?.items ?? []).forEach((item) => {
+      parseMultiSelect(item.responsible).forEach((r) => set.add(r));
+    });
+    return Array.from(set).sort();
+  }, [mapaData?.items]);
+
+  // Indicador visual: % de ações por frente estratégica por origem e por responsável
+  const frenteDistribution = useMemo(() => {
+    if (!mapaData?.pillars || !mapaData?.items) return [];
+
+    return mapaData.pillars.map((pillar) => {
+      const pKey = pillar.key.toLowerCase();
+      const pAcoes = (mapaData.items ?? []).filter(
+        (i) => i.item_type !== "diretriz" && i.demand_type.toLowerCase() === pKey
+      );
+      const totalAcoes = pAcoes.length;
+
+      // Distribuição por Origem
+      const originCountMap: Record<string, number> = {};
+      pAcoes.forEach((a) => {
+        const origins = parseMultiSelect(a.origin);
+        if (origins.length === 0) {
+          originCountMap["Não definida"] = (originCountMap["Não definida"] || 0) + 1;
+        } else {
+          origins.forEach((o) => {
+            originCountMap[o] = (originCountMap[o] || 0) + 1;
+          });
+        }
+      });
+
+      const originBreakdown = Object.entries(originCountMap)
+        .map(([name, count]) => ({
+          name,
+          count,
+          pct: totalAcoes > 0 ? Math.round((count / totalAcoes) * 100) : 0,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      // Distribuição por Responsável
+      const respCountMap: Record<string, number> = {};
+      pAcoes.forEach((a) => {
+        const resps = parseMultiSelect(a.responsible);
+        if (resps.length === 0) {
+          respCountMap["Não atribuído"] = (respCountMap["Não atribuído"] || 0) + 1;
+        } else {
+          resps.forEach((r) => {
+            respCountMap[r] = (respCountMap[r] || 0) + 1;
+          });
+        }
+      });
+
+      const respBreakdown = Object.entries(respCountMap)
+        .map(([name, count]) => ({
+          name,
+          count,
+          pct: totalAcoes > 0 ? Math.round((count / totalAcoes) * 100) : 0,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      return {
+        pillar,
+        totalAcoes,
+        originBreakdown,
+        respBreakdown,
+      };
+    });
+  }, [mapaData?.pillars, mapaData?.items]);
+
   const treeByPillar = useMemo(() => {
     if (!mapaData) return {};
     const q = searchQuery.toLowerCase().trim();
-    if (!q && statusFilter === "all") {
+    const hasFilter =
+      Boolean(q) ||
+      statusFilter !== "all" ||
+      originFilter !== "all" ||
+      responsibleFilter !== "all";
+
+    if (!hasFilter) {
       return mapaData.treeByPillar;
     }
 
@@ -551,20 +650,47 @@ function MapaPage() {
     for (const [pKey, roots] of Object.entries(mapaData.treeByPillar)) {
       const matchedRoots = roots
         .map((root) => {
+          const rootOrigins = parseMultiSelect(root.origin);
+          const rootResps = parseMultiSelect(root.responsible);
+
+          const matchOriginSelf =
+            originFilter === "all" ||
+            rootOrigins.some((o) => o.toLowerCase() === originFilter.toLowerCase());
+          const matchRespSelf =
+            responsibleFilter === "all" ||
+            rootResps.some((r) => r.toLowerCase() === responsibleFilter.toLowerCase());
+
           const matchSelf =
             (!q ||
               root.title.toLowerCase().includes(q) ||
-              (root.responsible && root.responsible.toLowerCase().includes(q)) ||
+              rootResps.some((r) => r.toLowerCase().includes(q)) ||
+              rootOrigins.some((o) => o.toLowerCase().includes(q)) ||
               (root.observations && root.observations.toLowerCase().includes(q))) &&
-            (statusFilter === "all" || root.status === statusFilter);
+            (statusFilter === "all" || root.status === statusFilter) &&
+            matchOriginSelf &&
+            matchRespSelf;
 
           const matchedChildren = (root.children ?? []).filter((child) => {
+            const childOrigins = parseMultiSelect(child.origin);
+            const childResps = parseMultiSelect(child.responsible);
+
+            const matchOriginChild =
+              originFilter === "all" ||
+              childOrigins.some((o) => o.toLowerCase() === originFilter.toLowerCase());
+            const matchRespChild =
+              responsibleFilter === "all" ||
+              childResps.some((r) => r.toLowerCase() === responsibleFilter.toLowerCase());
+
             const matchChild =
               (!q ||
                 child.title.toLowerCase().includes(q) ||
-                (child.responsible && child.responsible.toLowerCase().includes(q)) ||
+                childResps.some((r) => r.toLowerCase().includes(q)) ||
+                childOrigins.some((o) => o.toLowerCase().includes(q)) ||
                 (child.observations && child.observations.toLowerCase().includes(q))) &&
-              (statusFilter === "all" || child.status === statusFilter);
+              (statusFilter === "all" || child.status === statusFilter) &&
+              matchOriginChild &&
+              matchRespChild;
+
             return matchChild;
           });
 
@@ -582,7 +708,7 @@ function MapaPage() {
     }
 
     return filtered;
-  }, [mapaData, searchQuery, statusFilter]);
+  }, [mapaData, searchQuery, statusFilter, originFilter, responsibleFilter]);
 
   const totalAcoes = useMemo(() => {
     if (!mapaData?.items) return 0;
@@ -827,33 +953,249 @@ function MapaPage() {
             </div>
           </div>
 
-          {/* 2. CONTROLES DE BUSCA E NAVEGAÇÃO */}
-          <Card className="p-3.5 shadow-sm border-border/70">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-1 items-center gap-2">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Filtrar por ação, responsável ou observação..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-9 text-xs"
-                  />
+          {/* 1.5. INDICADOR VISUAL: % DE AÇÕES POR FRENTE (ORIGEM & RESPONSÁVEL) */}
+          <Card className="p-4 shadow-sm border-border/70 bg-card">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    Distribuição Estratégica das Frentes (% de Ações)
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Representatividade percentual das ações de desdobramento mapeadas por frente estratégica, por origem e por responsável.
+                  </p>
                 </div>
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9 w-36 text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="aberto">A iniciar</SelectItem>
-                    <SelectItem value="em_andamento">Em andamento</SelectItem>
-                    <SelectItem value="concluido">Concluídos</SelectItem>
-                    <SelectItem value="nao_sera_feito">Não será feito</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg self-start sm:self-auto">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={distribTab === "origem" ? "default" : "ghost"}
+                    className={cn(
+                      "h-7 text-xs font-semibold px-2.5 gap-1.5",
+                      distribTab === "origem" ? "shadow-sm" : "text-muted-foreground"
+                    )}
+                    onClick={() => setDistribTab("origem")}
+                  >
+                    <Tag className="h-3 w-3" />
+                    Por Origem
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={distribTab === "responsavel" ? "default" : "ghost"}
+                    className={cn(
+                      "h-7 text-xs font-semibold px-2.5 gap-1.5",
+                      distribTab === "responsavel" ? "shadow-sm" : "text-muted-foreground"
+                    )}
+                    onClick={() => setDistribTab("responsavel")}
+                  >
+                    <Users className="h-3 w-3" />
+                    Por Responsável
+                  </Button>
+                </div>
               </div>
+
+              {/* Grid de Frentes */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                {frenteDistribution.map(({ pillar, totalAcoes: fTotal, originBreakdown, respBreakdown }) => {
+                  const breakdown = distribTab === "origem" ? originBreakdown : respBreakdown;
+                  const PALETTE = [
+                    "bg-blue-600",
+                    "bg-emerald-600",
+                    "bg-violet-600",
+                    "bg-amber-600",
+                    "bg-rose-600",
+                    "bg-teal-600",
+                    "bg-indigo-600",
+                    "bg-slate-500",
+                  ];
+
+                  return (
+                    <div
+                      key={pillar.key}
+                      className="rounded-xl border border-border/70 p-3 bg-muted/20 flex flex-col justify-between space-y-3"
+                    >
+                      {/* Header do Pilar */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider", pillar.badge)}>
+                            {pillar.name}
+                          </span>
+                          <span className="text-[11px] font-medium text-muted-foreground">
+                            {fTotal} {fTotal === 1 ? "ação" : "ações"}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-foreground">
+                          {pillar.progress_pct}% avanço
+                        </span>
+                      </div>
+
+                      {/* Segmented Progress Bar */}
+                      {fTotal === 0 ? (
+                        <div className="text-[11px] text-muted-foreground italic py-3 text-center">
+                          Nenhuma ação cadastrada nesta frente.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="h-3 w-full rounded-full overflow-hidden bg-muted/60 flex shadow-inner">
+                            {breakdown.map((item, bIdx) => {
+                              const colorClass = PALETTE[bIdx % PALETTE.length];
+                              const isFiltered =
+                                distribTab === "origem"
+                                  ? originFilter.toLowerCase() === item.name.toLowerCase()
+                                  : responsibleFilter.toLowerCase() === item.name.toLowerCase();
+
+                              return (
+                                <div
+                                  key={item.name}
+                                  style={{ width: `${Math.max(item.pct, 3)}%` }}
+                                  className={cn(
+                                    colorClass,
+                                    "h-full transition-all duration-300 relative group cursor-pointer",
+                                    isFiltered && "ring-2 ring-primary ring-offset-1 z-10"
+                                  )}
+                                  title={`${item.name}: ${item.pct}% (${item.count} ${item.count === 1 ? "ação" : "ações"})`}
+                                  onClick={() => {
+                                    if (distribTab === "origem") {
+                                      setOriginFilter(originFilter === item.name ? "all" : item.name);
+                                    } else {
+                                      setResponsibleFilter(responsibleFilter === item.name ? "all" : item.name);
+                                    }
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          {/* Lista de itens com % */}
+                          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                            {breakdown.map((item, bIdx) => {
+                              const colorClass = PALETTE[bIdx % PALETTE.length];
+                              const isFiltered =
+                                distribTab === "origem"
+                                  ? originFilter.toLowerCase() === item.name.toLowerCase()
+                                  : responsibleFilter.toLowerCase() === item.name.toLowerCase();
+
+                              return (
+                                <button
+                                  key={item.name}
+                                  type="button"
+                                  onClick={() => {
+                                    if (distribTab === "origem") {
+                                      setOriginFilter(originFilter === item.name ? "all" : item.name);
+                                    } else {
+                                      setResponsibleFilter(responsibleFilter === item.name ? "all" : item.name);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors border select-none text-left",
+                                    isFiltered
+                                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                      : "bg-background hover:bg-muted text-foreground/80 border-border/60"
+                                  )}
+                                  title="Clique para filtrar por este item"
+                                >
+                                  <span className={cn("w-2 h-2 rounded-full shrink-0", colorClass)} />
+                                  <span className="truncate max-w-[110px]">{item.name}</span>
+                                  <span className="font-bold tabular-nums ml-0.5">
+                                    {item.pct}%
+                                  </span>
+                                  <span className="text-[9px] text-muted-foreground tabular-nums">
+                                    ({item.count})
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          {/* 2. CONTROLES DE BUSCA E NAVEGAÇÃO */}
+          <Card className="p-3.5 shadow-sm border-border/70">
+            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-1 flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[200px] max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Filtrar por ação, responsável ou observação..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 h-9 text-xs"
+                    />
+                  </div>
+
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-9 w-36 text-xs">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="aberto">A iniciar</SelectItem>
+                      <SelectItem value="em_andamento">Em andamento</SelectItem>
+                      <SelectItem value="concluido">Concluídos</SelectItem>
+                      <SelectItem value="nao_sera_feito">Não será feito</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={originFilter} onValueChange={setOriginFilter}>
+                    <SelectTrigger className="h-9 w-40 text-xs">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Origem" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as origens</SelectItem>
+                      {availableOrigins.map((orig) => (
+                        <SelectItem key={orig} value={orig} className="text-xs">
+                          {orig}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                    <SelectTrigger className="h-9 w-44 text-xs">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Users className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Responsável" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os responsáveis</SelectItem>
+                      {availableResponsibles.map((resp) => (
+                        <SelectItem key={resp} value={resp} className="text-xs">
+                          {resp}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {(originFilter !== "all" || responsibleFilter !== "all" || statusFilter !== "all" || Boolean(searchQuery)) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 text-xs text-muted-foreground hover:text-foreground gap-1 px-2.5"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("all");
+                        setOriginFilter("all");
+                        setResponsibleFilter("all");
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
 
               <div className="flex items-center gap-2">
                 <Button
@@ -1179,10 +1521,30 @@ function MapaPage() {
 
                                             <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground flex-wrap">
                                               {sub.responsible && (
-                                                <span className="inline-flex items-center gap-1 text-foreground/80">
-                                                  <User className="h-3 w-3 text-muted-foreground" />
-                                                  {sub.responsible}
-                                                </span>
+                                                <div className="inline-flex items-center gap-1 flex-wrap">
+                                                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                  {parseMultiSelect(sub.responsible).map((r) => (
+                                                    <span
+                                                      key={r}
+                                                      className="inline-flex items-center px-1.5 py-0 rounded bg-muted/60 text-foreground/80 text-[10px] font-medium border border-border/40"
+                                                    >
+                                                      {r}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              {sub.origin && (
+                                                <div className="inline-flex items-center gap-1 flex-wrap">
+                                                  <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                  {parseMultiSelect(sub.origin).map((o) => (
+                                                    <span
+                                                      key={o}
+                                                      className="inline-flex items-center px-1.5 py-0 rounded bg-primary/10 text-primary text-[10px] font-medium border border-primary/20"
+                                                    >
+                                                      {o}
+                                                    </span>
+                                                  ))}
+                                                </div>
                                               )}
                                               {sub.sector && (
                                                 <span className="inline-flex items-center gap-1 text-foreground/70">
@@ -1498,12 +1860,18 @@ function MapaPage() {
             {/* Origem & Setor */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Origem</Label>
-                <Input
-                  placeholder="Ex: Entrevista, cronoanálise..."
-                  value={itemForm.origin}
-                  onChange={(e) => setItemForm({ ...itemForm, origin: e.target.value })}
-                  className="text-xs h-9"
+                <Label className="text-xs font-semibold flex items-center justify-between">
+                  <span>Origem</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Múltipla seleção</span>
+                </Label>
+                <CreatableMultiSelect
+                  values={parseMultiSelect(itemForm.origin)}
+                  onChange={(newVals) =>
+                    setItemForm({ ...itemForm, origin: formatMultiSelect(newVals) })
+                  }
+                  options={availableOrigins}
+                  placeholder="Escolha ou digite uma origem..."
+                  searchPlaceholder="Buscar ou adicionar origem..."
                 />
               </div>
               <div className="space-y-1">
@@ -1596,12 +1964,18 @@ function MapaPage() {
             {/* Responsável & Prazo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Responsável pela Execução</Label>
-                <Input
-                  placeholder="Nome do responsável"
-                  value={itemForm.responsible}
-                  onChange={(e) => setItemForm({ ...itemForm, responsible: e.target.value })}
-                  className="text-xs h-9"
+                <Label className="text-xs font-semibold flex items-center justify-between">
+                  <span>Responsável pela Execução</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Múltipla seleção</span>
+                </Label>
+                <CreatableMultiSelect
+                  values={parseMultiSelect(itemForm.responsible)}
+                  onChange={(newVals) =>
+                    setItemForm({ ...itemForm, responsible: formatMultiSelect(newVals) })
+                  }
+                  options={availableResponsibles}
+                  placeholder="Escolha ou digite um responsável..."
+                  searchPlaceholder="Buscar ou adicionar responsável..."
                 />
               </div>
               <div className="space-y-1">

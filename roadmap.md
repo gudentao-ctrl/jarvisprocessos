@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Mapa: origem e responsável com seleção múltipla (escolher ou adicionar), filtros por origem e responsável, indicador visual % de ações por frente por origem/responsável na página e no PDF
+- [x] Mapa: origem e responsável com seleção múltipla (escolher ou adicionar), filtros por origem e responsável, indicador visual % de ações por frente por origem/responsável na página e no PDF
 
 - [ ] Google Agenda sem configuração: cada pessoa cola o link privado da agenda no Meu Perfil; JARVIS mostra disponibilidade dos participantes ao marcar reunião; botão "Adicionar ao Google" em cada compromisso; remover a conexão antiga que não funcionava
 
