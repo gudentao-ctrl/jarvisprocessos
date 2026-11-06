@@ -77,6 +77,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Scroll fix: native overflow-y-auto wrapper added
 export const Route = createFileRoute("/_authenticated/mapa/")({
   component: MapaPage,
   head: () => ({
