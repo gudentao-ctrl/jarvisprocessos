@@ -88,7 +88,6 @@ const emptyForm = {
   project_id: "",
   is_internal_invite: false,
   guest_emails: [] as string[],
-  sync_google: false,
 };
 
 function CalendarioPage() {
@@ -642,7 +641,7 @@ function CalendarioPage() {
                 endsAt={form.ends_at}
                 guestEmails={form.guest_emails}
                 allTeam={form.is_internal_invite}
-                onAddGuest={(email) =>
+                onAddGuest={(email: string) =>
                   setForm((prev) =>
                     prev.guest_emails.includes(email) ? prev : { ...prev, guest_emails: [...prev.guest_emails, email] },
                   )
