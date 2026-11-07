@@ -120,7 +120,7 @@ export function permissionsPreset(role: AccessRole): PermissionMatrix {
   for (const tool of ALL_PERMISSION_TOOLS) {
     const enabled = role === "SUPERADMIN" || role === "GESTOR" ||
       (role === "CONSULTOR" && !["financeiro", "crm", "portal"].includes(tool.category)) ||
-      (role === "CLIENTE" && ["portal_empresa", "portal_resultados", "indicadores_historico", "mapa_estrategico", "chamados_melhorias", "chamados_erros", "chamados_acompanhamento"].includes(tool.key)) ||
+      (role === "CLIENTE" && ["portal_empresa", "portal_resultados", "indicadores_historico", "mapa_estrategico", "hub_5s", "nps_enps", "chamados_melhorias", "chamados_erros", "chamados_acompanhamento"].includes(tool.key)) ||
       (role === "AUDITOR_5S" && tool.key === "hub_5s");
     result = setToolPermissions(result, tool.key, enabled);
     if (role === "CLIENTE" && enabled) {
