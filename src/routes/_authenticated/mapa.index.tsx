@@ -311,11 +311,23 @@ function MapaPage() {
     setExportingPdf(true);
     try {
       const { exportMapaPdf } = await import("@/lib/mapa-pdf");
+      const filterParts: string[] = [];
+      if (originFilter !== "all") filterParts.push(`Origem: ${originFilter}`);
+      if (responsibleFilter !== "all") filterParts.push(`Responsável: ${responsibleFilter}`);
+      if (statusFilter !== "all") filterParts.push(`Status: ${statusFilter.replace(/_/g, " ")}`);
+      if (searchQuery.trim()) filterParts.push(`Busca: "${searchQuery.trim()}"`);
+      const isFiltered = filterParts.length > 0;
+      const pdfItems = isFiltered
+        ? Object.values(treeByPillar).flatMap((roots) =>
+            roots.flatMap((r) => [r, ...(r.children ?? [])]),
+          )
+        : mapaData.items;
       await exportMapaPdf({
         company: mapaData.company,
         pillars: mapaData.pillars,
-        treeByPillar: mapaData.treeByPillar,
-        items: mapaData.items,
+        treeByPillar: isFiltered ? treeByPillar : mapaData.treeByPillar,
+        items: pdfItems,
+        filterLabel: isFiltered ? filterParts.join("  ·  ") : undefined,
       });
       toast.success("PDF exportado com sucesso!");
     } catch (err: any) {
