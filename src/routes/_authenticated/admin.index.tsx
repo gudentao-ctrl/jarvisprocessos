@@ -1,4 +1,5 @@
 // ==== SCROLL FIX ==== added native overflow-y-auto wrapper
+import ScrollBridge from "@/components/ScrollBridge";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/access.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -102,6 +104,22 @@ function AdminPage() {
   const isAdmin = !!profile?.isSuperadmin;
 
   const { data, isLoading } = useQuery({
+  queryKey: ["admin-users"],
+  queryFn: () => listUsers(),
+  enabled: isAdmin,
+});
+  // State for resetting password via dialog
+  const [resetDraft, setResetDraft] = useState<null | { user_id: string; password: string }>(null);
+  // Mutation to update password directly
+  const resetPassMut = useMutation({
+    mutationFn: (v: { user_id: string; password: string }) => updateUser({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success('Senha atualizada');
+      setResetDraft(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar senha"),
+  });
     queryKey: ["admin-users"],
     queryFn: () => listUsers(),
     enabled: isAdmin,
