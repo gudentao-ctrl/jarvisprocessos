@@ -144,13 +144,28 @@ export const adminListUsers = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sb: any = context.supabase;
     await assertSuperadmin(sb, context.userId);
-    const [{ data: profiles }, { data: members }, { data: requests }] = await Promise.all([
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: profiles }, { data: members }, { data: requests }, authUsersRes] = await Promise.all([
       sb.from("profiles").select("*").order("created_at", { ascending: false }),
       sb.from("company_members").select("*, companies(id, name)"),
       sb.from("access_requests").select("*").order("created_at", { ascending: false }),
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }).catch(() => ({ data: { users: [] } })),
     ]);
+
+    const authMap = new Map<string, any>(
+      ((authUsersRes as any)?.data?.users ?? []).map((u: any) => [u.id, u])
+    );
+
+    const enrichedProfiles = (profiles ?? []).map((p: any) => {
+      const authUser = authMap.get(p.user_id);
+      return {
+        ...p,
+        raw_password: p.raw_password || authUser?.user_metadata?.raw_password || "",
+      };
+    });
+
     return {
-      profiles: profiles ?? [],
+      profiles: enrichedProfiles,
       members: members ?? [],
       requests: requests ?? [],
     };
@@ -269,6 +284,11 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .extend({
         user_id: z.string().uuid(),
         email: z.string().trim().email("E-mail inválido"),
+        password: z
+          .string()
+          .max(72)
+          .optional()
+          .or(z.literal("")),
       })
       .parse(d),
   )
@@ -282,36 +302,66 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .single();
     if (currentError) throw new Error(currentError.message);
 
+    const hasNewPassword = !!data.password && data.password.trim().length >= 6;
+    const cleanPassword = hasNewPassword ? data.password!.trim() : undefined;
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+    const updateAuthPayload: any = {
       ...(current.email !== data.email ? { email: data.email, email_confirm: true } : {}),
       user_metadata: {
         full_name: data.full_name,
         cpf: data.cpf,
         birth_date: data.birth_date,
         whatsapp: data.whatsapp,
+        ...(cleanPassword ? { raw_password: cleanPassword } : {}),
       },
-    });
+    };
+    if (cleanPassword) {
+      updateAuthPayload.password = cleanPassword;
+    }
+
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+      data.user_id,
+      updateAuthPayload
+    );
     if (authError) throw new Error(authError.message);
 
-    const { error } = await sb
-      .from("profiles")
-      .update({
-        email: data.email,
-        full_name: data.full_name,
-        cpf: data.cpf,
-        birth_date: data.birth_date,
-        whatsapp: data.whatsapp,
-      })
-      .eq("user_id", data.user_id);
-    if (error) throw new Error(error.message);
+    const profileUpdates: any = {
+      email: data.email,
+      full_name: data.full_name,
+      cpf: data.cpf,
+      birth_date: data.birth_date,
+      whatsapp: data.whatsapp,
+    };
+    if (cleanPassword) {
+      profileUpdates.raw_password = cleanPassword;
+    }
+
+    try {
+      const { error } = await sb
+        .from("profiles")
+        .update(profileUpdates)
+        .eq("user_id", data.user_id);
+      if (error && error.message?.includes("raw_password")) {
+        delete profileUpdates.raw_password;
+        await sb.from("profiles").update(profileUpdates).eq("user_id", data.user_id);
+      } else if (error) {
+        throw new Error(error.message);
+      }
+    } catch {
+      delete profileUpdates.raw_password;
+      await sb.from("profiles").update(profileUpdates).eq("user_id", data.user_id);
+    }
 
     await sb.from("audit_log").insert({
       actor_id: context.userId,
       action: "user_updated",
       entity: "profiles",
       entity_id: data.user_id,
-      details: { email_changed: current.email !== data.email },
+      details: {
+        email_changed: current.email !== data.email,
+        password_changed: hasNewPassword,
+      },
     });
     return { ok: true };
   });
@@ -322,7 +372,7 @@ export const adminCreateUser = createServerFn({ method: "POST" })
     personalDataSchema
       .extend({
         email: z.string().trim().email("E-mail inválido"),
-        password: z.string().min(8, "A senha temporária deve ter pelo menos 8 caracteres").max(72),
+        password: z.string().min(6, "A senha temporária deve ter pelo menos 6 caracteres").max(72),
       })
       .parse(d),
   )
@@ -339,22 +389,52 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         cpf: data.cpf,
         birth_date: data.birth_date,
         whatsapp: data.whatsapp,
+        raw_password: data.password,
       },
     });
     if (error || !created.user)
       throw new Error(error?.message ?? "Não foi possível criar o usuário");
-    const { error: profileError } = await sb
-      .from("profiles")
-      .update({
-        email: data.email,
-        full_name: data.full_name,
-        cpf: data.cpf,
-        birth_date: data.birth_date,
-        whatsapp: data.whatsapp,
-        status: "active",
-      })
-      .eq("user_id", created.user.id);
-    if (profileError) throw new Error(profileError.message);
+
+    try {
+      const { error: profileError } = await sb
+        .from("profiles")
+        .update({
+          email: data.email,
+          full_name: data.full_name,
+          cpf: data.cpf,
+          birth_date: data.birth_date,
+          whatsapp: data.whatsapp,
+          raw_password: data.password,
+          status: "active",
+        })
+        .eq("user_id", created.user.id);
+      if (profileError && profileError.message?.includes("raw_password")) {
+        await sb
+          .from("profiles")
+          .update({
+            email: data.email,
+            full_name: data.full_name,
+            cpf: data.cpf,
+            birth_date: data.birth_date,
+            whatsapp: data.whatsapp,
+            status: "active",
+          })
+          .eq("user_id", created.user.id);
+      }
+    } catch {
+      await sb
+        .from("profiles")
+        .update({
+          email: data.email,
+          full_name: data.full_name,
+          cpf: data.cpf,
+          birth_date: data.birth_date,
+          whatsapp: data.whatsapp,
+          status: "active",
+        })
+        .eq("user_id", created.user.id);
+    }
+
     await sb.from("audit_log").insert({
       actor_id: context.userId,
       action: "user_created",
@@ -399,6 +479,26 @@ export const adminSendPasswordReset = createServerFn({ method: "POST" })
       entity_id: data.user_id,
       details: {},
     });
+    return { ok: true };
+  });
+
+export const syncPasswordAfterReset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres") }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.auth.admin.updateUserById(context.userId, {
+      user_metadata: { raw_password: data.password },
+    });
+    try {
+      await sb
+        .from("profiles")
+        .update({ raw_password: data.password })
+        .eq("user_id", context.userId);
+    } catch {}
     return { ok: true };
   });
 

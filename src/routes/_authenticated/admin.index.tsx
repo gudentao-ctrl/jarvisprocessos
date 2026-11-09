@@ -15,7 +15,6 @@ import {
 } from "@/lib/access.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +35,9 @@ import {
   Pencil,
   KeyRound,
   UserPlus,
+  Eye,
+  EyeOff,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,22 +105,11 @@ function AdminPage() {
   const isAdmin = !!profile?.isSuperadmin;
 
   const { data, isLoading } = useQuery({
-  queryKey: ["admin-users"],
-  queryFn: () => listUsers(),
-  enabled: isAdmin,
-});
-  // State for resetting password via dialog
-  const [resetDraft, setResetDraft] = useState<null | { user_id: string; password: string }>(null);
-  // Mutation to update password directly
-  const resetPassMut = useMutation({
-    mutationFn: (v: { user_id: string; password: string }) => updateUser({ data: v }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success('Senha atualizada');
-      setResetDraft(null);
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar senha"),
+    queryKey: ["admin-users"],
+    queryFn: () => listUsers(),
+    enabled: isAdmin,
   });
+
   const { data: audit = [] } = useQuery({
     queryKey: ["admin-audit"],
     queryFn: () => listAudit(),
@@ -143,6 +134,7 @@ function AdminPage() {
   });
 
   const [userDraft, setUserDraft] = useState<UserDraft | null>(null);
+  const [showPassMap, setShowPassMap] = useState<Record<string, boolean>>({});
 
   const statusMut = useMutation({
     mutationFn: (v: {
@@ -156,6 +148,7 @@ function AdminPage() {
     },
     onError: (e: any) => toast.error(e?.message),
   });
+
   const userMut = useMutation({
     mutationFn: (value: UserDraft) =>
       value.user_id
@@ -167,6 +160,7 @@ function AdminPage() {
               birth_date: value.birth_date,
               whatsapp: value.whatsapp,
               email: value.email,
+              password: value.password,
             },
           })
         : createUser({
@@ -182,21 +176,23 @@ function AdminPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       setUserDraft(null);
-      toast.success("Usuário salvo");
+      toast.success("Usuário salvo com sucesso");
     },
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar o usuário"),
   });
+
   const resetMut = useMutation({
     mutationFn: (value: { user_id: string; email: string }) =>
       sendPasswordReset({
         data: {
           ...value,
-          redirect_to: `${window.location.origin}/auth`,
+          redirect_to: `${window.location.origin}/auth?recovery=true`,
         },
       }),
     onSuccess: () => toast.success("E-mail de recuperação enviado"),
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível enviar a recuperação"),
   });
+
   const deleteUserMut = useMutation({
     mutationFn: (user_id: string) => deleteUser({ data: { user_id } }),
     onSuccess: () => {
@@ -236,6 +232,18 @@ function AdminPage() {
     }));
   const pending = [...requestsPending, ...pendingProfiles];
 
+  const openEditUser = (p: any) => {
+    setUserDraft({
+      user_id: p.user_id,
+      full_name: p.full_name ?? "",
+      cpf: p.cpf ?? "",
+      birth_date: p.birth_date ?? "",
+      whatsapp: p.whatsapp ?? "",
+      email: p.email ?? "",
+      password: p.raw_password ?? "",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -245,7 +253,11 @@ function AdminPage() {
         <p className="text-xs text-muted-foreground">
           Usuários, permissões por empresa e auditoria
         </p>
-        <Button variant="outline" className="mt-3" asChild><Link to="/admin/permissoes"><ShieldCheck className="size-4" /> Gestão de acessos</Link></Button>
+        <Button variant="outline" className="mt-3" asChild>
+          <Link to="/admin/permissoes">
+            <ShieldCheck className="size-4" /> Gestão de acessos
+          </Link>
+        </Button>
       </div>
 
       <Tabs defaultValue="solicitacoes">
@@ -377,11 +389,17 @@ function AdminPage() {
           {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
           {(data?.profiles ?? []).map((p: any) => (
             <Card key={p.user_id} className="flex flex-wrap items-center justify-between gap-3 p-3">
-              <div>
-                <p className="font-semibold">
-                  {p.full_name || p.email}{" "}
+              <div
+                className="min-w-0 flex-1 cursor-pointer rounded p-1.5 -m-1.5 hover:bg-muted/40 transition-colors"
+                title="Clique para ver informações completas e gerenciar a senha"
+                onClick={() => openEditUser(p)}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-foreground hover:underline">
+                    {p.full_name || p.email}
+                  </p>
                   {p.is_superadmin && <Badge className="ml-1">SuperAdmin</Badge>}
-                </p>
+                </div>
                 <p className="text-xs text-muted-foreground">{p.email}</p>
                 <p className="text-xs text-muted-foreground">
                   CPF: {p.cpf || "não informado"} · Nascimento:{" "}
@@ -390,8 +408,56 @@ function AdminPage() {
                     : "não informado"}{" "}
                   · WhatsApp: {p.whatsapp || "não informado"}
                 </p>
+
+                {/* Exibição da senha do usuário */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="font-medium text-foreground">Senha:</span>
+                  {p.raw_password ? (
+                    <div
+                      className="inline-flex items-center gap-1.5 rounded border bg-muted/60 px-2 py-0.5 font-mono text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="select-all">
+                        {showPassMap[p.user_id] ? p.raw_password : "••••••••"}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+                        title={showPassMap[p.user_id] ? "Ocultar senha" : "Ver senha"}
+                        onClick={() =>
+                          setShowPassMap((prev) => ({
+                            ...prev,
+                            [p.user_id]: !prev[p.user_id],
+                          }))
+                        }
+                      >
+                        {showPassMap[p.user_id] ? (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+                        title="Copiar senha"
+                        onClick={() => {
+                          navigator.clipboard.writeText(p.raw_password);
+                          toast.success("Senha copiada para a área de transferência!");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      Não registrada (clique no usuário para definir)
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Badge
                   variant={
                     p.status === "active"
@@ -429,18 +495,8 @@ function AdminPage() {
                   variant="outline"
                   className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
                   aria-label="Editar usuário"
-                  title="Editar usuário"
-                  onClick={() =>
-                    setUserDraft({
-                      user_id: p.user_id,
-                      full_name: p.full_name ?? "",
-                      cpf: p.cpf ?? "",
-                      birth_date: p.birth_date ?? "",
-                      whatsapp: p.whatsapp ?? "",
-                      email: p.email ?? "",
-                      password: "",
-                    })
-                  }
+                  title="Editar usuário e senha"
+                  onClick={() => openEditUser(p)}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -450,7 +506,7 @@ function AdminPage() {
                     variant="outline"
                     className="h-9 w-9 sm:h-8 sm:w-8 touch-manipulation active:scale-95 shrink-0"
                     aria-label="Enviar recuperação de senha"
-                    title="Enviar recuperação de senha"
+                    title="Enviar recuperação de senha por e-mail"
                     disabled={resetMut.isPending}
                     onClick={() => resetMut.mutate({ user_id: p.user_id, email: p.email })}
                   >
@@ -541,16 +597,33 @@ function AdminPage() {
                   onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
                 />
               </div>
-              {!userDraft.user_id && (
-                <div className="sm:col-span-2">
-                  <Label>Senha temporária</Label>
-                  <PasswordInput
-                    minLength={8}
-                    value={userDraft.password}
-                    onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
-                  />
+
+              {/* Senha do usuário visível e editável */}
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label>
+                    {userDraft.user_id ? "Senha do usuário (visualizar / alterar)" : "Senha inicial"}
+                  </Label>
                 </div>
-              )}
+                <PasswordInput
+                  minLength={6}
+                  value={userDraft.password}
+                  onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
+                  placeholder={
+                    userDraft.user_id
+                      ? "Digite para alterar ou visualize com o ícone de olho"
+                      : "Mínimo de 6 caracteres"
+                  }
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {userDraft.user_id
+                    ? userDraft.password
+                      ? "A senha exibida acima é a senha cadastrada. Ao alterar e salvar, o usuário poderá utilizá-la imediatamente."
+                      : "Digite uma nova senha caso queira redefini-la para este usuário."
+                    : "Senha de acesso temporária para o primeiro login."}
+                </p>
+              </div>
+
               <Button
                 className="min-h-11 sm:col-span-2"
                 disabled={
@@ -560,7 +633,8 @@ function AdminPage() {
                   !userDraft.birth_date ||
                   !userDraft.whatsapp ||
                   !userDraft.email ||
-                  (!userDraft.user_id && userDraft.password.length < 8)
+                  (!userDraft.user_id && userDraft.password.length < 6) ||
+                  (!!userDraft.user_id && !!userDraft.password && userDraft.password.length < 6)
                 }
                 onClick={() => userMut.mutate(userDraft)}
               >

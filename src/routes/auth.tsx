@@ -1,21 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { syncPasswordAfterReset } from "@/lib/access.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Clock, Mic, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Clock, KeyRound, Mic, ShieldAlert } from "lucide-react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { signOutIfSessionExpired } from "@/lib/session-guard";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { redirect?: string; expirou?: boolean } => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; expirou?: boolean; recovery?: boolean } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     expirou: search.expirou === true || search.expirou === "1" || search.expirou === 1 ? true : undefined,
+    recovery: search.recovery === true || search.recovery === "1" || search.recovery === "true" ? true : undefined,
   }),
   head: () => ({
     meta: [
@@ -53,8 +56,10 @@ function friendlyAuthError(err: unknown): string {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { redirect, expirou } = Route.useSearch();
+  const { redirect, expirou, recovery } = Route.useSearch();
   const destination = safeRedirect(redirect);
+  const syncPassword = useServerFn(syncPasswordAfterReset);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -63,13 +68,43 @@ function AuthPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Estados para redefinição de senha e esqueci minha senha
+  const [isRecovery, setIsRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
   useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const isRecoveryHash = hash.includes("type=recovery") || (hash.includes("access_token") && hash.includes("type=recovery"));
+    const shouldRecover = !!recovery || isRecoveryHash;
+
+    if (shouldRecover) {
+      setIsRecovery(true);
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecovery(true);
+      }
+    });
+
     void (async () => {
       if (await signOutIfSessionExpired()) return;
-      const { data } = await supabase.auth.getUser();
-      if (data.user) navigate({ href: destination });
+      if (!shouldRecover) {
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+          navigate({ href: destination });
+        }
+      }
     })();
-  }, [destination, navigate]);
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [destination, navigate, recovery]);
 
   async function signInWithRetry() {
     try {
@@ -115,6 +150,7 @@ function AuthPage() {
             cpf: cpfDigits,
             birth_date: birthDate,
             whatsapp: whatsappDigits,
+            raw_password: password,
           },
           emailRedirectTo: `${window.location.origin}/auth`,
         },
@@ -125,6 +161,58 @@ function AuthPage() {
       toast.error(friendlyAuthError(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function onResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      try {
+        await syncPassword({ data: { password: newPassword } });
+      } catch (err) {
+        console.warn("Falha ao sincronizar senha no perfil", err);
+      }
+
+      toast.success("Nova senha cadastrada com sucesso!");
+      setIsRecovery(false);
+      navigate({ href: destination });
+    } catch (err) {
+      toast.error(friendlyAuthError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!forgotEmail) {
+      toast.error("Informe seu e-mail cadastrado.");
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/auth?recovery=true`,
+      });
+      if (error) throw error;
+      toast.success("Link de recuperação enviado! Verifique seu e-mail.");
+      setShowForgot(false);
+    } catch (err) {
+      toast.error(friendlyAuthError(err));
+    } finally {
+      setForgotLoading(false);
     }
   }
 
@@ -139,7 +227,7 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">Consultoria Operacional</p>
         </div>
 
-        {expirou && (
+        {expirou && !isRecovery && (
           <div
             role="status"
             className="mb-4 flex items-start gap-2 rounded-lg border bg-secondary p-3 text-xs text-secondary-foreground"
@@ -149,131 +237,237 @@ function AuthPage() {
           </div>
         )}
 
-        <Tabs defaultValue="entrar">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="entrar">Entrar</TabsTrigger>
-            <TabsTrigger value="cadastrar">Solicitar acesso</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="entrar">
-            <form onSubmit={onSubmit} className="space-y-4 pt-4">
-              <div>
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1.5 h-12"
-                />
+        {isRecovery ? (
+          <div className="space-y-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-2">
+                <KeyRound className="h-5 w-5" />
               </div>
+              <h2 className="text-xl font-bold">Cadastrar nova senha</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Defina sua nova senha para acessar o JARVIS.
+              </p>
+            </div>
+
+            <form onSubmit={onResetPassword} className="space-y-4 pt-2">
               <div>
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="new-password">Nova senha</Label>
                 <PasswordInput
-                  id="password"
+                  id="new-password"
                   required
                   minLength={6}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                   className="mt-1.5 h-12"
+                  placeholder="Mínimo 6 caracteres"
                 />
               </div>
+
+              <div>
+                <Label htmlFor="confirm-password">Confirme a nova senha</Label>
+                <PasswordInput
+                  id="confirm-password"
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-1.5 h-12"
+                  placeholder="Repita a nova senha"
+                />
+              </div>
+
               <Button
                 type="submit"
                 disabled={loading}
                 className="h-12 w-full text-base font-medium"
               >
-                {loading ? "Aguarde..." : "Entrar"}
+                {loading ? "Salvando nova senha..." : "Salvar nova senha e entrar"}
               </Button>
             </form>
-          </TabsContent>
+          </div>
+        ) : showForgot ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => setShowForgot(false)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+              </Button>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">Recuperar senha</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Digite seu e-mail cadastrado para receber o link de redefinição de senha.
+              </p>
+            </div>
 
-          <TabsContent value="cadastrar">
-            <form onSubmit={onSignUp} className="space-y-4 pt-4">
+            <form onSubmit={onForgotPassword} className="space-y-4 pt-1">
               <div>
-                <Label htmlFor="name">Nome completo</Label>
+                <Label htmlFor="forgot-email">E-mail</Label>
                 <Input
-                  id="name"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="mt-1.5 h-12"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email2">E-mail</Label>
-                <Input
-                  id="email2"
+                  id="forgot-email"
                   type="email"
                   required
                   autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
                   className="mt-1.5 h-12"
+                  placeholder="seu@email.com"
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input
-                    id="cpf"
-                    required
-                    inputMode="numeric"
-                    maxLength={14}
-                    value={cpf}
-                    onChange={(e) => setCpf(e.target.value)}
-                    className="mt-1.5 h-12"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="birth-date">Data de nascimento</Label>
-                  <Input
-                    id="birth-date"
-                    type="date"
-                    required
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className="mt-1.5 h-12"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <Input
-                  id="whatsapp"
-                  required
-                  inputMode="tel"
-                  maxLength={16}
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="mt-1.5 h-12"
-                />
-              </div>
-              <div>
-                <Label htmlFor="password2">Senha</Label>
-                <PasswordInput
-                  id="password2"
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1.5 h-12"
-                />
-              </div>
+
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={forgotLoading}
                 className="h-12 w-full text-base font-medium"
               >
-                {loading ? "Aguarde..." : "Solicitar acesso"}
+                {forgotLoading ? "Enviando..." : "Enviar link de recuperação"}
               </Button>
             </form>
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <Tabs defaultValue="entrar">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="entrar">Entrar</TabsTrigger>
+              <TabsTrigger value="cadastrar">Solicitar acesso</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="entrar">
+              <form onSubmit={onSubmit} className="space-y-4 pt-4">
+                <div>
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Senha</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotEmail(email);
+                        setShowForgot(true);
+                      }}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                  <PasswordInput
+                    id="password"
+                    required
+                    minLength={6}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="h-12 w-full text-base font-medium"
+                >
+                  {loading ? "Aguarde..." : "Entrar"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="cadastrar">
+              <form onSubmit={onSignUp} className="space-y-4 pt-4">
+                <div>
+                  <Label htmlFor="name">Nome completo</Label>
+                  <Input
+                    id="name"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email2">E-mail</Label>
+                  <Input
+                    id="email2"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      required
+                      inputMode="numeric"
+                      maxLength={14}
+                      value={cpf}
+                      onChange={(e) => setCpf(e.target.value)}
+                      className="mt-1.5 h-12"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="birth-date">Data de nascimento</Label>
+                    <Input
+                      id="birth-date"
+                      type="date"
+                      required
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                      className="mt-1.5 h-12"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="whatsapp">WhatsApp</Label>
+                  <Input
+                    id="whatsapp"
+                    required
+                    inputMode="tel"
+                    maxLength={16}
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password2">Senha</Label>
+                  <PasswordInput
+                    id="password2"
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-1.5 h-12"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="h-12 w-full text-base font-medium"
+                >
+                  {loading ? "Aguarde..." : "Solicitar acesso"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        )}
 
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -283,5 +477,3 @@ function AuthPage() {
     </div>
   );
 }
-
-
