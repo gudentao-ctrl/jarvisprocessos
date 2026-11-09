@@ -1,5 +1,4 @@
 // ==== SCROLL FIX ==== added native overflow-y-auto wrapper
-import ScrollBridge from "@/components/ScrollBridge";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
