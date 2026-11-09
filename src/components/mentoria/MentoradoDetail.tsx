@@ -35,6 +35,9 @@ import {
 } from "lucide-react";
 import type { Mentorado, MentoriaSessao, MentoriaAttachment, MentoriaBehavioralProfile } from "@/lib/mentoria-types";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { uploadMentoriaAttachment } from "@/lib/mentoria.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 function normalizeAttachments(profile?: MentoriaBehavioralProfile): MentoriaAttachment[] {
   const list: MentoriaAttachment[] = [];
@@ -112,6 +115,9 @@ export function MentoradoDetail({
   const isAtiva = mentorado.status === "ativa";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
+  const uploadAttachmentFn = useServerFn(uploadMentoriaAttachment);
 
   const profile = mentorado.behavioral_profile;
   const attachments = normalizeAttachments(profile);
@@ -121,71 +127,148 @@ export function MentoradoDetail({
     attachments.length > 0
   );
 
-  // Upload de múltiplos arquivos para o Mapeamento Comportamental
+  // Upload robusto de múltiplos arquivos para o Mapeamento Comportamental
   const handleFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const oversized = files.filter((f) => f.size > 20 * 1024 * 1024);
+    const oversized = files.filter((f) => f.size > 25 * 1024 * 1024);
     if (oversized.length > 0) {
       toast.error(
-        `Arquivo(s) ultrapassam o limite de 20MB: ${oversized.map((f) => f.name).join(", ")}`
+        `Arquivo(s) ultrapassam o limite de 25MB: ${oversized.map((f) => f.name).join(", ")}`
       );
       return;
     }
 
     setUploading(true);
-    try {
-      const readAsDataURL = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      };
+    const newAttachments: MentoriaAttachment[] = [];
+    let successCount = 0;
 
-      const newAttachments: MentoriaAttachment[] = [];
-      for (const file of files) {
-        const base64Url = await readAsDataURL(file);
+    const readAsDataURL = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress(`Enviando ${i + 1}/${files.length}: ${file.name}`);
+
+      let fileUrl = "";
+      let uploadedSuccessfully = false;
+
+      // 1. Tentar upload via Server Function (salva direto no Storage com permissões de administrador)
+      try {
+        const dataUrl = await readAsDataURL(file);
+        const res = await uploadAttachmentFn({
+          data: {
+            mentoriaId: mentorado.id,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            base64Data: dataUrl,
+          },
+        });
+        if (res?.url) {
+          fileUrl = res.url;
+          uploadedSuccessfully = true;
+        }
+      } catch (serverErr: any) {
+        console.warn(`Tentando fallback de storage direto para ${file.name}:`, serverErr);
+
+        // 2. Fallback: upload direto no cliente Supabase Storage
+        try {
+          const sanitizedName = file.name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9._-]/g, "_");
+          const storagePath = `${mentorado.id}/${Date.now()}_${sanitizedName}`;
+
+          const { data: upData, error: upError } = await supabase.storage
+            .from("mentoria-docs")
+            .upload(storagePath, file, { upsert: true });
+
+          if (!upError && upData) {
+            const { data: pubData } = supabase.storage
+              .from("mentoria-docs")
+              .getPublicUrl(storagePath);
+            fileUrl = pubData.publicUrl;
+            uploadedSuccessfully = true;
+          } else {
+            // Tenta no bucket pop-sources se disponível
+            const { data: popData, error: popErr } = await supabase.storage
+              .from("pop-sources")
+              .upload(`mentoria/${storagePath}`, file, { upsert: true });
+            if (!popErr && popData) {
+              const { data: popPub } = supabase.storage
+                .from("pop-sources")
+                .getPublicUrl(`mentoria/${storagePath}`);
+              fileUrl = popPub.publicUrl;
+              uploadedSuccessfully = true;
+            }
+          }
+        } catch (directErr) {
+          console.warn(`Fallback de storage direto falhou para ${file.name}:`, directErr);
+        }
+      }
+
+      // 3. Fallback se arquivo for pequeno (< 1.5MB) e nenhum storage respondeu
+      if (!uploadedSuccessfully && file.size <= 1.5 * 1024 * 1024) {
+        try {
+          fileUrl = await readAsDataURL(file);
+          uploadedSuccessfully = true;
+        } catch {}
+      }
+
+      if (uploadedSuccessfully && fileUrl) {
         newAttachments.push({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          id: `att-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
           name: file.name,
-          url: base64Url,
+          url: fileUrl,
           size: file.size,
           type: file.type,
           uploaded_at: new Date().toISOString(),
         });
+        successCount++;
+      } else {
+        toast.error(`Não foi possível enviar o arquivo: ${file.name}`);
       }
+    }
 
-      const currentAttachments = normalizeAttachments(profile);
-      const updatedAttachments = [...currentAttachments, ...newAttachments];
+    if (newAttachments.length > 0) {
+      try {
+        const currentAttachments = normalizeAttachments(profile);
+        const updatedAttachments = [...currentAttachments, ...newAttachments];
 
-      await onUpdateBehavioralProfile({
-        ...profile,
-        attachments: updatedAttachments,
-        pdf_attachment_url:
-          profile?.pdf_attachment_url ||
-          newAttachments.find((a) => a.name.toLowerCase().endsWith(".pdf"))?.url ||
-          newAttachments[0]?.url,
-        pdf_attachment_name:
-          profile?.pdf_attachment_name ||
-          newAttachments.find((a) => a.name.toLowerCase().endsWith(".pdf"))?.name ||
-          newAttachments[0]?.name,
-      });
+        await onUpdateBehavioralProfile({
+          ...profile,
+          attachments: updatedAttachments,
+          pdf_attachment_url:
+            profile?.pdf_attachment_url ||
+            newAttachments.find((a) => a.name.toLowerCase().endsWith(".pdf"))?.url ||
+            newAttachments[0]?.url,
+          pdf_attachment_name:
+            profile?.pdf_attachment_name ||
+            newAttachments.find((a) => a.name.toLowerCase().endsWith(".pdf"))?.name ||
+            newAttachments[0]?.name,
+        });
 
-      toast.success(
-        files.length === 1
-          ? "Arquivo anexado com sucesso!"
-          : `${files.length} arquivos anexados com sucesso!`
-      );
-    } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao carregar o arquivo.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        if (successCount === 1) {
+          toast.success("Arquivo anexado com sucesso!");
+        } else {
+          toast.success(`${successCount} arquivos anexados com sucesso!`);
+        }
+      } catch (saveErr: any) {
+        toast.error(saveErr?.message ?? "Erro ao salvar os anexos.");
       }
+    }
+
+    setUploading(false);
+    setUploadProgress(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -199,13 +282,17 @@ export function MentoradoDetail({
     const nextPdfName =
       updated.find((a) => a.name.toLowerCase().endsWith(".pdf"))?.name || updated[0]?.name;
 
-    await onUpdateBehavioralProfile({
-      ...profile,
-      attachments: updated,
-      pdf_attachment_url: nextPdfUrl,
-      pdf_attachment_name: nextPdfName,
-    });
-    toast.success("Anexo removido com sucesso.");
+    try {
+      await onUpdateBehavioralProfile({
+        ...profile,
+        attachments: updated,
+        pdf_attachment_url: nextPdfUrl,
+        pdf_attachment_name: nextPdfName,
+      });
+      toast.success("Anexo removido com sucesso.");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao remover anexo.");
+    }
   };
 
   // Gerar Link de Análise de Perfil
@@ -452,7 +539,8 @@ export function MentoradoDetail({
             >
               {uploading ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E05A10]" /> Enviando...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E05A10]" />{" "}
+                  {uploadProgress || "Enviando arquivos..."}
                 </>
               ) : (
                 <>
@@ -572,7 +660,7 @@ export function MentoradoDetail({
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-muted-foreground hover:text-[#E05A10]"
-                          title="Baixar arquivo"
+                          title="Baixar / Abrir arquivo"
                           asChild
                         >
                           <a
@@ -626,7 +714,8 @@ export function MentoradoDetail({
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E05A10]" /> Enviando...
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E05A10]" />{" "}
+                    {uploadProgress || "Enviando arquivos..."}
                   </>
                 ) : (
                   <>
