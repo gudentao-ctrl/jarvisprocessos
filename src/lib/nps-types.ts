@@ -13,6 +13,7 @@ export interface ConfigVisualPesquisa {
   text_color?: string;
   cor_texto?: string;
   card_bg_color?: string;
+  cor_card?: string;
   logo_url?: string;
   bg_image_url?: string;
   welcome_msg?: string;

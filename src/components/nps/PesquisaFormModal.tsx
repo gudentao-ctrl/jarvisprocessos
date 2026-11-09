@@ -29,9 +29,9 @@ import {
   Smile,
   Star,
   MessageSquare,
-  Check,
   Building2,
   Upload,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -51,14 +51,79 @@ interface PesquisaFormModalProps {
   companyName?: string | null;
 }
 
+// Utilitário para garantir hex de 7 chars válido (#rrggbb) sem NaN
+function toHex7(val: string | undefined, fallback: string): string {
+  if (!val || typeof val !== "string") return fallback;
+  const clean = val.trim();
+  if (clean.includes("NaN")) return fallback;
+  if (/^#[0-9a-fA-F]{6}$/.test(clean)) return clean.toLowerCase();
+  if (/^[0-9a-fA-F]{6}$/.test(clean)) return `#${clean.toLowerCase()}`;
+  if (/^#[0-9a-fA-F]{3}$/.test(clean)) {
+    const r = clean[1], g = clean[2], b = clean[3];
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return fallback;
+}
+
+// Verifica se uma cor hex é escura
+function isDarkColor(hex: string): boolean {
+  const clean = toHex7(hex, "#ffffff").replace("#", "");
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return false;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
+}
+
 const DEFAULT_CONFIG_VISUAL: ConfigVisualPesquisa = {
   cor_fundo: "#FFF8F5",
   cor_primaria: "#E05A10",
   cor_texto: "#1F2937",
+  card_bg_color: "#FFFFFF",
   mensagem_boas_vindas: "Sua opinião é fundamental para evoluirmos nossos serviços e cultura.",
   mensagem_agradecimento: "Muito obrigado por dedicar seu tempo! Suas respostas nos ajudam a construir uma experiência cada vez melhor.",
   permitir_anonimo: true,
 };
+
+const PRESET_THEMES = [
+  {
+    id: "gourmet",
+    name: "JR Espetaria / Gourmet",
+    icon: "🥩",
+    cor_fundo: "#1A0A08",
+    cor_card: "#261412",
+    cor_primaria: "#630E0D",
+    cor_texto: "#FBEB96",
+  },
+  {
+    id: "dark",
+    name: "Dark Moderno",
+    icon: "🌑",
+    cor_fundo: "#121212",
+    cor_card: "#1E1E1E",
+    cor_primaria: "#E05A10",
+    cor_texto: "#F3F4F6",
+  },
+  {
+    id: "maia",
+    name: "Maia Clean / Padrão",
+    icon: "☀️",
+    cor_fundo: "#FFF8F5",
+    cor_card: "#FFFFFF",
+    cor_primaria: "#E05A10",
+    cor_texto: "#1F2937",
+  },
+  {
+    id: "corporativo",
+    name: "Corporativo Azul",
+    icon: "💼",
+    cor_fundo: "#0F172A",
+    cor_card: "#1E293B",
+    cor_primaria: "#2563EB",
+    cor_texto: "#F8FAFC",
+  },
+];
 
 type TipoPerguntaForm = "nps_0_10" | "escala_1_5" | "texto_aberto" | "selecao_lista";
 
@@ -90,10 +155,32 @@ export function PesquisaFormModal({
   const [tipo, setTipo] = useState<TipoPesquisa>(pesquisaEdit?.tipo || "nps");
   const [status, setStatus] = useState<"ativa" | "inativa">(pesquisaEdit?.status || "ativa");
 
-  // Personalização Visual
-  const [configVisual, setConfigVisual] = useState<ConfigVisualPesquisa>(
-    pesquisaEdit?.config_visual || DEFAULT_CONFIG_VISUAL
-  );
+  // Personalização Visual (com limpeza de cores para evitar NaN)
+  const initialVisual: ConfigVisualPesquisa = (() => {
+    const raw = pesquisaEdit?.config_visual || DEFAULT_CONFIG_VISUAL;
+    const rawBg = raw.cor_fundo || raw.bg_color || "#FFF8F5";
+    const isDark = typeof rawBg === "string" && (rawBg.includes("NaN0f") || rawBg.includes("000000") || rawBg.toLowerCase().includes("#3e") || rawBg.toLowerCase().includes("#1a"));
+    const fixedBg = toHex7(rawBg, isDark ? "#121212" : "#FFF8F5");
+
+    return {
+      cor_fundo: fixedBg,
+      bg_color: fixedBg,
+      cor_primaria: toHex7(raw.cor_primaria || raw.primary_color, "#E05A10"),
+      primary_color: toHex7(raw.cor_primaria || raw.primary_color, "#E05A10"),
+      cor_texto: toHex7(raw.cor_texto || raw.text_color, isDarkColor(fixedBg) ? "#FBEB96" : "#1F2937"),
+      text_color: toHex7(raw.cor_texto || raw.text_color, isDarkColor(fixedBg) ? "#FBEB96" : "#1F2937"),
+      card_bg_color: toHex7(raw.card_bg_color || raw.cor_card, isDarkColor(fixedBg) ? "#261412" : "#FFFFFF"),
+      cor_card: toHex7(raw.card_bg_color || raw.cor_card, isDarkColor(fixedBg) ? "#261412" : "#FFFFFF"),
+      logo_url: raw.logo_url || "",
+      welcome_msg: raw.welcome_msg || raw.mensagem_boas_vindas || DEFAULT_CONFIG_VISUAL.mensagem_boas_vindas,
+      mensagem_boas_vindas: raw.mensagem_boas_vindas || raw.welcome_msg || DEFAULT_CONFIG_VISUAL.mensagem_boas_vindas,
+      thanks_msg: raw.thanks_msg || raw.mensagem_agradecimento || DEFAULT_CONFIG_VISUAL.mensagem_agradecimento,
+      mensagem_agradecimento: raw.mensagem_agradecimento || raw.thanks_msg || DEFAULT_CONFIG_VISUAL.mensagem_agradecimento,
+      permitir_anonimo: raw.permitir_anonimo ?? true,
+    };
+  })();
+
+  const [configVisual, setConfigVisual] = useState<ConfigVisualPesquisa>(initialVisual);
 
   // Perguntas
   const [perguntas, setPerguntas] = useState<PerguntaFormState[]>(
@@ -136,6 +223,21 @@ export function PesquisaFormModal({
           },
         ]
   );
+
+  const handleApplyPreset = (preset: typeof PRESET_THEMES[0]) => {
+    setConfigVisual((prev) => ({
+      ...prev,
+      cor_fundo: preset.cor_fundo,
+      bg_color: preset.cor_fundo,
+      card_bg_color: preset.cor_card,
+      cor_card: preset.cor_card,
+      cor_primaria: preset.cor_primaria,
+      primary_color: preset.cor_primaria,
+      cor_texto: preset.cor_texto,
+      text_color: preset.cor_texto,
+    }));
+    toast.success(`Tema "${preset.name}" aplicado!`);
+  };
 
   const handleAddPergunta = (tipoPergunta: TipoPerguntaForm) => {
     let textoDefault = "Nova Pergunta";
@@ -222,6 +324,29 @@ export function PesquisaFormModal({
 
     try {
       setSalvando(true);
+
+      // Higieniza rigorosamente todas as cores para nunca enviar NaN ou valores corrompidos
+      const cleanFundo = toHex7(configVisual.cor_fundo || configVisual.bg_color, "#FFF8F5");
+      const cleanCard = toHex7(configVisual.card_bg_color || configVisual.cor_card, isDarkColor(cleanFundo) ? "#261412" : "#FFFFFF");
+      const cleanPrimaria = toHex7(configVisual.cor_primaria || configVisual.primary_color, "#E05A10");
+      const cleanTexto = toHex7(configVisual.cor_texto || configVisual.text_color, isDarkColor(cleanFundo) ? "#FBEB96" : "#1F2937");
+
+      const finalConfigVisual: ConfigVisualPesquisa = {
+        ...configVisual,
+        cor_fundo: cleanFundo,
+        bg_color: cleanFundo,
+        card_bg_color: cleanCard,
+        cor_card: cleanCard,
+        cor_primaria: cleanPrimaria,
+        primary_color: cleanPrimaria,
+        cor_texto: cleanTexto,
+        text_color: cleanTexto,
+        welcome_msg: configVisual.mensagem_boas_vindas || configVisual.welcome_msg || "",
+        mensagem_boas_vindas: configVisual.mensagem_boas_vindas || configVisual.welcome_msg || "",
+        thanks_msg: configVisual.mensagem_agradecimento || configVisual.thanks_msg || "",
+        mensagem_agradecimento: configVisual.mensagem_agradecimento || configVisual.thanks_msg || "",
+      };
+
       await onSave(
         {
           titulo: titulo.trim(),
@@ -229,7 +354,7 @@ export function PesquisaFormModal({
           tipo,
           status,
           company_id: companyId || null,
-          config_visual: configVisual,
+          config_visual: finalConfigVisual,
         },
         perguntas
       );
@@ -242,6 +367,12 @@ export function PesquisaFormModal({
       setSalvando(false);
     }
   };
+
+  const previewFundo = toHex7(configVisual.cor_fundo, "#FFF8F5");
+  const previewCard = toHex7(configVisual.card_bg_color, isDarkColor(previewFundo) ? "#261412" : "#FFFFFF");
+  const previewPrimaria = toHex7(configVisual.cor_primaria, "#E05A10");
+  const previewTexto = toHex7(configVisual.cor_texto, isDarkColor(previewCard) ? "#FBEB96" : "#1F2937");
+  const isDarkCardPreview = isDarkColor(previewCard);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -361,80 +492,236 @@ export function PesquisaFormModal({
 
               {/* ABA 2: PERSONALIZAÇÃO VISUAL */}
               <TabsContent value="visual" className="m-0 space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2 p-4 rounded-xl border bg-muted/20">
+                {/* Paletas de Cores Prontas (1-Click Presets) */}
+                <div className="p-4 rounded-xl border bg-muted/20 space-y-2.5">
+                  <Label className="text-xs font-bold text-[#3E100C] flex items-center gap-1.5">
+                    <Palette className="h-3.5 w-3.5 text-[#E05A10]" />
+                    Paletas Rápidas (Temas Pré-Configurados)
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Clique em um tema para aplicar as combinações de cores recomendadas automaticamente:
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    {PRESET_THEMES.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleApplyPreset(preset)}
+                        className="p-2.5 rounded-lg border bg-background hover:border-[#E05A10] transition-all text-left space-y-1.5 group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold truncate group-hover:text-[#E05A10] flex items-center gap-1">
+                            <span>{preset.icon}</span>
+                            <span className="truncate">{preset.name}</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <span
+                            className="h-4 w-4 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: preset.cor_fundo }}
+                            title={`Fundo: ${preset.cor_fundo}`}
+                          />
+                          <span
+                            className="h-4 w-4 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: preset.cor_card }}
+                            title={`Card: ${preset.cor_card}`}
+                          />
+                          <span
+                            className="h-4 w-4 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: preset.cor_primaria }}
+                            title={`Botão: ${preset.cor_primaria}`}
+                          />
+                          <span
+                            className="h-4 w-4 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: preset.cor_texto }}
+                            title={`Texto: ${preset.cor_texto}`}
+                          />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Seletores de Cores Personalizados */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Cor de Fundo */}
+                  <div className="space-y-2 p-3.5 rounded-xl border bg-muted/20">
                     <Label className="text-xs font-semibold flex items-center justify-between">
-                      Cor de Fundo da Página
-                      <span className="text-[10px] font-mono">{configVisual.cor_fundo}</span>
+                      Fundo da Página
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {toHex7(configVisual.cor_fundo, "#FFF8F5")}
+                      </span>
                     </Label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={configVisual.cor_fundo || "#FFF8F5"}
+                        value={toHex7(configVisual.cor_fundo, "#FFF8F5")}
                         onChange={(e) =>
-                          setConfigVisual((c) => ({ ...c, cor_fundo: e.target.value }))
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_fundo: e.target.value,
+                            bg_color: e.target.value,
+                          }))
                         }
-                        className="h-10 w-14 rounded cursor-pointer border p-0.5"
+                        className="h-9 w-12 rounded cursor-pointer border p-0.5"
                       />
                       <Input
                         value={configVisual.cor_fundo || ""}
-                        onChange={(e) =>
-                          setConfigVisual((c) => ({ ...c, cor_fundo: e.target.value }))
-                        }
-                        className="font-mono text-xs"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_fundo: val,
+                            bg_color: val,
+                          }));
+                        }}
+                        onBlur={() => {
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_fundo: toHex7(c.cor_fundo, "#FFF8F5"),
+                            bg_color: toHex7(c.cor_fundo, "#FFF8F5"),
+                          }));
+                        }}
+                        placeholder="#1A0A08"
+                        className="font-mono text-xs h-9"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 p-4 rounded-xl border bg-muted/20">
+                  {/* Cor do Card / Caixa Central */}
+                  <div className="space-y-2 p-3.5 rounded-xl border bg-muted/20">
                     <Label className="text-xs font-semibold flex items-center justify-between">
-                      Cor Primária dos Botões
-                      <span className="text-[10px] font-mono">{configVisual.cor_primaria}</span>
+                      Fundo do Card Central
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {toHex7(configVisual.card_bg_color, isDarkColor(configVisual.cor_fundo || "") ? "#261412" : "#FFFFFF")}
+                      </span>
                     </Label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={configVisual.cor_primaria || "#E05A10"}
+                        value={toHex7(configVisual.card_bg_color, isDarkColor(configVisual.cor_fundo || "") ? "#261412" : "#FFFFFF")}
                         onChange={(e) =>
-                          setConfigVisual((c) => ({ ...c, cor_primaria: e.target.value }))
+                          setConfigVisual((c) => ({
+                            ...c,
+                            card_bg_color: e.target.value,
+                            cor_card: e.target.value,
+                          }))
                         }
-                        className="h-10 w-14 rounded cursor-pointer border p-0.5"
+                        className="h-9 w-12 rounded cursor-pointer border p-0.5"
+                      />
+                      <Input
+                        value={configVisual.card_bg_color || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setConfigVisual((c) => ({
+                            ...c,
+                            card_bg_color: val,
+                            cor_card: val,
+                          }));
+                        }}
+                        onBlur={() => {
+                          setConfigVisual((c) => ({
+                            ...c,
+                            card_bg_color: toHex7(c.card_bg_color, isDarkColor(c.cor_fundo || "") ? "#261412" : "#FFFFFF"),
+                            cor_card: toHex7(c.card_bg_color, isDarkColor(c.cor_fundo || "") ? "#261412" : "#FFFFFF"),
+                          }));
+                        }}
+                        placeholder="#261412"
+                        className="font-mono text-xs h-9"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cor Primária dos Botões */}
+                  <div className="space-y-2 p-3.5 rounded-xl border bg-muted/20">
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      Botões de Ação
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {toHex7(configVisual.cor_primaria, "#E05A10")}
+                      </span>
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={toHex7(configVisual.cor_primaria, "#E05A10")}
+                        onChange={(e) =>
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_primaria: e.target.value,
+                            primary_color: e.target.value,
+                          }))
+                        }
+                        className="h-9 w-12 rounded cursor-pointer border p-0.5"
                       />
                       <Input
                         value={configVisual.cor_primaria || ""}
-                        onChange={(e) =>
-                          setConfigVisual((c) => ({ ...c, cor_primaria: e.target.value }))
-                        }
-                        className="font-mono text-xs"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_primaria: val,
+                            primary_color: val,
+                          }));
+                        }}
+                        onBlur={() => {
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_primaria: toHex7(c.cor_primaria, "#E05A10"),
+                            primary_color: toHex7(c.cor_primaria, "#E05A10"),
+                          }));
+                        }}
+                        placeholder="#630E0D"
+                        className="font-mono text-xs h-9"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 p-4 rounded-xl border bg-muted/20">
+                  {/* Cor das Letras / Texto */}
+                  <div className="space-y-2 p-3.5 rounded-xl border bg-muted/20">
                     <Label className="text-xs font-semibold flex items-center justify-between">
-                      Cor das Letras / Texto
-                      <span className="text-[10px] font-mono">{configVisual.cor_texto}</span>
+                      Letras e Textos
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {toHex7(configVisual.cor_texto, isDarkColor(configVisual.cor_fundo || "") ? "#FBEB96" : "#1F2937")}
+                      </span>
                     </Label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={configVisual.cor_texto || "#1F2937"}
+                        value={toHex7(configVisual.cor_texto, isDarkColor(configVisual.cor_fundo || "") ? "#FBEB96" : "#1F2937")}
                         onChange={(e) =>
-                          setConfigVisual((c) => ({ ...c, cor_texto: e.target.value }))
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_texto: e.target.value,
+                            text_color: e.target.value,
+                          }))
                         }
-                        className="h-10 w-14 rounded cursor-pointer border p-0.5"
+                        className="h-9 w-12 rounded cursor-pointer border p-0.5"
                       />
                       <Input
                         value={configVisual.cor_texto || ""}
-                        onChange={(e) =>
-                          setConfigVisual((c) => ({ ...c, cor_texto: e.target.value }))
-                        }
-                        className="font-mono text-xs"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_texto: val,
+                            text_color: val,
+                          }));
+                        }}
+                        onBlur={() => {
+                          setConfigVisual((c) => ({
+                            ...c,
+                            cor_texto: toHex7(c.cor_texto, isDarkColor(c.cor_fundo || "") ? "#FBEB96" : "#1F2937"),
+                            text_color: toHex7(c.cor_texto, isDarkColor(c.cor_fundo || "") ? "#FBEB96" : "#1F2937"),
+                          }));
+                        }}
+                        placeholder="#FBEB96"
+                        className="font-mono text-xs h-9"
                       />
                     </div>
                   </div>
                 </div>
 
+                {/* Logomarca da Empresa */}
                 <div className="space-y-2 p-4 rounded-xl border bg-muted/20">
                   <Label className="text-xs font-semibold block text-[#3E100C]">
                     Logomarca da Empresa / Cliente
@@ -571,29 +858,66 @@ export function PesquisaFormModal({
                   />
                 </div>
 
-                {/* Preview Rápido */}
-                <div
-                  className="p-4 rounded-xl border text-center space-y-2"
-                  style={{
-                    backgroundColor: configVisual.cor_fundo || "#FFF8F5",
-                    color: configVisual.cor_texto || "#1F2937",
-                  }}
-                >
-                  <p className="text-[11px] uppercase tracking-wider font-semibold opacity-75">
-                    Pré-visualização do Tema
-                  </p>
-                  <h4 className="text-base font-bold">{titulo || "Título da sua pesquisa"}</h4>
-                  <p className="text-xs max-w-md mx-auto opacity-90">
-                    {configVisual.mensagem_boas_vindas}
-                  </p>
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      className="px-5 py-2 rounded-lg text-white text-xs font-semibold shadow-sm"
-                      style={{ backgroundColor: configVisual.cor_primaria || "#E05A10" }}
+                {/* Pré-visualização Fiel e Realista do Link Público */}
+                <div className="space-y-2 pt-2">
+                  <Label className="text-xs font-bold text-[#3E100C] block">
+                    Pré-visualização Fiel do Link Público
+                  </Label>
+                  <div
+                    className="p-6 sm:p-10 rounded-2xl border transition-colors flex items-center justify-center min-h-[280px]"
+                    style={{ backgroundColor: previewFundo }}
+                  >
+                    <div
+                      className={`max-w-md w-full p-6 sm:p-8 rounded-2xl shadow-xl text-center space-y-4 border transition-colors ${
+                        isDarkCardPreview ? "border-white/10" : "border-black/5"
+                      }`}
+                      style={{
+                        backgroundColor: previewCard,
+                        color: previewTexto,
+                      }}
                     >
-                      Exemplo de Botão de Ação
-                    </button>
+                      {configVisual.logo_url && (
+                        <div className="flex items-center justify-center pb-1">
+                          <img
+                            src={configVisual.logo_url}
+                            alt="Logo da Empresa"
+                            className="max-h-16 max-w-[180px] object-contain drop-shadow"
+                          />
+                        </div>
+                      )}
+
+                      <h4 className="text-lg font-black tracking-tight">
+                        {titulo || "Título da sua pesquisa"}
+                      </h4>
+
+                      {descricao && (
+                        <p className="text-xs opacity-75">
+                          {descricao}
+                        </p>
+                      )}
+
+                      <div
+                        className={`p-3 rounded-lg text-xs leading-relaxed opacity-90 ${
+                          isDarkCardPreview ? "bg-white/5 border border-white/10" : "bg-black/5 border border-black/5"
+                        }`}
+                      >
+                        {configVisual.mensagem_boas_vindas || "Sua opinião é fundamental para evoluirmos nossos serviços."}
+                      </div>
+
+                      <div className="pt-2 flex justify-center">
+                        <button
+                          type="button"
+                          className="px-6 py-2.5 rounded-full text-white text-xs font-bold shadow-md transition-transform hover:scale-105"
+                          style={{ backgroundColor: previewPrimaria }}
+                        >
+                          Iniciar Pesquisa →
+                        </button>
+                      </div>
+
+                      <p className="text-[10px] opacity-50 pt-1">
+                        Acesso anônimo • Respostas 100% confidenciais
+                      </p>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -788,7 +1112,7 @@ export function PesquisaFormModal({
                             {(perg.opcoes_lista || []).map((opc, opcIdx) => (
                               <div key={opcIdx} className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground font-mono w-5">
-                                  {opcIdx + 1}.
+                                   {opcIdx + 1}.
                                 </span>
                                 <Input
                                   value={opc}

@@ -71,6 +71,46 @@ export function calcularNpsScores(respostasNotas: number[]) {
   };
 }
 
+// Higieniza configurações visuais para garantir integridade e retrocompatibilidade
+function sanitizeSurveyConfigVisual(cv?: any): ConfigVisualPesquisa {
+  if (!cv || typeof cv !== "object") return {};
+  const clean = { ...cv };
+  const sanitizeColor = (val: any, fallback: string) => {
+    if (!val || typeof val !== "string") return fallback;
+    const t = val.trim();
+    if (t.includes("NaN") || !/^#[0-9a-fA-F]{3,8}$/.test(t.startsWith("#") ? t : `#${t}`)) {
+      return fallback;
+    }
+    return t.startsWith("#") ? t : `#${t}`;
+  };
+
+  if (clean.cor_fundo || clean.bg_color) {
+    const raw = clean.cor_fundo || clean.bg_color;
+    const isDark = typeof raw === "string" && (raw.includes("NaN0f") || raw.includes("000000") || raw.toLowerCase().includes("#3e"));
+    const fixed = sanitizeColor(raw, isDark ? "#121212" : "#FFF8F5");
+    clean.cor_fundo = fixed;
+    clean.bg_color = fixed;
+  }
+  if (clean.cor_primaria || clean.primary_color) {
+    const fixed = sanitizeColor(clean.cor_primaria || clean.primary_color, "#E05A10");
+    clean.cor_primaria = fixed;
+    clean.primary_color = fixed;
+  }
+  if (clean.cor_texto || clean.text_color) {
+    const fixed = sanitizeColor(clean.cor_texto || clean.text_color, "#1F2937");
+    clean.cor_texto = fixed;
+    clean.text_color = fixed;
+  }
+  if (clean.card_bg_color || clean.cor_card) {
+    const fixed = sanitizeColor(clean.card_bg_color || clean.cor_card, "");
+    if (fixed) {
+      clean.card_bg_color = fixed;
+      clean.cor_card = fixed;
+    }
+  }
+  return clean;
+}
+
 // ---------------------------------------------------------------------------
 // OPERAÇÕES DE PESQUISA (CRUD)
 // ---------------------------------------------------------------------------
@@ -79,47 +119,66 @@ export async function getPesquisasList(companyId?: string | null): Promise<Pesqu
   if (companyId) query = query.eq("empresa_id", companyId);
   const { data, error } = await query;
   if (error) throw new Error("Não foi possível carregar as pesquisas.");
-  return enrichPesquisas((data || []) as unknown as Pesquisa[]);
+  return enrichPesquisas((data || []).map((row: any) => ({
+    ...row,
+    config_visual: sanitizeSurveyConfigVisual(row.config_visual),
+  })) as unknown as Pesquisa[]);
 }
+
 export async function getPesquisaByHash(token: string): Promise<Pesquisa | null> {
   if (token.length < 20 || token.length > 200 || token.startsWith("s_")) return null;
   const { data, error } = await supabase.rpc("get_public_survey", { _token: token });
   if (error) throw new Error("Não foi possível carregar a pesquisa.");
-  return data as unknown as Pesquisa | null;
+  const p = data as unknown as Pesquisa | null;
+  if (p) {
+    p.config_visual = sanitizeSurveyConfigVisual(p.config_visual);
+  }
+  return p;
 }
+
 export async function getPesquisaById(id: string): Promise<Pesquisa | null> {
   const { data, error } = await supabase.from("pesquisas").select("*, perguntas:pesquisa_perguntas(*)").eq("id", id).maybeSingle();
   if (error) throw new Error("Não foi possível carregar a pesquisa.");
-  return data as unknown as Pesquisa | null;
+  const p = data as unknown as Pesquisa | null;
+  if (p) {
+    p.config_visual = sanitizeSurveyConfigVisual(p.config_visual);
+  }
+  return p;
 }
+
 export async function savePesquisa(payload: Partial<Pesquisa>): Promise<Pesquisa> {
   const empresaId = payload.empresa_id || payload.company_id;
   if (!empresaId) throw new Error("Selecione a empresa da pesquisa.");
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const perguntas = (payload.perguntas || []).map((q, index) => ({ ...q, id: uuid.test(q.id || "") ? q.id : crypto.randomUUID(), ordem: index + 1 }));
-  const definition = { id: payload.id || crypto.randomUUID(), empresa_id: empresaId, titulo: payload.titulo || "Nova pesquisa", descricao: payload.descricao || "", tipo: payload.tipo || "nps", status: payload.status || "ativa", config_visual: payload.config_visual || {}, perguntas };
+  const sanitizedVisual = sanitizeSurveyConfigVisual(payload.config_visual);
+  const definition = { id: payload.id || crypto.randomUUID(), empresa_id: empresaId, titulo: payload.titulo || "Nova pesquisa", descricao: payload.descricao || "", tipo: payload.tipo || "nps", status: payload.status || "ativa", config_visual: sanitizedVisual, perguntas };
   const { data: id, error } = await supabase.rpc("save_survey_definition", { _survey: definition as any });
   if (error) throw new Error("Não foi possível salvar a pesquisa e suas perguntas. Confira suas permissões.");
   const row = await getPesquisaById(id);
   if (!row) throw new Error("Pesquisa salva, mas indisponível para leitura.");
   return row;
 }
+
 export async function deletePesquisa(id: string): Promise<boolean> {
   const { data, error } = await supabase.rpc("delete_survey", { _id: id });
   if (error || !data) throw new Error("Não foi possível excluir a pesquisa.");
   return true;
 }
+
 // Apaga somente as respostas coletadas desta pesquisa; as permissões do banco decidem quem pode apagar.
 export async function resetRespostasPesquisa(pesquisaId: string): Promise<boolean> {
   const { error } = await supabase.from("pesquisa_respostas").delete().eq("pesquisa_id", pesquisaId);
   if (error) throw new Error("Não foi possível apagar os dados preenchidos desta pesquisa.");
   return true;
 }
+
 export async function getRespostasByPesquisa(id: string): Promise<PesquisaResposta[]> {
   const { data, error } = await supabase.from("pesquisa_respostas").select("*, itens:pesquisa_respostas_itens(*)").eq("pesquisa_id", id).order("created_at", { ascending: false });
   if (error) throw new Error("Não foi possível consultar as respostas.");
   return (data || []) as unknown as PesquisaResposta[];
 }
+
 export async function saveRespostaPublica(token: string, itens: Array<{ pergunta_id: string; valor_nota?: number | null; valor_texto?: string | null }>): Promise<boolean> {
   const key = `jarvis_survey_session_${token}`;
   let sessionId = localStorage.getItem(key);

@@ -25,6 +25,44 @@ export interface PublicSurveyViewProps {
   hash: string;
 }
 
+// Utilitário para parsear hex para RGB
+function parseHexColor(hex: string): [number, number, number] | null {
+  if (!hex || typeof hex !== "string") return null;
+  let clean = hex.trim().replace(/^#/, "");
+  if (clean.length === 3) {
+    clean = clean.split("").map((c) => c + c).join("");
+  }
+  if (clean.length !== 6) return null;
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return null;
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+// Verifica se a cor é escura (luminância perceptual < 0.5)
+function isColorDark(hexColor: string): boolean {
+  const rgb = parseHexColor(hexColor);
+  if (!rgb) return false;
+  const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+  return luminance < 0.5;
+}
+
+// Sanitiza hex color evitando NaN ou valores inválidos de CSS
+function sanitizeHexColor(val: unknown, fallback: string): string {
+  if (!val || typeof val !== "string") return fallback;
+  const trimmed = val.trim();
+  // Se contiver NaN, substitui pelo fallback (se parecia escuro, ou se o usuário tentou preto)
+  if (trimmed.includes("NaN")) {
+    return fallback;
+  }
+  const clean = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  if (/^#[0-9a-fA-F]{6}$/.test(clean)) return clean;
+  if (/^#[0-9a-fA-F]{3}$/.test(clean)) {
+    const r = clean[1], g = clean[2], b = clean[3];
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  return fallback;
+}
+
 export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
   const [pesquisa, setPesquisa] = useState<Pesquisa | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,13 +130,33 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
   const totalQuestions = perguntas.length;
   const progressPct = totalQuestions > 0 ? Math.round(((currentQuestionIndex + 1) / totalQuestions) * 100) : 0;
 
-  // Cores dinâmicas configuradas pelo usuário (compatível com cor_fundo / bg_color)
+  // Cores dinâmicas configuradas pelo usuário (com fallback seguro contra NaN e auto-ajuste de contraste)
   const cv = pesquisa?.config_visual as any;
   const visual = useMemo(() => {
-    const bgColor = cv?.bg_color || cv?.cor_fundo || "#FFF8F5";
-    const primaryColor = cv?.primary_color || cv?.cor_primaria || "#E05A10";
-    const textColor = cv?.text_color || cv?.cor_texto || "#2B1B17";
-    const cardBgColor = cv?.card_bg_color || (bgColor === "#3E100C" ? "#2B0B08" : "#FFFFFF");
+    // Se o valor de fundo contiver NaN ou for inválido, usa #121212 se parecia escuro ou #FFF8F5
+    const rawBg = cv?.bg_color || cv?.cor_fundo;
+    const isProbablyDark = typeof rawBg === "string" && (rawBg.toLowerCase().includes("nan0f") || rawBg.toLowerCase().includes("000000") || rawBg.toLowerCase().includes("#3e"));
+    const fallbackBg = isProbablyDark ? "#121212" : "#FFF8F5";
+
+    const bgColor = sanitizeHexColor(rawBg, fallbackBg);
+    const primaryColor = sanitizeHexColor(cv?.primary_color || cv?.cor_primaria, "#E05A10");
+    const textColor = sanitizeHexColor(cv?.text_color || cv?.cor_texto, isColorDark(bgColor) ? "#F9FAFB" : "#2B1B17");
+
+    // Determina a cor do card (se não definida, deriva do fundo com elevação adequada)
+    let cardBgColor = sanitizeHexColor(cv?.card_bg_color || cv?.cor_card, "");
+    if (!cardBgColor) {
+      if (isColorDark(bgColor)) {
+        // Se fundo é escuro, gera uma superfície escura ligeiramente mais clara com contraste elegante
+        const rgb = parseHexColor(bgColor) || [18, 18, 18];
+        const cardR = Math.min(255, rgb[0] + 16);
+        const cardG = Math.min(255, rgb[1] + 14);
+        const cardB = Math.min(255, rgb[2] + 14);
+        cardBgColor = `#${((1 << 24) + (cardR << 16) + (cardG << 8) + cardB).toString(16).slice(1)}`;
+      } else {
+        cardBgColor = "#FFFFFF";
+      }
+    }
+
     const welcomeMsg = cv?.welcome_msg || cv?.mensagem_boas_vindas || "Bem-vindo(a) à nossa pesquisa de satisfação!";
     const thanksMsg = cv?.thanks_msg || cv?.mensagem_agradecimento || "Muito obrigado pelas suas respostas!";
     const logoUrl = cv?.logo_url || "";
@@ -113,6 +171,9 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
       logo_url: logoUrl,
     };
   }, [cv]);
+
+  const isDarkCard = useMemo(() => isColorDark(visual.card_bg_color), [visual.card_bg_color]);
+  const isDarkBg = useMemo(() => isColorDark(visual.bg_color), [visual.bg_color]);
 
   // Manipulação de resposta com auto-advance para classificações numéricas (300ms)
   const handleSelectScore = (perguntaId: string, nota: number) => {
@@ -196,7 +257,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F5] text-[#2B1B17]">
+      <div className="min-h-screen flex items-center justify-center bg-[#121212] text-white">
         <div className="text-center space-y-3">
           <div className="h-10 w-10 border-4 border-[#E05A10] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold">Carregando pesquisa...</p>
@@ -207,10 +268,10 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
 
   if (!pesquisa) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F5] p-6 text-[#2B1B17]">
-        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-md border border-[#E5D5CE] text-center space-y-4">
-          <div className="h-12 w-12 bg-[#3E100C]/10 text-[#3E100C] rounded-full flex items-center justify-center mx-auto">
-            <Lock className="h-6 w-6" />
+      <div className="min-h-screen flex items-center justify-center bg-[#121212] p-6 text-white">
+        <div className="max-w-md w-full bg-[#1e1e1e] p-8 rounded-2xl shadow-xl border border-white/10 text-center space-y-4">
+          <div className="h-12 w-12 bg-white/10 text-white rounded-full flex items-center justify-center mx-auto">
+            <Lock className="h-6 w-6 text-[#E05A10]" />
           </div>
           <h2 className="text-lg font-bold">Pesquisa Não Encontrada ou Inativa</h2>
           <p className="text-xs text-muted-foreground">
@@ -221,6 +282,11 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
     );
   }
 
+  // Estilos de borda e separadores dinâmicos baseados no brilho do card
+  const cardBorderClass = isDarkCard ? "border border-white/10" : "border border-black/5";
+  const innerBgClass = isDarkCard ? "bg-white/5 border border-white/10" : "bg-black/5 border border-black/5";
+  const dividerClass = isDarkCard ? "border-white/10" : "border-black/10";
+
   // Tela de Agradecimento Final
   if (isCompleted) {
     return (
@@ -229,7 +295,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
         style={{ backgroundColor: visual.bg_color, color: visual.text_color }}
       >
         <div
-          className="max-w-lg w-full p-8 sm:p-10 rounded-3xl shadow-xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-500"
+          className={`max-w-lg w-full p-8 sm:p-10 rounded-3xl shadow-2xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-500 ${cardBorderClass}`}
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
@@ -274,11 +340,11 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
               Enviar outra resposta
             </button>
           </div>
-          <div className="pt-4 border-t border-black/10 flex flex-col items-center justify-center gap-1.5 text-xs opacity-80 font-medium">
+          <div className={`pt-4 border-t ${dividerClass} flex flex-col items-center justify-center gap-1.5 text-xs opacity-80 font-medium`}>
             <img
               src="/logo-consultoria-maia.png"
               alt="Maia Consultoria"
-              className="h-8 max-w-[150px] object-contain opacity-90 drop-shadow-sm"
+              className={`h-8 max-w-[150px] object-contain opacity-90 drop-shadow-sm ${isDarkCard ? "brightness-125" : ""}`}
             />
             <span className="text-[11px] opacity-60">Maia Consultoria Empresarial • Hub de Pessoas</span>
           </div>
@@ -295,7 +361,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
         style={{ backgroundColor: visual.bg_color, color: visual.text_color }}
       >
         <div
-          className="max-w-xl w-full p-8 sm:p-12 rounded-3xl shadow-xl space-y-6 text-center animate-in fade-in zoom-in-95 duration-500 border border-black/5"
+          className={`max-w-xl w-full p-8 sm:p-12 rounded-3xl shadow-2xl space-y-6 text-center animate-in fade-in zoom-in-95 duration-500 ${cardBorderClass}`}
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {visual.logo_url && (
@@ -319,7 +385,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
             )}
           </div>
 
-          <div className="p-4 rounded-xl bg-black/5 text-xs leading-relaxed opacity-90">
+          <div className={`p-4 rounded-xl text-xs leading-relaxed opacity-95 ${innerBgClass}`}>
             {visual.welcome_msg}
           </div>
 
@@ -341,14 +407,14 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
           </div>
 
           {/* Logo da Consultoria Maia */}
-          <div className="pt-3 border-t border-black/10 flex flex-col items-center justify-center gap-1.5">
+          <div className={`pt-3 border-t ${dividerClass} flex flex-col items-center justify-center gap-1.5`}>
             <span className="text-[10px] uppercase tracking-wider opacity-50 font-semibold">
               Realização & Metodologia
             </span>
             <img
               src="/logo-consultoria-maia.png"
               alt="Maia Consultoria"
-              className="h-10 sm:h-12 max-w-[190px] object-contain drop-shadow-sm opacity-90 hover:opacity-100 transition-opacity"
+              className={`h-10 sm:h-12 max-w-[190px] object-contain drop-shadow-sm opacity-90 hover:opacity-100 transition-opacity ${isDarkCard ? "brightness-125" : ""}`}
             />
           </div>
         </div>
@@ -363,7 +429,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
       style={{ backgroundColor: visual.bg_color, color: visual.text_color }}
     >
       {/* Barra de Progresso Superior */}
-      <div className="w-full bg-black/5 p-4 sm:px-8 border-b border-black/5 flex items-center justify-between gap-4">
+      <div className={`w-full p-4 sm:px-8 border-b flex items-center justify-between gap-4 ${isDarkBg ? "bg-white/5 border-white/10" : "bg-black/5 border-black/5"}`}>
         <div className="flex items-center gap-2 text-xs font-semibold">
           <span style={{ color: visual.primary_color }}>Pergunta {currentQuestionIndex + 1}</span>
           <span className="opacity-40">/</span>
@@ -380,12 +446,12 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
       {/* Container Central com a Pergunta Única */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div
-          className="max-w-2xl w-full p-6 sm:p-10 rounded-3xl shadow-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 border border-black/5"
+          className={`max-w-2xl w-full p-6 sm:p-10 rounded-3xl shadow-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${cardBorderClass}`}
           style={{ backgroundColor: visual.card_bg_color }}
         >
           {/* Logomarca da Empresa Centralizada e de Grande Destaque */}
           {visual.logo_url && (
-            <div className="flex items-center justify-center pb-4 border-b border-black/10">
+            <div className={`flex items-center justify-center pb-4 border-b ${dividerClass}`}>
               <img
                 src={visual.logo_url}
                 alt="Logo do Cliente"
@@ -399,7 +465,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
             <div className="flex items-center gap-2">
               <span
                 className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full"
-                style={{ backgroundColor: `${visual.primary_color}20`, color: visual.primary_color }}
+                style={{ backgroundColor: `${visual.primary_color}25`, color: visual.primary_color }}
               >
                 {currentQuestionIndex + 1}
               </span>
@@ -431,6 +497,8 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
                         className={`h-11 sm:h-13 rounded-xl font-bold text-sm sm:text-base transition-all duration-200 border ${
                           isSelected
                             ? "text-white shadow-lg scale-105"
+                            : isDarkCard
+                            ? "bg-white/10 hover:bg-white/20 border-white/15 text-white"
                             : "bg-black/5 hover:bg-black/10 border-black/10"
                         }`}
                         style={{
@@ -444,9 +512,9 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
                   })}
                 </div>
 
-                <div className="flex justify-between items-center text-[11px] opacity-70 px-1 pt-1 font-medium">
-                  <span className="text-rose-600 font-semibold">0 - Nada provável</span>
-                  <span className="text-emerald-600 font-semibold">10 - Extremamente provável</span>
+                <div className="flex justify-between items-center text-[11px] opacity-75 px-1 pt-1 font-medium">
+                  <span className="text-rose-500 font-semibold">0 - Nada provável</span>
+                  <span className="text-emerald-500 font-semibold">10 - Extremamente provável</span>
                 </div>
               </div>
             )}
@@ -466,7 +534,11 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
                     >
                       <Star
                         className={`h-9 w-9 sm:h-12 sm:w-12 transition-colors ${
-                          isFilled ? "fill-amber-400 text-amber-400 drop-shadow" : "text-black/20"
+                          isFilled
+                            ? "fill-amber-400 text-amber-400 drop-shadow"
+                            : isDarkCard
+                            ? "text-white/20"
+                            : "text-black/20"
                         }`}
                       />
                       <span className="block text-center text-xs font-bold mt-1 opacity-70">
@@ -486,7 +558,11 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
                   value={answers[currentQuestion.id]?.valor_texto || ""}
                   onChange={(e) => handleTextChange(currentQuestion.id, e.target.value)}
                   placeholder={currentQuestion.placeholder || "Escreva sua resposta com sinceridade..."}
-                  className="w-full text-sm sm:text-base p-4 rounded-2xl border-2 border-black/10 focus:border-opacity-100 bg-black/5 resize-none"
+                  className={`w-full text-sm sm:text-base p-4 rounded-2xl border-2 focus:border-opacity-100 resize-none ${
+                    isDarkCard
+                      ? "bg-white/5 border-white/15 text-white placeholder:text-white/40"
+                      : "bg-black/5 border-black/10"
+                  }`}
                   style={{
                     borderColor: answers[currentQuestion.id]?.valor_texto ? visual.primary_color : undefined,
                   }}
@@ -514,6 +590,8 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
                       className={`w-full p-4 rounded-2xl text-left text-sm sm:text-base font-semibold border-2 transition-all flex items-center justify-between ${
                         isSelected
                           ? "text-white shadow-md"
+                          : isDarkCard
+                          ? "bg-white/5 hover:bg-white/10 border-white/15 text-white"
                           : "bg-black/5 hover:bg-black/10 border-black/10"
                       }`}
                       style={{
@@ -531,7 +609,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
           </div>
 
           {/* Navegação Inferior (Voltar / Avançar / Concluir) */}
-          <div className="flex items-center justify-between pt-6 border-t border-black/10">
+          <div className={`flex items-center justify-between pt-6 border-t ${dividerClass}`}>
             <Button
               type="button"
               variant="ghost"
@@ -581,7 +659,7 @@ export function PublicSurveyView({ hash }: PublicSurveyViewProps) {
         <img
           src="/logo-consultoria-maia.png"
           alt="Maia Consultoria"
-          className="h-6 max-w-[120px] object-contain opacity-80"
+          className={`h-6 max-w-[120px] object-contain opacity-80 ${isDarkBg ? "brightness-125" : ""}`}
         />
         <span>• Pesquisa gerenciada via Plataforma Maia Consultoria Empresarial • Resposta 100% segura e anônima</span>
       </footer>
