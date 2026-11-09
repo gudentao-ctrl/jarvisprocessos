@@ -991,6 +991,19 @@ function MapaPage() {
               </Button>
             </>
           )}
+          {companyId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs gap-1.5 shadow-sm border-primary/40 text-primary sm:hidden"
+              onClick={() =>
+                document.getElementById("mapa-controles")?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            >
+              <Download className="h-3.5 w-3.5" />
+              Filtrar / PDF
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1324,7 +1337,8 @@ function MapaPage() {
           </Card>
 
           {/* 2. CONTROLES DE BUSCA E NAVEGAÇÃO */}
-          <Card className="p-3.5 shadow-sm border-border/70">
+          <Card id="mapa-controles" className="scroll-mt-20 p-3.5 shadow-sm border-border/70">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground sm:hidden">Filtros e relatórios — o PDF segue os filtros escolhidos</p>
             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-wrap sm:items-center">
                   <div className="relative col-span-2 sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
@@ -1367,6 +1381,7 @@ function MapaPage() {
                     </SelectContent>
                   </Select>
 
+                  <div className="col-span-2 min-w-0 sm:col-span-1">
                   <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
                     <SelectTrigger className="h-9 w-full min-w-0 text-xs sm:w-44">
                       <div className="flex items-center gap-1.5 truncate">
@@ -1383,12 +1398,13 @@ function MapaPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  </div>
 
                   {(originFilter !== "all" || responsibleFilter !== "all" || statusFilter !== "all" || Boolean(searchQuery)) && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-9 w-full sm:w-auto text-xs text-muted-foreground hover:text-foreground gap-1 px-2.5"
+                      className="col-span-2 h-9 w-full sm:w-auto text-xs text-muted-foreground hover:text-foreground gap-1 px-2.5"
                       onClick={() => {
                         setSearchQuery("");
                         setStatusFilter("all");
@@ -1402,7 +1418,7 @@ function MapaPage() {
                   )}
                 </div>
 
-              <div className="grid grid-cols-4 gap-2 border-t border-border/60 pt-2.5 sm:flex sm:items-center sm:border-0 sm:pt-0">
+              <div className="grid grid-cols-4 gap-1.5 border-t border-border/60 pt-2.5 sm:flex sm:items-center sm:border-0 sm:pt-0">
                 <Button
                   variant="outline"
                   size="sm"
