@@ -1,5 +1,4 @@
 // ==== SCROLL FIX ==== added native overflow-y-auto wrapper
-import ScrollBridge from "@/components/ScrollBridge";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -119,10 +118,6 @@ function AdminPage() {
       setResetDraft(null);
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar senha"),
-  });
-    queryKey: ["admin-users"],
-    queryFn: () => listUsers(),
-    enabled: isAdmin,
   });
   const { data: audit = [] } = useQuery({
     queryKey: ["admin-audit"],
