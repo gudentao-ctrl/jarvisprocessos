@@ -21,6 +21,14 @@ describe("access catalog", () => {
 });
 
 describe("granular permission catalog", () => {
+  it.each(["hub_5s", "nps_enps"])("includes %s in the Cliente preset without granting changes", (tool) => {
+    const client = permissionsPreset("CLIENTE");
+    expect(canUsePermission(client, tool, "read")).toBe(true);
+    for (const action of ["create", "update", "delete"] as const) {
+      expect(canUsePermission(client, tool, action)).toBe(false);
+    }
+  });
+
   it("keeps every granular tool key unique", () => {
     const keys = ALL_PERMISSION_TOOLS.map((tool) => tool.key);
     expect(new Set(keys).size).toBe(keys.length);

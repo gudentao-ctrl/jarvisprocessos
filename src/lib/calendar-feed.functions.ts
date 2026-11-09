@@ -55,22 +55,8 @@ export const listAgendaTeam = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertTeam(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin: any = supabaseAdmin;
-    const [{ data: perms }, { data: sas }] = await Promise.all([
-      admin.from("user_company_permissions").select("user_id, role").in("role", ["CONSULTOR", "GESTOR", "SUPERADMIN"]),
-      admin.from("user_roles").select("user_id").eq("is_superadmin", true),
-    ]);
-    const ids = [...new Set([...(perms ?? []), ...(sas ?? [])].map((r: any) => r.user_id))];
-    if (!ids.length) return [];
-    const [{ data: profiles }, { data: feeds }] = await Promise.all([
-      admin.from("profiles").select("user_id, full_name, email, status").in("user_id", ids),
-      admin.from("user_calendar_feeds").select("user_id").in("user_id", ids),
-    ]);
-    const linked = new Set((feeds ?? []).map((f: any) => f.user_id));
-    return (profiles ?? [])
-      .filter((p: any) => p.status === "active" && p.email)
-      .map((p: any) => ({ user_id: p.user_id as string, name: (p.full_name || p.email) as string, email: (p.email as string).toLowerCase(), linked: linked.has(p.user_id) }))
-      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    const team = await listAgendaTeamInternal(supabaseAdmin as any);
+    return team.sort((a, b) => a.name.localeCompare(b.name));
   });
 
 /** Free/busy for team members by email within a time window. Only times, never event titles. */
@@ -99,7 +85,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
     });
   });
 
-async function listAgendaTeamInternal(admin: any) {
+type TeamMember = { user_id: string; name: string; email: string; linked: boolean };
+async function listAgendaTeamInternal(admin: any): Promise<TeamMember[]> {
   const [{ data: perms }, { data: sas }] = await Promise.all([
     admin.from("user_company_permissions").select("user_id").in("role", ["CONSULTOR", "GESTOR", "SUPERADMIN"]),
     admin.from("user_roles").select("user_id").eq("is_superadmin", true),

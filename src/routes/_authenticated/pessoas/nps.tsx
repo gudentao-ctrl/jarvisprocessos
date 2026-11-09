@@ -41,12 +41,18 @@ import {
 } from "@/lib/nps-storage";
 import { PesquisaFormModal } from "@/components/nps/PesquisaFormModal";
 import { PesquisaRelatorioModal } from "@/components/nps/PesquisaRelatorioModal";
+import { SurveyQrCode } from "@/components/nps/SurveyQrCode";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const Route = createFileRoute("/_authenticated/pessoas/nps")({
   head: () => ({
     meta: [
       { title: "NPS & eNPS | Hub de Pessoas Maia" },
       { name: "description", content: "Pesquisas de satisfação NPS para clientes e eNPS para colaboradores." },
+      { property: "og:title", content: "NPS & eNPS | Hub de Pessoas Maia" },
+      { property: "og:description", content: "Pesquisas de satisfação para clientes e colaboradores, com links e QR Codes de compartilhamento." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: NpsDashboardPage,
@@ -54,6 +60,8 @@ export const Route = createFileRoute("/_authenticated/pessoas/nps")({
 
 function NpsDashboardPage() {
   const { companyId, company } = useCompanyFilter();
+  const { hasAccess } = usePermissions();
+  const canCreate = hasAccess("nps_enps", "create", companyId);
   const [pesquisas, setPesquisas] = useState<Pesquisa[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -230,13 +238,13 @@ function NpsDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
+          {canCreate && <Button
             onClick={handleOpenCreate}
             className="bg-[#E05A10] hover:bg-[#E05A10]/90 text-white shadow-sm font-medium"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             + Nova Pesquisa
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -338,14 +346,14 @@ function NpsDashboardPage() {
               ? "Nenhum resultado corresponde à sua pesquisa."
               : "Crie sua primeira pesquisa NPS ou eNPS para começar a coletar a percepção de satisfação."}
           </p>
-          <Button
+          {canCreate && <Button
             onClick={handleOpenCreate}
             size="sm"
             className="bg-[#E05A10] hover:bg-[#E05A10]/90 text-white mt-2"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
             + Criar Pesquisa Agora
-          </Button>
+          </Button>}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -383,14 +391,16 @@ function NpsDashboardPage() {
                       >
                         {pesquisa.status === "ativa" ? "Ativa" : "Inativa"}
                       </Badge>
-                      <button
+                      {hasAccess("nps_enps", "update", pesquisa.empresa_id) && <Button
+                        variant="ghost"
+                        size="icon"
                         type="button"
                         onClick={() => handleToggleStatus(pesquisa)}
                         title={pesquisa.status === "ativa" ? "Pausar pesquisa" : "Ativar pesquisa"}
-                        className="text-muted-foreground hover:text-[#3E100C] p-1 rounded transition-colors"
+                        className="h-7 w-7 text-muted-foreground"
                       >
                         <Power className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>}
                     </div>
                   </div>
 
@@ -478,12 +488,13 @@ function NpsDashboardPage() {
                       </a>
                     </div>
                   </div>
+                  <SurveyQrCode url={generatePublicSurveyLink(pesquisa)} title={pesquisa.titulo} active={pesquisa.status === "ativa"} />
                 </div>
 
                 {/* Ações Inferiores do Card */}
                 <div className="p-3 bg-muted/10 border-t flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
-                    <Button
+                    {hasAccess("nps_enps", "update", pesquisa.empresa_id) && <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
@@ -491,8 +502,8 @@ function NpsDashboardPage() {
                     >
                       <Edit className="h-3.5 w-3.5 mr-1" />
                       Editar
-                    </Button>
-                    <Button
+                    </Button>}
+                    {hasAccess("nps_enps", "delete", pesquisa.empresa_id) && <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-8 px-2"
@@ -501,7 +512,7 @@ function NpsDashboardPage() {
                     >
                       <Trash2 className="h-3.5 w-3.5 mr-1" />
                       Excluir
-                    </Button>
+                    </Button>}
                   </div>
 
                   <Button
