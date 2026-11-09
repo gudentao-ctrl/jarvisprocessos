@@ -128,6 +128,8 @@ export function MentoradoDetail({
   );
 
   // Upload robusto de múltiplos arquivos para o Mapeamento Comportamental
+  // Estratégia: upload direto ao Supabase Storage (sem converter para base64 no servidor)
+  // para evitar limites de payload HTTP em arquivos grandes.
   const handleFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -144,14 +146,11 @@ export function MentoradoDetail({
     const newAttachments: MentoriaAttachment[] = [];
     let successCount = 0;
 
-    const readAsDataURL = (file: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    };
+    const sanitizeFileName = (name: string) =>
+      name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_");
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -159,64 +158,88 @@ export function MentoradoDetail({
 
       let fileUrl = "";
       let uploadedSuccessfully = false;
+      const sanitizedName = sanitizeFileName(file.name);
+      const storagePath = `${mentorado.id}/${Date.now()}_${sanitizedName}`;
 
-      // 1. Tentar upload via Server Function (salva direto no Storage com permissões de administrador)
+      // 1. Upload direto do cliente para "mentoria-docs" (sem passar bytes pelo servidor)
       try {
-        const dataUrl = await readAsDataURL(file);
-        const res = await uploadAttachmentFn({
-          data: {
-            mentoriaId: mentorado.id,
-            fileName: file.name,
-            fileType: file.type || "application/octet-stream",
-            base64Data: dataUrl,
-          },
-        });
-        if (res?.url) {
-          fileUrl = res.url;
-          uploadedSuccessfully = true;
-        }
-      } catch (serverErr: any) {
-        console.warn(`Tentando fallback de storage direto para ${file.name}:`, serverErr);
+        const { data: upData, error: upError } = await supabase.storage
+          .from("mentoria-docs")
+          .upload(storagePath, file, {
+            upsert: true,
+            cacheControl: "3600",
+            contentType: file.type || "application/octet-stream",
+          });
 
-        // 2. Fallback: upload direto no cliente Supabase Storage
-        try {
-          const sanitizedName = file.name
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-zA-Z0-9._-]/g, "_");
-          const storagePath = `${mentorado.id}/${Date.now()}_${sanitizedName}`;
-
-          const { data: upData, error: upError } = await supabase.storage
+        if (!upError && upData) {
+          const { data: pubData } = supabase.storage
             .from("mentoria-docs")
-            .upload(storagePath, file, { upsert: true });
+            .getPublicUrl(storagePath);
+          fileUrl = pubData.publicUrl;
+          uploadedSuccessfully = true;
+        } else {
+          console.warn(`mentoria-docs upload error para ${file.name}:`, upError?.message);
+        }
+      } catch (directErr) {
+        console.warn(`Erro no upload direto para ${file.name}:`, directErr);
+      }
 
-          if (!upError && upData) {
-            const { data: pubData } = supabase.storage
-              .from("mentoria-docs")
-              .getPublicUrl(storagePath);
-            fileUrl = pubData.publicUrl;
+      // 2. Fallback: Server Function com supabaseAdmin (para caso o bucket ainda não tenha RLS pública)
+      if (!uploadedSuccessfully) {
+        try {
+          const readAsDataURL = (f: File): Promise<string> =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(f);
+            });
+          const dataUrl = await readAsDataURL(file);
+          const res = await uploadAttachmentFn({
+            data: {
+              mentoriaId: mentorado.id,
+              fileName: file.name,
+              fileType: file.type || "application/octet-stream",
+              base64Data: dataUrl,
+            },
+          });
+          if (res?.url) {
+            fileUrl = res.url;
             uploadedSuccessfully = true;
-          } else {
-            // Tenta no bucket pop-sources se disponível
-            const { data: popData, error: popErr } = await supabase.storage
-              .from("pop-sources")
-              .upload(`mentoria/${storagePath}`, file, { upsert: true });
-            if (!popErr && popData) {
-              const { data: popPub } = supabase.storage
-                .from("pop-sources")
-                .getPublicUrl(`mentoria/${storagePath}`);
-              fileUrl = popPub.publicUrl;
-              uploadedSuccessfully = true;
-            }
           }
-        } catch (directErr) {
-          console.warn(`Fallback de storage direto falhou para ${file.name}:`, directErr);
+        } catch (serverErr: any) {
+          console.warn(`Server Function falhou para ${file.name}:`, serverErr?.message);
         }
       }
 
-      // 3. Fallback se arquivo for pequeno (< 1.5MB) e nenhum storage respondeu
-      if (!uploadedSuccessfully && file.size <= 1.5 * 1024 * 1024) {
+      // 3. Fallback: bucket pop-sources/mentoria/
+      if (!uploadedSuccessfully) {
         try {
+          const { data: popData, error: popErr } = await supabase.storage
+            .from("pop-sources")
+            .upload(`mentoria/${storagePath}`, file, { upsert: true });
+          if (!popErr && popData) {
+            const { data: popPub } = supabase.storage
+              .from("pop-sources")
+              .getPublicUrl(`mentoria/${storagePath}`);
+            fileUrl = popPub.publicUrl;
+            uploadedSuccessfully = true;
+          }
+        } catch (popErr) {
+          console.warn(`Fallback pop-sources falhou para ${file.name}:`, popErr);
+        }
+      }
+
+      // 4. Último recurso: base64 inline (somente para arquivos pequenos < 500 KB)
+      if (!uploadedSuccessfully && file.size <= 500 * 1024) {
+        try {
+          const readAsDataURL = (f: File): Promise<string> =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(f);
+            });
           fileUrl = await readAsDataURL(file);
           uploadedSuccessfully = true;
         } catch {}
