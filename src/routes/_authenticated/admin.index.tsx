@@ -120,10 +120,6 @@ function AdminPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar senha"),
   });
-    queryKey: ["admin-users"],
-    queryFn: () => listUsers(),
-    enabled: isAdmin,
-  });
   const { data: audit = [] } = useQuery({
     queryKey: ["admin-audit"],
     queryFn: () => listAudit(),
