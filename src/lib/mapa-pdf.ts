@@ -124,8 +124,9 @@ export async function exportMapaPdf(opts: {
   pillars: PillarMeta[];
   treeByPillar: Record<string, MapaItem[]>;
   items: MapaItem[];
+  filterLabel?: string;
 }): Promise<void> {
-  const { company, pillars, treeByPillar, items } = opts;
+  const { company, pillars, treeByPillar, items, filterLabel } = opts;
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
   const now = new Date();
@@ -163,9 +164,22 @@ export async function exportMapaPdf(opts: {
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
   pdf.setTextColor(...COLOR_SECONDARY);
-  pdf.text(`Empresa: ${company.name}    |    Data de Emissão: ${dateStr}`, PAGE_W / 2, 25.5, {
-    align: "center",
-  });
+  if (filterLabel) {
+    pdf.setFontSize(8);
+    pdf.text(`Empresa: ${company.name}    |    Data de Emissão: ${dateStr}`, PAGE_W / 2, 24, {
+      align: "center",
+    });
+    pdf.setTextColor(...COLOR_PRIMARY);
+    pdf.setFontSize(7.5);
+    const label = `Relatório filtrado — ${filterLabel}`;
+    pdf.text(label.length > 160 ? label.slice(0, 157) + "..." : label, PAGE_W / 2, 27.5, {
+      align: "center",
+    });
+  } else {
+    pdf.text(`Empresa: ${company.name}    |    Data de Emissão: ${dateStr}`, PAGE_W / 2, 25.5, {
+      align: "center",
+    });
+  }
 
   // Linha divisória
   pdf.setDrawColor(...COLOR_ACCENT);
