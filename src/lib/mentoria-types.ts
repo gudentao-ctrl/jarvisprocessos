@@ -52,6 +52,15 @@ export interface MentoriaSessao {
   updated_at?: string;
 }
 
+export interface MentoriaAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+  uploaded_at?: string;
+}
+
 export interface MentoriaBehavioralProfile {
   dominant_factor?: string;
   radar?: Array<{ factor?: string; name: string; value: number }>;
@@ -63,6 +72,7 @@ export interface MentoriaBehavioralProfile {
   };
   pdf_attachment_url?: string;
   pdf_attachment_name?: string;
+  attachments?: MentoriaAttachment[];
   candidate_id?: string;
 }
 
