@@ -21,7 +21,7 @@ describe("access catalog", () => {
 });
 
 describe("granular permission catalog", () => {
-  it.each(["hub_5s", "nps_enps"])("includes %s in the Cliente preset without granting changes", (tool) => {
+  it.each(["mapa_estrategico", "faturamentos", "hub_5s", "portal_empresa"])("includes %s in the Cliente preset as read-only", (tool) => {
     const client = permissionsPreset("CLIENTE");
     expect(canUsePermission(client, tool, "read")).toBe(true);
     for (const action of ["create", "update", "delete"] as const) {
@@ -29,16 +29,22 @@ describe("granular permission catalog", () => {
     }
   });
 
+  it.each(["nps_enps", "indicadores_historico", "chamados_melhorias", "empresas"])("keeps %s off in the Cliente preset", (tool) => {
+    const client = permissionsPreset("CLIENTE");
+    expect(canUsePermission(client, tool, "read")).toBe(false);
+  });
+
   it("keeps every granular tool key unique", () => {
     const keys = ALL_PERMISSION_TOOLS.map((tool) => tool.key);
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("makes the client preset read-only for strategic map and indicator history", () => {
+  it("makes the client preset read-only for strategic map and finance", () => {
     const client = permissionsPreset("CLIENTE");
     expect(canUsePermission(client, "mapa_estrategico", "read")).toBe(true);
     expect(canUsePermission(client, "mapa_estrategico", "update")).toBe(false);
-    expect(canUsePermission(client, "indicadores_historico", "read")).toBe(true);
+    expect(canUsePermission(client, "faturamentos", "read")).toBe(true);
+    expect(canUsePermission(client, "faturamentos", "update")).toBe(false);
     expect(canUsePermission(client, "indicadores_cadastro", "read")).toBe(false);
   });
 

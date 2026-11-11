@@ -126,11 +126,11 @@ export function permissionsPreset(role: AccessRole): PermissionMatrix {
   for (const tool of ALL_PERMISSION_TOOLS) {
     const enabled = role === "SUPERADMIN" || role === "GESTOR" ||
       (role === "CONSULTOR" && !["financeiro", "crm", "portal"].includes(tool.category)) ||
-      (role === "CLIENTE" && ["portal_empresa", "portal_resultados", "indicadores_historico", "mapa_estrategico", "hub_5s", "nps_enps", "chamados_melhorias", "chamados_erros", "chamados_acompanhamento"].includes(tool.key)) ||
+      (role === "CLIENTE" && ["mapa_estrategico", "faturamentos", "pagamentos", "relatorios_faturamento", "hub_5s", "portal_empresa", "portal_resultados"].includes(tool.key)) ||
       (role === "AUDITOR_5S" && tool.key === "hub_5s");
     result = setToolPermissions(result, tool.key, enabled);
     if (role === "CLIENTE" && enabled) {
-      result.actions[tool.key] = { read: true, create: ["chamados_melhorias", "chamados_erros"].includes(tool.key), update: false, delete: false };
+      result.actions[tool.key] = { read: true, create: false, update: false, delete: false };
     }
     if (role === "AUDITOR_5S" && enabled) {
       result.actions[tool.key] = { read: true, create: true, update: true, delete: false };
