@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getMe } from "@/lib/access.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { GoogleAgendaFeedCard } from "@/components/GoogleAgendaFeedCard";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,28 +32,57 @@ import {
   Key,
   Copy,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
 });
 
-
 function PerfilPage() {
   const qc = useQueryClient();
+  const router = useRouter();
   const getMeFn = useServerFn(getMe);
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["me"],
     queryFn: () => getMeFn(),
   });
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      setLoggingOut(true);
+      await supabase.auth.signOut();
+      toast.success("Você saiu da sua conta com sucesso.");
+      router.navigate({ to: "/auth", replace: true });
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao sair da conta");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold sm:text-2xl">Meu Perfil</h1>
-        <p className="text-xs text-muted-foreground sm:text-sm">
-          Informações da sua conta e integrações externas
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="text-xl font-bold sm:text-2xl">Meu Perfil</h1>
+          <p className="text-xs text-muted-foreground sm:text-sm">
+            Informações da sua conta e integrações externas
+          </p>
+        </div>
+
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={handleSignOut}
+          disabled={loggingOut}
+          className="gap-2 shadow-sm font-semibold"
+        >
+          {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+          {loggingOut ? "Saindo…" : "Deslogar do Perfil"}
+        </Button>
       </div>
 
       {/* Dados do Usuário */}
@@ -127,6 +157,32 @@ function PerfilPage() {
       </Card>
 
       <GoogleAgendaFeedCard />
+
+      {/* Sessão e Deslogar */}
+      <Card className="border-destructive/20 bg-destructive/5">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle className="text-base text-destructive flex items-center gap-2">
+                <LogOut className="h-4 w-4" />
+                Sessão e Desconexão
+              </CardTitle>
+              <CardDescription>
+                Encerre sua sessão com segurança neste dispositivo para desconectar seu usuário.
+              </CardDescription>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={handleSignOut}
+              disabled={loggingOut}
+              className="gap-2 shrink-0 font-medium"
+            >
+              {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              {loggingOut ? "Desconectando…" : "Deslogar da Conta"}
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
     </div>
   );
 }

@@ -27,6 +27,8 @@ import {
   Landmark,
   Map,
   Sparkles,
+  Globe,
+  LogOut,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -88,9 +90,15 @@ export const Route = createFileRoute("/_authenticated")({
               (key) => membership.permissions?.[key] === true,
             ),
           )
-        : (memberships ?? []).some(
-            (membership: any) => membership.permissions?.[requiredPermission] === true || (requiredPermission === "mapa" && membership.permissions?.gestao === true),
-          );
+        : (memberships ?? []).some((membership: any) => {
+            const perms = membership.permissions;
+            if (perms?.[requiredPermission] === true) return true;
+            if (perms?.categories?.[requiredPermission] === true) return true;
+            if (requiredPermission === "mapa" && (perms?.gestao === true || perms?.sub_modules?.mapa_estrategico === true)) return true;
+            if (requiredPermission === "portal" && (perms?.portal === true || perms?.categories?.portal === true || perms?.sub_modules?.portal_empresa === true || perms?.sub_modules?.portal_resultados === true)) return true;
+            if (location.pathname.startsWith("/melhorias/5s") && (perms?.sub_modules?.hub_5s === true || perms?.hub_5s === true)) return true;
+            return false;
+          });
       if (!allowed) throw redirect({ to: "/acesso-pendente" });
     }
     return { user: data.user };
@@ -101,6 +109,7 @@ export const Route = createFileRoute("/_authenticated")({
 const NAV = [
   { to: "/empresas", icon: Building2, label: "Empresas", permission: "gestao" },
   { to: "/mapa", icon: Map, label: "Mapa", permission: "mapa" },
+  { to: "/portal", icon: Globe, label: "Portal", permission: "portal" },
   { to: "/controle", icon: Radar, label: "Controle", permission: "gestao" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
   { to: "/pessoas/dashboard", icon: Users, label: "Pessoas", permission: "gestao" },
@@ -197,8 +206,22 @@ function AuthenticatedShell() {
               <SidebarLink to="/admin" icon={ShieldCheck} label="SuperAdmin" />
             )}
           </nav>
-          <div className="border-t p-2">
-            <SidebarLink to="/perfil" icon={User} label="Meu Perfil" />
+          <div className="border-t p-2 flex items-center justify-between gap-1">
+            <div className="min-w-0 flex-1">
+              <SidebarLink to="/perfil" icon={User} label="Meu Perfil" />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+              title="Deslogar do perfil"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.navigate({ to: "/auth", replace: true });
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </aside>
 
@@ -259,16 +282,32 @@ function AuthenticatedShell() {
                         </Link>
                       </SheetClose>
                     )}
-                    <SheetClose asChild>
-                      <Link
-                        to="/perfil"
-                        className="flex min-h-[44px] items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-[0.98] active:bg-secondary touch-manipulation"
-                        activeProps={{ className: "bg-accent text-primary font-semibold" }}
+                    <div className="flex items-center gap-1">
+                      <div className="min-w-0 flex-1">
+                        <SheetClose asChild>
+                          <Link
+                            to="/perfil"
+                            className="flex min-h-[44px] items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-[0.98] active:bg-secondary touch-manipulation"
+                            activeProps={{ className: "bg-accent text-primary font-semibold" }}
+                          >
+                            <User className="h-5 w-5 shrink-0" />
+                            <span>Meu Perfil</span>
+                          </Link>
+                        </SheetClose>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        title="Deslogar do perfil"
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          router.navigate({ to: "/auth", replace: true });
+                        }}
                       >
-                        <User className="h-5 w-5 shrink-0" />
-                        <span>Meu Perfil</span>
-                      </Link>
-                    </SheetClose>
+                        <LogOut className="h-5 w-5" />
+                      </Button>
+                    </div>
                   </nav>
                 </SheetContent>
               </Sheet>

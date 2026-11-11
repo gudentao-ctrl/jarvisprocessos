@@ -41,7 +41,7 @@ export const PERMISSION_CATALOG = [
     { key: "mapa_estrategico", label: "Mapa estratégico", paths: ["/mapa"] },
   ] },
   { key: "portal", label: "Portal do cliente", tools: [
-    { key: "portal_empresa", label: "Portal da empresa", paths: ["/c/"] },
+    { key: "portal_empresa", label: "Portal da empresa", paths: ["/portal", "/c/"] },
     { key: "portal_resultados", label: "Acompanhamento de ações e resultados", paths: ["/dashboard/"] },
   ] },
   { key: "indicadores", label: "Indicadores", tools: [
@@ -140,6 +140,7 @@ export function permissionsPreset(role: AccessRole): PermissionMatrix {
 }
 
 export function toolsForPath(pathname: string): string[] {
+  if (pathname.startsWith("/portal")) return ["portal_empresa", "portal_resultados"];
   if (pathname.startsWith("/pessoas/dashboard")) return ["analise_perfil", "recrutamento", "mentorias", "nps_enps"];
   if (pathname.startsWith("/indicadores")) return pathname.endsWith("/coletar") ? ["indicadores_coleta"] : ["indicadores_cadastro", "indicadores_historico"];
   if (pathname.startsWith("/pop")) return ["pop_leitura", "pop_edicao"];

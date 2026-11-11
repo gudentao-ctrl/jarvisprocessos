@@ -31,7 +31,7 @@ export const listCompanies = createServerFn({ method: "GET" })
     const [{ data, error }, { data: projects }, { data: hours }] = await Promise.all([
       context.supabase
         .from("companies")
-        .select("id, name, public_enabled, is_active, created_at, sectors(id, name)")
+        .select("id, name, public_enabled, public_token, is_active, created_at, sectors(id, name)")
         .order("name"),
       context.supabase.from("projects").select("company_id, start_date, end_date"),
       context.supabase

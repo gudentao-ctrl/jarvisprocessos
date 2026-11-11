@@ -9,6 +9,7 @@ export function permissionForPath(pathname: string): ToolKey | null {
   if (pathname.startsWith("/pop")) return "pop";
   if (pathname.startsWith("/indicadores")) return "indicadores";
   if (pathname === "/mapa" || pathname.startsWith("/mapa/")) return "mapa";
+  if (pathname === "/portal" || pathname.startsWith("/portal/")) return "portal";
   if (
     pathname.startsWith("/empresas") ||
     pathname.startsWith("/controle") ||
