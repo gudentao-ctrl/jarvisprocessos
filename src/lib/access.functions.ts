@@ -8,6 +8,7 @@ import { isAllowedRecoveryUrl } from "./security-urls";
 export const TOOLS = [
   { key: "portal", label: "Portal do cliente" },
   { key: "gestao", label: "Gestão" },
+  { key: "mapa", label: "Mapa Estratégico" },
   { key: "pop", label: "POP" },
   { key: "indicadores", label: "Indicadores" },
   { key: "financeiro", label: "Financeiro (Cliente e Maia)" },

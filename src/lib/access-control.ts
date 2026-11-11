@@ -8,6 +8,7 @@ export function permissionForPath(pathname: string): ToolKey | null {
   if (pathname.startsWith("/chamados")) return "chamados";
   if (pathname.startsWith("/pop")) return "pop";
   if (pathname.startsWith("/indicadores")) return "indicadores";
+  if (pathname === "/mapa" || pathname.startsWith("/mapa/")) return "mapa";
   if (
     pathname.startsWith("/empresas") ||
     pathname.startsWith("/controle") ||
@@ -16,7 +17,6 @@ export function permissionForPath(pathname: string): ToolKey | null {
     pathname.startsWith("/fase") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/entrevistas") ||
-    pathname.startsWith("/mapa") ||
     pathname.startsWith("/mapas") ||
     pathname.startsWith("/processos") ||
     pathname.startsWith("/cronoanalise") ||

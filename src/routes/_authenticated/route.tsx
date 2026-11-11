@@ -89,7 +89,7 @@ export const Route = createFileRoute("/_authenticated")({
             ),
           )
         : (memberships ?? []).some(
-            (membership: any) => membership.permissions?.[requiredPermission] === true,
+            (membership: any) => membership.permissions?.[requiredPermission] === true || (requiredPermission === "mapa" && membership.permissions?.gestao === true),
           );
       if (!allowed) throw redirect({ to: "/acesso-pendente" });
     }
@@ -100,7 +100,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 const NAV = [
   { to: "/empresas", icon: Building2, label: "Empresas", permission: "gestao" },
-  { to: "/mapa", icon: Map, label: "Mapa", permission: "gestao" },
+  { to: "/mapa", icon: Map, label: "Mapa", permission: "mapa" },
   { to: "/controle", icon: Radar, label: "Controle", permission: "gestao" },
   { to: "/calendario", icon: CalendarDays, label: "Agenda", permission: "gestao" },
   { to: "/pessoas/dashboard", icon: Users, label: "Pessoas", permission: "gestao" },

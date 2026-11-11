@@ -30,13 +30,15 @@ export const PERMISSION_CATALOG = [
     { key: "relatorio_executivo", label: "Relatório executivo", paths: ["/diagnostico"] },
     { key: "relatorio_mensal", label: "Relatório executivo mensal", paths: ["/relatorio-executivo-mensal"] },
     { key: "relatorio_acompanhamento", label: "Relatório de acompanhamento", paths: ["/relatorio-acompanhamento", "/relatorios"] },
-    { key: "mapa_estrategico", label: "Mapa estratégico", paths: ["/mapa"] },
     { key: "modelos_documentos", label: "Modelos de documentos", paths: ["/template-documentos"] },
     { key: "analise_perfil", label: "Pessoas e avaliação de perfil", paths: ["/pessoas/assessment"] },
     { key: "recrutamento", label: "Recrutamento", paths: ["/pessoas/recrutamento"] },
     { key: "mentorias", label: "Mentorias", paths: ["/pessoas/mentorias"] },
     { key: "nps_enps", label: "Pesquisas NPS e eNPS", paths: ["/pessoas/nps"] },
     { key: "hub_5s", label: "HUB 5S Operacional", paths: ["/melhorias/5s"] },
+  ] },
+  { key: "mapa", label: "Mapa", tools: [
+    { key: "mapa_estrategico", label: "Mapa estratégico", paths: ["/mapa"] },
   ] },
   { key: "portal", label: "Portal do cliente", tools: [
     { key: "portal_empresa", label: "Portal da empresa", paths: ["/c/"] },
@@ -89,7 +91,11 @@ export function normalizePermissions(input: unknown): PermissionMatrix {
   const actions = value.actions as Record<string, Record<string, unknown>> | undefined;
   const result = emptyPermissions();
   for (const group of PERMISSION_CATALOG) {
-    result.categories[group.key] = categories?.[group.key] === true;
+    if (group.key === "mapa" && categories?.["mapa"] === undefined) {
+      result.categories["mapa"] = categories?.["gestao"] === true || modules?.["mapa_estrategico"] === true;
+    } else {
+      result.categories[group.key] = categories?.[group.key] === true;
+    }
     for (const tool of group.tools) {
       result.sub_modules[tool.key] = granular ? modules?.[tool.key] === true : result.categories[group.key];
       result.actions[tool.key] = Object.fromEntries(PERMISSION_ACTIONS.map((action) =>

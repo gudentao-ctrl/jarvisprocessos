@@ -5,7 +5,7 @@ import { ALL_PERMISSION_TOOLS, canUsePermission, permissionsPreset, toolsForPath
 describe("access catalog", () => {
   it("covers each existing permission group exactly once", () => {
     const keys = ACCESS_CATALOG.map((group) => group.key).sort();
-    expect(keys).toEqual(["chamados", "crm", "financeiro", "gestao", "horas", "indicadores", "pop", "portal"]);
+    expect(keys).toEqual(["chamados", "crm", "financeiro", "gestao", "horas", "indicadores", "mapa", "pop", "portal"]);
     expect(new Set(keys).size).toBe(keys.length);
   });
   it("includes the principal people tools within the existing management permission", () => {

@@ -43,7 +43,7 @@ function PermissionsPage() {
   const [matrix, setMatrix] = useState<PermissionMatrix>(emptyPermissions);
   const [role, setRole] = useState<AccessRole>("CONSULTOR");
   const [dirty, setDirty] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ gestao: true });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ gestao: true, mapa: true });
   const [confirmAdmin, setConfirmAdmin] = useState(false);
   const [grantAdmin, setGrantAdmin] = useState(false);
   const selected = data?.memberships.find((item) => item.user_id === userId && item.company_id === companyId);
