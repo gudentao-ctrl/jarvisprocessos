@@ -130,7 +130,7 @@ function AuthenticatedShell() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // Gate the screen actually rendered by <Outlet />; during a transition it is still the previous page.
-  const gatePath = useRouterState({ select: (s) => s.resolvedLocation?.pathname ?? s.location.pathname });
+  const gatePath = useRouterState({ select: (s) => (s.status === "pending" ? s.resolvedLocation?.pathname : s.matches[s.matches.length - 1]?.pathname) ?? s.location.pathname });
   const HIDE_COMPANY_SWITCHER = [
     "/admin",
     "/calendario",
