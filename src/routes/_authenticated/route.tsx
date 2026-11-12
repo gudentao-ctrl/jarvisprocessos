@@ -129,6 +129,8 @@ function AuthenticatedLayout() {
 function AuthenticatedShell() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Gate the screen actually rendered by <Outlet />; during a transition it is still the previous page.
+  const gatePath = useRouterState({ select: (s) => s.resolvedLocation?.pathname ?? s.location.pathname });
   const HIDE_COMPANY_SWITCHER = [
     "/admin",
     "/calendario",
@@ -328,7 +330,7 @@ function AuthenticatedShell() {
 
           <main className="flex-1 overflow-y-auto overscroll-contain">
             <div className="mx-auto w-full max-w-6xl px-3 py-3 sm:px-4 sm:py-6 pb-28 sm:pb-24 lg:pb-8">
-              {permissionsPending ? <p className="py-8 text-muted-foreground">Verificando acessos…</p> : pathname.startsWith("/admin") ? (profile?.isSuperadmin ? <Outlet /> : <p role="alert">Área exclusiva do SuperAdmin.</p>) : toolsForPath(pathname).length > 0 && !canAccessPath(pathname) ? <p role="alert" className="py-8">Acesso não liberado para esta ferramenta na empresa selecionada.</p> : <Outlet />}
+              {permissionsPending ? <p className="py-8 text-muted-foreground">Verificando acessos…</p> : gatePath.startsWith("/admin") ? (profile?.isSuperadmin ? <Outlet /> : <p role="alert">Área exclusiva do SuperAdmin.</p>) : toolsForPath(gatePath).length > 0 && !canAccessPath(gatePath) ? <p role="alert" className="py-8">Acesso não liberado para esta ferramenta na empresa selecionada.</p> : <Outlet />}
             </div>
           </main>
         </div>
