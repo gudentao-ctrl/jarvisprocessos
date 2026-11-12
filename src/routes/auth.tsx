@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Clock, KeyRound, Mic, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Clock, KeyRound, MailCheck, Mic, ShieldAlert } from "lucide-react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { signOutIfSessionExpired } from "@/lib/session-guard";
 
@@ -75,6 +75,9 @@ function AuthPage() {
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [tab, setTab] = useState("entrar");
+  const [signupDoneEmail, setSignupDoneEmail] = useState<string | null>(null);
+  const [forgotSentEmail, setForgotSentEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
@@ -141,7 +144,7 @@ function AuthPage() {
       if (cpfDigits.length !== 11) throw new Error("Informe um CPF válido com 11 números.");
       if (whatsappDigits.length < 10 || whatsappDigits.length > 13)
         throw new Error("Informe um WhatsApp válido.");
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -156,7 +159,17 @@ function AuthPage() {
         },
       });
       if (error) throw error;
-      toast.success("Cadastro enviado! Aguarde a aprovação do administrador.");
+      if (signUpData.user && (signUpData.user.identities?.length ?? 0) === 0) {
+        throw new Error("Este e-mail já possui cadastro.");
+      }
+      if (signUpData.session) await supabase.auth.signOut();
+      setSignupDoneEmail(email);
+      setPassword("");
+      setFullName("");
+      setCpf("");
+      setBirthDate("");
+      setWhatsapp("");
+      toast.success("Cadastro concluído! Confirme seu e-mail para ativar a conta.");
     } catch (err) {
       toast.error(friendlyAuthError(err));
     } finally {
@@ -207,8 +220,8 @@ function AuthPage() {
         redirectTo: `${window.location.origin}/auth?recovery=true`,
       });
       if (error) throw error;
-      toast.success("Link de recuperação enviado! Verifique seu e-mail.");
-      setShowForgot(false);
+      toast.success("Link para cadastrar nova senha enviado para seu e-mail.");
+      setForgotSentEmail(forgotEmail);
     } catch (err) {
       toast.error(friendlyAuthError(err));
     } finally {
@@ -237,7 +250,50 @@ function AuthPage() {
           </div>
         )}
 
-        {isRecovery ? (
+        {signupDoneEmail && !isRecovery ? (
+          <div role="status" className="space-y-4 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <MailCheck className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-bold">Cadastro concluído!</h2>
+            <p className="text-sm text-muted-foreground">
+              Enviamos um e-mail de confirmação para <strong className="text-foreground">{signupDoneEmail}</strong>.
+              Abra a mensagem e clique no link para ativar sua conta. Depois disso, faça seu primeiro acesso pela tela de login.
+            </p>
+            <p className="text-xs text-muted-foreground">Não encontrou? Verifique também a caixa de spam.</p>
+            <Button
+              className="h-12 w-full"
+              onClick={() => {
+                setSignupDoneEmail(null);
+                setTab("entrar");
+              }}
+            >
+              Ir para o login
+            </Button>
+          </div>
+        ) : forgotSentEmail && !isRecovery ? (
+          <div role="status" className="space-y-4 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <MailCheck className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-bold">Verifique seu e-mail</h2>
+            <p className="text-sm text-muted-foreground">
+              Se <strong className="text-foreground">{forgotSentEmail}</strong> estiver cadastrado, você receberá um link para
+              cadastrar uma nova senha. Abra o e-mail e clique no link.
+            </p>
+            <p className="text-xs text-muted-foreground">Não encontrou? Verifique também a caixa de spam.</p>
+            <Button
+              className="h-12 w-full"
+              onClick={() => {
+                setForgotSentEmail(null);
+                setShowForgot(false);
+                setTab("entrar");
+              }}
+            >
+              Voltar para o login
+            </Button>
+          </div>
+        ) : isRecovery ? (
           <div className="space-y-4">
             <div className="flex flex-col items-center text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-2">
@@ -330,7 +386,7 @@ function AuthPage() {
             </form>
           </div>
         ) : (
-          <Tabs defaultValue="entrar">
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="entrar">Entrar</TabsTrigger>
               <TabsTrigger value="cadastrar">Solicitar acesso</TabsTrigger>
