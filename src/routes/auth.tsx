@@ -1,8 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useServerFn } from "@tanstack/react-start";
-import { syncPasswordAfterReset } from "@/lib/access.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +56,6 @@ function AuthPage() {
   const navigate = useNavigate();
   const { redirect, expirou, recovery } = Route.useSearch();
   const destination = safeRedirect(redirect);
-  const syncPassword = useServerFn(syncPasswordAfterReset);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -153,7 +150,6 @@ function AuthPage() {
             cpf: cpfDigits,
             birth_date: birthDate,
             whatsapp: whatsappDigits,
-            raw_password: password,
           },
           emailRedirectTo: `${window.location.origin}/auth`,
         },
@@ -191,12 +187,6 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-
-      try {
-        await syncPassword({ data: { password: newPassword } });
-      } catch (err) {
-        console.warn("Falha ao sincronizar senha no perfil", err);
-      }
 
       toast.success("Nova senha cadastrada com sucesso!");
       setIsRecovery(false);

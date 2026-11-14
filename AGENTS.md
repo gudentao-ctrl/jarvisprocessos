@@ -46,3 +46,4 @@
 - Personal notifications are rows in `user_notifications` created only by database triggers through `private.push_notify`, which rings a data-free `user-bell:<user id>` doorbell and asks the public push-dispatch route to deliver each row once to allow-listed browser push services; signing keys stay in a service-role-only table, so no client can send or read others' notices.
 - The sign-in age limit is enforced from the token's original `amr` sign-in time in the browser (route guards plus a periodic check) and in a global server-function middleware; token refreshes must never extend it.
 - Generate survey QR codes locally from the existing token-only public survey link, and load the QR encoder on demand; this keeps invitation links away from third-party image services.
+- Passwords are never stored or displayed in plain text (profiles, user metadata, admin UI); admins reset passwords instead. Plaintext copies leak through tokens and profile reads.

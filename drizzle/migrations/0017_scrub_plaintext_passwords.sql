@@ -1,0 +1,1 @@
+UPDATE auth.users SET raw_user_meta_data = raw_user_meta_data - 'raw_password' WHERE raw_user_meta_data ? 'raw_password';
