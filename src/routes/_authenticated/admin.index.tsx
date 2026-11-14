@@ -134,7 +134,6 @@ function AdminPage() {
   });
 
   const [userDraft, setUserDraft] = useState<UserDraft | null>(null);
-  const [showPassMap, setShowPassMap] = useState<Record<string, boolean>>({});
 
   const statusMut = useMutation({
     mutationFn: (v: {
