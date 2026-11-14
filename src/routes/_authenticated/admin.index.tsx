@@ -35,9 +35,6 @@ import {
   Pencil,
   KeyRound,
   UserPlus,
-  Eye,
-  EyeOff,
-  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
