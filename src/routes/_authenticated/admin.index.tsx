@@ -240,7 +240,7 @@ function AdminPage() {
       birth_date: p.birth_date ?? "",
       whatsapp: p.whatsapp ?? "",
       email: p.email ?? "",
-      password: p.raw_password ?? "",
+      password: "",
     });
   };
 
@@ -409,52 +409,9 @@ function AdminPage() {
                   · WhatsApp: {p.whatsapp || "não informado"}
                 </p>
 
-                {/* Exibição da senha do usuário */}
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="font-medium text-foreground">Senha:</span>
-                  {p.raw_password ? (
-                    <div
-                      className="inline-flex items-center gap-1.5 rounded border bg-muted/60 px-2 py-0.5 font-mono text-xs"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className="select-all">
-                        {showPassMap[p.user_id] ? p.raw_password : "••••••••"}
-                      </span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground p-0.5 rounded"
-                        title={showPassMap[p.user_id] ? "Ocultar senha" : "Ver senha"}
-                        onClick={() =>
-                          setShowPassMap((prev) => ({
-                            ...prev,
-                            [p.user_id]: !prev[p.user_id],
-                          }))
-                        }
-                      >
-                        {showPassMap[p.user_id] ? (
-                          <EyeOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground p-0.5 rounded"
-                        title="Copiar senha"
-                        onClick={() => {
-                          navigator.clipboard.writeText(p.raw_password);
-                          toast.success("Senha copiada para a área de transferência!");
-                        }}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground italic">
-                      Não registrada (clique no usuário para definir)
-                    </span>
-                  )}
-                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Senha protegida — para trocar, clique no usuário e defina uma nova.
+                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
