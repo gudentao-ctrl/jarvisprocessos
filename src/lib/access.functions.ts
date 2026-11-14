@@ -157,12 +157,10 @@ export const adminListUsers = createServerFn({ method: "GET" })
       ((authUsersRes as any)?.data?.users ?? []).map((u: any) => [u.id, u])
     );
 
+    void authMap;
     const enrichedProfiles = (profiles ?? []).map((p: any) => {
-      const authUser = authMap.get(p.user_id);
-      return {
-        ...p,
-        raw_password: p.raw_password || authUser?.user_metadata?.raw_password || "",
-      };
+      const { raw_password: _omit, ...rest } = p;
+      return rest;
     });
 
     return {
@@ -314,7 +312,6 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
         cpf: data.cpf,
         birth_date: data.birth_date,
         whatsapp: data.whatsapp,
-        ...(cleanPassword ? { raw_password: cleanPassword } : {}),
       },
     };
     if (cleanPassword) {
@@ -334,25 +331,11 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       birth_date: data.birth_date,
       whatsapp: data.whatsapp,
     };
-    if (cleanPassword) {
-      profileUpdates.raw_password = cleanPassword;
-    }
-
-    try {
-      const { error } = await sb
-        .from("profiles")
-        .update(profileUpdates)
-        .eq("user_id", data.user_id);
-      if (error && error.message?.includes("raw_password")) {
-        delete profileUpdates.raw_password;
-        await sb.from("profiles").update(profileUpdates).eq("user_id", data.user_id);
-      } else if (error) {
-        throw new Error(error.message);
-      }
-    } catch {
-      delete profileUpdates.raw_password;
-      await sb.from("profiles").update(profileUpdates).eq("user_id", data.user_id);
-    }
+    const { error: profileUpdateError } = await sb
+      .from("profiles")
+      .update(profileUpdates)
+      .eq("user_id", data.user_id);
+    if (profileUpdateError) throw new Error(profileUpdateError.message);
 
     await sb.from("audit_log").insert({
       actor_id: context.userId,
@@ -390,7 +373,6 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         cpf: data.cpf,
         birth_date: data.birth_date,
         whatsapp: data.whatsapp,
-        raw_password: data.password,
       },
     });
     if (error || !created.user)
@@ -405,7 +387,6 @@ export const adminCreateUser = createServerFn({ method: "POST" })
           cpf: data.cpf,
           birth_date: data.birth_date,
           whatsapp: data.whatsapp,
-          raw_password: data.password,
           status: "active",
         })
         .eq("user_id", created.user.id);
@@ -491,15 +472,11 @@ export const syncPasswordAfterReset = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb: any = context.supabase;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Senhas nunca são guardadas em texto: apenas remove qualquer cópia antiga.
+    void data; void sb;
     await supabaseAdmin.auth.admin.updateUserById(context.userId, {
-      user_metadata: { raw_password: data.password },
+      user_metadata: { raw_password: null },
     });
-    try {
-      await sb
-        .from("profiles")
-        .update({ raw_password: data.password })
-        .eq("user_id", context.userId);
-    } catch {}
     return { ok: true };
   });
 
