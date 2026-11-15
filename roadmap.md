@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Google Agenda g_zamboni: corrigir leitura de ocorrências sem evento mestre e validar o link real no computador/celular.
+
 - [x] Acesso Cliente: incluir HUB 5S e NPS/eNPS no preset com leitura; QR Code local para compartilhar e baixar o link de cada pesquisa (permissões personalizadas já salvas preservadas)
 
 - [x] Mapa: origem e responsável com seleção múltipla (escolher ou adicionar), filtros por origem e responsável, indicador visual % de ações por frente por origem/responsável na página e no PDF

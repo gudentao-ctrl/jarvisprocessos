@@ -49,3 +49,4 @@
 - Passwords are never stored or displayed in plain text (profiles, user metadata, admin UI); admins reset passwords instead. Plaintext copies leak through tokens and profile reads.
 - Meeting records are owner-only rows (RLS `user_id = auth.uid()`, no SuperAdmin bypass); audio is transcribed on the device with a locally loaded Whisper model and the report is extracted by rules from the spoken sentences, so it costs no credits and never invents content.
 - Query cache defaults (30 s staleTime, no focus refetch) plus intent preloading live in src/router.tsx; freshness relies on live-sync doorbell invalidation, so new data sources must be wired to it.
+- Google iCal parsing must include detached recurrence instances when no master UID exists and relate exceptions only to an existing master; public feeds can omit masters without omitting busy events.
