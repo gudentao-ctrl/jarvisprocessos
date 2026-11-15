@@ -67,8 +67,10 @@ export async function parseCalendarBusy(text: string, from: number, to: number):
   };
   for (const v of masters) {
     try {
-      const ev = new ICAL.Event(v);
-      for (const ex of exceptions.get(ev.uid) ?? []) ev.relateException(ex);
+      const ev = new ICAL.Event(v, { exceptions: [] });
+      if (!v.hasProperty("recurrence-id")) {
+        for (const ex of exceptions.get(ev.uid) ?? []) ev.relateException(ex);
+      }
       if (!ev.isRecurring()) {
         push(ev.startDate.toJSDate().getTime(), (ev.endDate ?? ev.startDate).toJSDate().getTime(), v);
         continue;
