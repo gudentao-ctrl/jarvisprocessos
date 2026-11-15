@@ -36,6 +36,11 @@ export async function readBusy(url: string, from: number, to: number): Promise<B
   const text = await res.text();
   if (text.length > 15_000_000) throw new Error("Agenda grande demais.");
   if (!text.includes("BEGIN:VCALENDAR")) throw new Error("O link não é uma agenda iCal.");
+  return parseCalendarBusy(text, from, to);
+}
+
+/** Public Google feeds may contain detached occurrences without their recurring master. */
+export async function parseCalendarBusy(text: string, from: number, to: number): Promise<Busy[]> {
   const ICAL: any = (await import("ical.js")).default;
   const root = new ICAL.Component(ICAL.parse(text));
   for (const tz of root.getAllSubcomponents("vtimezone")) {
@@ -50,6 +55,10 @@ export async function readBusy(url: string, from: number, to: number): Promise<B
       exceptions.set(uid, [...(exceptions.get(uid) ?? []), v]);
     } else masters.push(v);
   }
+  const masterUids = new Set(masters.map((v) => v.getFirstPropertyValue("uid")));
+  for (const [uid, occurrences] of exceptions) {
+    if (!masterUids.has(uid)) masters.push(...occurrences);
+  }
   const busy: Busy[] = [];
   const push = (s: number, e: number, comp: any) => {
     if (String(comp.getFirstPropertyValue("status") ?? "").toUpperCase() === "CANCELLED") return;
@@ -58,8 +67,10 @@ export async function readBusy(url: string, from: number, to: number): Promise<B
   };
   for (const v of masters) {
     try {
-      const ev = new ICAL.Event(v);
-      for (const ex of exceptions.get(ev.uid) ?? []) ev.relateException(ex);
+      const ev = new ICAL.Event(v, { exceptions: [] });
+      if (!v.hasProperty("recurrence-id")) {
+        for (const ex of exceptions.get(ev.uid) ?? []) ev.relateException(ex);
+      }
       if (!ev.isRecurring()) {
         push(ev.startDate.toJSDate().getTime(), (ev.endDate ?? ev.startDate).toJSDate().getTime(), v);
         continue;
