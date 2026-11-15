@@ -67,6 +67,7 @@ import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
+import { Route as AuthenticatedRegistroReuniaoIndexRouteImport } from './routes/_authenticated/registro-reuniao.index'
 import { Route as AuthenticatedRelatorioAcompanhamentoIndexRouteImport } from './routes/_authenticated/relatorio-acompanhamento.index'
 import { Route as AuthenticatedRelatorioExecutivoMensalIndexRouteImport } from './routes/_authenticated/relatorio-executivo-mensal.index'
 import { Route as AuthenticatedRelatoriosIndexRouteImport } from './routes/_authenticated/relatorios.index'
@@ -413,6 +414,12 @@ const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   path: '/projetos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRegistroReuniaoIndexRoute =
+  AuthenticatedRegistroReuniaoIndexRouteImport.update({
+    id: '/registro-reuniao/',
+    path: '/registro-reuniao/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRelatorioAcompanhamentoIndexRoute =
   AuthenticatedRelatorioAcompanhamentoIndexRouteImport.update({
     id: '/relatorio-acompanhamento/',
@@ -590,6 +597,7 @@ export interface FileRoutesByFullPath {
   '/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos/': typeof AuthenticatedProcessosIndexRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/registro-reuniao/': typeof AuthenticatedRegistroReuniaoIndexRoute
   '/relatorio-acompanhamento/': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   '/relatorio-executivo-mensal/': typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   '/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
@@ -667,6 +675,7 @@ export interface FileRoutesByTo {
   '/priorizacao': typeof AuthenticatedPriorizacaoIndexRoute
   '/processos': typeof AuthenticatedProcessosIndexRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
+  '/registro-reuniao': typeof AuthenticatedRegistroReuniaoIndexRoute
   '/relatorio-acompanhamento': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   '/relatorio-executivo-mensal': typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   '/relatorios': typeof AuthenticatedRelatoriosIndexRoute
@@ -748,6 +757,7 @@ export interface FileRoutesById {
   '/_authenticated/priorizacao/': typeof AuthenticatedPriorizacaoIndexRoute
   '/_authenticated/processos/': typeof AuthenticatedProcessosIndexRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
+  '/_authenticated/registro-reuniao/': typeof AuthenticatedRegistroReuniaoIndexRoute
   '/_authenticated/relatorio-acompanhamento/': typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   '/_authenticated/relatorio-executivo-mensal/': typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   '/_authenticated/relatorios/': typeof AuthenticatedRelatoriosIndexRoute
@@ -829,6 +839,7 @@ export interface FileRouteTypes {
     | '/priorizacao/'
     | '/processos/'
     | '/projetos/'
+    | '/registro-reuniao/'
     | '/relatorio-acompanhamento/'
     | '/relatorio-executivo-mensal/'
     | '/relatorios/'
@@ -906,6 +917,7 @@ export interface FileRouteTypes {
     | '/priorizacao'
     | '/processos'
     | '/projetos'
+    | '/registro-reuniao'
     | '/relatorio-acompanhamento'
     | '/relatorio-executivo-mensal'
     | '/relatorios'
@@ -986,6 +998,7 @@ export interface FileRouteTypes {
     | '/_authenticated/priorizacao/'
     | '/_authenticated/processos/'
     | '/_authenticated/projetos/'
+    | '/_authenticated/registro-reuniao/'
     | '/_authenticated/relatorio-acompanhamento/'
     | '/_authenticated/relatorio-executivo-mensal/'
     | '/_authenticated/relatorios/'
@@ -1429,6 +1442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/registro-reuniao/': {
+      id: '/_authenticated/registro-reuniao/'
+      path: '/registro-reuniao'
+      fullPath: '/registro-reuniao/'
+      preLoaderRoute: typeof AuthenticatedRegistroReuniaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relatorio-acompanhamento/': {
       id: '/_authenticated/relatorio-acompanhamento/'
       path: '/relatorio-acompanhamento'
@@ -1673,6 +1693,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPriorizacaoIndexRoute: typeof AuthenticatedPriorizacaoIndexRoute
   AuthenticatedProcessosIndexRoute: typeof AuthenticatedProcessosIndexRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
+  AuthenticatedRegistroReuniaoIndexRoute: typeof AuthenticatedRegistroReuniaoIndexRoute
   AuthenticatedRelatorioAcompanhamentoIndexRoute: typeof AuthenticatedRelatorioAcompanhamentoIndexRoute
   AuthenticatedRelatorioExecutivoMensalIndexRoute: typeof AuthenticatedRelatorioExecutivoMensalIndexRoute
   AuthenticatedRelatoriosIndexRoute: typeof AuthenticatedRelatoriosIndexRoute
@@ -1733,6 +1754,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPriorizacaoIndexRoute: AuthenticatedPriorizacaoIndexRoute,
   AuthenticatedProcessosIndexRoute: AuthenticatedProcessosIndexRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
+  AuthenticatedRegistroReuniaoIndexRoute:
+    AuthenticatedRegistroReuniaoIndexRoute,
   AuthenticatedRelatorioAcompanhamentoIndexRoute:
     AuthenticatedRelatorioAcompanhamentoIndexRoute,
   AuthenticatedRelatorioExecutivoMensalIndexRoute:

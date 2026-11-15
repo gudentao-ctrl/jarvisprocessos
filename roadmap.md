@@ -67,3 +67,4 @@
 - [x] Desempenho PC/celular: telas carregam sob demanda; PDFs e planilhas carregam só ao exportar
 - [x] HUB 5S celular: visual do Portal 5S mais bonito (capa com nome, resumo em grade, atalhos de seção, ranking, mural em carrossel, cronograma em linha do tempo)
 - [x] Desempenho PC/celular (2ª rodada): 25 telas sem erros no celular e no computador; atualização instantânea entre computador e celular
+- [x] Execução: Registro de Reunião pessoal com transcrição no aparelho e relatório (pontos, ações, prazos, pendências, validações)
