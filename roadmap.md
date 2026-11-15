@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Google Agenda: corrigir erro de redirect no aplicativo publicado com modo manual e bloqueio explícito de redirecionamentos.
+- [x] Google Agenda: erro de redirect corrigido com modo manual e bloqueio explícito de redirecionamentos; seis testes passaram e vínculo/conflito real conferidos no preview em computador e celular; publicação solicitada, validação ao vivo pendente.
 
 - [x] Google Agenda g_zamboni: leitura de ocorrências sem evento mestre corrigida; vínculo manual do link real salvo e conflito confirmado no computador/celular (9 compromissos futuros).
 
