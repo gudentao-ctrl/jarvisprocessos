@@ -47,3 +47,4 @@
 - The sign-in age limit is enforced from the token's original `amr` sign-in time in the browser (route guards plus a periodic check) and in a global server-function middleware; token refreshes must never extend it.
 - Generate survey QR codes locally from the existing token-only public survey link, and load the QR encoder on demand; this keeps invitation links away from third-party image services.
 - Passwords are never stored or displayed in plain text (profiles, user metadata, admin UI); admins reset passwords instead. Plaintext copies leak through tokens and profile reads.
+- Meeting records are owner-only rows (RLS `user_id = auth.uid()`, no SuperAdmin bypass); audio is transcribed on the device with a locally loaded Whisper model and the report is extracted by rules from the spoken sentences, so it costs no credits and never invents content.

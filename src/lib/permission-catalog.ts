@@ -25,6 +25,7 @@ export const PERMISSION_CATALOG = [
     { key: "gut", label: "Priorização GUT", paths: ["/priorizacao"] },
     { key: "tobe", label: "Processos TO-BE", paths: ["/tobe"] },
     { key: "planos_acao", label: "Planos de ação", paths: ["/planos-acao"] },
+    { key: "registro_reuniao", label: "Registro de reunião (pessoal)", paths: ["/registro-reuniao"] },
     { key: "roadmap", label: "Roadmap", paths: ["/roadmap"] },
     { key: "impacto", label: "Conexão de impacto", paths: ["/impacto"] },
     { key: "relatorio_executivo", label: "Relatório executivo", paths: ["/diagnostico"] },

@@ -100,6 +100,12 @@ export const PHASE_TOOLS: Record<Exclude<PhaseSlug, "controle">, PhaseTool[]> = 
   ],
   execucao: [
     {
+      label: "Registro de reunião",
+      description: "Transcrição e relatório pessoal da reunião",
+      to: "/registro-reuniao",
+      icon: "Mic",
+    },
+    {
       label: "Planos de ação",
       description: "Ações em andamento e atrasadas",
       to: "/planos-acao",
