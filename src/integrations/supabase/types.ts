@@ -2361,6 +2361,48 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_records: {
+        Row: {
+          created_at: string
+          duration_sec: number
+          id: string
+          meeting_date: string
+          participants: string
+          report: Json
+          status: string
+          title: string
+          transcript: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_sec?: number
+          id?: string
+          meeting_date?: string
+          participants?: string
+          report?: Json
+          status?: string
+          title: string
+          transcript?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          duration_sec?: number
+          id?: string
+          meeting_date?: string
+          participants?: string
+          report?: Json
+          status?: string
+          title?: string
+          transcript?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mentoria_sessoes: {
         Row: {
           acoes: Json | null
