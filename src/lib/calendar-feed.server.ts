@@ -31,7 +31,10 @@ async function decryptFeed(stored: string) {
 /** Downloads and expands the agenda into busy intervals between from..to (ms). */
 export async function readBusy(url: string, from: number, to: number): Promise<Busy[]> {
   if (!isAllowedCalendarFeedUrl(url)) throw new Error("Endereço de agenda inválido.");
-  const res = await fetch(url, { redirect: "error", headers: { Accept: "text/calendar" } });
+  // Workers do not implement redirect: "error". Reject redirects explicitly so
+  // an allowed Google address can never redirect the server to another host.
+  const res = await fetch(url, { redirect: "manual", headers: { Accept: "text/calendar" } });
+  if (res.status >= 300 && res.status < 400) throw new Error("O link da agenda redirecionou. Copie o endereço iCal direto nas configurações do Google Agenda.");
   if (!res.ok) throw new Error(res.status === 404 ? "Link da agenda não encontrado ou revogado." : `Google respondeu ${res.status}.`);
   const text = await res.text();
   if (text.length > 15_000_000) throw new Error("Agenda grande demais.");
