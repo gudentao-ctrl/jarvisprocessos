@@ -64,8 +64,21 @@ export async function createMentorado(payload: Omit<Mentorado, "id" | "created_a
   return row;
 }
 export async function updateMentorado(id: string, updates: Partial<Mentorado>): Promise<Mentorado | null> {
-  const { data, error } = await supabase.from("mentorias").update({ ...mentorFields(updates), updated_at: new Date().toISOString() }).eq("id", id).select("id").single();
-  if (error || !data) throw new Error("Não foi possível atualizar a mentoria.");
+  const fields = mentorFields(updates);
+  const { data, error } = await supabase
+    .from("mentorias")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erro ao atualizar mentoria no Supabase:", error);
+    throw new Error(error.message || "Não foi possível atualizar a mentoria.");
+  }
+  if (!data) {
+    throw new Error("Não foi possível atualizar a mentoria (registro não encontrado ou sem permissão de gravação).");
+  }
   return getMentoradoById(id);
 }
 export async function saveMentoriaSessao(payload: Omit<MentoriaSessao, "id" | "created_at"> & { id?: string }): Promise<MentoriaSessao> {

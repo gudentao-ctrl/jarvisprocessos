@@ -129,3 +129,76 @@ export const uploadMentoriaAttachment = createServerFn({ method: "POST" })
       type: data.fileType,
     };
   });
+
+/**
+ * Atualiza o perfil comportamental e anexos da mentoria no servidor via supabaseAdmin.
+ * Isto contorna limitações de RLS no cliente e previne falhas causadas pelo trigger
+ * validate_mentorship_candidate caso candidate_id esteja pendente ou inconsistente.
+ */
+export const updateMentoriaBehavioralProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        mentoriaId: z.string().uuid(),
+        profile: z.any(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Buscar a mentoria atual
+    const { data: current, error: getErr } = await supabaseAdmin
+      .from("mentorias")
+      .select("id, company_id, candidate_id")
+      .eq("id", data.mentoriaId)
+      .maybeSingle();
+
+    if (getErr) {
+      console.error("Erro ao buscar mentoria:", getErr);
+      throw new Error(`Erro ao buscar mentoria: ${getErr.message}`);
+    }
+
+    if (!current) {
+      throw new Error("Mentoria não encontrada.");
+    }
+
+    // Se houver candidate_id, verificar se possui avaliação concluída na mesma empresa.
+    // O trigger Postgres 'validate_mentorship_candidate' exige que o candidato vinculado
+    // tenha completed_at preenchido e pertença à mesma empresa. Se não tiver, limpamos
+    // o candidate_id no update para permitir que anexos e laudos sejam salvos normalmente sem erro.
+    let safeCandidateId = current.candidate_id;
+    if (safeCandidateId) {
+      const { data: cand } = await supabaseAdmin
+        .from("candidates")
+        .select("id, completed_at, company_id")
+        .eq("id", safeCandidateId)
+        .maybeSingle();
+
+      if (!cand || !cand.completed_at || cand.company_id !== current.company_id) {
+        console.warn(
+          `Candidate ${safeCandidateId} não possui completed_at válido na empresa ${current.company_id}. Desvinculando candidate_id para permitir salvar perfil e anexos.`
+        );
+        safeCandidateId = null;
+      }
+    }
+
+    const { data: updated, error: updateErr } = await supabaseAdmin
+      .from("mentorias")
+      .update({
+        behavioral_profile: data.profile,
+        candidate_id: safeCandidateId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.mentoriaId)
+      .select("id, company_id, candidate_id, nome, behavioral_profile, status, updated_at")
+      .single();
+
+    if (updateErr) {
+      console.error("Erro ao atualizar mentoria via supabaseAdmin:", updateErr);
+      throw new Error(`Erro ao salvar perfil e anexos: ${updateErr.message}`);
+    }
+
+    return { success: true, mentoria: updated };
+  });

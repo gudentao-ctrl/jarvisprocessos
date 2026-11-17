@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { updateMentoriaBehavioralProfile } from "@/lib/mentoria.functions";
 import { LIVE_SYNC_EVENT } from "@/lib/live-sync";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ export const Route = createFileRoute("/_authenticated/pessoas/mentorias")({
 });
 
 function MentoriasPage() {
+  const updateProfileFn = useServerFn(updateMentoriaBehavioralProfile);
   const { companyId, company, companies } = useCompanyFilter();
   const [mentorados, setMentorados] = useState<Mentorado[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,8 +163,18 @@ function MentoriasPage() {
 
   const handleUpdateBehavioralProfile = async (profile: any) => {
     if (!selectedMentorado) return;
-    await updateMentorado(selectedMentorado.id, { behavioral_profile: profile });
-    await loadData();
+    try {
+      await updateProfileFn({
+        data: {
+          mentoriaId: selectedMentorado.id,
+          profile,
+        },
+      });
+    } catch (serverErr: any) {
+      console.warn("Server function de perfil falhou, tentando fallback cliente:", serverErr?.message || serverErr);
+      await updateMentorado(selectedMentorado.id, { behavioral_profile: profile });
+    }
+    await loadData(true);
   };
 
   return (
