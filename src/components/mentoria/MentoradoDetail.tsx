@@ -36,7 +36,7 @@ import {
 import type { Mentorado, MentoriaSessao, MentoriaAttachment, MentoriaBehavioralProfile } from "@/lib/mentoria-types";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { uploadMentoriaAttachment } from "@/lib/mentoria.functions";
+import { getMentoriaSignedUploadUrl, uploadMentoriaAttachment } from "@/lib/mentoria.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 function normalizeAttachments(profile?: MentoriaBehavioralProfile): MentoriaAttachment[] {
@@ -117,6 +117,7 @@ export function MentoradoDetail({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
+  const getSignedUploadUrlFn = useServerFn(getMentoriaSignedUploadUrl);
   const uploadAttachmentFn = useServerFn(uploadMentoriaAttachment);
 
   const profile = mentorado.behavioral_profile;
@@ -127,17 +128,17 @@ export function MentoradoDetail({
     attachments.length > 0
   );
 
-  // Upload robusto de múltiplos arquivos para o Mapeamento Comportamental
-  // Estratégia: upload direto ao Supabase Storage (sem converter para base64 no servidor)
-  // para evitar limites de payload HTTP em arquivos grandes.
+  // Upload robusto de arquivos para o Mapeamento Comportamental
+  // Estratégia principal: Direct Upload via Signed URL gerada pelo servidor (supabaseAdmin)
+  // Permite streaming direto do browser ao Supabase Storage sem estourar limites de payload HTTP (até 50MB)
   const handleFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const oversized = files.filter((f) => f.size > 25 * 1024 * 1024);
+    const oversized = files.filter((f) => f.size > 50 * 1024 * 1024);
     if (oversized.length > 0) {
       toast.error(
-        `Arquivo(s) ultrapassam o limite de 25MB: ${oversized.map((f) => f.name).join(", ")}`
+        `Arquivo(s) ultrapassam o limite máximo de 50MB: ${oversized.map((f) => f.name).join(", ")}`
       );
       return;
     }
@@ -161,31 +162,100 @@ export function MentoradoDetail({
       const sanitizedName = sanitizeFileName(file.name);
       const storagePath = `${mentorado.id}/${Date.now()}_${sanitizedName}`;
 
-      // 1. Upload direto do cliente para "mentoria-docs" (sem passar bytes pelo servidor)
+      // 1. Estratégia Principal: URL assinada de upload (Signed URL)
+      // Streams raw file directly to storage; no payload size limit, bypasses client RLS issues
       try {
-        const { data: upData, error: upError } = await supabase.storage
-          .from("mentoria-docs")
-          .upload(storagePath, file, {
-            upsert: true,
-            cacheControl: "3600",
-            contentType: file.type || "application/octet-stream",
-          });
+        const signRes = await getSignedUploadUrlFn({
+          data: {
+            mentoriaId: mentorado.id,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+          },
+        });
 
-        if (!upError && upData) {
-          const { data: pubData } = supabase.storage
+        if (signRes?.path && signRes?.token) {
+          const { error: signUploadErr } = await supabase.storage
             .from("mentoria-docs")
-            .getPublicUrl(storagePath);
-          fileUrl = pubData.publicUrl;
-          uploadedSuccessfully = true;
-        } else {
-          console.warn(`mentoria-docs upload error para ${file.name}:`, upError?.message);
+            .uploadToSignedUrl(signRes.path, signRes.token, file, {
+              contentType: file.type || "application/octet-stream",
+              upsert: true,
+            });
+
+          if (!signUploadErr) {
+            fileUrl = signRes.publicUrl;
+            uploadedSuccessfully = true;
+          } else {
+            console.warn(`uploadToSignedUrl falhou para ${file.name}:`, signUploadErr.message);
+
+            // Tentativa direta com fetch PUT na signedUrl caso o SDK do storage apresente particularidade
+            if (signRes.signedUrl) {
+              try {
+                const putResp = await fetch(signRes.signedUrl, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": file.type || "application/octet-stream",
+                  },
+                  body: file,
+                });
+                if (putResp.ok) {
+                  fileUrl = signRes.publicUrl;
+                  uploadedSuccessfully = true;
+                }
+              } catch (putErr) {
+                console.warn(`PUT direto falhou para ${file.name}:`, putErr);
+              }
+            }
+          }
         }
-      } catch (directErr) {
-        console.warn(`Erro no upload direto para ${file.name}:`, directErr);
+      } catch (signErr: any) {
+        console.warn(`Tentativa de signed upload URL falhou para ${file.name}:`, signErr?.message || signErr);
       }
 
-      // 2. Fallback: Server Function com supabaseAdmin (para caso o bucket ainda não tenha RLS pública)
+      // 2. Fallback: Upload direto do cliente para "mentoria-docs"
       if (!uploadedSuccessfully) {
+        try {
+          const { data: upData, error: upError } = await supabase.storage
+            .from("mentoria-docs")
+            .upload(storagePath, file, {
+              upsert: true,
+              cacheControl: "3600",
+              contentType: file.type || "application/octet-stream",
+            });
+
+          if (!upError && upData) {
+            const { data: pubData } = supabase.storage
+              .from("mentoria-docs")
+              .getPublicUrl(storagePath);
+            fileUrl = pubData.publicUrl;
+            uploadedSuccessfully = true;
+          } else {
+            console.warn(`mentoria-docs direct upload error para ${file.name}:`, upError?.message);
+          }
+        } catch (directErr) {
+          console.warn(`Erro no upload direto para ${file.name}:`, directErr);
+        }
+      }
+
+      // 3. Fallback: bucket pop-sources/mentoria/
+      if (!uploadedSuccessfully) {
+        try {
+          const { data: popData, error: popErr } = await supabase.storage
+            .from("pop-sources")
+            .upload(`mentoria/${storagePath}`, file, { upsert: true });
+          if (!popErr && popData) {
+            const { data: popPub } = supabase.storage
+              .from("pop-sources")
+              .getPublicUrl(`mentoria/${storagePath}`);
+            fileUrl = popPub.publicUrl;
+            uploadedSuccessfully = true;
+          }
+        } catch (popErr) {
+          console.warn(`Fallback pop-sources falhou para ${file.name}:`, popErr);
+        }
+      }
+
+      // 4. Fallback: Server Function (somente para arquivos menores <= 4MB para evitar HTTP 413)
+      if (!uploadedSuccessfully && file.size <= 4 * 1024 * 1024) {
         try {
           const readAsDataURL = (f: File): Promise<string> =>
             new Promise((resolve, reject) => {
@@ -210,39 +280,6 @@ export function MentoradoDetail({
         } catch (serverErr: any) {
           console.warn(`Server Function falhou para ${file.name}:`, serverErr?.message);
         }
-      }
-
-      // 3. Fallback: bucket pop-sources/mentoria/
-      if (!uploadedSuccessfully) {
-        try {
-          const { data: popData, error: popErr } = await supabase.storage
-            .from("pop-sources")
-            .upload(`mentoria/${storagePath}`, file, { upsert: true });
-          if (!popErr && popData) {
-            const { data: popPub } = supabase.storage
-              .from("pop-sources")
-              .getPublicUrl(`mentoria/${storagePath}`);
-            fileUrl = popPub.publicUrl;
-            uploadedSuccessfully = true;
-          }
-        } catch (popErr) {
-          console.warn(`Fallback pop-sources falhou para ${file.name}:`, popErr);
-        }
-      }
-
-      // 4. Último recurso: base64 inline (somente para arquivos pequenos < 500 KB)
-      if (!uploadedSuccessfully && file.size <= 500 * 1024) {
-        try {
-          const readAsDataURL = (f: File): Promise<string> =>
-            new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(f);
-            });
-          fileUrl = await readAsDataURL(file);
-          uploadedSuccessfully = true;
-        } catch {}
       }
 
       if (uploadedSuccessfully && fileUrl) {

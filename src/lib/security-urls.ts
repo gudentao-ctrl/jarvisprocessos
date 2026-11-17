@@ -9,19 +9,16 @@ function isAllowedAppUrl(value: string, pathname: string, allowRecoverySearch: b
       "https://jarvisprocessos.lovable.app",
       "https://id-preview--c5c75c62-6ee2-440a-a6d0-7d3597001f90.lovable.app",
     ]);
-    const isLocalhost = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-    const originAllowed =
+    const isAllowedHost =
       allowedOrigins.has(url.origin) ||
-      isLocalhost ||
-      url.hostname.endsWith(".lovable.app") ||
-      url.hostname.endsWith(".lovableproject.com");
+      (url.hostname.startsWith("id-preview--") && (url.hostname.endsWith(".lovable.app") || url.hostname.endsWith(".lovableproject.com")));
 
     const searchAllowed = allowRecoverySearch
       ? !url.search || url.search === "?recovery=true"
       : !url.search;
 
     return (
-      originAllowed &&
+      isAllowedHost &&
       url.pathname === pathname &&
       !url.username &&
       !url.password &&
