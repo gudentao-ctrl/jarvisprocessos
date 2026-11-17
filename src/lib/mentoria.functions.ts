@@ -5,31 +5,35 @@ import { z } from "zod";
 const BUCKET_NAME = "mentoria-docs";
 const MAX_FILE_SIZE_BYTES = 52428800; // 50MB
 
-async function ensureMentoriaBucket(supabaseAdmin: any) {
-  try {
-    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-    const exists = (buckets || []).some((b: any) => b.id === BUCKET_NAME);
-    if (!exists) {
-      await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
-        public: true,
-        fileSizeLimit: MAX_FILE_SIZE_BYTES,
-      });
-    } else {
-      await supabaseAdmin.storage.updateBucket(BUCKET_NAME, {
-        public: true,
-        fileSizeLimit: MAX_FILE_SIZE_BYTES,
-      });
-    }
-  } catch (bErr) {
-    console.warn("Aviso ao verificar/atualizar bucket mentoria-docs:", bErr);
-  }
-}
-
 function sanitizeStorageFileName(name: string): string {
   return name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function sanitizeProfileAttachments(profile: any): any {
+  if (!profile || typeof profile !== "object") return profile;
+  const clean = { ...profile };
+
+  if (Array.isArray(clean.attachments)) {
+    clean.attachments = clean.attachments
+      .map((att: any) => {
+        if (!att || typeof att !== "object") return null;
+        // Remove base64 data URLs legados que causam estouro de timeout no PostgreSQL
+        if (typeof att.url === "string" && att.url.startsWith("data:")) {
+          return null;
+        }
+        return att;
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof clean.pdf_attachment_url === "string" && clean.pdf_attachment_url.startsWith("data:")) {
+    clean.pdf_attachment_url = clean.attachments?.[0]?.url || "";
+  }
+
+  return clean;
 }
 
 /**
@@ -51,14 +55,31 @@ export const getMentoriaSignedUploadUrl = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    await ensureMentoriaBucket(supabaseAdmin);
-
     const sanitizedName = sanitizeStorageFileName(data.fileName);
     const filePath = `${data.mentoriaId}/${Date.now()}_${sanitizedName}`;
 
-    const { data: signData, error: signError } = await supabaseAdmin.storage
+    let signData = null;
+    let signError = null;
+
+    const res = await supabaseAdmin.storage
       .from(BUCKET_NAME)
       .createSignedUploadUrl(filePath, { upsert: true });
+
+    signData = res.data;
+    signError = res.error;
+
+    // Se o bucket não existir, cria somente nesta exceção
+    if (signError && signError.message?.toLowerCase().includes("not found")) {
+      await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
+        public: true,
+        fileSizeLimit: MAX_FILE_SIZE_BYTES,
+      });
+      const retry = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .createSignedUploadUrl(filePath, { upsert: true });
+      signData = retry.data;
+      signError = retry.error;
+    }
 
     if (signError || !signData) {
       throw new Error(`Erro ao gerar signed URL para upload: ${signError?.message || "sem dados"}`);
@@ -97,8 +118,6 @@ export const uploadMentoriaAttachment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    await ensureMentoriaBucket(supabaseAdmin);
-
     // Limpar o prefixo data:mime;base64,
     const base64Clean = data.base64Data.replace(/^data:[^;]+;base64,/, "");
     const buffer = Buffer.from(base64Clean, "base64");
@@ -106,12 +125,26 @@ export const uploadMentoriaAttachment = createServerFn({ method: "POST" })
     const sanitizedName = sanitizeStorageFileName(data.fileName);
     const filePath = `${data.mentoriaId}/${Date.now()}_${sanitizedName}`;
 
-    const { error: uploadError } = await supabaseAdmin.storage
+    let { error: uploadError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
       .upload(filePath, buffer, {
         contentType: data.fileType,
         upsert: true,
       });
+
+    if (uploadError && uploadError.message?.toLowerCase().includes("not found")) {
+      await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
+        public: true,
+        fileSizeLimit: MAX_FILE_SIZE_BYTES,
+      });
+      const retry = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, buffer, {
+          contentType: data.fileType,
+          upsert: true,
+        });
+      uploadError = retry.error;
+    }
 
     if (uploadError) {
       throw new Error(`Erro ao enviar arquivo para o storage: ${uploadError.message}`);
@@ -147,6 +180,9 @@ export const updateMentoriaBehavioralProfile = createServerFn({ method: "POST" }
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Higienizar profile para nunca persistir Base64 data URLs no PostgreSQL
+    const cleanProfile = sanitizeProfileAttachments(data.profile);
 
     // Buscar a mentoria atual
     const { data: current, error: getErr } = await supabaseAdmin
@@ -184,15 +220,20 @@ export const updateMentoriaBehavioralProfile = createServerFn({ method: "POST" }
       }
     }
 
+    const updatePayload: Record<string, any> = {
+      behavioral_profile: cleanProfile,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (safeCandidateId !== current.candidate_id) {
+      updatePayload.candidate_id = safeCandidateId;
+    }
+
     const { data: updated, error: updateErr } = await supabaseAdmin
       .from("mentorias")
-      .update({
-        behavioral_profile: data.profile,
-        candidate_id: safeCandidateId,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", data.mentoriaId)
-      .select("id, company_id, candidate_id, nome, behavioral_profile, status, updated_at")
+      .select("id, updated_at")
       .single();
 
     if (updateErr) {
@@ -200,5 +241,5 @@ export const updateMentoriaBehavioralProfile = createServerFn({ method: "POST" }
       throw new Error(`Erro ao salvar perfil e anexos: ${updateErr.message}`);
     }
 
-    return { success: true, mentoria: updated };
+    return { success: true, mentoriaId: updated.id };
   });

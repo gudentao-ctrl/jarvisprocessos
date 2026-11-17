@@ -39,7 +39,6 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getMentoriaSignedUploadUrl,
   uploadMentoriaAttachment,
-  updateMentoriaBehavioralProfile,
 } from "@/lib/mentoria.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -123,7 +122,6 @@ export function MentoradoDetail({
 
   const getSignedUploadUrlFn = useServerFn(getMentoriaSignedUploadUrl);
   const uploadAttachmentFn = useServerFn(uploadMentoriaAttachment);
-  const updateProfileFn = useServerFn(updateMentoriaBehavioralProfile);
 
   const profile = mentorado.behavioral_profile;
   const attachments = normalizeAttachments(profile);
@@ -320,23 +318,7 @@ export function MentoradoDetail({
             newAttachments[0]?.name,
         };
 
-        // 1. Tentar salvar diretamente via Server Function com supabaseAdmin (garante bypass de RLS e valida triggers)
-        let savedViaServer = false;
-        try {
-          const res = await updateProfileFn({
-            data: {
-              mentoriaId: mentorado.id,
-              profile: updatedProfile,
-            },
-          });
-          if (res?.success) {
-            savedViaServer = true;
-          }
-        } catch (serverSaveErr: any) {
-          console.warn("Server function de perfil falhou, tentando fallback onUpdateBehavioralProfile:", serverSaveErr?.message);
-        }
-
-        // 2. Se a server function não foi concluída, chama o handler pai como fallback
+        // Salvar via onUpdateBehavioralProfile do componente pai
         await onUpdateBehavioralProfile(updatedProfile);
 
         if (successCount === 1) {
@@ -375,16 +357,6 @@ export function MentoradoDetail({
     };
 
     try {
-      try {
-        await updateProfileFn({
-          data: {
-            mentoriaId: mentorado.id,
-            profile: updatedProfile,
-          },
-        });
-      } catch (serverRemErr: any) {
-        console.warn("Server function falhou na remoção, usando fallback onUpdateBehavioralProfile:", serverRemErr);
-      }
       await onUpdateBehavioralProfile(updatedProfile);
       toast.success("Anexo removido com sucesso.");
     } catch (err: any) {
