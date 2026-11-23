@@ -115,6 +115,7 @@ type ItemFormState = {
   due_date: string;
   observations: string;
   custom_pillar: string;
+  order_index: number;
   gravity: number;
   urgency: number;
   trend: number;
@@ -136,6 +137,7 @@ const INITIAL_FORM: ItemFormState = {
   due_date: "",
   observations: "",
   custom_pillar: "",
+  order_index: 1,
   gravity: 3,
   urgency: 3,
   trend: 3,
@@ -281,6 +283,7 @@ function MapaPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [responsibleFilter, setResponsibleFilter] = useState<string>("all");
+  const [diretrizFilter, setDiretrizFilter] = useState<string>("all");
   const [distribTab, setDistribTab] = useState<"origem" | "responsavel">("origem");
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
@@ -315,6 +318,7 @@ function MapaPage() {
       if (originFilter !== "all") filterParts.push(`Origem: ${originFilter}`);
       if (responsibleFilter !== "all") filterParts.push(`Responsável: ${responsibleFilter}`);
       if (statusFilter !== "all") filterParts.push(`Status: ${statusFilter.replace(/_/g, " ")}`);
+      if (diretrizFilter !== "all") filterParts.push(`Diretriz: Diretriz ${diretrizFilter}`);
       if (searchQuery.trim()) filterParts.push(`Busca: "${searchQuery.trim()}"`);
       const isFiltered = filterParts.length > 0;
       const pdfItems = isFiltered
@@ -442,11 +446,20 @@ function MapaPage() {
     setParentItemForSub(null);
     const standardKeys = ["pessoas", "processo", "negocio"];
     const isCustom = pillarKey && !standardKeys.includes(pillarKey.toLowerCase());
+    const targetPillar = pillarKey || "processo";
+    const currentPillarRoots = mapaData?.treeByPillar?.[targetPillar.toLowerCase()] || [];
+    const maxNum = currentPillarRoots.reduce(
+      (max, r) => Math.max(max, r.diretriz_number || r.order_index || 0),
+      0
+    );
+    const nextOrder = maxNum + 1;
+
     setItemForm({
       ...INITIAL_FORM,
-      demand_type: pillarKey || "processo",
+      demand_type: targetPillar,
       custom_pillar: isCustom ? pillarKey.toUpperCase() : "",
       item_type: "diretriz",
+      order_index: nextOrder,
     });
     setItemModalOpen(true);
   }
@@ -492,6 +505,7 @@ function MapaPage() {
       due_date: item.due_date || "",
       observations: item.observations || "",
       custom_pillar: item.custom_pillar || (isCustom ? item.demand_type.toUpperCase() : ""),
+      order_index: item.diretriz_number || item.order_index || 1,
       gravity: item.gravity ?? 3,
       urgency: item.urgency ?? 3,
       trend: item.trend ?? 3,
@@ -533,6 +547,8 @@ function MapaPage() {
       due_date: itemForm.due_date || null,
       observations: itemForm.observations.trim() || null,
       custom_pillar: itemForm.custom_pillar.trim() || null,
+      order_index: itemForm.order_index || 1,
+      diretriz_number: itemForm.order_index || 1,
       gravity: itemForm.gravity,
       urgency: itemForm.urgency,
       trend: itemForm.trend,
@@ -836,6 +852,20 @@ function MapaPage() {
     });
   }, [mapaData?.pillars, mapaData?.items]);
 
+  // Números disponíveis de diretrizes para o filtro
+  const availableDiretrizNumbers = useMemo(() => {
+    if (!mapaData?.treeByPillar) return [1, 2, 3];
+    const nums = new Set<number>();
+    Object.values(mapaData.treeByPillar).forEach((roots) => {
+      roots.forEach((root) => {
+        const num = root.diretriz_number || root.order_index;
+        if (num && num > 0) nums.add(num);
+      });
+    });
+    if (nums.size === 0) return [1, 2, 3];
+    return Array.from(nums).sort((a, b) => a - b);
+  }, [mapaData?.treeByPillar]);
+
   const treeByPillar = useMemo(() => {
     if (!mapaData) return {};
     const q = searchQuery.toLowerCase().trim();
@@ -843,7 +873,8 @@ function MapaPage() {
       Boolean(q) ||
       statusFilter !== "all" ||
       originFilter !== "all" ||
-      responsibleFilter !== "all";
+      responsibleFilter !== "all" ||
+      diretrizFilter !== "all";
 
     if (!hasFilter) {
       return mapaData.treeByPillar;
@@ -854,6 +885,15 @@ function MapaPage() {
 
     for (const [pKey, roots] of Object.entries(mapaData.treeByPillar)) {
       const matchedRoots = roots
+        .filter((root) => {
+          if (diretrizFilter !== "all") {
+            const dirNum = root.diretriz_number || root.order_index;
+            if (dirNum !== Number(diretrizFilter)) {
+              return false;
+            }
+          }
+          return true;
+        })
         .map((root) => {
           const rootOrigins = parseMultiSelect(root.origin);
           const rootResps = parseMultiSelect(root.responsible);
@@ -899,10 +939,20 @@ function MapaPage() {
             return matchChild;
           });
 
+          const hasInnerFilters =
+            Boolean(q) ||
+            statusFilter !== "all" ||
+            originFilter !== "all" ||
+            responsibleFilter !== "all";
+
+          if (!hasInnerFilters) {
+            return root;
+          }
+
           if (matchSelf || matchedChildren.length > 0) {
             return {
               ...root,
-              children: matchedChildren,
+              children: matchSelf ? (root.children ?? []) : matchedChildren,
             };
           }
           return null;
@@ -913,7 +963,7 @@ function MapaPage() {
     }
 
     return filtered;
-  }, [mapaData, searchQuery, statusFilter, originFilter, responsibleFilter]);
+  }, [mapaData, searchQuery, statusFilter, originFilter, responsibleFilter, diretrizFilter]);
 
   const totalAcoes = useMemo(() => {
     if (!mapaData?.items) return 0;
@@ -1400,7 +1450,24 @@ function MapaPage() {
                   </Select>
                   </div>
 
-                  {(originFilter !== "all" || responsibleFilter !== "all" || statusFilter !== "all" || Boolean(searchQuery)) && (
+                  <Select value={diretrizFilter} onValueChange={setDiretrizFilter}>
+                    <SelectTrigger className="h-9 w-full min-w-0 text-xs sm:w-36">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Filter className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Diretriz" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as diretrizes</SelectItem>
+                      {availableDiretrizNumbers.map((num) => (
+                        <SelectItem key={num} value={String(num)} className="text-xs font-medium">
+                          Diretriz {num}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {(originFilter !== "all" || responsibleFilter !== "all" || statusFilter !== "all" || diretrizFilter !== "all" || Boolean(searchQuery)) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1410,6 +1477,7 @@ function MapaPage() {
                         setStatusFilter("all");
                         setOriginFilter("all");
                         setResponsibleFilter("all");
+                        setDiretrizFilter("all");
                       }}
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1558,6 +1626,7 @@ function MapaPage() {
                             (c) => c.status === "concluido",
                           ).length;
                           const dirStatus = statusInfo(diretriz.status);
+                          const dirNumber = diretriz.diretriz_number || diretriz.order_index || (dirIdx + 1);
 
                           return (
                             <div key={diretriz.id} className="bg-background/50 transition-colors">
@@ -1591,7 +1660,7 @@ function MapaPage() {
                                   <div className="min-w-0 flex-1 space-y-1">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <span className="text-xs font-black text-primary tabular-nums shrink-0">
-                                        {dirIdx + 1}.
+                                        {dirNumber}.
                                       </span>
                                       <h3 className="text-sm font-bold text-foreground hover:text-primary transition-colors">
                                         {diretriz.title}
@@ -1713,7 +1782,7 @@ function MapaPage() {
                                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 shrink-0">
                                             <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground/70" />
                                             <span className="font-bold tabular-nums text-foreground/70">
-                                              {dirIdx + 1}.{subIdx + 1}
+                                              {dirNumber}.{subIdx + 1}
                                             </span>
                                           </div>
 
@@ -1978,10 +2047,20 @@ function MapaPage() {
                 onValueChange={(val) => {
                   const standardKeys = ["pessoas", "processo", "negocio"];
                   const isCustom = val && !standardKeys.includes(val.toLowerCase());
+                  let newOrder = itemForm.order_index;
+                  if (itemModalMode === "diretriz") {
+                    const pillarRoots = mapaData?.treeByPillar?.[val.toLowerCase()] || [];
+                    const maxNum = pillarRoots.reduce(
+                      (max, r) => Math.max(max, r.diretriz_number || r.order_index || 0),
+                      0
+                    );
+                    newOrder = maxNum + 1;
+                  }
                   setItemForm({
                     ...itemForm,
                     demand_type: val,
                     custom_pillar: isCustom ? val.toUpperCase() : "",
+                    order_index: newOrder,
                   });
                 }}
               >
@@ -1996,6 +2075,26 @@ function MapaPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Número da Diretriz (Fixo no Pilar) */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Número da Diretriz (Fixo no Pilar) *</Label>
+              <Input
+                type="number"
+                min={1}
+                value={itemForm.order_index || 1}
+                onChange={(e) =>
+                  setItemForm({
+                    ...itemForm,
+                    order_index: Math.max(1, parseInt(e.target.value) || 1),
+                  })
+                }
+                className="text-xs h-9"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Define a numeração fixa desta diretriz dentro do pilar ({itemForm.demand_type.toUpperCase()}).
+              </p>
             </div>
 
             {/* Descrição Breve */}

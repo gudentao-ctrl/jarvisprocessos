@@ -733,7 +733,7 @@ export async function exportMapaPdf(opts: {
       const titleMaxW = boxW - 6 - metaW - 6 - 6;
       pdf.setFontSize(9);
       const titleLines = pdf.splitTextToSize(
-        `DIRETRIZ ${dIdx + 1}: ${diretriz.title}`,
+        `DIRETRIZ ${diretriz.diretriz_number || diretriz.order_index || dIdx + 1}: ${diretriz.title}`,
         titleMaxW,
       ) as string[];
       const TITLE_LH = 4;
@@ -835,7 +835,7 @@ export async function exportMapaPdf(opts: {
         }
 
         return [
-          `${dIdx + 1}.${sIdx + 1}`,
+          `${diretriz.diretriz_number || diretriz.order_index || dIdx + 1}.${sIdx + 1}`,
           actionCell,
           respCell,
           fmtDate(sub.due_date),

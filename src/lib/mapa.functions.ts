@@ -74,6 +74,7 @@ export type MapaItem = {
   item_type: "diretriz" | "acao" | "desdobramento";
   progress_pct: number;
   order_index: number;
+  diretriz_number?: number;
   custom_pillar?: string | null;
   gravity?: number | null;
   urgency?: number | null;
@@ -236,6 +237,9 @@ export const getMapaData = createServerFn({ method: "GET" })
       const urgency = Number(r.urgency ?? meta?.urgency ?? 3);
       const trend = Number(r.trend ?? meta?.trend ?? 3);
       const gut_score = Number(r.gut_score ?? gravity * urgency * trend);
+      const rawOrder = Number(r.order_index ?? meta?.order_index ?? meta?.diretriz_number ?? 0);
+      const order_index = rawOrder > 0 ? rawOrder : 0;
+      const diretriz_number = meta?.diretriz_number ? Number(meta.diretriz_number) : (order_index > 0 ? order_index : undefined);
 
       return {
         id: r.id,
@@ -255,7 +259,8 @@ export const getMapaData = createServerFn({ method: "GET" })
         parent_id,
         item_type: item_type as any,
         progress_pct,
-        order_index: r.order_index ?? 0,
+        order_index,
+        diretriz_number,
         custom_pillar,
         gravity,
         urgency,
@@ -280,7 +285,27 @@ export const getMapaData = createServerFn({ method: "GET" })
       const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === pKey);
       const rootItems = pItems.filter((i) => !i.parent_id);
 
-      const builtRoots: MapaItem[] = rootItems.map((root) => {
+      // Ordena diretrizes respeitando order_index fixo ou created_at
+      const sortedRoots = [...rootItems].sort((a, b) => {
+        const orderA = a.order_index && a.order_index > 0 ? a.order_index : 999999;
+        const orderB = b.order_index && b.order_index > 0 ? b.order_index : 999999;
+        if (orderA !== orderB) return orderA - orderB;
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      // Atribui número fixo permanente (1, 2, 3...) dentro de cada pilar
+      const assignedRoots: MapaItem[] = sortedRoots.map((root, idx) => {
+        const fixedNum = root.order_index && root.order_index > 0 ? root.order_index : idx + 1;
+        return {
+          ...root,
+          diretriz_number: fixedNum,
+          order_index: fixedNum,
+        };
+      });
+
+      const builtRoots: MapaItem[] = assignedRoots.map((root) => {
         const children = pItems.filter((c) => c.parent_id === root.id);
 
         let dirProgress = root.progress_pct;
@@ -423,6 +448,7 @@ export const saveMapaItem = createServerFn({ method: "POST" })
         observations: z.string().optional().nullable(),
         custom_pillar: z.string().optional().nullable(),
         order_index: z.number().int().optional().default(0),
+        diretriz_number: z.number().int().optional().nullable(),
         gravity: z.number().int().min(1).max(5).optional().default(3),
         urgency: z.number().int().min(1).max(5).optional().default(3),
         trend: z.number().int().min(1).max(5).optional().default(3),
@@ -463,6 +489,8 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       standardDemand = "processo";
     }
 
+    const fixedOrderIndex = data.diretriz_number || data.order_index || 0;
+
     const metaTag = buildMetaTag({
       parent_id: data.parent_id,
       item_type: data.item_type,
@@ -477,6 +505,8 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       gravity: data.gravity,
       urgency: data.urgency,
       trend: data.trend,
+      order_index: fixedOrderIndex,
+      diretriz_number: fixedOrderIndex,
     });
     const finalObservations = [cleanObs, metaTag].filter(Boolean).join(" ");
 
@@ -522,7 +552,7 @@ export const saveMapaItem = createServerFn({ method: "POST" })
       parent_id: data.parent_id || null,
       item_type: data.item_type,
       progress_pct: adjustedProgress,
-      order_index: data.order_index ?? 0,
+      order_index: fixedOrderIndex,
       custom_pillar: resolvedCustomPillar,
     };
 

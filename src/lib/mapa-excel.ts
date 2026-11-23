@@ -135,7 +135,8 @@ export function exportMapaExcel(opts: {
     const roots = treeByPillar[pilar.key] || [];
 
     roots.forEach((diretriz, dIdx) => {
-      const dCode = `D${dIdx + 1}`;
+      const dirNumber = diretriz.diretriz_number || diretriz.order_index || dIdx + 1;
+      const dCode = `D${dirNumber}`;
 
       // Diretriz row
       detailRows.push([
