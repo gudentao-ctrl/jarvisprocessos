@@ -17,6 +17,7 @@ import {
 } from "@/lib/mapa.functions";
 import { listCompanies } from "@/lib/interviews.functions";
 import { CreatableMultiSelect } from "@/components/mapa/CreatableMultiSelect";
+import { OFFICIAL_DIRETRIZES } from "@/lib/mapa-diretrizes";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useActiveCompany } from "@/lib/active-company";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -445,21 +446,22 @@ function MapaPage() {
     setItemModalMode("diretriz");
     setParentItemForSub(null);
     const standardKeys = ["pessoas", "processo", "negocio"];
-    const isCustom = pillarKey && !standardKeys.includes(pillarKey.toLowerCase());
     const targetPillar = pillarKey || "processo";
+    const isCustom = targetPillar && !standardKeys.includes(targetPillar.toLowerCase());
+
     const currentPillarRoots = mapaData?.treeByPillar?.[targetPillar.toLowerCase()] || [];
-    const maxNum = currentPillarRoots.reduce(
-      (max, r) => Math.max(max, r.diretriz_number || r.order_index || 0),
-      0
-    );
-    const nextOrder = maxNum + 1;
+    const usedNums = new Set(currentPillarRoots.map((r) => r.diretriz_number || r.order_index));
+    const firstAvailable = OFFICIAL_DIRETRIZES.find((d) => !usedNums.has(d.number));
+    const suggestedNum = firstAvailable ? firstAvailable.number : 1;
+    const suggestedTitle = firstAvailable ? firstAvailable.title : "";
 
     setItemForm({
       ...INITIAL_FORM,
       demand_type: targetPillar,
-      custom_pillar: isCustom ? pillarKey.toUpperCase() : "",
+      custom_pillar: isCustom ? targetPillar.toUpperCase() : "",
       item_type: "diretriz",
-      order_index: nextOrder,
+      order_index: suggestedNum,
+      title: suggestedTitle,
     });
     setItemModalOpen(true);
   }
@@ -852,18 +854,32 @@ function MapaPage() {
     });
   }, [mapaData?.pillars, mapaData?.items]);
 
-  // Números disponíveis de diretrizes para o filtro
-  const availableDiretrizNumbers = useMemo(() => {
-    if (!mapaData?.treeByPillar) return [1, 2, 3];
-    const nums = new Set<number>();
-    Object.values(mapaData.treeByPillar).forEach((roots) => {
-      roots.forEach((root) => {
-        const num = root.diretriz_number || root.order_index;
-        if (num && num > 0) nums.add(num);
+  // Opções para o filtro de diretrizes (baseado nas 16 diretrizes oficiais + personalizadas)
+  const allDiretrizFilterOptions = useMemo(() => {
+    const list = OFFICIAL_DIRETRIZES.map((d) => ({
+      number: d.number,
+      title: d.title,
+      label: `Diretriz ${d.number} - ${d.title}`,
+    }));
+
+    if (mapaData?.treeByPillar) {
+      const known = new Set(list.map((o) => o.number));
+      Object.values(mapaData.treeByPillar).forEach((roots) => {
+        roots.forEach((root) => {
+          const num = root.diretriz_number || root.order_index;
+          if (num && num > 0 && !known.has(num)) {
+            known.add(num);
+            list.push({
+              number: num,
+              title: root.title,
+              label: `Diretriz ${num} - ${root.title}`,
+            });
+          }
+        });
       });
-    });
-    if (nums.size === 0) return [1, 2, 3];
-    return Array.from(nums).sort((a, b) => a - b);
+    }
+
+    return list.sort((a, b) => a.number - b.number);
   }, [mapaData?.treeByPillar]);
 
   const treeByPillar = useMemo(() => {
@@ -1451,17 +1467,30 @@ function MapaPage() {
                   </div>
 
                   <Select value={diretrizFilter} onValueChange={setDiretrizFilter}>
-                    <SelectTrigger className="h-9 w-full min-w-0 text-xs sm:w-36">
+                    <SelectTrigger className="h-9 w-full min-w-0 text-xs sm:w-44">
                       <div className="flex items-center gap-1.5 truncate">
                         <Filter className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <SelectValue placeholder="Diretriz" />
+                        <SelectValue placeholder="Diretriz">
+                          {diretrizFilter === "all"
+                            ? "Todas as diretrizes"
+                            : `Diretriz ${diretrizFilter}`}
+                        </SelectValue>
                       </div>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as diretrizes</SelectItem>
-                      {availableDiretrizNumbers.map((num) => (
-                        <SelectItem key={num} value={String(num)} className="text-xs font-medium">
-                          Diretriz {num}
+                    <SelectContent className="max-h-80 w-[340px] sm:w-[420px]">
+                      <SelectItem value="all" className="text-xs font-semibold">
+                        Todas as diretrizes (1 a 16)
+                      </SelectItem>
+                      {allDiretrizFilterOptions.map((opt) => (
+                        <SelectItem key={opt.number} value={String(opt.number)} className="text-xs py-2">
+                          <div className="flex items-start gap-1.5">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-black shrink-0 bg-primary/10 text-primary border-primary/20">
+                              D{opt.number}
+                            </Badge>
+                            <span className="line-clamp-2 text-[11px] leading-tight text-foreground/90">
+                              {opt.title}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -2028,81 +2057,125 @@ function MapaPage() {
           </DialogHeader>
 
           <div className="space-y-3.5 py-1">
-            {/* Título */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Título da Diretriz (Ação Mãe) *</Label>
-              <Input
-                placeholder="Ex: Fortalecer a governança institucional e comitês de gestão"
-                value={itemForm.title}
-                onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
-                className="text-sm"
-              />
-            </div>
-
-            {/* Pilar Estratégico */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Pilar Estratégico</Label>
+            {/* Escolha da Diretriz Oficial */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center justify-between">
+                <span>Diretriz Estratégica Oficial *</span>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Selecione de 1 a 16
+                </span>
+              </Label>
               <Select
-                value={itemForm.demand_type}
+                value={String(itemForm.order_index || 1)}
                 onValueChange={(val) => {
-                  const standardKeys = ["pessoas", "processo", "negocio"];
-                  const isCustom = val && !standardKeys.includes(val.toLowerCase());
-                  let newOrder = itemForm.order_index;
-                  if (itemModalMode === "diretriz") {
-                    const pillarRoots = mapaData?.treeByPillar?.[val.toLowerCase()] || [];
-                    const maxNum = pillarRoots.reduce(
-                      (max, r) => Math.max(max, r.diretriz_number || r.order_index || 0),
-                      0
-                    );
-                    newOrder = maxNum + 1;
-                  }
+                  const num = parseInt(val, 10);
+                  const off = OFFICIAL_DIRETRIZES.find((d) => d.number === num);
                   setItemForm({
                     ...itemForm,
-                    demand_type: val,
-                    custom_pillar: isCustom ? val.toUpperCase() : "",
-                    order_index: newOrder,
+                    order_index: num,
+                    title: off ? off.title : itemForm.title,
                   });
                 }}
               >
-                <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder="Selecione o pilar" />
+                <SelectTrigger className="text-xs h-10 text-left">
+                  <SelectValue placeholder="Selecione a diretriz...">
+                    {(() => {
+                      const curNum = itemForm.order_index || 1;
+                      const off = OFFICIAL_DIRETRIZES.find((d) => d.number === curNum);
+                      return (
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="font-bold text-primary shrink-0">#{curNum}</span>
+                          <span className="truncate">{off ? off.title : itemForm.title || `Diretriz ${curNum}`}</span>
+                        </div>
+                      );
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {filteredPillars.map((p) => (
-                    <SelectItem key={p.key} value={p.key} className="text-xs">
-                      {p.name}
+                <SelectContent className="max-h-72 w-[340px] sm:w-[460px]">
+                  {OFFICIAL_DIRETRIZES.map((d) => (
+                    <SelectItem key={d.number} value={String(d.number)} className="text-xs py-2">
+                      <div className="flex items-start gap-1.5">
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 font-black shrink-0 bg-primary/10 text-primary border-primary/20">
+                          #{d.number}
+                        </Badge>
+                        <span className="line-clamp-2 text-[11px] leading-tight text-foreground/90">
+                          {d.title}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Número da Diretriz (Fixo no Pilar) */}
+            <div className="grid grid-cols-3 gap-2.5">
+              {/* Número da Diretriz */}
+              <div className="col-span-1 space-y-1">
+                <Label className="text-xs font-semibold">Nº Diretriz *</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={itemForm.order_index || 1}
+                  onChange={(e) => {
+                    const num = Math.max(1, parseInt(e.target.value) || 1);
+                    const off = OFFICIAL_DIRETRIZES.find((d) => d.number === num);
+                    setItemForm({
+                      ...itemForm,
+                      order_index: num,
+                      ...(off && !itemForm.title.trim() ? { title: off.title } : {}),
+                    });
+                  }}
+                  className="text-xs h-9 font-bold text-primary"
+                />
+              </div>
+
+              {/* Pilar Estratégico */}
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs font-semibold">Pilar Estratégico *</Label>
+                <Select
+                  value={itemForm.demand_type}
+                  onValueChange={(val) => {
+                    const standardKeys = ["pessoas", "processo", "negocio"];
+                    const isCustom = val && !standardKeys.includes(val.toLowerCase());
+                    setItemForm({
+                      ...itemForm,
+                      demand_type: val,
+                      custom_pillar: isCustom ? val.toUpperCase() : "",
+                    });
+                  }}
+                >
+                  <SelectTrigger className="text-xs h-9">
+                    <SelectValue placeholder="Selecione o pilar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredPillars.map((p) => (
+                      <SelectItem key={p.key} value={p.key} className="text-xs">
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Título da Diretriz */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Número da Diretriz (Fixo no Pilar) *</Label>
-              <Input
-                type="number"
-                min={1}
-                value={itemForm.order_index || 1}
-                onChange={(e) =>
-                  setItemForm({
-                    ...itemForm,
-                    order_index: Math.max(1, parseInt(e.target.value) || 1),
-                  })
-                }
-                className="text-xs h-9"
+              <Label className="text-xs font-semibold">Título da Diretriz *</Label>
+              <Textarea
+                rows={3}
+                placeholder="Título oficial da diretriz..."
+                value={itemForm.title}
+                onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
+                className="text-xs resize-none"
               />
-              <p className="text-[10px] text-muted-foreground">
-                Define a numeração fixa desta diretriz dentro do pilar ({itemForm.demand_type.toUpperCase()}).
-              </p>
             </div>
 
             {/* Descrição Breve */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Descrição Breve</Label>
+              <Label className="text-xs font-semibold">Observações / Contexto no Pilar</Label>
               <Textarea
-                rows={3}
-                placeholder="Descreva brevemente o objetivo desta diretriz..."
+                rows={2}
+                placeholder="Observações específicas desta diretriz neste pilar..."
                 value={itemForm.observations}
                 onChange={(e) => setItemForm({ ...itemForm, observations: e.target.value })}
                 className="text-xs resize-none"
@@ -2110,8 +2183,7 @@ function MapaPage() {
             </div>
 
             <p className="text-[10px] text-muted-foreground italic">
-              A diretriz é classificada automaticamente como Nível 2 (Mãe). Os desdobramentos (ações
-              executáveis) serão adicionados dentro dela.
+              Uma mesma diretriz oficial (1 a 16) pode existir em múltiplos pilares (Pessoas, Processos e Negócios) com desdobramentos de ações específicos para cada pilar.
             </p>
           </div>
 

@@ -1,3 +1,5 @@
+export { OFFICIAL_DIRETRIZES, matchOfficialDiretriz } from "./mapa-diretrizes";
+import { matchOfficialDiretriz } from "./mapa-diretrizes";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertPermission } from "./permissions.functions";
@@ -238,8 +240,9 @@ export const getMapaData = createServerFn({ method: "GET" })
       const trend = Number(r.trend ?? meta?.trend ?? 3);
       const gut_score = Number(r.gut_score ?? gravity * urgency * trend);
       const rawOrder = Number(r.order_index ?? meta?.order_index ?? meta?.diretriz_number ?? 0);
-      const order_index = rawOrder > 0 ? rawOrder : 0;
-      const diretriz_number = meta?.diretriz_number ? Number(meta.diretriz_number) : (order_index > 0 ? order_index : undefined);
+      const matchedNumber = matchOfficialDiretriz(r.title, rawOrder);
+      const order_index = matchedNumber ?? (rawOrder > 0 ? (rawOrder === 17 ? 16 : rawOrder) : 0);
+      const diretriz_number = matchedNumber ?? (order_index > 0 ? order_index : undefined);
 
       return {
         id: r.id,
@@ -285,19 +288,19 @@ export const getMapaData = createServerFn({ method: "GET" })
       const pItems = rawItems.filter((i) => i.demand_type.toLowerCase() === pKey);
       const rootItems = pItems.filter((i) => !i.parent_id);
 
-      // Ordena diretrizes respeitando order_index fixo ou created_at
+      // Ordena diretrizes pelo número oficial global da diretriz (1 a 16)
       const sortedRoots = [...rootItems].sort((a, b) => {
-        const orderA = a.order_index && a.order_index > 0 ? a.order_index : 999999;
-        const orderB = b.order_index && b.order_index > 0 ? b.order_index : 999999;
-        if (orderA !== orderB) return orderA - orderB;
+        const numA = a.diretriz_number ?? (a.order_index > 0 ? a.order_index : 999999);
+        const numB = b.diretriz_number ?? (b.order_index > 0 ? b.order_index : 999999);
+        if (numA !== numB) return numA - numB;
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
         return dateA - dateB;
       });
 
-      // Atribui número fixo permanente (1, 2, 3...) dentro de cada pilar
+      // Atribui número fixo permanente da diretriz oficial correspondente
       const assignedRoots: MapaItem[] = sortedRoots.map((root, idx) => {
-        const fixedNum = root.order_index && root.order_index > 0 ? root.order_index : idx + 1;
+        const fixedNum = root.diretriz_number || (root.order_index > 0 ? root.order_index : idx + 1);
         return {
           ...root,
           diretriz_number: fixedNum,
